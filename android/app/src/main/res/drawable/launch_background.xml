@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Dark launch background so there is no white flash before the Flutter
-     splash screen draws its first frame. -->
+<!-- Launch background = @color/splash_bg, which follows the OS light/dark
+     setting (values vs values-night). MainActivity further overrides the
+     window background with the app's own stored theme, so the manual in-app
+     switch always wins before Flutter's themed splash draws. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/splash_bg" />
 </layer-list>

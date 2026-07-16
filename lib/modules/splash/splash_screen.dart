@@ -120,7 +120,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
         ),
         child: Stack(
           children: [
-            // Faint vignette at the bottom for depth.
+            // Faint vignette at the bottom for depth. In dark mode it deepens
+            // toward near-black; in light mode it stays a barely-there tint so
+            // it reads as gentle depth rather than a grey shadow band.
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
@@ -129,7 +131,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      isDark ? const Color(0xFF0C0C12) : const Color(0xFFE7E2DE),
+                      isDark ? const Color(0xFF0C0C12) : const Color(0x1AD8CFC4),
                     ],
                   ),
                 ),

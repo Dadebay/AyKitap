@@ -8,7 +8,13 @@ import '../../../core/localization/strings/profile_strings.dart';
 /// full-width primary action) instead of a cramped AlertDialog.
 class EditNoteSheet extends StatefulWidget {
   final String initialText;
-  const EditNoteSheet({super.key, required this.initialText});
+
+  /// Header copy — defaults to the "edit" wording, but the reader reuses this
+  /// sheet to *add* a note (TZ 12.7) with its own title/subtitle.
+  final String? title;
+  final String? subtitle;
+
+  const EditNoteSheet({super.key, required this.initialText, this.title, this.subtitle});
 
   @override
   State<EditNoteSheet> createState() => _EditNoteSheetState();
@@ -51,11 +57,11 @@ class _EditNoteSheetState extends State<EditNoteSheet> {
               children: [
                 HugeIcon(icon: HugeIcons.strokeRoundedEdit02, color: AppColors.primary, size: 22),
                 const SizedBox(width: 10),
-                Text(ProfileStrings.editNoteTitle, style: TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                Text(widget.title ?? ProfileStrings.editNoteTitle, style: TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w800)),
               ],
             ),
             const SizedBox(height: 6),
-            Text(ProfileStrings.editNoteSubtitle, style: TextStyle(color: AppColors.grey2, fontSize: 13)),
+            Text(widget.subtitle ?? ProfileStrings.editNoteSubtitle, style: TextStyle(color: AppColors.grey2, fontSize: 13)),
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

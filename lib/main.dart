@@ -10,6 +10,7 @@ import 'core/data/mock_book_repository.dart';
 import 'core/localization/app_locale.dart';
 import 'core/localization/localization_delegates.dart';
 import 'core/services/analytics_service.dart';
+import 'core/services/bookmarks_store.dart';
 import 'core/services/device_fingerprint.dart';
 import 'core/services/firebase_messaging_service.dart';
 import 'core/services/notes_store.dart';
@@ -52,6 +53,7 @@ void main() async {
         ChangeNotifierProvider<StreakService>.value(value: StreakService.instance),
         ChangeNotifierProvider<SubscriptionService>.value(value: SubscriptionService.instance),
         ChangeNotifierProvider<NotesStore>.value(value: NotesStore.instance),
+        ChangeNotifierProvider<BookmarksStore>.value(value: BookmarksStore.instance),
         ChangeNotifierProvider<PurchasedBooksStore>.value(value: PurchasedBooksStore.instance),
         ChangeNotifierProvider<OwnBooksStore>.value(value: OwnBooksStore.instance),
         Provider<BookRepository>(create: (_) => MockBookRepository()),

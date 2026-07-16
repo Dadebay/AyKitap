@@ -11,6 +11,7 @@ import '../../core/localization/strings/profile_strings.dart';
 import '../auth/phone_login_screen.dart';
 import '../payment/subscription_screen.dart';
 import '../streak/streak_screen.dart';
+import 'bookmarks_screen.dart';
 import 'notes_screen.dart';
 import 'book_request_sheet.dart';
 import 'edit_profile_screen.dart';
@@ -122,6 +123,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildSettingsEntry(context),
                   const SizedBox(height: 12),
                   _buildNotesSection(context),
+                  _buildBookmarksSection(context),
                   const SizedBox(height: 12),
                   _buildBookRequestButton(context),
                 ]
@@ -176,6 +178,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       leading: profileIconCircle(HugeIcons.strokeRoundedNote01),
       title: ProfileStrings.viewAllNotes,
       onTap: () => context.push(const NotesScreen()),
+    );
+  }
+
+  Widget _buildBookmarksSection(BuildContext context) {
+    return ProfileEntryCard(
+      leading: profileIconCircle(HugeIcons.strokeRoundedBookmark01),
+      title: ProfileStrings.viewAllBookmarks,
+      onTap: () => context.push(const BookmarksScreen()),
     );
   }
 

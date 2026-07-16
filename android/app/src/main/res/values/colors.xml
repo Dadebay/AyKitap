@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Matches the Flutter splash background (AppColors.bg) so the native
-         launch window flows seamlessly into the animated splash. -->
-    <color name="splash_bg">#13131A</color>
+    <!-- Light launch background (matches AppColors.bg in light mode), used
+         when the OS is in light mode. MainActivity overrides the window
+         background with the app's own stored theme as soon as it starts, so
+         the manual in-app light/dark switch wins over the OS setting. -->
+    <color name="splash_bg">#F6F6F9</color>
 </resources>

@@ -1,14 +1,30 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_epub_viewer/flutter_epub_viewer.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:sakura_epub/sakura_epub.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/models/bookmark.dart';
+import '../../../core/services/bookmarks_store.dart';
 import '../../../core/services/streak_service.dart';
 
 enum ReaderThemeMode { white, sepia, dark, black }
 
-enum ReaderFontFamily { sfPro, newYork, gilroy }
+/// TZ §12.4 — the reader body fonts offered in the settings sheet. Each maps to
+/// a bundled font file that's injected into the epub WebView (see
+/// [_applyReaderFont]) and a matching Flutter family for the sheet's preview.
+enum ReaderFontFamily { sanFrancisco, arial, notoSerif, openSans }
+
+/// TZ §12.2 — the six page-change styles shown in the reference panel.
+/// sakura_epub only distinguishes paginated vs. scrolled natively, so the
+/// scroll option maps to [EpubFlow.scrolled] and every other option to
+/// [EpubFlow.paginated]; the distinct curl/overlay/shift animations are a
+/// visual layer epub.js doesn't expose, so they currently share the standard
+/// slide behaviour while still being remembered as the user's preference.
+enum ReaderPageTransition { slide, curl, overlay, scroll, shift, none }
 
 class ReaderProvider extends ChangeNotifier {
   // ── Epub controller (low-level WebView bridge) ──────────────────────────
@@ -20,7 +36,6 @@ class ReaderProvider extends ChangeNotifier {
   int? _lastLoggedPage;
   double _progress = 0.0;
   String _currentCfi = '';
-  String _currentHref = '';
   bool _isAtLastPage = false;
 
   int get currentPage => _currentPage;
@@ -40,8 +55,57 @@ class ReaderProvider extends ChangeNotifier {
   List<EpubChapter> _chapters = [];
   List<EpubChapter> get chapters => _chapters;
 
+  /// Spine href of the page on screen, reported by [onRelocated].
+  String _currentHref = '';
+
+  /// TZ §12.1 — the chapter name shown in the reader's top bar. Resolved by
+  /// matching the current page's spine href against the TOC (including nested
+  /// subitems); null while the position is still unknown or the href isn't in
+  /// the TOC, so the caller can fall back to the book title.
+  String? get currentChapterTitle {
+    if (_currentHref.isEmpty || _chapters.isEmpty) return null;
+    final current = _normalizeHref(_currentHref);
+    if (current.isEmpty) return null;
+
+    String? walk(List<EpubChapter> list) {
+      // Depth-first, deepest match wins: a subitem is more specific than the
+      // top-level entry that contains it.
+      for (final c in list) {
+        final fromChild = walk(c.subitems);
+        if (fromChild != null) return fromChild;
+        if (_normalizeHref(c.href) == current && c.title.trim().isNotEmpty) {
+          return c.title.trim();
+        }
+      }
+      return null;
+    }
+
+    return walk(_chapters);
+  }
+
+  /// Whether [chapter] is the one currently on screen — used by the chapter
+  /// list to highlight where the reader is. Compares on the normalized href
+  /// (see [_normalizeHref]); an anchor-only difference still counts as the
+  /// same chapter file.
+  bool isChapterCurrent(EpubChapter chapter) {
+    if (_currentHref.isEmpty || chapter.href.isEmpty) return false;
+    return _normalizeHref(chapter.href) == _normalizeHref(_currentHref);
+  }
+
+  /// TOC hrefs and spine hrefs often disagree on anchors (`#id`), query
+  /// strings and directory prefixes (`OEBPS/text/ch1.xhtml` vs `ch1.xhtml`),
+  /// so compare on the bare file name only.
+  String _normalizeHref(String href) {
+    var h = href.split('#').first.split('?').first;
+    final slash = h.lastIndexOf('/');
+    if (slash != -1) h = h.substring(slash + 1);
+    return h.trim();
+  }
+
   // ── UI state ─────────────────────────────────────────────────────────────
-  bool _showControls = false;
+  // Chrome starts visible so the controls are discoverable when a book opens;
+  // tapping the page hides it for distraction-free reading and brings it back.
+  bool _showControls = true;
   bool get showControls => _showControls;
 
   String _selectedText = '';
@@ -55,19 +119,38 @@ class ReaderProvider extends ChangeNotifier {
 
   // ── Theme & font ─────────────────────────────────────────────────────────
   ReaderThemeMode _themeMode = ReaderThemeMode.white;
-  ReaderFontFamily _fontFamily = ReaderFontFamily.sfPro;
+  ReaderFontFamily _fontFamily = ReaderFontFamily.sanFrancisco;
   double _fontSize = 18.0;
   double _lineSpacing = 1.5;
+  // TZ §12.4 — screen dimming, 0.1 (darkest) … 1.0 (full). Applied as an
+  // overlay in the reader view, independent of the OS brightness.
+  double _brightness = 1.0;
 
   ReaderThemeMode get themeMode => _themeMode;
   ReaderFontFamily get fontFamily => _fontFamily;
   double get fontSize => _fontSize;
   double get lineSpacing => _lineSpacing;
+  double get brightness => _brightness;
 
   EpubTheme get currentEpubTheme => _buildEpubTheme();
 
+  // ── Page transition & reading direction (TZ §12.2) ────────────────────────
+  ReaderPageTransition _pageTransition = ReaderPageTransition.slide;
+  bool _leftHandMode = false;
+
+  ReaderPageTransition get pageTransition => _pageTransition;
+  bool get leftHandMode => _leftHandMode;
+
+  // ── Bookmarks (TZ §12.1) ──────────────────────────────────────────────────
+  // Held in the app-wide [BookmarksStore] rather than locally, so the profile
+  // can list every book's marks while the reader shows only this book's.
+  List<Bookmark> get bookmarks => BookmarksStore.instance.forBook(_bookId ?? -1);
+  bool get isCurrentPageBookmarked =>
+      _bookId != null && _currentCfi.isNotEmpty && BookmarksStore.instance.isBookmarked(_bookId!, _currentCfi);
+
   // ── Book info ─────────────────────────────────────────────────────────────
   int? _bookId;
+  String _bookTitle = '';
   Timer? _saveTimer;
 
   // ── Streak ping (TZ §9.1: "Her 30 sek-de server-e ping iberilýär") ────────
@@ -78,10 +161,15 @@ class ReaderProvider extends ChangeNotifier {
   // Init
   // ─────────────────────────────────────────────────────────────────────────
 
-  Future<void> initialize({required int bookId}) async {
+  Future<void> initialize({required int bookId, String bookTitle = ''}) async {
     _bookId = bookId;
+    _bookTitle = bookTitle;
     _isLoading = true;
     notifyListeners();
+
+    // Bookmarks live app-wide; make sure they're in memory before the top bar
+    // asks whether this page is marked.
+    await BookmarksStore.instance.load();
 
     final prefs = await SharedPreferences.getInstance();
     _progress = prefs.getDouble('book_${bookId}_progress') ?? 0.0;
@@ -96,6 +184,14 @@ class ReaderProvider extends ChangeNotifier {
 
     _fontSize = prefs.getDouble('reader_font_size') ?? 18.0;
     _lineSpacing = prefs.getDouble('reader_line_spacing') ?? 1.5;
+    _brightness = prefs.getDouble('reader_brightness') ?? 1.0;
+    // Apply the saved reading brightness to the device screen now that we're
+    // in the reader (restored to system brightness again on close).
+    _applyReaderBrightness();
+
+    final savedTransition = prefs.getInt('reader_page_transition') ?? 0;
+    _pageTransition = ReaderPageTransition.values[savedTransition.clamp(0, ReaderPageTransition.values.length - 1)];
+    _leftHandMode = prefs.getBool('reader_left_hand') ?? false;
 
     notifyListeners();
 
@@ -114,6 +210,17 @@ class ReaderProvider extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
 
+    // Push the saved page-change style into the freshly-created rendition —
+    // it only lives in the webview, so it has to be re-applied per book.
+    epubController.setPageTransition(mode: _pageTransition.name);
+    if (_pageTransition == ReaderPageTransition.scroll) {
+      epubController.setFlow(flow: EpubFlow.scrolled);
+    }
+
+    // The chosen body font is a WebView @font-face, so it also has to be
+    // (re)injected each time a book's rendition is created.
+    _applyReaderFont();
+
     // Restore reading position
     if (_progress > 0.0) {
       Future.delayed(const Duration(milliseconds: 600), () {
@@ -131,7 +238,7 @@ class ReaderProvider extends ChangeNotifier {
   void onRelocated(EpubLocation location) {
     _progress = location.progress;
     _currentCfi = location.startCfi;
-    _currentHref = location.href;
+    _currentHref = location.href ?? '';
     notifyListeners();
 
     // Debounced save
@@ -231,7 +338,7 @@ class ReaderProvider extends ChangeNotifier {
 
   Future<void> setFontFamily(ReaderFontFamily family) async {
     _fontFamily = family;
-    epubController.updateTheme(theme: _buildEpubTheme());
+    await _applyReaderFont();
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('reader_font', family.index);
@@ -245,60 +352,210 @@ class ReaderProvider extends ChangeNotifier {
     await prefs.setDouble('reader_line_spacing', _lineSpacing);
   }
 
+  Future<void> setBrightness(double value) async {
+    _brightness = value.clamp(0.1, 1.0);
+    notifyListeners();
+    await _applyReaderBrightness();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('reader_brightness', _brightness);
+  }
+
+  /// Drives the actual device screen brightness (TZ §12.4). At full brightness
+  /// we release control so the reader follows the system setting; below full,
+  /// the app screen is dimmed to the chosen level. All app-scoped, so it's
+  /// undone automatically when the app backgrounds — and explicitly on close.
+  Future<void> _applyReaderBrightness() async {
+    try {
+      if (_brightness >= 1.0) {
+        await ScreenBrightness().resetApplicationScreenBrightness();
+      } else {
+        await ScreenBrightness().setApplicationScreenBrightness(_brightness.clamp(0.0, 1.0));
+      }
+    } catch (e) {
+      log('❌ Brightness error: $e');
+    }
+  }
+
+  Future<void> _releaseBrightness() async {
+    try {
+      await ScreenBrightness().resetApplicationScreenBrightness();
+    } catch (e) {
+      log('❌ Brightness reset error: $e');
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Page transition & reading direction (TZ §12.2)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Future<void> setPageTransition(ReaderPageTransition transition) async {
+    _pageTransition = transition;
+    // Two levers: `flow` picks paginated vs scrolled reading, and the custom
+    // animation layer in epubView.js plays the chosen tween on each turn.
+    epubController.setFlow(
+      flow: transition == ReaderPageTransition.scroll ? EpubFlow.scrolled : EpubFlow.paginated,
+    );
+    epubController.setPageTransition(mode: transition.name);
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('reader_page_transition', transition.index);
+  }
+
+  Future<void> toggleLeftHand() async {
+    _leftHandMode = !_leftHandMode;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('reader_left_hand', _leftHandMode);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Bookmarks (TZ §12.1)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Toggles a bookmark at the current reading position (CFI). Returns true
+  /// if a bookmark was added, false if one was removed.
+  Future<bool> toggleBookmark() async {
+    if (_bookId == null || _currentCfi.isEmpty) return false;
+    final added = await BookmarksStore.instance.toggle(
+      bookId: _bookId!,
+      bookTitle: _bookTitle,
+      cfi: _currentCfi,
+      chapterTitle: currentChapterTitle ?? '',
+      progress: _progress,
+    );
+    notifyListeners();
+    return added;
+  }
+
+  Future<void> removeBookmark(String id) async {
+    await BookmarksStore.instance.remove(id);
+    notifyListeners();
+  }
+
+  void goToBookmark(String cfi) => epubController.display(cfi: cfi);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // In-book search (TZ §12.3)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Future<List<EpubSearchResult>> search(String query) async {
+    if (query.trim().isEmpty) return const [];
+    return epubController.search(query: query.trim());
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Theme builder
   // ─────────────────────────────────────────────────────────────────────────
 
-  EpubTheme _buildEpubTheme() {
-    final fontName = switch (_fontFamily) {
-      ReaderFontFamily.sfPro => 'SFPro',
-      ReaderFontFamily.newYork => 'NewYork',
-      ReaderFontFamily.gilroy => 'Gilroy',
-    };
+  // ── Reader body font (TZ §12.4) ───────────────────────────────────────────
+  // The epub renders in a WebView, so the chosen font can't come from Flutter's
+  // registered families — it's read from assets, base64-encoded and injected as
+  // an @font-face. The css/asset names line up so the injected face and the
+  // theme's `font-family` rule refer to the same family.
 
+  static String _fontCssName(ReaderFontFamily f) => switch (f) {
+        ReaderFontFamily.sanFrancisco => 'SanFrancisco',
+        ReaderFontFamily.arial => 'Arial',
+        ReaderFontFamily.notoSerif => 'NotoSerif',
+        ReaderFontFamily.openSans => 'OpenSans',
+      };
+
+  static String _fontAsset(ReaderFontFamily f) => switch (f) {
+        ReaderFontFamily.sanFrancisco => 'assets/fonts/SF-Pro-Text-Regular.otf',
+        ReaderFontFamily.arial => 'assets/fonts/Arial-Regular.ttf',
+        ReaderFontFamily.notoSerif => 'assets/fonts/NotoSerif-Regular.ttf',
+        ReaderFontFamily.openSans => 'assets/fonts/OpenSans-Regular.ttf',
+      };
+
+  Future<void> _applyReaderFont() async {
+    final family = _fontFamily;
+    final asset = _fontAsset(family);
+    try {
+      final data = await rootBundle.load(asset);
+      final b64 = base64Encode(data.buffer.asUint8List());
+      epubController.setFontFamily(
+        fontFamily: _fontCssName(family),
+        fontBase64: b64,
+        fontMimeType: asset.endsWith('.otf') ? 'font/opentype' : 'font/truetype',
+      );
+    } catch (e) {
+      log('❌ Font apply error: $e');
+    }
+  }
+
+  EpubTheme _buildEpubTheme() {
+    final fontName = _fontCssName(_fontFamily);
+    final css = _readerCss(fontName);
     return switch (_themeMode) {
       ReaderThemeMode.white => EpubTheme.custom(
           backgroundDecoration: const BoxDecoration(color: Color(0xFFFFFFFF)),
           foregroundColor: const Color(0xFF000000),
-          customCss: {
-            'font-family': fontName,
-            'line-height': '$_lineSpacing',
-            'padding-top': '40px',
-            'padding-bottom': '40px',
-          },
+          customCss: css,
         ),
       ReaderThemeMode.sepia => EpubTheme.custom(
           backgroundDecoration: const BoxDecoration(color: Color(0xFFf5ebda)),
           foregroundColor: const Color(0xFF3E3329),
-          customCss: {
-            'font-family': fontName,
-            'line-height': '$_lineSpacing',
-            'padding-top': '40px',
-            'padding-bottom': '40px',
-          },
+          customCss: css,
         ),
       ReaderThemeMode.dark => EpubTheme.custom(
           backgroundDecoration: const BoxDecoration(color: Color(0xFF1C1C1E)),
           foregroundColor: const Color(0xFFFFFFFF),
-          customCss: {
-            'font-family': fontName,
-            'line-height': '$_lineSpacing',
-            'padding-top': '40px',
-            'padding-bottom': '40px',
-          },
+          customCss: css,
         ),
       ReaderThemeMode.black => EpubTheme.custom(
           backgroundDecoration: const BoxDecoration(color: Color(0xFF000000)),
           foregroundColor: const Color(0xFFABAAB2),
-          customCss: {
-            'font-family': fontName,
-            'line-height': '$_lineSpacing',
-            'padding-top': '40px',
-            'padding-bottom': '40px',
-          },
+          customCss: css,
         ),
     };
   }
+
+  /// sakura_epub's `customCss` is a map of **CSS selector → { property: value }**
+  /// (its `updateTheme` merges each selector's object into the epub.js theme
+  /// rules). The old flat `{ 'font-family': … }` shape was silently ignored
+  /// because those keys were treated as selectors with string values.
+  ///
+  /// The `img` / `svg` rules keep pictures — especially full-page cover art —
+  /// centred and scaled to fit the page instead of spilling off to one side.
+  Map<String, dynamic> _readerCss(String fontName) => {
+        'body': {
+          'font-family': fontName,
+          'line-height': '$_lineSpacing',
+          'padding-top': '40px',
+          'padding-bottom': '40px',
+        },
+        'img': {
+          'max-width': '100%',
+          'max-height': '96vh',
+          'height': 'auto',
+          'display': 'block',
+          'margin-left': 'auto',
+          'margin-right': 'auto',
+          'object-fit': 'contain',
+        },
+        'svg': {
+          'max-width': '100%',
+          'max-height': '96vh',
+          'display': 'block',
+          'margin-left': 'auto',
+          'margin-right': 'auto',
+        },
+        // Cover pages: a body whose *only* content is one picture — either a
+        // bare <img>/<svg> or one wrapped in a single <div> (Calibre emits
+        // <body><div><svg><image/></svg></div>). The :only-child chain keeps
+        // this from ever matching a text page that happens to contain an
+        // illustration. Centring is done with flex rather than by forcing a
+        // height, because these covers carry preserveAspectRatio="none" and
+        // would stretch if the box's aspect ratio were changed.
+        'body:has(> img:only-child), body:has(> svg:only-child), body:has(> div:only-child > img:only-child), body:has(> div:only-child > svg:only-child)': {
+          'display': 'flex',
+          'align-items': 'center',
+          'justify-content': 'center',
+          'height': '100vh',
+          'margin': '0',
+          'padding': '0',
+        },
+      };
 
   // ─────────────────────────────────────────────────────────────────────────
   // Progress persistence
@@ -325,6 +582,8 @@ class ReaderProvider extends ChangeNotifier {
   Future<void> saveAndClose() async {
     _saveTimer?.cancel();
     _streakPingTimer?.cancel();
+    // Hand the screen brightness back to the system on the way out.
+    await _releaseBrightness();
     await _saveProgress();
     _reset();
   }
@@ -335,7 +594,7 @@ class ReaderProvider extends ChangeNotifier {
     _lastLoggedPage = null;
     _progress = 0.0;
     _isLoading = true;
-    _showControls = false;
+    _showControls = true;
     _selectedText = '';
     _selectedCfi = null;
     _selectionRect = null;
@@ -347,6 +606,8 @@ class ReaderProvider extends ChangeNotifier {
   void dispose() {
     _saveTimer?.cancel();
     _streakPingTimer?.cancel();
+    // Safety net: covers exit paths that don't route through saveAndClose.
+    _releaseBrightness();
     super.dispose();
   }
 }

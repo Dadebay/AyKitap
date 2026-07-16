@@ -42,8 +42,10 @@ dependencies:
   device_info_plus: ^11.2.0
 
   #==================== EPUB READER ====================#
-  flutter_epub_viewer:
-    path: ./packages/flutter_epub_viewer
+  # sakura_epub — full-featured epub.js + flutter_inappwebview reader
+  # (annotations, search, themes, navigation). Vendored under packages/.
+  sakura_epub:
+    path: ./packages/sakura_epub
 
   #==================== PDF READER ====================#
   flutter_pdfview: ^1.3.4
@@ -62,6 +64,7 @@ dependencies:
   #==================== PUSH NOTIFICATIONS ====================#
   firebase_messaging: ^16.0.2
   flutter_local_notifications: ^19.0.0
+  screen_brightness: ^2.1.11
 
 dev_dependencies:
   flutter_test:
@@ -75,6 +78,7 @@ flutter:
     - assets/
     - assets/books/
     - assets/fonts/
+    - assets/icons/reader/
     - assets/images/
     - assets/images/onboarding/
     - assets/images/covers/
@@ -84,24 +88,23 @@ flutter:
     - assets/flags/
 
   fonts:
-    - family: GilroyBold
-      fonts:
-        - asset: assets/fonts/Gilroy-Bold.ttf
-    - family: GilroyMedium
-      fonts:
-        - asset: assets/fonts/Gilroy-Medium.ttf
     - family: GilroyRegular
       fonts:
         - asset: assets/fonts/Gilroy-Regular.ttf
-    - family: GilroySemiBold
-      fonts:
-        - asset: assets/fonts/Gilroy-SemiBold.ttf
     - family: Gilroy
       fonts:
         - asset: assets/fonts/Gilroy-Regular.ttf
-    - family: SFPro
+    # Reader font options (TZ §12.4) — used both for the settings-sheet
+    # previews and injected into the epub WebView as @font-face.
+    - family: SanFrancisco
       fonts:
-        - asset: assets/fonts/SF-Pro.ttf
-    - family: NewYork
+        - asset: assets/fonts/SF-Pro-Text-Regular.otf
+    - family: Arial
       fonts:
-        - asset: assets/fonts/NewYork.ttf
+        - asset: assets/fonts/Arial-Regular.ttf
+    - family: NotoSerif
+      fonts:
+        - asset: assets/fonts/NotoSerif-Regular.ttf
+    - family: OpenSans
+      fonts:
+        - asset: assets/fonts/OpenSans-Regular.ttf

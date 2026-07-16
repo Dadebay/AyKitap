@@ -1,0 +1,46 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+    
+        {
+            "name": "aykitap",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "aykitap (profile mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "aykitap (release mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "sakura_epub",
+            "cwd": "packages/sakura_epub",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "sakura_epub (profile mode)",
+            "cwd": "packages/sakura_epub",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "sakura_epub (release mode)",
+            "cwd": "packages/sakura_epub",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}

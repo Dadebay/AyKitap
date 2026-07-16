@@ -134,6 +134,13 @@ class ProfileStrings {
       );
   static String get settingsEntryTitle => t(tk: 'Sazlamalar', ru: 'Настройки', tr: 'Ayarlar');
   static String get viewAllNotes => t(tk: 'Ähli notlary gör', ru: 'Смотреть все заметки', tr: 'Tüm notları gör');
+  static String get viewAllBookmarks => t(tk: 'Ähli bellikleri gör', ru: 'Смотреть все закладки', tr: 'Tüm yer imlerini gör');
+  static String get bookmarksTitle => t(tk: 'Bellikler', ru: 'Закладки', tr: 'Yer imleri');
+  static String get bookmarksEmpty => t(
+        tk: 'Entäk bellik ýok.\nKitap okap, sahypany belläň.',
+        ru: 'Пока нет закладок.\nОткройте книгу и отметьте страницу.',
+        tr: 'Henüz yer imi yok.\nBir kitap açıp sayfa işaretleyin.',
+      );
   static String get sendBookRequest => t(
         tk: 'Kitap haýyşy iber',
         ru: 'Отправить запрос книги',

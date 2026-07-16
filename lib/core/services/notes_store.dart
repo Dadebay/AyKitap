@@ -30,6 +30,35 @@ class NotesStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Captures a new highlight/note from the reader (TZ 12.7). The book is
+  /// referenced by [bookSeed]/[bookIndex] so [ReadingNote.book] can regenerate
+  /// it — the caller resolves those from the mock book's `book_{seed}_{index}`
+  /// id. Newest notes sort to the top.
+  Future<void> add({
+    required String text,
+    required int bookSeed,
+    required int bookIndex,
+    required String bookTitle,
+  }) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
+    // The reader can capture a note before the profile ever opened the list,
+    // so make sure the persisted notes are in memory first — otherwise this
+    // would save on top of an empty list and wipe the seeds/earlier notes.
+    await load();
+    final note = ReadingNote(
+      id: 'note_${DateTime.now().microsecondsSinceEpoch}',
+      text: trimmed,
+      bookSeed: bookSeed,
+      bookIndex: bookIndex,
+      bookTitle: bookTitle,
+      createdAt: DateTime.now(),
+    );
+    _notes = [note, ..._notes];
+    await _persist();
+    notifyListeners();
+  }
+
   Future<void> updateText(String id, String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;

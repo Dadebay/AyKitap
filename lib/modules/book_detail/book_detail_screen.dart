@@ -48,10 +48,21 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     AnalyticsService.instance.logSelectBook(id: widget.book.id, title: widget.book.title);
   }
 
+  /// TEMPORARY — testing only. Lets "Satyn al" unlock a book instantly so the
+  /// reader can be exercised without going through payment. Set back to false
+  /// to restore the real [BookPurchaseScreen] flow before shipping.
+  static const _bypassPurchaseForTesting = true;
+
   /// §10.2: a subscriber never sees "Satyn al" (the sticky CTA already hides
   /// it whenever the user is entitled), so reaching this method always means
   /// a real per-book purchase is needed.
   Future<void> _onBuy() async {
+    if (_bypassPurchaseForTesting) {
+      // Mark it owned (flips the CTA to "Oka") and jump straight into the book.
+      await PurchasedBooksStore.instance.markPurchased(widget.book);
+      if (mounted) await _openReader();
+      return;
+    }
     final purchased = await context.push<bool>(BookPurchaseScreen(book: widget.book));
     if (purchased == true) {
       await PurchasedBooksStore.instance.markPurchased(widget.book);
@@ -76,7 +87,14 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       await context.push(
         ChangeNotifierProvider(
           create: (_) => ReaderProvider(),
-          child: ReaderScreen(bookPath: path, bookId: book.id.hashCode, bookTitle: book.title),
+          child: ReaderScreen(
+            bookPath: path,
+            bookId: book.id.hashCode,
+            bookTitle: book.title,
+            coverUrl: book.coverImage,
+            bookPages: book.pages,
+            bookRef: book.id,
+          ),
         ),
       );
     } catch (e) {
