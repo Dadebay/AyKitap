@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/models/book.dart';
+import '../../core/navigation/app_navigator.dart';
+import '../../core/widgets/app_back_button.dart';
 import '../book_detail/book_detail_screen.dart';
-import '../../core/localization/strings/popular_strings.dart';
+import '../../core/localization/strings/author_strings.dart';
 
 /// Book list behind a Kolleksiýalar "uly kart" (big card) — e.g. tapping
 /// "New York Times Bestsellers" opens its 50 books here, switchable
@@ -28,10 +30,7 @@ class _CollectionBooksScreenState extends State<CollectionBooksScreen> {
         centerTitle: true,
         backgroundColor: AppColors.bg,
         scrolledUnderElevation: 0.0,
-        leading: IconButton(
-          icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: AppColors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
+        leading: const AppBackButton(size: 20),
         title: Text(widget.title, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
           IconButton(
@@ -45,7 +44,7 @@ class _CollectionBooksScreenState extends State<CollectionBooksScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: _isGrid ? _buildGrid() : _buildList(),
+      body: SafeArea(top: false, child: _isGrid ? _buildGrid() : _buildList()),
     );
   }
 
@@ -69,7 +68,7 @@ class _CollectionBooksScreenState extends State<CollectionBooksScreen> {
       ),
       itemCount: widget.books.length,
       itemBuilder: (_, i) => GestureDetector(
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BookDetailScreen(book: widget.books[i]))),
+        onTap: () => context.push(BookDetailScreen(book: widget.books[i])),
         child: _CollectionGridCard(book: widget.books[i]),
       ),
     );
@@ -83,7 +82,7 @@ class _CollectionListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BookDetailScreen(book: book))),
+      onTap: () => context.push(BookDetailScreen(book: book)),
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14)),
@@ -109,7 +108,13 @@ class _CollectionListTile extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(book.author.name, style: TextStyle(color: AppColors.grey2, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 4),
-                  Text(book.isFree ? PopularStrings.free : PopularStrings.priceManat(book.priceManat), style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600)),
+                  Row(
+                    children: [
+                      HugeIcon(icon: HugeIcons.strokeRoundedBook02, color: AppColors.grey2, size: 13),
+                      const SizedBox(width: 4),
+                      Text(AuthorStrings.pagesLabel(book.pages), style: TextStyle(color: AppColors.grey2, fontSize: 12, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
                 ],
               ),
             ),

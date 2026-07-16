@@ -1,18 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../core/services/auth_session.dart';
 import '../../core/localization/app_locale.dart';
 import '../../core/localization/strings/settings_strings.dart';
-
-class _AppLanguage {
-  final AppLanguageCode code;
-  final String label;
-  final String? flagAsset; // null when no flag artwork is available yet
-  const _AppLanguage(this.code, this.label, this.flagAsset);
-}
+import '../../core/widgets/app_back_button.dart';
+import 'widgets/language_sheet.dart';
+import 'widgets/settings_tiles.dart';
 
 /// Sazlamalar — TZ 8.6.
 /// The "Çykmak" / "Hasaby poz" group only makes sense for a signed-in
@@ -27,60 +23,15 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool get _darkTheme => AppTheme.instance.isDark;
-  _AppLanguage get _language => _languages.firstWhere((l) => l.code == AppLocale.instance.current);
-
-  @override
-  void initState() {
-    super.initState();
-    AppTheme.instance.addListener(_onChanged);
-    AppLocale.instance.addListener(_onChanged);
-  }
-
-  @override
-  void dispose() {
-    AppTheme.instance.removeListener(_onChanged);
-    AppLocale.instance.removeListener(_onChanged);
-    super.dispose();
-  }
-
-  void _onChanged() => setState(() {});
-
-  static const _languages = [
-    _AppLanguage(AppLanguageCode.tk, SettingsStrings.langTurkmen, 'assets/flags/tm.svg'),
-    _AppLanguage(AppLanguageCode.ru, SettingsStrings.langRussian, 'assets/flags/ru.svg'),
-    _AppLanguage(AppLanguageCode.tr, SettingsStrings.langTurkish, 'assets/flags/tr.svg'),
-  ];
-
-  Widget _flagFor(_AppLanguage lang, {double size = 28}) {
-    final d = size;
-    if (lang.flagAsset == null) {
-      return Container(
-        width: d,
-        height: d,
-        decoration: BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
-        child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedGlobal, color: AppColors.grey2, size: d * 0.6)),
-      );
-    }
-    return ClipOval(
-      child: SizedBox(
-        width: d,
-        height: d,
-        child: SvgPicture.asset(lang.flagAsset!, fit: BoxFit.cover),
-      ),
-    );
-  }
+  AppLanguage _languageFor(AppLanguageCode code) => kSettingsLanguages.firstWhere((l) => l.code == code);
 
   void _pickLanguage() async {
-    final result = await showModalBottomSheet<_AppLanguage>(
+    final current = _languageFor(AppLocale.instance.current);
+    final result = await showModalBottomSheet<AppLanguage>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => _LanguageSheet(
-        languages: _languages,
-        selected: _language,
-        flagBuilder: _flagFor,
-      ),
+      builder: (_) => LanguageSheet(languages: kSettingsLanguages, selected: current),
     );
     if (result != null) await AppLocale.instance.setLanguage(result.code);
   }
@@ -144,45 +95,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final darkTheme = context.watch<AppTheme>().isDark;
+    final language = _languageFor(context.watch<AppLocale>().current);
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: AppColors.bg,
-        leading: IconButton(
-          icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: AppColors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
+        leading: const AppBackButton(size: 20),
         centerTitle: true,
         title: Text(SettingsStrings.title, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
       ),
-      body: ListView(
+      body: SafeArea(
+        top: false,
+        child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          _SettingsGroup(children: [
-            _SwitchTile(
-              icon: _darkTheme ? HugeIcons.strokeRoundedMoon02 : HugeIcons.strokeRoundedSun03,
-              iconColor: _darkTheme ? const Color(0xFF8B7BF0) : const Color(0xFFFFB020),
+          SettingsGroup(children: [
+            SwitchTile(
+              icon: darkTheme ? HugeIcons.strokeRoundedMoon02 : HugeIcons.strokeRoundedSun03,
+              iconColor: darkTheme ? const Color(0xFF8B7BF0) : const Color(0xFFFFB020),
               label: SettingsStrings.theme,
-              value: _darkTheme ? SettingsStrings.themeDark : SettingsStrings.themeLight,
-              switchValue: _darkTheme,
+              value: darkTheme ? SettingsStrings.themeDark : SettingsStrings.themeLight,
+              switchValue: darkTheme,
               onChanged: (v) => AppTheme.instance.setDark(v),
             ),
-            _NavTile(
+            NavTile(
               icon: HugeIcons.strokeRoundedGlobal,
               label: SettingsStrings.language,
-              value: _language.label,
-              leadingValue: _flagFor(_language, size: 22),
+              value: language.label,
+              leadingValue: flagFor(language, size: 22),
               onTap: _pickLanguage,
             ),
           ]),
           const SizedBox(height: 16),
-          _SettingsGroup(children: [
-            _NavTile(icon: HugeIcons.strokeRoundedCustomerService01, label: SettingsStrings.contactUs, value: '', onTap: () {}),
+          SettingsGroup(children: [
+            NavTile(icon: HugeIcons.strokeRoundedCustomerService01, label: SettingsStrings.contactUs, value: '', onTap: () {}),
           ]),
           if (widget.isLoggedIn) ...[
             const SizedBox(height: 16),
-            _SettingsGroup(children: [
-              _NavTile(
+            SettingsGroup(children: [
+              NavTile(
                 icon: HugeIcons.strokeRoundedLogout01,
                 label: SettingsStrings.logout,
                 danger: true,
@@ -192,199 +144,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Navigator.pop(context, 'logout');
                 },
               ),
-              _NavTile(icon: HugeIcons.strokeRoundedDelete02, label: SettingsStrings.deleteAccount, danger: true, onTap: _confirmDeleteAccount),
+              NavTile(icon: HugeIcons.strokeRoundedDelete02, label: SettingsStrings.deleteAccount, danger: true, onTap: _confirmDeleteAccount),
             ]),
           ],
           const SizedBox(height: 24),
           Center(child: Text(SettingsStrings.appVersion, style: TextStyle(color: AppColors.grey3, fontSize: 12))),
         ],
-      ),
-    );
-  }
-}
-
-/// Dil saýlamak bottom sheet — redesigned with a drag handle, a title, and
-/// flag-led rows so the current language is easy to scan at a glance.
-class _LanguageSheet extends StatelessWidget {
-  final List<_AppLanguage> languages;
-  final _AppLanguage selected;
-  final Widget Function(_AppLanguage, {double size}) flagBuilder;
-
-  const _LanguageSheet({required this.languages, required this.selected, required this.flagBuilder});
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.grey3, borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 16),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(SettingsStrings.chooseLanguage, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800)),
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...languages.map((lang) {
-              final isSelected = lang.label == selected.label;
-              return InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () => Navigator.pop(context, lang),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary.withValues(alpha: 0.12) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(16),
-                    border: isSelected ? Border.all(color: AppColors.primary.withValues(alpha: 0.4)) : null,
-                  ),
-                  child: Row(
-                    children: [
-                      flagBuilder(lang, size: 30),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Text(
-                          lang.label,
-                          style: TextStyle(color: AppColors.white, fontSize: 15.5, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500),
-                        ),
-                      ),
-                      HugeIcon(
-                        icon: isSelected ? HugeIcons.strokeRoundedCheckmarkCircle01 : HugeIcons.strokeRoundedCircle,
-                        color: isSelected ? AppColors.primary : AppColors.grey3,
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-            const SizedBox(height: 4),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SettingsGroup extends StatelessWidget {
-  final List<Widget> children;
-  const _SettingsGroup({required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16)),
-      child: Column(children: children),
-    );
-  }
-}
-
-class _NavTile extends StatelessWidget {
-  final List<List<dynamic>> icon;
-  final String label;
-  final String? value;
-  final Widget? leadingValue;
-  final bool danger;
-  final VoidCallback onTap;
-  const _NavTile({required this.icon, required this.label, this.value, this.leadingValue, this.danger = false, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = danger ? Colors.redAccent : AppColors.primary;
-    return ListTile(
-      onTap: onTap,
-      leading: HugeIcon(icon: icon, color: color, size: 20),
-      title: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: danger ? Colors.redAccent : AppColors.grey1, fontSize: 14.5, fontWeight: FontWeight.w600)),
-      trailing: value != null
-          ? Row(mainAxisSize: MainAxisSize.min, children: [
-              if (leadingValue != null) ...[leadingValue!, const SizedBox(width: 8)],
-              Text(value!, style: TextStyle(color: AppColors.grey2, fontSize: 13)),
-              const SizedBox(width: 6),
-              HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: AppColors.grey3, size: 16),
-            ])
-          : null,
-    );
-  }
-}
-
-class _SwitchTile extends StatelessWidget {
-  final List<List<dynamic>> icon;
-  final Color iconColor;
-  final String label;
-  final String value;
-  final bool switchValue;
-  final ValueChanged<bool> onChanged;
-  _SwitchTile({
-    required this.icon,
-    required this.iconColor,
-    required this.label,
-    required this.value,
-    required this.switchValue,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: HugeIcon(icon: icon, color: iconColor, size: 22),
-      title: Text(label, style: TextStyle(color: AppColors.grey1, fontSize: 14.5, fontWeight: FontWeight.w600)),
-      trailing: _ThemeSwitch(isDark: switchValue, onChanged: onChanged),
-      subtitle: Text(value, style: TextStyle(color: AppColors.grey2, fontSize: 12)),
-    );
-  }
-}
-
-/// A pill-shaped toggle with a sun/moon glyph riding inside the thumb,
-/// instead of a generic Material [Switch] — reads at a glance which mode
-/// is active without needing the subtitle text.
-class _ThemeSwitch extends StatelessWidget {
-  final bool isDark;
-  final ValueChanged<bool> onChanged;
-  const _ThemeSwitch({required this.isDark, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onChanged(!isDark),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOut,
-        width: 54,
-        height: 30,
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: LinearGradient(
-            colors: isDark ? const [Color(0xFF352E5C), Color(0xFF201A38)] : const [Color(0xFFFFD27A), Color(0xFFFFA726)],
-          ),
-        ),
-        child: AnimatedAlign(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOut,
-          alignment: isDark ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            width: 24,
-            height: 24,
-            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-            child: Center(
-              child: HugeIcon(
-                icon: isDark ? HugeIcons.strokeRoundedMoon02 : HugeIcons.strokeRoundedSun03,
-                color: isDark ? const Color(0xFF8B7BF0) : const Color(0xFFFFA726),
-                size: 14,
-              ),
-            ),
-          ),
         ),
       ),
     );

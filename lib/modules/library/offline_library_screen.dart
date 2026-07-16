@@ -4,7 +4,11 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/models/own_book.dart';
+import '../../core/navigation/app_navigator.dart';
+import '../../core/services/analytics_service.dart';
 import '../../core/services/own_books_store.dart';
+import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/own_book_spine_cover.dart';
 import '../main_nav/main_nav_screen.dart';
 import '../reader/provider/reader_provider.dart';
 import '../reader/views/reader_view.dart';
@@ -44,23 +48,19 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
     if (isOnline) {
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainNavScreen()));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(LibraryStrings.noInternetSnackbar)),
-      );
+      context.showAppSnackBar(LibraryStrings.noInternetSnackbar);
     }
   }
 
   void _openBook(OwnBook book) {
+    AnalyticsService.instance.logBookOpened(id: book.id, format: book.format.name);
     if (book.format == OwnBookFormat.pdf) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => PdfReaderScreen(filePath: book.filePath, title: book.title)));
+      context.push(PdfReaderScreen(filePath: book.filePath, title: book.title));
     } else {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ChangeNotifierProvider(
-            create: (_) => ReaderProvider(),
-            child: ReaderScreen(bookPath: book.filePath, bookId: book.id.hashCode, bookTitle: book.title),
-          ),
+      context.push(
+        ChangeNotifierProvider(
+          create: (_) => ReaderProvider(),
+          child: ReaderScreen(bookPath: book.filePath, bookId: book.id.hashCode, bookTitle: book.title),
         ),
       );
     }
@@ -68,14 +68,11 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final books = context.watch<OwnBooksStore>().books;
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
-        child: ListenableBuilder(
-          listenable: _store,
-          builder: (context, _) {
-            final books = _store.books;
-            return Column(
+        child: Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
@@ -113,7 +110,13 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
                             childAspectRatio: 0.62,
                           ),
                           itemCount: books.length,
-                          itemBuilder: (context, i) => _OfflineBookCover(book: books[i], onTap: () => _openBook(books[i])),
+                          itemBuilder: (context, i) => OwnBookSpineCover(
+                            book: books[i],
+                            onTap: () => _openBook(books[i]),
+                            borderRadius: 8,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                            wrapAspectRatio: false,
+                          ),
                         ),
                 ),
                 Padding(
@@ -131,9 +134,7 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
                   ),
                 ),
               ],
-            );
-          },
-        ),
+            ),
       ),
     );
   }
@@ -155,52 +156,6 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
               style: TextStyle(color: AppColors.grey2, fontSize: 13, height: 1.4),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Same placeholder-spine styling as the "Öz Kitaplarym" tab — there's no
-/// real cover art for a locally imported file, just a format badge + title.
-class _OfflineBookCover extends StatelessWidget {
-  final OwnBook book;
-  final VoidCallback onTap;
-  const _OfflineBookCover({required this.book, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final isPdf = book.format == OwnBookFormat.pdf;
-    return GestureDetector(
-      onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: isPdf ? const [Color(0xFF6B3B3B), Color(0xFF2E1919)] : const [Color(0xFF3B4A6B), Color(0xFF191F2E)],
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(4)),
-                child: Text(isPdf ? 'PDF' : 'EPUB', style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
-              ),
-              Text(
-                book.title,
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700, height: 1.2),
-              ),
-            ],
-          ),
         ),
       ),
     );

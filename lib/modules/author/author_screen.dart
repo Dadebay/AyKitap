@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/models/book.dart';
+import '../../core/data/mock/mock_data.dart';
+import '../../core/navigation/app_navigator.dart';
+import '../../core/widgets/app_back_button.dart';
 import '../book_detail/book_detail_screen.dart';
 import '../../core/localization/strings/author_strings.dart';
 
@@ -24,15 +27,14 @@ class _AuthorScreenState extends State<AuthorScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: CustomScrollView(
+      body: SafeArea(
+        top: false,
+        child: CustomScrollView(
         slivers: [
           SliverAppBar(
             backgroundColor: AppColors.bg,
             pinned: true,
-            leading: IconButton(
-              icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: AppColors.white, size: 20),
-              onPressed: () => Navigator.pop(context),
-            ),
+            leading: const AppBackButton(size: 20),
             title: Text(author.name, style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w700)),
           ),
           SliverToBoxAdapter(
@@ -84,7 +86,7 @@ class _AuthorScreenState extends State<AuthorScreen> {
               itemBuilder: (_, i) {
                 final b = books[i];
                 return GestureDetector(
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BookDetailScreen(book: b))),
+                  onTap: () => context.push(BookDetailScreen(book: b)),
                   child: _AuthorBookTile(book: b),
                 );
               },
@@ -92,6 +94,7 @@ class _AuthorScreenState extends State<AuthorScreen> {
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],
+        ),
       ),
     );
   }
@@ -153,20 +156,19 @@ class AllAuthorsScreen extends StatelessWidget {
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: AppColors.bg,
-        leading: IconButton(
-          icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: AppColors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
+        leading: const AppBackButton(size: 20),
         title: Text(AuthorStrings.authorsTitle, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
       ),
-      body: ListView.separated(
+      body: SafeArea(
+        top: false,
+        child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         itemCount: authors.length,
         separatorBuilder: (_, __) => const SizedBox(height: 4),
         itemBuilder: (_, i) {
           final a = authors[i];
           return GestureDetector(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AuthorScreen(author: a))),
+            onTap: () => context.push(AuthorScreen(author: a)),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Row(
@@ -187,6 +189,7 @@ class AllAuthorsScreen extends StatelessWidget {
             ),
           );
         },
+        ),
       ),
     );
   }

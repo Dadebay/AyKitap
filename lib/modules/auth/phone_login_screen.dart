@@ -3,8 +3,13 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/navigation/app_navigator.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/strings/auth_strings.dart';
+import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/app_text_field.dart';
+import '../../core/widgets/gradient_icon_badge.dart';
+import '../../core/widgets/primary_button.dart';
 import 'otp_verify_screen.dart';
 
 /// Hasap Açmak / Giriş — TZ section 2.1, 2.3.
@@ -74,17 +79,11 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     if (!mounted) return;
     setState(() => _sending = false);
 
-    final loggedIn = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => OtpVerifyScreen(
-          phone: '+993 ${_phoneController.text}',
-          simulateOtherDevice: _simulateOtherDevice,
-        ),
-      ),
+    final loggedIn = await context.push<bool>(
+      OtpVerifyScreen(phone: '+993 ${_phoneController.text}', simulateOtherDevice: _simulateOtherDevice),
     );
     if (loggedIn == true && mounted) {
-      Navigator.pop(context, true);
+      context.pop(true);
     }
   }
 
@@ -100,23 +99,9 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IconButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () => Navigator.pop(context),
-                  icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: AppColors.white, size: 22),
-                ),
+                const AppBackButton(),
                 const SizedBox(height: 12),
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFFF77E68), Color(0xFFB44BE8)]),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Center(
-                    child: HugeIcon(icon: HugeIcons.strokeRoundedSmartPhone01, color: Colors.white, size: 30),
-                  ),
-                ),
+                const GradientIconBadge(icon: HugeIcons.strokeRoundedSmartPhone01),
                 const SizedBox(height: 24),
                 Text(
                   AuthStrings.phoneLoginTitle,
@@ -128,34 +113,21 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                   style: TextStyle(color: AppColors.grey2, fontSize: 14.5, height: 1.5),
                 ),
                 const SizedBox(height: 32),
-                Text(AuthStrings.phoneNumberLabel, style: TextStyle(color: AppColors.grey1, fontSize: 13, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                Container(
-                  height: 56,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _focusNode.hasFocus ? AppColors.primary : AppColors.border),
-                  ),
-                  child: Row(
+                AppTextField(
+                  controller: _phoneController,
+                  focusNode: _focusNode,
+                  label: AuthStrings.phoneNumberLabel,
+                  hint: AuthStrings.phoneHint,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(11)],
+                  style: TextStyle(color: AppColors.white, fontSize: 16, letterSpacing: 1),
+                  onChanged: _onPhoneChanged,
+                  prefix: Row(
                     children: [
                       const Text('🇹🇲', style: TextStyle(fontSize: 20)),
                       const SizedBox(width: 8),
                       Text('+993', style: TextStyle(color: AppColors.grey1, fontSize: 16, fontWeight: FontWeight.w600)),
                       Container(margin: const EdgeInsets.symmetric(horizontal: 10), width: 1, height: 22, color: AppColors.border),
-                      Expanded(
-                        child: TextField(
-                          controller: _phoneController,
-                          focusNode: _focusNode,
-                          onChanged: _onPhoneChanged,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(11)],
-                          style: TextStyle(color: AppColors.white, fontSize: 16, letterSpacing: 1),
-                          decoration: InputDecoration(hintText: AuthStrings.phoneHint, hintStyle: TextStyle(color: AppColors.grey3), border: InputBorder.none, isDense: true),
-                          onTap: () => setState(() {}),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -186,25 +158,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isValid ? AppColors.primary : AppColors.card,
-                      disabledBackgroundColor: AppColors.card,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 0,
-                    ),
-                    onPressed: _isValid ? _sendCode : null,
-                    child: _sending
-                        ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white))
-                        : Text(
-                            AuthStrings.sendCodeButton,
-                            style: TextStyle(color: _isValid ? Colors.white : AppColors.grey3, fontSize: 16, fontWeight: FontWeight.w700),
-                          ),
-                  ),
-                ),
+                PrimaryButton(label: AuthStrings.sendCodeButton, loading: _sending, onPressed: _isValid ? _sendCode : null),
                 const SizedBox(height: 14),
                 RichText(
                   textAlign: TextAlign.center,

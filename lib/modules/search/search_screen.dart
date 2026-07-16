@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/models/book.dart';
+import '../../core/data/mock/mock_data.dart';
+import '../../core/navigation/app_navigator.dart';
+import '../../core/services/analytics_service.dart';
 import '../book_detail/book_detail_screen.dart';
 import '../filter/filter_screen.dart';
 import '../../core/localization/strings/search_strings.dart';
+import 'widgets/quick_chip.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -55,7 +59,12 @@ class _SearchScreenState extends State<SearchScreen> {
       return;
     }
     _debounce = Timer(const Duration(milliseconds: 300), () {
-      setState(() => _query = value.trim());
+      final term = value.trim();
+      setState(() => _query = term);
+      // Fires once per settled query (after the debounce), not per
+      // keystroke, so the Analytics console reports what people actually
+      // searched for rather than every partial string typed along the way.
+      AnalyticsService.instance.logSearch(term);
     });
   }
 
@@ -70,10 +79,7 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _openFilter() async {
-    final res = await Navigator.push<FilterResult>(
-      context,
-      MaterialPageRoute(builder: (_) => const FilterScreen()),
-    );
+    final res = await context.push<FilterResult>(const FilterScreen());
     if (res != null && mounted) {
       setState(() {
         _filterActive = res.active;
@@ -185,7 +191,7 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
           const SizedBox(width: 10),
           for (final chip in MockData.quickFilterChips) ...[
-            _QuickChip(label: chip, selected: _chips.contains(chip), onTap: () => _toggleChip(chip)),
+            QuickChip(label: chip, selected: _chips.contains(chip), onTap: () => _toggleChip(chip)),
             const SizedBox(width: 8),
           ],
         ],
@@ -209,7 +215,10 @@ class _SearchScreenState extends State<SearchScreen> {
       itemBuilder: (_, i) {
         final book = books[i];
         return GestureDetector(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BookDetailScreen(book: book))),
+          onTap: () {
+            AnalyticsService.instance.logSelectBook(id: book.id, title: book.title);
+            context.push(BookDetailScreen(book: book));
+          },
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: Container(
@@ -219,30 +228,6 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         );
       },
-    );
-  }
-}
-
-class _QuickChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  const _QuickChip({required this.label, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.card,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: selected ? AppColors.primary : AppColors.border),
-        ),
-        child: Text(label, style: TextStyle(color: selected ? Colors.white : AppColors.grey1, fontSize: 13, fontWeight: FontWeight.w600)),
-      ),
     );
   }
 }

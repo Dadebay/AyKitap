@@ -2,11 +2,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
+import '../../core/navigation/app_navigator.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/services/analytics_service.dart';
 import '../../core/services/auth_session.dart';
 import '../../core/services/device_fingerprint.dart';
 import '../../core/localization/strings/auth_strings.dart';
+import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/gradient_icon_badge.dart';
+import '../../core/widgets/primary_button.dart';
 import 'name_entry_screen.dart';
+import 'widgets/other_device_dialog.dart';
+import 'widgets/otp_code_row.dart';
 
 /// OTP tassyklamak — TZ section 2.1/2.3, plus the "bir hasap — bir telefon"
 /// device-lock confirmation from 2.2 when a second device tries to log in.
@@ -92,7 +100,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
 
     // Any 4-digit code is accepted in this mock.
     if (widget.simulateOtherDevice) {
-      final confirmed = await _showOtherDeviceDialog();
+      final confirmed = await showOtherDeviceDialog(context);
       if (confirmed != true) return;
     }
 
@@ -100,6 +108,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
     // presence in secure storage is what the rest of the app treats as
     // "logged in".
     await AuthSession.saveToken('mock-bearer-${DateTime.now().millisecondsSinceEpoch}', phone: widget.phone);
+    AnalyticsService.instance.logLogin();
     debugPrint('device fingerprint ready to send once the API accepts it: $deviceId');
 
     // First-time account (no name on file yet) — the real backend would
@@ -107,63 +116,10 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
     // whether a name was ever saved. Mandatory: no back arrow, no skip.
     if (await AuthSession.getName() == null) {
       if (!mounted) return;
-      final name = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => const NameEntryScreen()));
+      final name = await context.push<String>(const NameEntryScreen());
       if (name != null) await AuthSession.saveName(name);
     }
-    if (mounted) Navigator.pop(context, true);
-  }
-
-  Future<bool?> _showOtherDeviceDialog() {
-    return showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        icon: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.15), shape: BoxShape.circle),
-          child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedSecurityLock, color: AppColors.primary, size: 26)),
-        ),
-        title: Text(
-          AuthStrings.otherDeviceTitle,
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800),
-        ),
-        content: Text(
-          AuthStrings.otherDeviceBody,
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.grey2, fontSize: 13.5, height: 1.5),
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actionsPadding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-        actions: [
-          Column(
-            children: [
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
-                  onPressed: () => Navigator.pop(context, true),
-                  child: Text(AuthStrings.otherDeviceConfirm, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                height: 44,
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: Text(AuthStrings.cancel, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+    if (mounted) context.pop(true);
   }
 
   void _resend() {
@@ -175,7 +131,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
     setState(() => _error = null);
     _startTimer();
     _focusNodes[0].requestFocus();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AuthStrings.resendSnackbar)));
+    context.showAppSnackBar(AuthStrings.resendSnackbar);
   }
 
   @override
@@ -190,23 +146,9 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IconButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () => Navigator.pop(context),
-                  icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: AppColors.white, size: 22),
-                ),
+                const AppBackButton(),
                 const SizedBox(height: 12),
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFFF77E68), Color(0xFFB44BE8)]),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Center(
-                    child: HugeIcon(icon: HugeIcons.strokeRoundedMessage01, color: Colors.white, size: 28),
-                  ),
-                ),
+                const GradientIconBadge(icon: HugeIcons.strokeRoundedMessage01),
                 const SizedBox(height: 24),
                 Text(AuthStrings.otpTitle, style: TextStyle(color: AppColors.white, fontFamily: 'GilroyRegular', fontSize: 26, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 8),
@@ -220,10 +162,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
                   ),
                 ),
                 const SizedBox(height: 36),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: List.generate(_length, (i) => _buildDigitBox(i)),
-                ),
+                OtpCodeRow(length: _length, controllers: _controllers, focusNodes: _focusNodes, onChanged: _onDigitChanged),
                 if (_error != null) ...[
                   const SizedBox(height: 14),
                   Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
@@ -238,64 +177,15 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
                         ),
                 ),
                 const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _code.length == _length ? AppColors.primary : AppColors.card,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 0,
-                    ),
-                    onPressed: _code.length == _length ? _verify : null,
-                    child: _verifying
-                        ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white))
-                        : Text(
-                            AuthStrings.confirmButton,
-                            style: TextStyle(color: _code.length == _length ? Colors.white : AppColors.grey3, fontSize: 16, fontWeight: FontWeight.w700),
-                          ),
-                  ),
+                PrimaryButton(
+                  label: AuthStrings.confirmButton,
+                  loading: _verifying,
+                  onPressed: _code.length == _length ? _verify : null,
                 ),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildDigitBox(int index) {
-    final filled = _controllers[index].text.isNotEmpty;
-    return SizedBox(
-      width: 68,
-      height: 64,
-      child: TextField(
-        controller: _controllers[index],
-        focusNode: _focusNodes[index],
-        textAlign: TextAlign.center,
-        keyboardType: TextInputType.number,
-        maxLength: 1,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        style: TextStyle(color: AppColors.white, fontSize: 24, fontWeight: FontWeight.w800),
-        decoration: InputDecoration(
-          counterText: '',
-          filled: true,
-          fillColor: AppColors.card,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: filled ? AppColors.primary.withValues(alpha: 0.5) : AppColors.border),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: filled ? AppColors.primary.withValues(alpha: 0.5) : AppColors.border),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: AppColors.primary, width: 2),
-          ),
-        ),
-        onChanged: (v) => _onDigitChanged(index, v),
-        onTap: () => setState(() {}),
       ),
     );
   }

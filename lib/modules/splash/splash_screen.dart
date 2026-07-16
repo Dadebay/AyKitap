@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,7 +7,7 @@ import '../../core/services/app_prefs.dart';
 import '../library/offline_library_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../main_nav/main_nav_screen.dart';
-import '../../core/localization/strings/splash_strings.dart';
+import 'widgets/splash_visuals.dart';
 
 /// Branded splash: the logo springs in over a pulsing gradient halo, the
 /// wordmark and tagline rise beneath it, and a slim loader runs while we
@@ -22,9 +21,6 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
-  // Logo colours pulled from the app icon.
-  static const _gradient = [Color(0xFFFFC876), Color(0xFFF77E68), Color(0xFFB44BE8)];
-
   // One-shot entrance timeline.
   late final AnimationController _entrance = AnimationController(
     vsync: this,
@@ -144,15 +140,15 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Spacer(flex: 3),
-                  _buildLogo(),
+                  SplashLogo(entrance: _entrance, ambient: _ambient, logoScale: _logoScale, logoFade: _logoFade),
                   const SizedBox(height: 28),
-                  _buildWordmark(),
+                  SplashWordmark(animation: _wordmark),
                   const SizedBox(height: 14),
-                  _buildTagline(),
+                  SplashTagline(animation: _tagline),
                   const Spacer(flex: 3),
-                  _buildLoader(),
+                  SplashLoader(loader: _loader, ambient: _ambient),
                   const SizedBox(height: 8),
-                  _buildFooter(),
+                  SplashFooter(animation: _tagline),
                   SizedBox(height: 24 + MediaQuery.of(context).padding.bottom),
                 ],
               ),
@@ -160,140 +156,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildLogo() {
-    return AnimatedBuilder(
-      animation: Listenable.merge([_entrance, _ambient]),
-      builder: (context, _) {
-        final pulse = 0.5 + 0.5 * math.sin(_ambient.value * 2 * math.pi);
-        return SizedBox(
-          width: 220,
-          height: 220,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // Pulsing gradient halo behind the logo.
-              Opacity(
-                opacity: _logoFade.value * (0.35 + 0.25 * pulse),
-                child: Container(
-                  width: 180 + 24 * pulse,
-                  height: 180 + 24 * pulse,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [Color(0xFFF77E68), Color(0xFFB44BE8), Colors.transparent],
-                      stops: [0.0, 0.55, 1.0],
-                    ),
-                  ),
-                ),
-              ),
-              // The logo itself.
-              Opacity(
-                opacity: _logoFade.value.clamp(0.0, 1.0),
-                child: Transform.scale(
-                  scale: _logoScale.value,
-                  child: Container(
-                    width: 116,
-                    height: 116,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(28),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFB44BE8).withValues(alpha: 0.4 * _logoFade.value),
-                          blurRadius: 40,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(28),
-                      child: Image.asset('assets/logo.png', fit: BoxFit.cover),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildWordmark() {
-    return AnimatedBuilder(
-      animation: _wordmark,
-      builder: (context, child) {
-        return Opacity(
-          opacity: _wordmark.value,
-          child: Transform.translate(offset: Offset(0, 16 * (1 - _wordmark.value)), child: child),
-        );
-      },
-      child: ShaderMask(
-        shaderCallback: (rect) => const LinearGradient(colors: _gradient).createShader(rect),
-        child: Text(
-          SplashStrings.wordmark,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 40,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTagline() {
-    return AnimatedBuilder(
-      animation: _tagline,
-      builder: (context, child) => Opacity(opacity: _tagline.value, child: child),
-      child: Text(
-        SplashStrings.tagline,
-        style: TextStyle(color: AppColors.grey2, fontSize: 14, letterSpacing: 0.3),
-      ),
-    );
-  }
-
-  Widget _buildLoader() {
-    return AnimatedBuilder(
-      animation: Listenable.merge([_loader, _ambient]),
-      builder: (context, _) {
-        return Opacity(
-          opacity: _loader.value,
-          child: SizedBox(
-            width: 120,
-            height: 3,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: Stack(
-                children: [
-                  Container(color: AppColors.card),
-                  // A gradient shard sweeping left→right.
-                  Align(
-                    alignment: Alignment(-1 + 2 * _ambient.value, 0),
-                    child: Container(
-                      width: 48,
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(colors: [Colors.transparent, Color(0xFFF77E68), Color(0xFFB44BE8), Colors.transparent]),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildFooter() {
-    return AnimatedBuilder(
-      animation: _tagline,
-      builder: (context, child) => Opacity(opacity: _tagline.value * 0.6, child: child),
-      child: Text(SplashStrings.version, style: TextStyle(color: AppColors.grey3, fontSize: 11)),
     );
   }
 }

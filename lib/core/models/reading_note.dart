@@ -1,4 +1,5 @@
 import 'book.dart';
+import '../data/mock/mock_data.dart';
 
 /// A highlight/note captured while reading (TZ 8.4). The book it belongs to
 /// isn't stored directly (Book/MockData aren't JSON-friendly) — instead

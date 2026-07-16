@@ -57,7 +57,9 @@ class NotificationScreen extends StatelessWidget {
         centerTitle: true,
         title: Text(NotificationsStrings.title, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
       ),
-      body: _items.isEmpty
+      body: SafeArea(
+        top: false,
+        child: _items.isEmpty
           ? Center(child: Text(NotificationsStrings.empty, style: TextStyle(color: AppColors.grey2, fontSize: 15)))
           : ListView.separated(
               padding: const EdgeInsets.all(20),
@@ -106,6 +108,7 @@ class NotificationScreen extends StatelessWidget {
                 );
               },
             ),
+      ),
     );
   }
 }

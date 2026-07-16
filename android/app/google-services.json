@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "99691215723",
+    "project_id": "aykitap-fca26",
+    "storage_bucket": "aykitap-fca26.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:99691215723:android:5860369fbbaf3018756a2e",
+        "android_client_info": {
+          "package_name": "com.aykitap.aykitap"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDUz-SIVYYd8YS6oJpNadiHYWTjhUV6qgE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
