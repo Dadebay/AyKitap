@@ -10,6 +10,7 @@ import '../../core/services/sample_book_store.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/services/purchased_books_store.dart';
 import '../../core/services/subscription_service.dart';
+import '../../core/utils/stable_hash.dart';
 import '../../core/localization/strings/book_detail_strings.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/book_card.dart';
@@ -89,7 +90,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           create: (_) => ReaderProvider(),
           child: ReaderScreen(
             bookPath: path,
-            bookId: book.id.hashCode,
+            bookId: stableBookKey(book.id),
             bookTitle: book.title,
             coverUrl: book.coverImage,
             bookPages: book.pages,

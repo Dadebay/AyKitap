@@ -14,6 +14,12 @@ class ReadingNote {
   final String bookTitle;
   final DateTime createdAt;
 
+  /// EPUB CFI of the highlighted passage — set only for notes captured via
+  /// the "Belle" (highlight) action, null for a plain "Not" (no highlight
+  /// painted on the page). Lets ReaderProvider redraw the highlight the next
+  /// time this book's rendition is set up; see its onEpubLoaded.
+  final String? cfi;
+
   const ReadingNote({
     required this.id,
     required this.text,
@@ -21,6 +27,7 @@ class ReadingNote {
     required this.bookIndex,
     required this.bookTitle,
     required this.createdAt,
+    this.cfi,
   });
 
   Book get book => MockData.generateBooks(bookIndex + 1, seed: bookSeed)[bookIndex];
@@ -32,6 +39,7 @@ class ReadingNote {
     bookIndex: bookIndex,
     bookTitle: bookTitle,
     createdAt: createdAt,
+    cfi: cfi,
   );
 
   Map<String, dynamic> toJson() => {
@@ -41,6 +49,7 @@ class ReadingNote {
     'bookIndex': bookIndex,
     'bookTitle': bookTitle,
     'createdAt': createdAt.toIso8601String(),
+    if (cfi != null) 'cfi': cfi,
   };
 
   factory ReadingNote.fromJson(Map<String, dynamic> json) => ReadingNote(
@@ -50,5 +59,6 @@ class ReadingNote {
     bookIndex: json['bookIndex'] as int,
     bookTitle: json['bookTitle'] as String,
     createdAt: DateTime.parse(json['createdAt'] as String),
+    cfi: json['cfi'] as String?,
   );
 }

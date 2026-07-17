@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/book.dart';
+import '../utils/stable_hash.dart';
 
 /// Temporary bridge that lets any mock [Book] "open" in the real EPUB reader
 /// for testing, before the backend serves per-book files. It maps a book onto
@@ -34,7 +35,7 @@ class SampleBookStore {
     if (assets.isEmpty) {
       throw StateError('No sample EPUBs bundled under assets/books/');
     }
-    final assetKey = assets[book.id.hashCode.abs() % assets.length];
+    final assetKey = assets[stableBookKey(book.id) % assets.length];
     final fileName = assetKey.split('/').last;
 
     final dir = await getApplicationSupportDirectory();

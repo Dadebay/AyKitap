@@ -16,7 +16,7 @@ class GlobalSafeAreaWrapper extends StatelessWidget {
     // sticky CTAs, etc. all read MediaQuery.padding.bottom themselves), so
     // padding it again here left an extra strip of unpainted (black) space
     // in the iPhone home-indicator area.
-    this.bottom = false,
+    this.bottom = true,
     this.left = true,
     this.right = true,
   });

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/own_book.dart';
+import 'cbz_page_cache.dart';
 
 /// Persists the "Öz Kitaplarym" (own EPUB/PDF imports) list across app
 /// restarts. Picked files are copied into app-owned storage so they keep
@@ -39,7 +40,11 @@ class OwnBooksStore extends ChangeNotifier {
   Future<OwnBook> addFromPickedFile({required String sourcePath, required String fileName}) async {
     await _ensureLoaded();
     final lower = fileName.toLowerCase();
-    final format = lower.endsWith('.pdf') ? OwnBookFormat.pdf : OwnBookFormat.epub;
+    final format = lower.endsWith('.pdf')
+        ? OwnBookFormat.pdf
+        : lower.endsWith('.cbz')
+            ? OwnBookFormat.cbz
+            : OwnBookFormat.epub;
 
     final docsDir = await getApplicationDocumentsDirectory();
     final ownDir = Directory('${docsDir.path}/own_books');
@@ -49,7 +54,7 @@ class OwnBooksStore extends ChangeNotifier {
     final destPath = '${ownDir.path}/$id-$fileName';
     await File(sourcePath).copy(destPath);
 
-    final title = fileName.replaceAll(RegExp(r'\.(epub|pdf)$', caseSensitive: false), '');
+    final title = fileName.replaceAll(RegExp(r'\.(epub|pdf|cbz)$', caseSensitive: false), '');
     final book = OwnBook(id: id, title: title, filePath: destPath, format: format, addedAt: DateTime.now());
 
     _books = [book, ..._books];
@@ -69,6 +74,14 @@ class OwnBooksStore extends ChangeNotifier {
     try {
       await File(book.filePath).delete();
     } catch (_) {}
+    // CbzReaderScreen extracts a CBZ's pages onto disk the first time it's
+    // opened and never cleans them up itself (reuse across opens is the
+    // point) — this was the other half of that: removing the book from the
+    // library orphaned that extraction forever. No-ops for non-CBZ formats
+    // and books that were never opened.
+    if (book.format == OwnBookFormat.cbz) {
+      await deleteCbzPageCache(book.filePath);
+    }
   }
 
   Future<void> _persist() async {

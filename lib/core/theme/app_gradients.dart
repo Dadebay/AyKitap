@@ -11,8 +11,8 @@ abstract final class AppGradients {
     colors: [Color(0xFFF77E68), Color(0xFFB44BE8)],
   );
 
-  /// Own-books "spine" placeholder cover background — PDF vs EPUB — reused
-  /// identically by [LibraryScreen] and `OfflineLibraryScreen`.
+  /// Own-books "spine" placeholder cover background — PDF vs EPUB vs CBZ —
+  /// reused identically by [LibraryScreen] and `OfflineLibraryScreen`.
   static const LinearGradient pdfSpine = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
@@ -22,5 +22,10 @@ abstract final class AppGradients {
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [Color(0xFF3B4A6B), Color(0xFF191F2E)],
+  );
+  static const LinearGradient cbzSpine = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFF6B4B2E), Color(0xFF2E2115)],
   );
 }

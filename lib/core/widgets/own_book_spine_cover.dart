@@ -27,14 +27,23 @@ class OwnBookSpineCover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isPdf = book.format == OwnBookFormat.pdf;
+    final gradient = switch (book.format) {
+      OwnBookFormat.pdf => AppGradients.pdfSpine,
+      OwnBookFormat.cbz => AppGradients.cbzSpine,
+      OwnBookFormat.epub => AppGradients.epubSpine,
+    };
+    final badge = switch (book.format) {
+      OwnBookFormat.pdf => 'PDF',
+      OwnBookFormat.cbz => 'CBZ',
+      OwnBookFormat.epub => 'EPUB',
+    };
     final content = GestureDetector(
       onTap: onTap,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: Container(
           padding: padding,
-          decoration: BoxDecoration(gradient: isPdf ? AppGradients.pdfSpine : AppGradients.epubSpine),
+          decoration: BoxDecoration(gradient: gradient),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,7 +51,7 @@ class OwnBookSpineCover extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(4)),
-                child: Text(isPdf ? 'PDF' : 'EPUB', style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
+                child: Text(badge, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
               ),
               Text(
                 book.title,

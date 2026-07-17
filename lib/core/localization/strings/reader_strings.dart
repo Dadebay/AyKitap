@@ -7,11 +7,45 @@ class ReaderStrings {
   ReaderStrings._();
 
   // ── PDF reader ────────────────────────────────────────────────────────
-  static String pdfOpenError(String error) => t(
-        tk: 'PDF açylmady: $error',
-        ru: 'Не удалось открыть PDF: $error',
-        tr: 'PDF açılamadı: $error',
+  /// Deliberately generic — the raw platform exception is developer noise
+  /// (often a bare "PlatformException(...)"), not something to show a
+  /// reader. See PdfReaderScreen.onError, which logs the real error instead.
+  static String get pdfOpenError => t(
+        tk: 'PDF açylmady. Faýl zaýalanan ýa-da parolly bolmagy mümkin.',
+        ru: 'Не удалось открыть PDF. Файл может быть повреждён или защищён паролем.',
+        tr: 'PDF açılamadı. Dosya bozuk veya şifreli olabilir.',
       );
+
+  /// Bottom-bar button label — short on purpose, it sits under a 22px icon.
+  static String get pdfGoToPageShort => t(tk: 'Sahypa', ru: 'Страница', tr: 'Sayfa');
+  static String get pdfGoToPageTitle => t(tk: 'Sahypa geç', ru: 'Перейти к странице', tr: 'Sayfaya git');
+  static String get pdfGoToPageAction => t(tk: 'Geç', ru: 'Перейти', tr: 'Git');
+  static String pdfGoToPageHint(int total) => t(
+        tk: '1 – $total aralygynda',
+        ru: 'От 1 до $total',
+        tr: '1 – $total arasında',
+      );
+
+  /// How a page is scaled to the screen — the PDF counterpart of the EPUB
+  /// reader's layout settings.
+  static String get pdfFitLabel => t(tk: 'Sahypa ölçegi', ru: 'Масштаб страницы', tr: 'Sayfa ölçeği');
+  static String get pdfFitWidth => t(tk: 'Ini boýunça', ru: 'По ширине', tr: 'Genişliğe göre');
+  static String get pdfFitPage => t(tk: 'Doly sahypa', ru: 'Вся страница', tr: 'Tam sayfa');
+
+  // ── CBZ reader (comic/manga chapter, a zip of page images) ──────────────
+  static String cbzOpenError(String error) => t(
+        tk: 'CBZ açylmady: $error',
+        ru: 'Не удалось открыть CBZ: $error',
+        tr: 'CBZ açılamadı: $error',
+      );
+  static String get cbzNoImagesError => t(
+        tk: 'Bu faýlda sahypa resimi tapylmady',
+        ru: 'В этом файле не найдено страниц-изображений',
+        tr: 'Bu dosyada sayfa resmi bulunamadı',
+      );
+  static String get cbzExtracting => t(tk: 'Sahypalar taýýarlanýar...', ru: 'Подготовка страниц...', tr: 'Sayfalar hazırlanıyor...');
+  static String get cbzFitContain => t(tk: 'Doly sahypa', ru: 'Вся страница', tr: 'Tam sayfa');
+  static String get cbzFitCover => t(tk: 'Ekrany doldur', ru: 'Заполнить экран', tr: 'Ekranı doldur');
 
   // ── "Continue reading" tab empty state ──────────────────────────────────
   static String get noBookYetTitle => t(
@@ -28,6 +62,11 @@ class ReaderStrings {
   // ── Reader screen ────────────────────────────────────────────────────
   static String get bookOpening => t(tk: 'Kitap açylýar...', ru: 'Книга открывается...', tr: 'Kitap açılıyor...');
   static String get copiedMessage => t(tk: 'Kopyalandy', ru: 'Скопировано', tr: 'Kopyalandı');
+  static String get epubOpenError => t(
+        tk: 'Bu kitap açylmady. Faýl zaýalanan ýa-da goldanylmaýan bolmagy mümkin.',
+        ru: 'Не удалось открыть эту книгу. Файл может быть повреждён или не поддерживается.',
+        tr: 'Bu kitap açılamadı. Dosya bozuk veya desteklenmiyor olabilir.',
+      );
 
   // ── Bottom toolbar labels (TZ §12.3) ─────────────────────────────────
   static String get contentsLabel => t(tk: 'Mazmun', ru: 'Содержание', tr: 'İçindekiler');
@@ -66,6 +105,51 @@ class ReaderStrings {
   static String get searchHint => t(tk: 'Söz ýa-da jümle...', ru: 'Слово или фраза...', tr: 'Kelime veya cümle...');
   static String get searchNoResults => t(tk: 'Netije tapylmady', ru: 'Ничего не найдено', tr: 'Sonuç bulunamadı');
   static String get searchPrompt => t(tk: 'Gözlemek üçin ýazyň', ru: 'Введите запрос для поиска', tr: 'Aramak için yazın');
+  static String get searchSearching => t(tk: 'Gözlenýär...', ru: 'Идёт поиск...', tr: 'Aranıyor...');
+  static String get searchTooShort => t(
+        tk: 'Iň azyndan 2 harp ýazyň',
+        ru: 'Введите минимум 2 символа',
+        tr: 'En az 2 harf yazın',
+      );
+  static String searchNoResultsFor(String query) => t(
+        tk: '«$query» boýunça netije tapylmady',
+        ru: 'По запросу «$query» ничего не найдено',
+        tr: '«$query» için sonuç bulunamadı',
+      );
+
+  /// Result count for the sheet's header. Russian needs the 1 / 2–4 / 5+ noun
+  /// forms, so it can't be a plain interpolation.
+  static String searchResultCount(int n) => t(
+        tk: '$n netije',
+        ru: '$n ${_ruResultNoun(n)}',
+        tr: '$n sonuç',
+      );
+
+  static String _ruResultNoun(int n) {
+    final mod100 = n % 100;
+    if (mod100 >= 11 && mod100 <= 14) return 'результатов';
+    switch (n % 10) {
+      case 1:
+        return 'результат';
+      case 2:
+      case 3:
+      case 4:
+        return 'результата';
+      default:
+        return 'результатов';
+    }
+  }
+
+  /// Shown when the hit cap in the JS `search()` was reached, so the list is
+  /// only the first slice of what's in the book.
+  static String searchCapped(int n) => t(
+        tk: 'Ilkinji $n netije görkezilýär',
+        ru: 'Показаны первые $n результатов',
+        tr: 'İlk $n sonuç gösteriliyor',
+      );
+
+  /// Badge on the chapter list's current row.
+  static String get currentlyReadingBadge => t(tk: 'Okalýar', ru: 'Читаю', tr: 'Okunuyor');
 
   // ── Bookmark (TZ §12.1) ──────────────────────────────────────────────
   static String get bookmarkAdded => t(tk: 'Bellik goşuldy', ru: 'Закладка добавлена', tr: 'Yer imi eklendi');

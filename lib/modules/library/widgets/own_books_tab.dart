@@ -7,10 +7,12 @@ import '../../../core/navigation/app_navigator.dart';
 import '../../../core/services/analytics_service.dart';
 import '../../../core/services/own_books_store.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/stable_hash.dart';
 import '../../../core/localization/strings/library_strings.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../../core/widgets/own_book_spine_cover.dart';
 import '../../reader/provider/reader_provider.dart';
+import '../../reader/views/cbz_reader_screen.dart';
 import '../../reader/views/reader_view.dart';
 import '../../reader/views/pdf_reader_screen.dart';
 import 'shelf_grid.dart';
@@ -36,7 +38,7 @@ class _OwnBooksTabState extends State<OwnBooksTab> {
     if (_picking) return;
     setState(() => _picking = true);
     try {
-      final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['epub', 'pdf']);
+      final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['epub', 'pdf', 'cbz']);
       final picked = result?.files.single;
       final path = picked?.path;
       if (picked == null || path == null) return;
@@ -50,15 +52,18 @@ class _OwnBooksTabState extends State<OwnBooksTab> {
 
   void _openBook(OwnBook book) {
     AnalyticsService.instance.logBookOpened(id: book.id, format: book.format.name);
-    if (book.format == OwnBookFormat.pdf) {
-      context.push(PdfReaderScreen(filePath: book.filePath, title: book.title));
-    } else {
-      context.push(
-        ChangeNotifierProvider(
-          create: (_) => ReaderProvider(),
-          child: ReaderScreen(bookPath: book.filePath, bookId: book.id.hashCode, bookTitle: book.title),
-        ),
-      );
+    switch (book.format) {
+      case OwnBookFormat.pdf:
+        context.push(PdfReaderScreen(filePath: book.filePath, title: book.title, bookId: stableBookKey(book.id)));
+      case OwnBookFormat.cbz:
+        context.push(CbzReaderScreen(filePath: book.filePath, title: book.title, bookId: stableBookKey(book.id)));
+      case OwnBookFormat.epub:
+        context.push(
+          ChangeNotifierProvider(
+            create: (_) => ReaderProvider(),
+            child: ReaderScreen(bookPath: book.filePath, bookId: stableBookKey(book.id), bookTitle: book.title),
+          ),
+        );
     }
   }
 

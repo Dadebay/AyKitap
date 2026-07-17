@@ -48,7 +48,7 @@ var selectionTimeout = null;
 var hasSentSelection = false; // Track if we've actually sent a selection event to Flutter
 var lastTapCoords = null; // Store the last tap coordinates for onTouchDown/onTouchUp callbacks
 
-function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScriptedContent, direction, useCustomSwipe, backgroundColor, foregroundColor, fontSize, clearSelectionOnNav, selectAnnotationRangeParam, customCss) {
+function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScriptedContent, direction, useCustomSwipe, backgroundColor, foregroundColor, fontSize, clearSelectionOnNav, selectAnnotationRangeParam, customCss, savedLocations) {
   // Reset flags for new book
   initialXPathProcessed = false;
   xpathDisplayInProgress = false;
@@ -69,7 +69,14 @@ function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScr
   } else {
     uint8Array = new Uint8Array(data);
   }
-  book.open(uint8Array,)
+  book.open(uint8Array).catch(function (e) {
+    console.error('Error opening book:', e);
+    try {
+      window.flutter_inappwebview.callHandler('displayError');
+    } catch (err) {
+      console.error('Error calling displayError callback:', err);
+    }
+  });
   rendition = book.renderTo("viewer", {
     manager: manager,
     flow: flow,
@@ -649,6 +656,7 @@ function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScr
   })
 
   rendition.on("rendered", function () {
+    _installScrollLogging();
     window.flutter_inappwebview.callHandler('rendered');
   })
 
@@ -879,7 +887,16 @@ function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScr
       window.flutter_inappwebview.callHandler('selectionCleared');
     }
 
+    sendRelocated(location);
+  });
+
+// Builds and ships the location payload. Split out of the "relocated" handler
+// so it can be re-sent once book.locations.generate() finishes: the first
+// relocations of a book race that generation and would otherwise report page 0
+// forever, since no further relocated event fires until the reader turns a page.
+function sendRelocated(location) {
     var percent = location.start.percentage;
+    var pages = pageInfoFor(location.start.cfi);
 
     // Convert CFIs to XPath
     Promise.all([
@@ -891,10 +908,13 @@ function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScr
         endCfi: location.end.cfi,
         startXpath: xpaths[0],
         endXpath: xpaths[1],
-        // Spine href of the current page — lets Dart resolve which TOC
-        // chapter is on screen (used for the reader's top-bar title).
+        // Spine href of the current page — names the file, not the chapter.
         href: location.start.href,
-        progress: percent
+        // The actual chapter, anchor and all. See resolveTocHref.
+        tocHref: resolveTocHref(location),
+        progress: percent,
+        page: pages.page,
+        totalPages: pages.totalPages
       }
       var args = [locationData]
       window.flutter_inappwebview.callHandler('relocated', ...args);
@@ -906,12 +926,15 @@ function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScr
         startXpath: null,
         endXpath: null,
         href: location.start.href,
-        progress: percent
+        tocHref: resolveTocHref(location),
+        progress: percent,
+        page: pages.page,
+        totalPages: pages.totalPages
       }
       var args = [locationData]
       window.flutter_inappwebview.callHandler('relocated', ...args);
     });
-  });
+  }
 
   rendition.on('displayError', function (e) {
     window.flutter_inappwebview.callHandler('displayError');
@@ -1005,8 +1028,34 @@ function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScr
     }
   })
 
+  // Sends the just-generated locations up to Flutter so they can be cached
+  // (see ReaderProvider.onLocationsGenerated) and handed back in as
+  // savedLocations on the next open of this book, skipping this scan.
+  function sendGeneratedLocations() {
+    try {
+      var json = book.locations.save();
+      window.flutter_inappwebview.callHandler('locationsGenerated', json);
+    } catch (e) {
+      console.error('Error saving/sending locations:', e);
+    }
+  }
+
   book.ready.then(function () {
-    book.locations.generate(1600).then(() => {
+    // Runs once locations exist, however they got there — either loaded from
+    // cache below or freshly generated. Was inlined in generate(1600)'s own
+    // .then() before; pulled out so both paths can share it.
+    function afterLocationsReady() {
+      // The page count only exists from here on, and the relocations that got
+      // the reader to this point all reported page 0 — re-send the current one
+      // now that it can be numbered.
+      try {
+        if (rendition && rendition.location && rendition.location.start) {
+          sendRelocated(rendition.location);
+        }
+      } catch (e) {
+        console.error('Error re-sending location after generate:', e);
+      }
+
       // Handle initial position after locations are generated
       // XPath takes precedence over CFI
       if (initialXPath && !initialXPathProcessed) {
@@ -1097,7 +1146,32 @@ function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScr
       } else {
         window.flutter_inappwebview.callHandler('locationLoaded');
       }
-    })
+    }
+
+    // A cached locations JSON (see the savedLocations param and
+    // ReaderProvider.savedLocationsJson) skips the multi-second
+    // book.locations.generate() scan below entirely — that scan is what used
+    // to leave the page count and progress bar at 0 for the first few seconds
+    // of *every* open of the same book, not just the first. Falls back to a
+    // fresh generate() if the cached JSON is missing or fails to parse (e.g.
+    // it's from an incompatible epub.js version).
+    if (savedLocations) {
+      try {
+        book.locations.load(savedLocations);
+        afterLocationsReady();
+      } catch (e) {
+        console.error('Error loading saved locations, regenerating:', e);
+        book.locations.generate(1600).then(function () {
+          afterLocationsReady();
+          sendGeneratedLocations();
+        });
+      }
+    } else {
+      book.locations.generate(1600).then(function () {
+        afterLocationsReady();
+        sendGeneratedLocations();
+      });
+    }
   })
 
   rendition.hooks.content.register((contents) => {
@@ -1970,12 +2044,33 @@ function _animatedTurn(dir, commit) {
   var s = _transitionSpec(_pageTransition, dir);
   _turnAnimating = true;
 
+  var released = false;
+  // The "out" tween leaves the viewer transparent and pushed off to one side,
+  // so *every* exit from here has to put it back — if one doesn't, the reader is
+  // left staring at a blank page with no way to recover, because _turnAnimating
+  // also stays stuck and sends every later turn down the un-animated path.
+  //
+  // That is not hypothetical: the restore used to hang off commit()'s promise,
+  // and rendition.prev() does not always settle — epub.js queues the turn behind
+  // loading the previous section, and a queue that stalls never rejects either,
+  // so neither .then nor .catch would run. Hence a watchdog rather than trust.
   var release = function () {
+    if (released) return;
+    released = true;
+    clearTimeout(watchdog);
     el.style.transition = '';
     el.style.transform = '';
     el.style.opacity = '';
+    el.style.willChange = '';
     _turnAnimating = false;
   };
+
+  // Long enough that it never pre-empts a page turn that is merely slow, short
+  // enough that a stalled one doesn't read as a broken app.
+  var watchdog = setTimeout(function () {
+    console.log('page transition watchdog fired — restoring viewer');
+    release();
+  }, s.outMs + s.inMs + 2000);
 
   el.style.willChange = 'transform, opacity';
   el.style.transition = 'transform ' + s.outMs + 'ms ' + s.ease + ', opacity ' + s.outMs + 'ms ' + s.ease;
@@ -1986,12 +2081,14 @@ function _animatedTurn(dir, commit) {
     Promise.resolve()
       .then(commit)
       .then(function () {
+        if (released) return; // Watchdog already restored the viewer.
         // Snap to the incoming pose with no tween, then let it settle back.
         el.style.transition = 'none';
         el.style.transform = s.inFrom;
         el.style.opacity = s.inOpacity;
         requestAnimationFrame(function () {
           requestAnimationFrame(function () {
+            if (released) return;
             el.style.transition = 'transform ' + s.inMs + 'ms ' + s.ease + ', opacity ' + s.inMs + 'ms ' + s.ease;
             el.style.transform = 'none';
             el.style.opacity = 1;
@@ -2012,9 +2109,41 @@ function _installPageTransitions(r) {
   if (!r || r.__transitionsInstalled) return;
   var origNext = r.next.bind(r);
   var origPrev = r.prev.bind(r);
-  r.next = function () { return _animatedTurn(1, origNext); };
-  r.prev = function () { return _animatedTurn(-1, origPrev); };
+  // Every page turn — a swipe (Android's custom detectSwipe, or the browser's
+  // own gesture handling elsewhere) and epub.js's own paginated-mode swipe
+  // alike — reaches the reader through exactly one of these two calls, since
+  // nothing else in this file calls rendition.next()/prev(). One log here is a
+  // log of every real page turn, without duplicating it at each gesture source.
+  r.next = function () { console.log('👉 SWIPE: next page (mode=' + _pageTransition + ')'); return _animatedTurn(1, origNext); };
+  r.prev = function () { console.log('👈 SWIPE: previous page (mode=' + _pageTransition + ')'); return _animatedTurn(-1, origPrev); };
   r.__transitionsInstalled = true;
+}
+
+// ── Scroll logging ────────────────────────────────────────────────────────
+// In scroll/manga mode (EpubFlow.scrolled) reading moves by the browser's own
+// native scroll, not by next()/prev() — so it needs a separate hook. sakura_epub
+// only ever uses the 'continuous' manager (see EpubManager), which keeps one
+// scroller for the whole session regardless of flow, so this only needs to
+// attach once; it's called from 'rendered', which fires often, hence the flag.
+var _scrollLoggingAttached = false;
+function _installScrollLogging() {
+  try {
+    if (_scrollLoggingAttached) return;
+    var scroller = rendition && rendition.manager && rendition.manager.scroller;
+    if (!scroller || !scroller.addEventListener) return;
+    _scrollLoggingAttached = true;
+    var lastLog = 0;
+    scroller.addEventListener('scroll', function () {
+      // One continuous drag fires dozens of scroll events; log the gesture,
+      // not every pixel of it.
+      var now = Date.now();
+      if (now - lastLog < 400) return;
+      lastLog = now;
+      console.log('📜 SCROLL (mode=' + _pageTransition + ')');
+    }, { passive: true });
+  } catch (e) {
+    console.error('Error installing scroll logging:', e);
+  }
 }
 
 function next() {
@@ -2106,12 +2235,150 @@ function getCurrentLocation(requestId) {
   });
 }
 
+// ── Page numbers ─────────────────────────────────────────────────────────
+// epub.js has no notion of a page: reflowable text has no fixed pagination, so
+// the only stable unit it offers is a "location" — a fixed-length slice of the
+// book's text produced by book.locations.generate(N). Those slices are what we
+// number, which is the same approach Kindle/Kobo take, and unlike the raw
+// column count they don't change when the reader picks a bigger font.
+//
+// locations.generate() is async (see book.ready below) and takes a while on a
+// long book, so both values are 0 until it finishes — callers must treat 0 as
+// "not counted yet" rather than as page zero.
+function pageInfoFor(cfi) {
+  var info = { page: 0, totalPages: 0 };
+  try {
+    if (!book.locations || !book.locations.length()) return info;
+    info.totalPages = book.locations.length();
+    // locationFromCfi is 0-based; readers count from 1.
+    var idx = book.locations.locationFromCfi(cfi);
+    if (typeof idx === 'number' && idx >= 0) {
+      info.page = Math.min(idx + 1, info.totalPages);
+    }
+  } catch (e) {
+    console.error('Error computing page info:', e);
+  }
+  return info;
+}
+
+// TOC and spine hrefs disagree on anchors, query strings and directory
+// prefixes (`OEBPS/text/ch1.xhtml` vs `ch1.xhtml`), so files are compared on
+// the bare name.
+function hrefFileName(href) {
+  var h = (href || '').split('#')[0].split('?')[0];
+  var slash = h.lastIndexOf('/');
+  return slash === -1 ? h : h.substring(slash + 1);
+}
+
+// Every anchored TOC entry living in the spine file [file], flattened out of
+// the TOC tree. Entries without an anchor are skipped: they refer to the file
+// as a whole and are what resolveTocHref falls back to.
+function anchoredTocEntriesIn(file) {
+  var out = [];
+  var target = hrefFileName(file);
+  (function walk(list) {
+    if (!list) return;
+    list.forEach(function (item) {
+      var href = item.href || '';
+      var anchor = href.split('#')[1];
+      if (anchor && hrefFileName(href) === target) {
+        out.push({ href: href, anchor: anchor });
+      }
+      walk(item.subitems);
+    });
+  })(book.navigation && book.navigation.toc);
+  return out;
+}
+
+// One spine file routinely holds many chapters — Calibre splits a book into
+// index_split_NNN.xhtml and separates the chapters inside each file with
+// #anchors. epub.js reports only the file in location.start.href, so from the
+// outside every chapter in that file looks identical and the reader appears to
+// be stuck on the first one.
+//
+// Find the anchored TOC entry nearest at-or-before the current position and
+// report that instead. Uses the already-rendered document, so nothing is
+// loaded or parsed here.
+function cfiToRangeIn(cfiString, doc) {
+  try {
+    return new ePub.CFI(cfiString).toRange(doc);
+  } catch (e) {
+    return null;
+  }
+}
+
+function resolveTocHref(location) {
+  var fallback = location.start.href;
+  try {
+    var entries = anchoredTocEntriesIn(fallback);
+    if (!entries.length) return fallback;
+
+    var all = rendition.getContents();
+    var contents = all.filter(function (c) {
+      return c.sectionIndex === location.start.index;
+    })[0] || all[0];
+    var doc = contents && contents.document;
+    if (!doc) return fallback;
+
+    // Measured from the END of the visible page, not its start.
+    //
+    // rendition.display('file.xhtml#anchor') pages to the column that
+    // *contains* the anchor; it does not begin the page at it. So the page
+    // opens on the tail of the previous chapter with the requested heading
+    // part-way down it. Measuring from location.start therefore answers with
+    // the previous chapter — tap "Глава 5", get "Глава 4". The last heading
+    // appearing anywhere on the page is the one the reader has arrived at.
+    var marker = null;
+    if (location.end && location.end.cfi && location.end.index === location.start.index) {
+      var endRange = cfiToRangeIn(location.end.cfi, doc);
+      if (endRange) marker = endRange.endContainer;
+    }
+    if (!marker) {
+      var startRange = cfiToRangeIn(location.start.cfi, doc);
+      if (!startRange) return fallback;
+      marker = startRange.startContainer;
+    }
+
+    // Node.DOCUMENT_POSITION_* bits, spelled out rather than read off Node
+    // because these nodes belong to the rendered iframe's document.
+    var FOLLOWING = 4;
+    var CONTAINED_BY = 16;
+
+    // Nearest preceding-or-equal entry wins. Compared pairwise by document
+    // position rather than trusting the TOC to be in document order.
+    var best = null, bestEl = null;
+    for (var i = 0; i < entries.length; i++) {
+      var el = doc.getElementById(entries[i].anchor);
+      if (!el) continue;
+
+      // el is at-or-before the marker when the marker IS el, follows it, or
+      // sits inside it (the page ends within the heading itself).
+      var pos = el.compareDocumentPosition(marker);
+      if (!(marker === el || (pos & FOLLOWING) || (pos & CONTAINED_BY))) continue;
+
+      if (!bestEl || (bestEl.compareDocumentPosition(el) & FOLLOWING)) {
+        best = entries[i].href;
+        bestEl = el;
+      }
+    }
+    // No anchor on or before this page means we're in the file's lead-in,
+    // above its first anchored chapter — the file-level entry is the honest
+    // answer.
+    return best || fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
 ///parsing chapters and subitems recursively
 var parseChapters = function (toc) {
   var chapters = []
   toc.forEach(function (chapter) {
     chapters.push({
-      title: chapter.label,
+      // NCX <text> nodes carry the source file's own line breaks and
+      // indentation, so labels arrive as "\n        Глава 2\n      ".
+      // Normalise here rather than leaving every consumer to trim.
+      title: (chapter.label || '').replace(/\s+/g, ' ').trim(),
       href: chapter.href,
       id: chapter.id,
       subitems: parseChapters(chapter.subitems)
@@ -2120,41 +2387,42 @@ var parseChapters = function (toc) {
   return chapters;
 }
 
-function searchInBook(query, requestId) {
-  search(query).then(function (data) {
-    // Convert each search result's CFI to XPath
-    var xpathPromises = data.map(function (result) {
-      return cfiToXPath(result.cfi).then(function (xpath) {
-        return {
-          cfi: result.cfi,
-          excerpt: result.excerpt,
-          xpath: xpath
-        };
-      }).catch(function (e) {
-        // If XPath conversion fails, still return CFI
-        return {
-          cfi: result.cfi,
-          excerpt: result.excerpt,
-          xpath: null
-        };
-      });
+// The Dart side parks a Completer on every call, so this must post exactly one
+// 'search' message for `requestId` on every path — including failure, or the
+// caller waits forever.
+function searchInBook(query, requestId, includeXPath) {
+  function send(results) {
+    window.flutter_inappwebview.callHandler('search', {
+      requestId: requestId,
+      results: results
     });
+  }
 
-    Promise.all(xpathPromises).then(function (resultsWithXpath) {
-      var args = [{
-        requestId: requestId,
-        results: resultsWithXpath
-      }]
-      window.flutter_inappwebview.callHandler('search', ...args);
-    }).catch(function (e) {
-      // If all conversions fail, still send original data
-      var args = [{
-        requestId: requestId,
-        results: data
-      }]
-      window.flutter_inappwebview.callHandler('search', ...args);
+  search(query).then(function (data) {
+    if (!includeXPath) return send(data);
+
+    // XPath conversion reloads each hit's spine item, so it runs one at a time
+    // and only when the caller asked for it.
+    var withXPath = [];
+    return data.reduce(function (chain, result) {
+      return chain.then(function () {
+        return cfiToXPath(result.cfi).catch(function () { return null; });
+      }).then(function (xpath) {
+        withXPath.push({
+          cfi: result.cfi,
+          excerpt: result.excerpt,
+          href: result.href,
+          xpath: xpath
+        });
+      });
+    }, Promise.resolve()).then(function () {
+      send(withXPath);
+    }).catch(function () {
+      send(data);
     });
-  })
+  }).catch(function (e) {
+    send([]);
+  });
 }
 
 
@@ -2230,15 +2498,67 @@ function clearSelection() {
 window.clearSelection = clearSelection;
 
 function toProgress(progress) {
+  // book.locations.generate() is async and may not have finished yet (large
+  // books can take longer than callers are willing to wait) — cfiFromPercentage
+  // would throw on an empty location list and silently kill the navigation.
+  if (!book.locations || !book.locations.length()) return;
   var cfi = book.locations.cfiFromPercentage(progress);
   rendition.display(cfi);
 }
 
 
+// A hit cap and batch size for search(). epub.js's stock implementation maps
+// over the whole spine inside one Promise.all, so every chapter of the book is
+// parsed into a live document at the same moment — on a large epub that alone
+// is enough to OOM the WebView renderer, which takes the host app down with it.
+var SEARCH_MAX_RESULTS = 200;
+var SEARCH_BATCH_SIZE = 4;
+
+// Walks the spine in small batches, unloading each item as soon as it has been
+// scanned, and stops early once SEARCH_MAX_RESULTS hits are collected. Peak
+// memory stays proportional to SEARCH_BATCH_SIZE instead of the book's length.
+// A chapter that fails to load contributes no hits rather than rejecting the
+// whole search.
 function search(q) {
-  return Promise.all(
-    book.spine.spineItems.map(item => item.load(book.load.bind(book)).then(item.find.bind(item, q)).finally(item.unload.bind(item)))
-  ).then(results => Promise.resolve([].concat.apply([], results)));
+  var items = book.spine.spineItems.slice();
+  var out = [];
+  var next = 0;
+
+  function scan(item) {
+    return Promise.resolve()
+      .then(function () { return item.load(book.load.bind(book)); })
+      .then(function () {
+        // Section.search walks the document with a TreeWalker over runs of text
+        // nodes, so it still matches a phrase broken up by inline markup
+        // (<em>, <b>, a stray <span>) and centres the excerpt on the hit.
+        // Section.find only ever looks at one text node at a time and misses
+        // those. Fall back to it if this epub.js build lacks search.
+        return typeof item.search === 'function' ? item.search(q) : item.find(q);
+      })
+      .catch(function () { return []; })
+      .then(function (hits) {
+        try { item.unload(); } catch (e) { /* never loaded */ }
+        // Tag each hit with the chapter it came from so the caller can group
+        // results; href survives the unload above.
+        return (hits || []).map(function (h) {
+          return { cfi: h.cfi, excerpt: h.excerpt, href: item.href };
+        });
+      });
+  }
+
+  function nextBatch() {
+    if (next >= items.length || out.length >= SEARCH_MAX_RESULTS) {
+      return Promise.resolve(out.slice(0, SEARCH_MAX_RESULTS));
+    }
+    var batch = items.slice(next, next + SEARCH_BATCH_SIZE);
+    next += batch.length;
+    return Promise.all(batch.map(scan)).then(function (results) {
+      out = out.concat.apply(out, results);
+      return nextBatch();
+    });
+  }
+
+  return nextBatch();
 };
 
 function setSpread(spread) {
@@ -3502,20 +3822,35 @@ function checkSelectionAndReapplyBlocking() {
 }
 
 function detectSwipe(el, func) {
-  swipe_det = new Object();
-  swipe_det.sX = 0;
-  swipe_det.sY = 0;
-  swipe_det.eX = 0;
-  swipe_det.eY = 0;
-  swipe_det.blocked = false; // Track if swipe should be blocked
-  swipe_det.hasMoved = false; // Track if touch has moved
-  swipe_det.touchStartTime = null; // Track when touch started
+  // Called once per section as it renders, so this runs many times per book —
+  // and a page turn is itself what renders the next section.
+  //
+  // Every bit of state below must therefore be per-call. `swipe_det` and `ele`
+  // used to be declared without `var`, which made them implicit globals: each
+  // new section reset the one shared object to zeroes while every section's
+  // listeners kept reading from it. A section rendering in the middle of a
+  // gesture would zero sX after touchstart, and touchend then compared the
+  // finger's real end point against 0 — so the swipe either registered no
+  // direction at all (the page simply didn't turn, and you swiped again), or
+  // came out as `eX - min_x > sX` and turned the page *backwards*.
+  var swipe_det = {
+    sX: 0,
+    sY: 0,
+    eX: 0,
+    eY: 0,
+    blocked: false,      // Whether this swipe should be blocked
+    hasMoved: false,     // Whether the touch has moved
+    touchStartTime: null // When the touch started
+  };
   var min_x = 50;  //min x swipe for horizontal swipe
   var max_x = 40;  //max x difference for vertical swipe
   var min_y = 40;  //min y swipe for vertical swipe
   var max_y = 50;  //max y difference for horizontal swipe
   var direc = "";
-  ele = el
+  // Re-registering on a document we already wired up would double every turn.
+  if (!el || el.__sakuraSwipeInstalled) return;
+  el.__sakuraSwipeInstalled = true;
+  var ele = el;
   ele.addEventListener('touchstart', function (e) {
     // Check if selection exists at start of gesture
     if (hasActiveSelection()) {

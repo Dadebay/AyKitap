@@ -92,19 +92,22 @@ class ReaderSettingsSheet extends StatelessWidget {
 
                       const SizedBox(height: 22),
 
-                      // ── Font family ────────────────────────────────────
+                      // ── Font family — a row of four preview tiles ──────
                       _SectionLabel(ReaderStrings.fontLabel),
                       const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: ReaderFontFamily.values.map((family) {
-                          return _FontButton(
-                            family: family,
-                            selected: provider.fontFamily == family,
-                            onTap: () => provider.setFontFamily(family),
-                          );
-                        }).toList(),
+                      Row(
+                        children: [
+                          for (final family in ReaderFontFamily.values) ...[
+                            if (family != ReaderFontFamily.values.first) const SizedBox(width: 10),
+                            Expanded(
+                              child: _FontTile(
+                                family: family,
+                                selected: provider.fontFamily == family,
+                                onTap: () => provider.setFontFamily(family),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
 
                       const SizedBox(height: 22),
@@ -114,6 +117,7 @@ class ReaderSettingsSheet extends StatelessWidget {
                       // its value, the coloured band tracks it live.
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _LevelTile(
                             iconBuilder: (c) => Text(
@@ -122,8 +126,8 @@ class ReaderSettingsSheet extends StatelessWidget {
                             ),
                             label: ReaderStrings.fontSizeLabel,
                             value: provider.fontSize,
-                            min: 12.0,
-                            max: 28.0,
+                            min: ReaderProvider.minFontSize,
+                            max: ReaderProvider.maxFontSize,
                             onChanged: provider.setFontSize,
                           ),
                           _LevelTile(
@@ -232,12 +236,15 @@ class _ThemeButton extends StatelessWidget {
   }
 }
 
-class _FontButton extends StatelessWidget {
+/// One font option, styled to match the level tiles below: a big "Aa" preview
+/// rendered in the actual typeface over the font's name. Filled accent when
+/// selected, outlined when idle.
+class _FontTile extends StatelessWidget {
   final ReaderFontFamily family;
   final bool selected;
   final VoidCallback onTap;
 
-  const _FontButton({required this.family, required this.selected, required this.onTap});
+  const _FontTile({required this.family, required this.selected, required this.onTap});
 
   String get name => switch (family) {
         ReaderFontFamily.sanFrancisco => 'San Francisco',
@@ -255,23 +262,39 @@ class _FontButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fg = selected ? Colors.white : AppColors.white;
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        height: 74,
         decoration: BoxDecoration(
           color: selected ? AppColors.primary : AppColors.card,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: selected ? AppColors.primary : AppColors.border, width: 1),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: selected ? AppColors.primary : AppColors.border),
         ),
-        child: Text(
-          name,
-          style: TextStyle(
-            color: selected ? Colors.white : AppColors.white,
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            fontFamily: fontFamily,
-          ),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Aa',
+              style: TextStyle(color: fg, fontFamily: fontFamily, fontSize: 22, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              name,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: selected ? Colors.white : AppColors.grey2,
+                fontSize: 10,
+                height: 1.15,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -327,43 +350,54 @@ class _LevelTile extends StatelessWidget {
             behavior: HitTestBehavior.opaque,
             onTapDown: (d) => _handle(d.localPosition),
             onVerticalDragUpdate: (d) => _handle(d.localPosition),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: SizedBox(
-                height: _height,
-                width: _width,
-                child: Stack(
-                  children: [
-                    ColoredBox(color: AppColors.card),
-                    AnimatedPositioned(
-                      duration: const Duration(milliseconds: 120),
-                      curve: Curves.easeOut,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      height: fillHeight,
-                      child: ColoredBox(color: AppColors.primary),
-                    ),
-                    // Icon fixed at the bottom of the tile.
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      height: _iconBandHeight,
-                      child: Center(child: iconBuilder(iconOnFill ? Colors.white : AppColors.grey2)),
-                    ),
-                  ],
-                ),
+            // A border (plus the rounded corners) keeps the tile's outline
+            // visible in both themes — otherwise the empty part is invisible
+            // on the light sheet, where the card fill is white on white.
+            child: Container(
+              height: _height,
+              width: _width,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Stack(
+                children: [
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 120),
+                    curve: Curves.easeOut,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: fillHeight,
+                    child: ColoredBox(color: AppColors.primary),
+                  ),
+                  // Icon fixed at the bottom of the tile.
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: _iconBandHeight,
+                    child: Center(child: iconBuilder(iconOnFill ? Colors.white : AppColors.grey2)),
+                  ),
+                ],
               ),
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: AppColors.grey2, fontSize: 10.5, fontWeight: FontWeight.w500, height: 1.2),
+          // Fixed two-line height so a one-line label ("Parlaklyk") reserves the
+          // same space as a two-line one ("Şrift ölçegi") — keeps every tile the
+          // same total height and aligned.
+          SizedBox(
+            height: 26,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: AppColors.grey2, fontSize: 10.5, fontWeight: FontWeight.w500, height: 1.2),
+            ),
           ),
         ],
       ),

@@ -5,8 +5,8 @@
 class Bookmark {
   final String id;
 
-  /// The reader's book id (`Book.id.hashCode`), used to scope a book's own
-  /// bookmark list.
+  /// The reader's book id (`stableBookKey(Book.id)`), used to scope a book's
+  /// own bookmark list.
   final int bookId;
   final String bookTitle;
 

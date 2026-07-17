@@ -39,6 +39,7 @@ class NotesStore extends ChangeNotifier {
     required int bookSeed,
     required int bookIndex,
     required String bookTitle,
+    String? cfi,
   }) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
@@ -53,10 +54,18 @@ class NotesStore extends ChangeNotifier {
       bookIndex: bookIndex,
       bookTitle: bookTitle,
       createdAt: DateTime.now(),
+      cfi: cfi,
     );
     _notes = [note, ..._notes];
     await _persist();
     notifyListeners();
+  }
+
+  /// Highlights (notes with a [ReadingNote.cfi]) captured for one catalogue
+  /// book, identified the same way [ReadingNote.book] regenerates it. Used by
+  /// ReaderProvider to redraw them once a book's rendition is set up.
+  List<ReadingNote> highlightsForBook({required int bookSeed, required int bookIndex}) {
+    return _notes.where((n) => n.bookSeed == bookSeed && n.bookIndex == bookIndex && (n.cfi?.isNotEmpty ?? false)).toList();
   }
 
   Future<void> updateText(String id, String text) async {

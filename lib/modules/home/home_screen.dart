@@ -17,6 +17,7 @@ import '../series/all_series_screen.dart';
 import '../streak/streak_screen.dart';
 import 'widgets/author_avatar.dart';
 import 'widgets/banner_carousel.dart';
+import 'widgets/bundled_books_debug_screen.dart';
 import 'widgets/collection_card.dart';
 import 'widgets/home_header.dart';
 import 'widgets/rank_shelf_card.dart';
@@ -64,6 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SliverToBoxAdapter(child: BannerCarousel()),
+          SliverToBoxAdapter(child: _buildBundledBooksEntry(context)),
           const SliverToBoxAdapter(child: SizedBox(height: 4)),
           SliverToBoxAdapter(child: _buildSection(context, HomeStrings.popularBooks, seed: 99)),
           SliverToBoxAdapter(child: _buildPopularRankCard(context)),
@@ -74,6 +76,44 @@ class _HomeScreenState extends State<HomeScreen> {
           for (int i = _topSectionsCount; i < sections.length; i++) SliverToBoxAdapter(child: _buildSection(context, sections[i].title, subtitle: sections[i].subtitle, seed: i * 3)),
           const SliverToBoxAdapter(child: SizedBox(height: 20)),
         ],
+      ),
+    );
+  }
+
+  /// Dev-only shortcut to [BundledBooksDebugScreen]. The catalogue maps mock
+  /// books onto sample EPUBs by hash, so there's no way to tell from a cover
+  /// which file it will open — this reaches the files directly, by name.
+  /// Remove along with the debug screen once the backend serves real content.
+  Widget _buildBundledBooksEntry(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Material(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => context.push(const BundledBooksDebugScreen()),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.bug_report_outlined, color: AppColors.primary, size: 19),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    HomeStrings.bundledBooksTitle,
+                    style: TextStyle(color: AppColors.white, fontSize: 13.5, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: AppColors.grey3, size: 20),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

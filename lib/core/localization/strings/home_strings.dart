@@ -18,6 +18,14 @@ class HomeStrings {
 
   static String get collections => t(tk: 'Kolleksiýalar', ru: 'Коллекции', tr: 'Koleksiyonlar');
 
+  /// Dev-only entry point — see [BundledBooksDebugScreen]. Localised anyway so
+  /// it doesn't stand out while it's on screen.
+  static String get bundledBooksTitle => t(
+        tk: 'Synag kitaplary',
+        ru: 'Тестовые книги',
+        tr: 'Test kitapları',
+      );
+
   static String get series => t(tk: 'Seriýalar', ru: 'Серии', tr: 'Seriler');
 
   // The series row uses a shorter "All" label instead of "See all".

@@ -159,7 +159,6 @@ class PageTransitionSheet extends StatelessWidget {
                         ReaderPageTransition.none,
                       ]),
                       const SizedBox(height: 22),
-                      _leftHandButton(provider),
                     ],
                   ),
                 ),
@@ -168,37 +167,6 @@ class PageTransitionSheet extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-
-  Widget _leftHandButton(ReaderProvider provider) {
-    final on = provider.leftHandMode;
-    return GestureDetector(
-      onTap: provider.toggleLeftHand,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: on ? AppColors.primary : AppColors.card,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: on ? AppColors.primary : AppColors.border),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.back_hand_outlined, color: on ? Colors.white : AppColors.grey2, size: 18),
-            const SizedBox(width: 9),
-            Text(
-              ReaderStrings.leftHandLabel,
-              style: TextStyle(
-                color: on ? Colors.white : AppColors.grey1,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

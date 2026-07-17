@@ -43,9 +43,11 @@ class EpubViewer extends StatefulWidget {
     required this.epubSource,
     this.initialCfi,
     this.initialXPath,
+    this.initialLocations,
     this.onChaptersLoaded,
     this.onEpubLoaded,
     this.onLocationLoaded,
+    this.onLocationsGenerated,
     this.onRelocated,
     this.onTextSelected,
     this.displaySettings,
@@ -56,6 +58,7 @@ class EpubViewer extends StatefulWidget {
     this.onDeselection,
     this.onInitialPositionLoading,
     this.onInitialPositionLoaded,
+    this.onEpubLoadFailed,
     this.onTouchDown,
     this.onTouchUp,
     this.onPermissionRequest,
@@ -79,11 +82,24 @@ class EpubViewer extends StatefulWidget {
   ///if null and initialCfi is also null, the first chapter will be loaded
   final String? initialXPath;
 
+  ///A previously-saved `book.locations.save()` JSON string (see
+  ///[onLocationsGenerated]). When provided, the book skips the multi-second
+  ///`book.locations.generate()` scan and loads this instead — the page count
+  ///and progress bar are then available immediately rather than a few
+  ///seconds into every single open of the same book.
+  final String? initialLocations;
+
   ///Call back when epub is loaded and displayed
   final VoidCallback? onEpubLoaded;
 
   /// Callback when the location are generated for epub, progress will be only available after this
   final VoidCallback? onLocationLoaded;
+
+  ///Callback with the freshly generated `book.locations.save()` JSON, fired
+  ///once after a fresh `book.locations.generate()` scan (never fires when
+  ///[initialLocations] was used, since nothing new was generated). Persist
+  ///this and hand it back in as [initialLocations] on the next open.
+  final ValueChanged<String>? onLocationsGenerated;
 
   ///Call back when chapters are loaded
   final ValueChanged<List<EpubChapter>>? onChaptersLoaded;
@@ -97,6 +113,13 @@ class EpubViewer extends StatefulWidget {
 
   ///Callback when initial position loading completes
   final VoidCallback? onInitialPositionLoaded;
+
+  ///Callback when the book fails to open or fails to render a page — either
+  ///the file itself is corrupt/unsupported (book.open rejects) or epub.js
+  ///can't display the requested location (rendition's `displayError` event).
+  ///Without this, a bad file leaves the caller waiting on [onEpubLoaded]
+  ///forever with no signal that it never will fire.
+  final VoidCallback? onEpubLoadFailed;
 
   ///Call back when text selection changes
   final ValueChanged<EpubTextSelection>? onTextSelected;
@@ -312,7 +335,15 @@ class _EpubViewerState extends State<EpubViewer> {
     webViewController?.addJavaScriptHandler(
       handlerName: "displayed",
       callback: (data) {
+        widget.epubController.markBookLoaded();
         widget.onEpubLoaded?.call();
+      },
+    );
+
+    webViewController?.addJavaScriptHandler(
+      handlerName: "displayError",
+      callback: (data) {
+        widget.onEpubLoadFailed?.call();
       },
     );
 
@@ -488,6 +519,14 @@ class _EpubViewerState extends State<EpubViewer> {
       handlerName: 'locationLoaded',
       callback: (arguments) {
         widget.onLocationLoaded?.call();
+      },
+    );
+
+    webViewController?.addJavaScriptHandler(
+      handlerName: 'locationsGenerated',
+      callback: (data) {
+        if (data.isEmpty || data[0] is! String) return;
+        widget.onLocationsGenerated?.call(data[0] as String);
       },
     );
 
@@ -696,7 +735,7 @@ class _EpubViewerState extends State<EpubViewer> {
 
     await webViewController?.callAsyncJavaScript(
       functionBody:
-          'loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScriptedContent, direction, useCustomSwipe, backgroundColor, foregroundColor, fontSize, clearSelectionOnNav, selectAnnotationRangeParam, customCss)',
+          'loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScriptedContent, direction, useCustomSwipe, backgroundColor, foregroundColor, fontSize, clearSelectionOnNav, selectAnnotationRangeParam, customCss, savedLocations)',
       arguments: {
         'data': base64Data,
         'cfi': cfi,
@@ -714,6 +753,7 @@ class _EpubViewerState extends State<EpubViewer> {
         'clearSelectionOnNav': clearSelectionOnPageChange,
         'selectAnnotationRangeParam': widget.selectAnnotationRange,
         'customCss': customCss,
+        'savedLocations': widget.initialLocations,
       },
     );
   }

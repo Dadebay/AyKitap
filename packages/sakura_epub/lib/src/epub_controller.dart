@@ -1,10 +1,15 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:sakura_epub/sakura_epub.dart';
 import 'package:sakura_epub/src/utils.dart';
 
 class EpubController {
+  /// Maximum number of hits [search] will return. Mirrors SEARCH_MAX_RESULTS
+  /// in epubView.js — keep the two in step.
+  static const int searchResultLimit = 200;
+
   InAppWebViewController? webViewController;
 
   ///List of chapters from epub
@@ -16,12 +21,31 @@ class EpubController {
   int get activeSearchRequestId => _searchRequestId;
   int get activeLocationRequestId => _currentLocationRequestId;
 
+  /// Whether epub.js has finished loadBook() and the `rendition` object every
+  /// command below depends on actually exists. Set by [markBookLoaded], which
+  /// EpubViewer calls from its "displayed" JS handler.
+  bool _bookLoaded = false;
+  bool get isBookLoaded => _bookLoaded;
+
+  /// Called once epub.js's "displayed" event fires. Commands issued before
+  /// this — e.g. from a settings sheet reachable while the book is still
+  /// loading — reach a JS `rendition` that doesn't exist yet and silently do
+  /// nothing; see [checkEpubLoaded].
+  void markBookLoaded() {
+    _bookLoaded = true;
+  }
+
   void setWebViewController(InAppWebViewController controller) {
     webViewController = controller;
   }
 
   void _cancelIfPending<T>(Completer<T> completer, String reason) {
     if (!completer.isCompleted) {
+      // These completers are also created eagerly as field initializers, so the
+      // one being cancelled may never have been awaited. Erroring a future with
+      // no listener escapes to the zone and kills the app, so mark it handled
+      // first — a real awaiter still receives the error.
+      completer.future.ignore();
       completer.completeError(StateError(reason));
     }
   }
@@ -100,10 +124,14 @@ class EpubController {
 
   ///Search in epub using query string
   ///Returns a list of [EpubSearchResult]
+  ///
+  ///Results are capped at 200 hits. Set [includeXPath] to populate
+  ///[EpubSearchResult.xpath]; it reloads every hit's spine item, so it is off
+  ///by default and only worth paying for if you need the XPointer.
   Future<List<EpubSearchResult>> search({
     ///Search query string
     required String query,
-    // bool optimized = false,
+    bool includeXPath = false,
   }) async {
     if (query.isEmpty) return [];
     checkEpubLoaded();
@@ -111,8 +139,12 @@ class EpubController {
     _searchRequestId++;
     searchResultCompleter = Completer<List<EpubSearchResult>>();
     await webViewController?.callAsyncJavaScript(
-      functionBody: 'searchInBook(query, requestId)',
-      arguments: {'query': query, 'requestId': _searchRequestId},
+      functionBody: 'searchInBook(query, requestId, includeXPath)',
+      arguments: {
+        'query': query,
+        'requestId': _searchRequestId,
+        'includeXPath': includeXPath,
+      },
     );
     return await searchResultCompleter.future;
   }
@@ -373,6 +405,19 @@ class EpubController {
     if (webViewController == null) {
       throw Exception(
         "Epub viewer is not loaded, wait for onEpubLoaded callback",
+      );
+    }
+    if (!_bookLoaded) {
+      // The WebView exists, but epub.js hasn't finished loadBook() yet, so
+      // the `rendition` object every command below acts on doesn't exist —
+      // this call reaches the JS side and does nothing. Kept as a log rather
+      // than a thrown error (unlike the webViewController check above) so
+      // existing callers that fire during this narrow loading window keep
+      // their current behaviour; this just makes that behaviour visible
+      // instead of a silent no-op.
+      developer.log(
+        '⚠️ EpubController command issued before the book finished loading — likely a no-op',
+        name: 'sakura_epub',
       );
     }
   }

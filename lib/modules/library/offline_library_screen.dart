@@ -1,16 +1,19 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/models/own_book.dart';
 import '../../core/navigation/app_navigator.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/services/own_books_store.dart';
+import '../../core/utils/stable_hash.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/own_book_spine_cover.dart';
 import '../main_nav/main_nav_screen.dart';
 import '../reader/provider/reader_provider.dart';
+import '../reader/views/cbz_reader_screen.dart';
 import '../reader/views/reader_view.dart';
 import '../reader/views/pdf_reader_screen.dart';
 import '../../core/localization/strings/library_strings.dart';
@@ -54,15 +57,18 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
 
   void _openBook(OwnBook book) {
     AnalyticsService.instance.logBookOpened(id: book.id, format: book.format.name);
-    if (book.format == OwnBookFormat.pdf) {
-      context.push(PdfReaderScreen(filePath: book.filePath, title: book.title));
-    } else {
-      context.push(
-        ChangeNotifierProvider(
-          create: (_) => ReaderProvider(),
-          child: ReaderScreen(bookPath: book.filePath, bookId: book.id.hashCode, bookTitle: book.title),
-        ),
-      );
+    switch (book.format) {
+      case OwnBookFormat.pdf:
+        context.push(PdfReaderScreen(filePath: book.filePath, title: book.title, bookId: stableBookKey(book.id)));
+      case OwnBookFormat.cbz:
+        context.push(CbzReaderScreen(filePath: book.filePath, title: book.title, bookId: stableBookKey(book.id)));
+      case OwnBookFormat.epub:
+        context.push(
+          ChangeNotifierProvider(
+            create: (_) => ReaderProvider(),
+            child: ReaderScreen(bookPath: book.filePath, bookId: stableBookKey(book.id), bookTitle: book.title),
+          ),
+        );
     }
   }
 
@@ -146,7 +152,11 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            HugeIcon(icon: HugeIcons.strokeRoundedBookOpen01, color: AppColors.grey3, size: 56),
+            SizedBox(
+              width: 220,
+              height: 220,
+              child: Lottie.asset('assets/animations/no_internet_connection.json', repeat: true, fit: BoxFit.contain),
+            ),
             const SizedBox(height: 14),
             Text(LibraryStrings.noOfflineBooksTitle, style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
