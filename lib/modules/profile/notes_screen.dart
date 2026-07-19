@@ -30,18 +30,22 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   void _goToBook(ReadingNote note) {
-    context.push(BookDetailScreen(book: note.book));
+    final book = note.book;
+    // Imported files have no catalogue entry to open — the card hides the
+    // "go to book" affordance for them, but guard here too.
+    if (book == null) return;
+    context.push(BookDetailScreen(book: book));
   }
 
   Future<void> _editNote(ReadingNote note) async {
-    final newText = await showModalBottomSheet<String>(
+    final draft = await showModalBottomSheet<NoteDraft>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => EditNoteSheet(initialText: note.text),
+      builder: (_) => EditNoteSheet(initialText: note.text, initialColor: note.colorValue),
     );
-    if (newText == null || newText.isEmpty) return;
-    await _store.updateText(note.id, newText);
+    if (draft == null || draft.text.isEmpty) return;
+    await _store.updateNote(note.id, text: draft.text, colorValue: draft.colorValue);
   }
 
   Future<void> _deleteNote(ReadingNote note) async {

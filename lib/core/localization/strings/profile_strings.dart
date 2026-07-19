@@ -109,6 +109,7 @@ class ProfileStrings {
         tr: 'Alıntınızı düzenleyin',
       );
   static String get noteTextHint => t(tk: 'Alyntyňyzy ýazyň', ru: 'Напишите свою цитату', tr: 'Alıntınızı yazın');
+  static String get noteColorLabel => t(tk: 'Bellik reňki', ru: 'Цвет заметки', tr: 'Not rengi');
 
   // profile_screen.dart
   static String get profileTitle => t(tk: 'Profil', ru: 'Профиль', tr: 'Profil');

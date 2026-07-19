@@ -11,6 +11,7 @@ import '../../../core/models/bookmark.dart';
 import '../../../core/services/bookmarks_store.dart';
 import '../../../core/services/notes_store.dart';
 import '../../../core/services/streak_service.dart';
+import '../../../core/theme/highlight_colors.dart';
 
 enum ReaderThemeMode { white, sepia, dark, black }
 
@@ -237,13 +238,6 @@ class ReaderProvider extends ChangeNotifier {
   String? _savedLocationsJson;
   String? get savedLocationsJson => _savedLocationsJson;
 
-  /// The catalogue book's `book_{seed}_{index}` id (TZ §12.7) — same string
-  /// as [ReaderScreen.bookRef] — parsed once in [initialize] so [onEpubLoaded]
-  /// can look up and redraw this book's saved highlights. Null for the
-  /// user's own imported files, which carry no catalogue id and so can't
-  /// have highlights (see ReaderScreen._bookSeedIndex / canAnnotate).
-  (int, int)? _bookSeedIndex;
-
   // ── Streak ping (TZ §9.1: "Her 30 sek-de server-e ping iberilýär") ────────
   Timer? _streakPingTimer;
   static const _streakPingInterval = Duration(seconds: 30);
@@ -252,10 +246,9 @@ class ReaderProvider extends ChangeNotifier {
   // Init
   // ─────────────────────────────────────────────────────────────────────────
 
-  Future<void> initialize({required int bookId, String bookTitle = '', String? bookRef}) async {
+  Future<void> initialize({required int bookId, String bookTitle = ''}) async {
     _bookId = bookId;
     _bookTitle = bookTitle;
-    _bookSeedIndex = _parseBookSeedIndex(bookRef);
     _isLoading = true;
     _loadFailed = false;
     // A new book gets a new rendition, so its setup has to run again.
@@ -388,24 +381,17 @@ class ReaderProvider extends ChangeNotifier {
   /// moment the book was closed and reopened, even though the note itself
   /// was still saved in the profile's Notlar list.
   Future<void> _restoreHighlights() async {
-    final seedIndex = _bookSeedIndex;
-    if (seedIndex == null) return;
+    final bookId = _bookId;
+    if (bookId == null) return;
     await NotesStore.instance.load();
-    final highlights = NotesStore.instance.highlightsForBook(bookSeed: seedIndex.$1, bookIndex: seedIndex.$2);
+    final highlights = NotesStore.instance.highlightsForBook(bookId: bookId);
     for (final note in highlights) {
-      epubController.addHighlight(cfi: note.cfi!, color: const Color(0xFFFFE082), opacity: 0.4);
+      epubController.addHighlight(
+        cfi: note.cfi!,
+        color: Color(note.colorValue),
+        opacity: HighlightColors.highlightOpacity,
+      );
     }
-  }
-
-  /// Parses the catalogue book's `book_{seed}_{index}` id into (seed, index),
-  /// or null when there's no catalogue book to look up highlights for —
-  /// mirrors ReaderScreen._bookSeedIndex, which resolves the same string for
-  /// the "add highlight/note" side of this feature.
-  (int, int)? _parseBookSeedIndex(String? ref) {
-    if (ref == null) return null;
-    final m = RegExp(r'^book_(\d+)_(\d+)$').firstMatch(ref);
-    if (m == null) return null;
-    return (int.parse(m.group(1)!), int.parse(m.group(2)!));
   }
 
   void onChaptersLoaded(List<EpubChapter> chapters) {

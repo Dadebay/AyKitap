@@ -13,16 +13,24 @@ class NoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final noteColor = Color(note.colorValue);
+    final book = note.book;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        // The note's highlight colour, echoed as a left accent bar so the
+        // list mirrors what the reader painted on the page.
+        border: Border(left: BorderSide(color: noteColor, width: 4)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('“', style: TextStyle(color: AppColors.primary, fontSize: 38, fontWeight: FontWeight.w900, height: 0.5)),
+              Text('“', style: TextStyle(color: noteColor, fontSize: 38, fontWeight: FontWeight.w900, height: 0.5)),
               const SizedBox(width: 4),
               Expanded(
                 child: Padding(
@@ -45,12 +53,22 @@ class NoteCard extends StatelessWidget {
           Divider(color: AppColors.border, height: 1),
           const SizedBox(height: 12),
           GestureDetector(
-            onTap: onGoToBook,
+            // Only catalogue books can open a detail page; an imported file has
+            // no book to navigate to (book == null), so the tap does nothing.
+            onTap: book == null ? null : onGoToBook,
+            behavior: HitTestBehavior.opaque,
             child: Row(
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(6),
-                  child: Image.asset(note.book.coverImage, width: 32, height: 44, fit: BoxFit.cover),
+                  child: book != null
+                      ? Image.asset(book.coverImage, width: 32, height: 44, fit: BoxFit.cover)
+                      : Container(
+                          width: 32,
+                          height: 44,
+                          color: AppColors.surface,
+                          child: HugeIcon(icon: HugeIcons.strokeRoundedBook02, color: AppColors.grey3, size: 16),
+                        ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -62,18 +80,19 @@ class NoteCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(ProfileStrings.goToBook, style: TextStyle(color: AppColors.primary, fontSize: 11.5, fontWeight: FontWeight.w700)),
-                      const SizedBox(width: 4),
-                      HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: AppColors.primary, size: 12),
-                    ],
+                if (book != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(ProfileStrings.goToBook, style: TextStyle(color: AppColors.primary, fontSize: 11.5, fontWeight: FontWeight.w700)),
+                        const SizedBox(width: 4),
+                        HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: AppColors.primary, size: 12),
+                      ],
+                    ),
                   ),
-                ),
               ],
             ),
           ),

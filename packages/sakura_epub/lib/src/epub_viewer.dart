@@ -258,7 +258,17 @@ class _EpubViewerState extends State<EpubViewer> {
     allowsLinkPreview: false,
     verticalScrollBarEnabled: false,
     selectionGranularity: SelectionGranularity.CHARACTER,
+    // iOS: stop WKWebView's own rubber-band scroll from swallowing the
+    // horizontal drag we use for page turns (see the iOS Listener in build()).
+    disallowOverScroll: Platform.isIOS,
   );
+
+  // iOS-only swipe tracking. WKWebView doesn't reliably deliver a touch
+  // sequence to the content iframe once the finger moves, so JS-side gesture
+  // detection (epubView.js) never sees the swipe — we detect it at the Flutter
+  // Listener level instead and drive next()/prev() ourselves. See build().
+  Offset? _swipeStartPos;
+  int _swipeStartTime = 0;
 
   @override
   void initState() {
@@ -714,8 +724,18 @@ class _EpubViewerState extends State<EpubViewer> {
         EpubDefaultDirection.ltr.name;
     int fontSize = displaySettings.fontSize;
 
-    bool useCustomSwipe =
-        Platform.isAndroid && !displaySettings.useSnapAnimationAndroid;
+    // Turn OFF epub.js's own Snap manager (native scroll + CSS scroll-snap) on
+    // both platforms so page turns are driven the same way everywhere:
+    //  - Android: epubView.js `detectSwipe` computes the gesture from the
+    //    content iframe's touch events, which Android's WebView delivers
+    //    reliably.
+    //  - iOS: WKWebView doesn't reliably deliver a moving touch sequence to the
+    //    iframe, so JS never sees the swipe. We detect it at the Flutter
+    //    Listener level in build() instead and call next()/prev() directly.
+    // Either way, leaving snap on would fight our page turns (double-advance),
+    // so useCustomSwipe suppresses it (loadBook uses `snap && !useCustomSwipe`).
+    bool useCustomSwipe = Platform.isIOS ||
+        (Platform.isAndroid && !displaySettings.useSnapAnimationAndroid);
 
     String? foregroundColor = widget.displaySettings?.theme?.foregroundColor
         ?.toHex();
@@ -760,9 +780,7 @@ class _EpubViewerState extends State<EpubViewer> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: widget.displaySettings?.theme?.backgroundDecoration,
-      child: InAppWebView(
+    Widget webView = InAppWebView(
         contextMenu: widget.suppressNativeContextMenu
             ? ContextMenu(
                 menuItems: [],
@@ -775,7 +793,9 @@ class _EpubViewerState extends State<EpubViewer> {
         initialFile:
             'packages/sakura_epub/lib/assets/webpage/html/swipe.html',
         initialSettings: settings
-          ..disableVerticalScroll = widget.displaySettings?.snap ?? false,
+          ..disableVerticalScroll = Platform.isIOS
+              ? true
+              : (widget.displaySettings?.snap ?? false),
         onWebViewCreated: (controller) async {
           webViewController = controller;
           widget.epubController.setWebViewController(controller);
@@ -839,7 +859,59 @@ class _EpubViewerState extends State<EpubViewer> {
             ),
           ),
         },
-      ),
+    );
+
+    // iOS: detect the swipe AND surface touch-down/up at the Flutter level,
+    // since WKWebView doesn't deliver moving touch sequences to the content
+    // iframe (so the JS path in epubView.js never fires). A short, mostly
+    // horizontal flick turns the page; onTouchDown/onTouchUp still fire so the
+    // reader's tap-to-toggle-controls and selection handling keep working.
+    if (Platform.isIOS) {
+      webView = Listener(
+        onPointerDown: (event) {
+          _swipeStartPos = event.position;
+          _swipeStartTime = DateTime.now().millisecondsSinceEpoch;
+
+          final renderBox = context.findRenderObject() as RenderBox?;
+          if (renderBox != null) {
+            final localPos = renderBox.globalToLocal(event.position);
+            final x = (localPos.dx / renderBox.size.width).clamp(0.0, 1.0);
+            final y = (localPos.dy / renderBox.size.height).clamp(0.0, 1.0);
+            widget.onTouchDown?.call(x, y);
+          }
+        },
+        onPointerUp: (event) {
+          final renderBox = context.findRenderObject() as RenderBox?;
+          if (renderBox != null) {
+            final localPos = renderBox.globalToLocal(event.position);
+            final x = (localPos.dx / renderBox.size.width).clamp(0.0, 1.0);
+            final y = (localPos.dy / renderBox.size.height).clamp(0.0, 1.0);
+            widget.onTouchUp?.call(x, y);
+          }
+
+          if (_swipeStartPos != null) {
+            final duration =
+                DateTime.now().millisecondsSinceEpoch - _swipeStartTime;
+            final dx = event.position.dx - _swipeStartPos!.dx;
+            final dy = (event.position.dy - _swipeStartPos!.dy).abs();
+            // Short (<400ms), clearly horizontal (>60px, dy<50, ratio>2x) flick.
+            if (duration < 400 && dx.abs() > 60 && dy < 50 && dx.abs() > dy * 2) {
+              if (dx < 0) {
+                widget.epubController.next();
+              } else {
+                widget.epubController.prev();
+              }
+            }
+            _swipeStartPos = null;
+          }
+        },
+        child: webView,
+      );
+    }
+
+    return Container(
+      decoration: widget.displaySettings?.theme?.backgroundDecoration,
+      child: webView,
     );
   }
 

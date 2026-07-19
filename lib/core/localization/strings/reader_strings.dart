@@ -79,6 +79,8 @@ class ReaderStrings {
   // ── Reader settings sheet ────────────────────────────────────────────
   static String get settingsTitle => t(tk: 'Sazlamalar', ru: 'Настройки', tr: 'Ayarlar');
   static String get backgroundColorLabel => t(tk: 'Fon reňki', ru: 'Цвет фона', tr: 'Arka plan rengi');
+  static String get pdfColorModeLabel => t(tk: 'Reňk tertibi', ru: 'Режим цвета', tr: 'Renk modu');
+  static String get themeNight => t(tk: 'Gije', ru: 'Ночь', tr: 'Gece');
   static String get fontSizeLabel => t(tk: 'Şrift ölçegi', ru: 'Размер шрифта', tr: 'Yazı boyutu');
   static String get fontLabel => t(tk: 'Şrift', ru: 'Шрифт', tr: 'Yazı tipi');
   static String get lineSpacingLabel => t(tk: 'Setir aralygy', ru: 'Межстрочный интервал', tr: 'Satır aralığı');

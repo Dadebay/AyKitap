@@ -4,6 +4,19 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../../core/localization/strings/reader_strings.dart';
 import '../../../core/theme/app_colors.dart';
 
+/// How the PDF page is coloured on screen. Unlike reflowable EPUB text, a PDF
+/// page is a fixed picture, so each mode reaches the page differently:
+///
+/// * [light] — the page as authored, on a white gutter.
+/// * [sepia] — an eye-care warm tint laid *over* the page (a translucent amber
+///   wash), plus a warm gutter. Works on every platform because it's a Flutter
+///   overlay, not a change to how the page is rendered.
+/// * [night] — the page colour-inverted to light-on-dark (the "göz goraýyş"
+///   dark reading other apps show), on a dark gutter. The inversion is done by
+///   PDFium's night mode, which is **Android-only**; on iOS this falls back to
+///   the plain page on a dark gutter.
+enum PdfColorMode { light, sepia, night }
+
 /// The PDF reader's settings panel — the counterpart of [ReaderSettingsSheet],
 /// built from the same pieces (grab handle, heading with a dismiss circle,
 /// section labels) so the two readers feel like one app. Every section is a
@@ -17,19 +30,19 @@ import '../../../core/theme/app_colors.dart';
 /// a PDF page is a picture, not text that can reflow — so they're absent rather
 /// than present and dead.
 class PdfSettingsSheet extends StatelessWidget {
-  final bool darkGutter;
+  final PdfColorMode colorMode;
   final double brightness;
   final FitPolicy fitPolicy;
-  final ValueChanged<bool> onGutterChanged;
+  final ValueChanged<PdfColorMode> onColorModeChanged;
   final ValueChanged<double> onBrightnessChanged;
   final ValueChanged<FitPolicy> onFitChanged;
 
   const PdfSettingsSheet({
     super.key,
-    required this.darkGutter,
+    required this.colorMode,
     required this.brightness,
     required this.fitPolicy,
-    required this.onGutterChanged,
+    required this.onColorModeChanged,
     required this.onBrightnessChanged,
     required this.onFitChanged,
   });
@@ -76,29 +89,38 @@ class PdfSettingsSheet extends StatelessWidget {
           ),
           const SizedBox(height: 18),
 
-          // ── Gutter colour ─────────────────────────────────────────────
-          // Same card shape and height as the fit tiles below (Expanded,
-          // fixed height) rather than the small left-hugging pills this used
-          // to be — one consistent grid instead of pieces of different sizes.
-          _SectionLabel(ReaderStrings.backgroundColorLabel),
+          // ── Reading colour mode ───────────────────────────────────────
+          // Three page treatments (light / eye-care sepia / night), each a
+          // card the same footprint as the fit tiles below so the sheet reads
+          // as one aligned grid. The swatch shows what the page will look like.
+          _SectionLabel(ReaderStrings.pdfColorModeLabel),
           const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
-                child: _GutterSwatch(
+                child: _ColorModeSwatch(
                   color: Colors.white,
                   label: ReaderStrings.themeWhite,
-                  selected: !darkGutter,
-                  onTap: () => onGutterChanged(false),
+                  selected: colorMode == PdfColorMode.light,
+                  onTap: () => onColorModeChanged(PdfColorMode.light),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _GutterSwatch(
+                child: _ColorModeSwatch(
+                  color: const Color(0xFFEADFC6),
+                  label: ReaderStrings.themeSepia,
+                  selected: colorMode == PdfColorMode.sepia,
+                  onTap: () => onColorModeChanged(PdfColorMode.sepia),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ColorModeSwatch(
                   color: const Color(0xFF1C1C1E),
-                  label: ReaderStrings.themeDark,
-                  selected: darkGutter,
-                  onTap: () => onGutterChanged(true),
+                  label: ReaderStrings.themeNight,
+                  selected: colorMode == PdfColorMode.night,
+                  onTap: () => onColorModeChanged(PdfColorMode.night),
                 ),
               ),
             ],
@@ -199,17 +221,17 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-/// The gutter colour behind the page. Same card footprint as [_FitTile]
-/// (height, radius, border) so the two rows line up as one grid; the colour
-/// itself fills the card instead of an icon, with a tick over it once picked
-/// and the label sitting on top in a contrasting colour.
-class _GutterSwatch extends StatelessWidget {
+/// One reading colour mode, previewed by the colour the page takes on. Same
+/// card footprint as [_FitTile] (height, radius, border) so the rows line up as
+/// one grid; the colour fills the card instead of an icon, with a tick over it
+/// once picked and the label sitting on top in a contrasting colour.
+class _ColorModeSwatch extends StatelessWidget {
   final Color color;
   final String label;
   final bool selected;
   final VoidCallback onTap;
 
-  const _GutterSwatch({
+  const _ColorModeSwatch({
     required this.color,
     required this.label,
     required this.selected,

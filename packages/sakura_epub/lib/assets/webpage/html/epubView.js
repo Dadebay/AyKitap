@@ -1332,6 +1332,7 @@ function sendRelocated(location) {
     // This must be done at the document level in capture phase to intercept early
     // Use { passive: false } to allow preventDefault() to work
     var touchStartHandler = function (e) {
+      console.log('[TOUCH] doc touchstart, hasActiveSelection=' + hasActiveSelection() + ' useCustomSwipe=' + useCustomSwipe);
       // Fire onTouchDown callback with normalized coordinates FIRST (before any preventDefault)
       var touchCoords = null;
       try {
@@ -2078,28 +2079,40 @@ function _animatedTurn(dir, commit) {
   el.style.opacity = s.outOpacity;
 
   setTimeout(function () {
-    Promise.resolve()
-      .then(commit)
-      .then(function () {
-        if (released) return; // Watchdog already restored the viewer.
-        // Snap to the incoming pose with no tween, then let it settle back.
-        el.style.transition = 'none';
-        el.style.transform = s.inFrom;
-        el.style.opacity = s.inOpacity;
+    var proceeded = false;
+    // Play the "in" tween: snap to the incoming pose with no transition, then
+    // let it settle back to rest. Guarded so the promise and the fallback
+    // timer below can't both run it.
+    var proceed = function () {
+      if (proceeded || released) return;
+      proceeded = true;
+      el.style.transition = 'none';
+      el.style.transform = s.inFrom;
+      el.style.opacity = s.inOpacity;
+      requestAnimationFrame(function () {
         requestAnimationFrame(function () {
-          requestAnimationFrame(function () {
-            if (released) return;
-            el.style.transition = 'transform ' + s.inMs + 'ms ' + s.ease + ', opacity ' + s.inMs + 'ms ' + s.ease;
-            el.style.transform = 'none';
-            el.style.opacity = 1;
-            setTimeout(release, s.inMs + 20);
-          });
+          if (released) return;
+          el.style.transition = 'transform ' + s.inMs + 'ms ' + s.ease + ', opacity ' + s.inMs + 'ms ' + s.ease;
+          el.style.transform = 'none';
+          el.style.opacity = 1;
+          setTimeout(release, s.inMs + 20);
         });
-      })
-      .catch(function (e) {
-        console.log('page transition failed, releasing: ' + e);
-        release();
       });
+    };
+
+    // Ask epub.js to actually turn the page, then animate the new one in as
+    // soon as EITHER that settles OR a short fallback elapses — whichever comes
+    // first. On Android rendition.next()/prev() resolves quickly, so the tween
+    // stays perfectly in step with the real turn. On iOS (WKWebView) that
+    // promise frequently never settles, which used to leave the viewer pushed
+    // off-screen until the 2s watchdog fired — the visible lag. The new page
+    // has been requested and renders within a frame or two regardless, so the
+    // fallback drives the "in" tween without waiting on a promise that won't come.
+    Promise.resolve().then(commit).then(proceed).catch(function (e) {
+      console.log('page transition commit failed: ' + e);
+      proceed();
+    });
+    setTimeout(proceed, 120);
   }, s.outMs);
 }
 

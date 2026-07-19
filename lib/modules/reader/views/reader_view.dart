@@ -16,6 +16,7 @@ import '../widgets/search_sheet.dart';
 import '../widgets/selection_toolbar.dart';
 import '../../../core/services/notes_store.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/highlight_colors.dart';
 import '../../profile/widgets/edit_note_sheet.dart';
 import '../../../core/localization/app_locale.dart';
 import '../../../core/localization/strings/reader_strings.dart';
@@ -72,7 +73,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context
           .read<ReaderProvider>()
-          .initialize(bookId: widget.bookId, bookTitle: widget.bookTitle, bookRef: widget.bookRef);
+          .initialize(bookId: widget.bookId, bookTitle: widget.bookTitle);
     });
   }
 
@@ -126,9 +127,15 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   child: SafeArea(
                     child: Padding(
                       padding: _viewerInset,
-                      child: provider.loadFailed
-                          ? _EpubErrorView(bgColor: bgColor, isDarkPage: isDarkPage)
-                          : _buildEpubViewer(provider),
+                      child: Listener(
+                        behavior: HitTestBehavior.translucent,
+                        onPointerDown: (e) => debugPrint('[FLUTTER-POINTER] down at ${e.localPosition}'),
+                        onPointerMove: (e) => debugPrint('[FLUTTER-POINTER] move at ${e.localPosition}'),
+                        onPointerUp: (e) => debugPrint('[FLUTTER-POINTER] up at ${e.localPosition}'),
+                        child: provider.loadFailed
+                            ? _EpubErrorView(bgColor: bgColor, isDarkPage: isDarkPage)
+                            : _buildEpubViewer(provider),
+                      ),
                     ),
                   ),
                 ),
@@ -263,8 +270,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   SelectionToolbar(
                     selectedText: provider.selectedText,
                     selectionRect: provider.selectionRect,
-                    canAnnotate: _bookSeedIndex != null,
-                    onHighlight: () => _highlight(context, provider),
+                    // Every book can be annotated now — imported files just
+                    // won't offer "go to book" on the saved note (no catalogue
+                    // entry to open); see NoteCard.
+                    canAnnotate: true,
                     onAddNote: () => _addNote(context, provider),
                     onCopy: () {
                       Clipboard.setData(ClipboardData(text: provider.selectedText));
@@ -393,35 +402,16 @@ class _ReaderScreenState extends State<ReaderScreen> {
     return (int.parse(m.group(1)!), int.parse(m.group(2)!));
   }
 
-  /// TZ §12.7 "Sarymtyl bellemek": paints the selection yellow in the page and
-  /// files it in the profile's Notlar list.
-  void _highlight(BuildContext context, ReaderProvider provider) {
-    final si = _bookSeedIndex;
+  /// TZ §12.7 "Not goşmak": opens a sheet pre-filled with the quoted passage
+  /// and a colour picker so the reader can annotate it; the saved note appears
+  /// in the profile. Also paints the passage on the page when a CFI is known.
+  Future<void> _addNote(BuildContext context, ReaderProvider provider) async {
     final text = provider.selectedText;
     final cfi = provider.selectedCfi;
-    if (si == null || text.isEmpty) {
-      provider.clearSelection();
-      return;
-    }
-    if (cfi != null && cfi.isNotEmpty) {
-      provider.epubController.addHighlight(cfi: cfi, color: const Color(0xFFFFE082), opacity: 0.4);
-    }
-    // cfi is what lets ReaderProvider repaint this highlight the next time
-    // the book is opened — see its onEpubLoaded.
-    NotesStore.instance.add(text: text, bookSeed: si.$1, bookIndex: si.$2, bookTitle: widget.bookTitle, cfi: cfi);
     provider.clearSelection();
-    _showSnack(context, ReaderStrings.highlightedMessage);
-  }
+    if (text.isEmpty) return;
 
-  /// TZ §12.7 "Not goşmak": opens a sheet pre-filled with the quoted passage so
-  /// the reader can annotate it; the saved note appears in the profile.
-  Future<void> _addNote(BuildContext context, ReaderProvider provider) async {
-    final si = _bookSeedIndex;
-    final text = provider.selectedText;
-    provider.clearSelection();
-    if (si == null || text.isEmpty) return;
-
-    final noteText = await showModalBottomSheet<String>(
+    final draft = await showModalBottomSheet<NoteDraft>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
@@ -431,8 +421,20 @@ class _ReaderScreenState extends State<ReaderScreen> {
         subtitle: ReaderStrings.addNoteSubtitle,
       ),
     );
-    if (noteText == null || noteText.isEmpty) return;
-    await NotesStore.instance.add(text: noteText, bookSeed: si.$1, bookIndex: si.$2, bookTitle: widget.bookTitle);
+    if (draft == null || draft.text.isEmpty) return;
+    final si = _bookSeedIndex;
+    if (cfi != null && cfi.isNotEmpty) {
+      provider.epubController.addHighlight(cfi: cfi, color: Color(draft.colorValue), opacity: HighlightColors.highlightOpacity);
+    }
+    await NotesStore.instance.add(
+      text: draft.text,
+      bookId: widget.bookId,
+      bookSeed: si?.$1,
+      bookIndex: si?.$2,
+      bookTitle: widget.bookTitle,
+      colorValue: draft.colorValue,
+      cfi: cfi,
+    );
     if (context.mounted) _showSnack(context, ReaderStrings.noteSavedMessage);
   }
 

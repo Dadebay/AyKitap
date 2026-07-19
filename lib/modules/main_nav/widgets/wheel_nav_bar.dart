@@ -37,6 +37,10 @@ class _WheelNavBarState extends State<WheelNavBar> with SingleTickerProviderStat
   static const _barHeight = 42.0;
   static const _fabSize = 56.0;
   static const _iconBoxSize = 40.0;
+  // Minimum tappable square per icon — the visible icon can be smaller, this
+  // just widens the invisible hit area to a finger-friendly size (~Apple's
+  // 44pt guidance, with a little extra).
+  static const _minTapTarget = 52.0;
 
   // The dome and the icon ring share the same centre (diskCenterY = _diskR -
   // _domeLift). Growing _diskR and _domeLift by the same amount enlarges the
@@ -53,6 +57,11 @@ class _WheelNavBarState extends State<WheelNavBar> with SingleTickerProviderStat
   // ring in the visible window — must track _diskR so the icons don't drift
   // off-screen when the dome size changes.
   static const _domeLift = 40.0; // how far the dome pokes above the bar's top edge
+
+  // Extra height added on top of the bar purely so the raised dome/icons fall
+  // inside the widget's hit-test box (see build). Covers the full dome lift
+  // plus a small margin; icons stay put visually, they just become tappable.
+  static const _domeHitOverhang = _domeLift + 6;
 
   // Only icons whose angle from the top is inside this window are drawn.
   // With 5 icons the farthest slot is still 2 steps away (2 * _stepRad ≈
@@ -112,20 +121,29 @@ class _WheelNavBarState extends State<WheelNavBar> with SingleTickerProviderStat
     final screenWidth = MediaQuery.of(context).size.width;
     final n = _icons.length;
     final centreX = screenWidth / 2;
-    // Icon math stays in this "outer" frame (unshifted, y=0 = bar's own
-    // top). The dome itself is raised by _domeLift so its cap pokes above
-    // the bar into the body content behind it.
-    final diskCenterY = _diskR - _domeLift;
-    final boxTop = -(_domeLift + 2); // +2px safety margin so the apex isn't clipped
-    final boxHeight = _barHeight - boxTop;
+    // The icons ride on a dome that pokes _domeLift px *above* the bar's top
+    // edge. That raised strip used to sit outside the widget's own box, so
+    // Flutter never hit-tested it — the upper half of every icon (and almost
+    // all of the tall centre icon) was visible but untappable, which is what
+    // made the tabs so fiddly to hit on iPhone. We give the widget an extra
+    // [_domeHitOverhang] of height on top and shift the whole icon/dome frame
+    // down by the same amount: every pixel stays at the exact same screen
+    // position (the bar is bottom-anchored, so growing it grows upward), but
+    // the raised strip is now inside the box and therefore hit-testable.
+    // Nothing here paints a solid background, and the dome CustomPaint doesn't
+    // absorb touches, so this added strip still lets taps fall through to the
+    // body everywhere except on an actual icon.
+    final diskCenterY = _domeHitOverhang + (_diskR - _domeLift);
+    final boxTop = _domeHitOverhang - (_domeLift + 2); // +2px so the apex isn't clipped
+    final boxHeight = (_barHeight + _domeHitOverhang) - boxTop;
 
     return SizedBox(
-      height: _barHeight + bottomPad,
+      height: _barHeight + _domeHitOverhang + bottomPad,
       width: screenWidth,
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: _barHeight,
+          height: _barHeight + _domeHitOverhang,
           child: AnimatedBuilder(
             animation: _anim,
             builder: (context, _) {
@@ -224,28 +242,43 @@ class _WheelNavBarState extends State<WheelNavBar> with SingleTickerProviderStat
             ]
           : const <BoxShadow>[];
 
+      // The tappable square is at least [_minTapTarget] on a side, even when
+      // the visible icon (itemSize) is smaller — the unselected icons are only
+      // 40px, below the ~44px minimum a finger reliably hits. The visual sits
+      // centred and unrotated inside this box, so enlarging the hit area never
+      // moves or turns the icon. Boxes stay well clear of overlapping (the
+      // icon centres are ~70px apart), and where they do, the sort above draws
+      // the more-central icon last, so it wins the touch.
+      final hitSize = math.max(itemSize, _minTapTarget);
+
       return Positioned(
-        left: cx - itemSize / 2,
-        top: cy - itemSize / 2,
+        left: cx - hitSize / 2,
+        top: cy - hitSize / 2,
         child: Opacity(
           opacity: opacity,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => widget.onTap(it.index),
-            child: Transform.rotate(
-              angle: angle,
-              child: Container(
-                width: itemSize,
-                height: itemSize,
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  shape: BoxShape.circle,
-                  boxShadow: shadows,
-                ),
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: iconBottomPad),
-                  child: Center(
-                    child: HugeIcon(icon: _icons[it.index], color: iconColor, size: iconSz),
+            child: SizedBox(
+              width: hitSize,
+              height: hitSize,
+              child: Center(
+                child: Transform.rotate(
+                  angle: angle,
+                  child: Container(
+                    width: itemSize,
+                    height: itemSize,
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      shape: BoxShape.circle,
+                      boxShadow: shadows,
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: iconBottomPad),
+                      child: Center(
+                        child: HugeIcon(icon: _icons[it.index], color: iconColor, size: iconSz),
+                      ),
+                    ),
                   ),
                 ),
               ),

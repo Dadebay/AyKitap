@@ -9520,6 +9520,7 @@ class snap_Snap {
       easing: EASING_EQUATIONS['easeInCubic']
     }, options || {});
     this.supportsTouch = this.supportsTouch();
+    console.log('[SNAP] constructor supportsTouch=' + this.supportsTouch);
     if (this.supportsTouch) {
       this.setup(manager);
     }
@@ -9528,6 +9529,7 @@ class snap_Snap {
     this.manager = manager;
     this.layout = this.manager.layout;
     this.fullsize = this.manager.settings.fullsize;
+    console.log('[SNAP] setup fullsize=' + this.fullsize + ' isPaginated=' + this.manager.isPaginated + ' axis=' + this.manager.settings.axis);
     if (this.fullsize) {
       this.element = this.manager.stage.element;
       this.scroller = window;
@@ -9547,8 +9549,10 @@ class snap_Snap {
 
     // disable snapping if not paginated or axis in not horizontal
     if (!this.manager.isPaginated || this.isVertical) {
+      console.log('[SNAP] BAILED OUT — isPaginated=' + this.manager.isPaginated + ' isVertical=' + this.isVertical + ' axis=' + this.manager.settings.axis + ' — no touch listeners installed');
       return;
     }
+    console.log('[SNAP] listeners installed, scroller=' + (this.scroller === window ? 'window' : 'container-element'));
     this.touchCanceler = false;
     this.resizeCanceler = false;
     this.snapping = false;
@@ -9641,6 +9645,7 @@ class snap_Snap {
       screenX,
       screenY
     } = e.touches[0];
+    console.log('[SNAP] onTouchStart x=' + screenX + ' y=' + screenY);
     if (this.fullsize) {
       this.enableScroll();
     }
@@ -9660,6 +9665,7 @@ class snap_Snap {
       screenY
     } = e.touches[0];
     let deltaY = Math.abs(screenY - this.endTouchY);
+    console.log('[SNAP] onTouchMove x=' + screenX + ' fullsize=' + this.fullsize + ' deltaY=' + deltaY + ' scrollLeftBefore=' + (this.element && this.element.scrollLeft));
     this.touchCanceler = true;
     if (!this.fullsize && deltaY < 10) {
       this.element.scrollLeft -= screenX - this.endTouchX;
@@ -9674,6 +9680,7 @@ class snap_Snap {
     }
     this.touchCanceler = false;
     let swipped = this.wasSwiped();
+    console.log('[SNAP] onTouchEnd swipped=' + swipped + ' startX=' + this.startTouchX + ' endX=' + this.endTouchX);
     if (swipped !== 0) {
       this.snap(swipped);
     } else {
@@ -9693,6 +9700,7 @@ class snap_Snap {
     let time = this.endTime - this.startTime;
     let velocity = distance / time;
     let minVelocity = this.settings.minVelocity;
+    console.log('[SNAP] wasSwiped snapWidth=' + snapWidth + ' distance=' + distance + ' absolute=' + absolute + ' minDistance=' + this.settings.minDistance + ' velocity=' + velocity + ' minVelocity=' + minVelocity);
     if (absolute <= this.settings.minDistance || absolute >= snapWidth) {
       return 0;
     }
@@ -9716,6 +9724,7 @@ class snap_Snap {
     if (howMany) {
       snapTo += howMany * snapWidth;
     }
+    console.log('[SNAP] snap() howMany=' + howMany + ' left=' + left + ' snapWidth=' + snapWidth + ' snapTo=' + snapTo);
     return this.smoothScrollTo(snapTo);
   }
   smoothScrollTo(destination) {

@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../core/localization/strings/reader_strings.dart';
+import '../../../core/theme/app_colors.dart';
 
 /// The text-selection menu (TZ §12.7): shows the selected passage and the
-/// actions available on it — highlight, add note, copy, share. Highlight and
-/// note are only offered when [canAnnotate] is true (i.e. the book maps to a
-/// catalogue book the profile's Notlar list can link back to).
+/// actions available on it — add note, copy, share.
+///
+/// Styled from [AppColors] like every other reader sheet (settings,
+/// bookmarks, chapters, search) — it's a UI chrome element floating over the
+/// page, not part of the page itself, so it follows the app's light/dark
+/// theme rather than the EPUB reader's page colour (white/sepia/dark/black).
+///
+/// "Not" opens the add-note sheet, which carries the colour picker: the chosen
+/// colour is what the passage gets highlighted in once the note is saved. The
+/// note action appears only when [canAnnotate] is true.
 class SelectionToolbar extends StatelessWidget {
   final String selectedText;
   final Rect? selectionRect;
   final bool canAnnotate;
-  final VoidCallback onHighlight;
+
   final VoidCallback onAddNote;
   final VoidCallback onCopy;
   final VoidCallback onShare;
@@ -21,7 +29,6 @@ class SelectionToolbar extends StatelessWidget {
     required this.selectedText,
     required this.selectionRect,
     required this.canAnnotate,
-    required this.onHighlight,
     required this.onAddNote,
     required this.onCopy,
     required this.onShare,
@@ -37,9 +44,10 @@ class SelectionToolbar extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(14, 10, 8, 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1E2E),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 16)],
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.border),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 16)],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -51,26 +59,24 @@ class SelectionToolbar extends StatelessWidget {
                 Expanded(
                   child: Text(
                     '"${selectedText.length > 80 ? '${selectedText.substring(0, 80)}…' : selectedText}"',
-                    style: const TextStyle(color: Colors.white54, fontSize: 12, height: 1.4),
+                    style: TextStyle(color: AppColors.grey2, fontSize: 12, height: 1.4),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 IconButton(
-                  icon: const HugeIcon(icon: HugeIcons.strokeRoundedCancel01, color: Colors.white38, size: 18),
+                  icon: HugeIcon(icon: HugeIcons.strokeRoundedCancel01, color: AppColors.grey3, size: 18),
                   onPressed: onClose,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Row(
               children: [
-                if (canAnnotate) ...[
-                  _Action(icon: HugeIcons.strokeRoundedHighlighter, label: ReaderStrings.highlightLabel, onTap: onHighlight),
+                if (canAnnotate)
                   _Action(icon: HugeIcons.strokeRoundedNoteAdd, label: ReaderStrings.noteLabel, onTap: onAddNote),
-                ],
                 _Action(icon: HugeIcons.strokeRoundedCopy01, label: ReaderStrings.copyLabel, onTap: onCopy),
                 _Action(icon: HugeIcons.strokeRoundedShare08, label: ReaderStrings.shareLabel, onTap: onShare),
               ],
@@ -99,11 +105,11 @@ class _Action extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              HugeIcon(icon: icon, size: 20, color: const Color(0xFFE86B2C)),
+              HugeIcon(icon: icon, size: 20, color: AppColors.primary),
               const SizedBox(height: 4),
               Text(
                 label,
-                style: const TextStyle(color: Colors.white70, fontSize: 11),
+                style: TextStyle(color: AppColors.grey1, fontSize: 11),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),

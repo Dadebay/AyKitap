@@ -114,6 +114,21 @@ Future<(List<String> pagePaths, bool noImages)> _extractCbzOnIsolate(
   return (paths, false);
 }
 
+/// Spawns the isolate for [_extractCbzOnIsolate]. Kept as its own top-level
+/// function — not inlined into [_CbzReaderScreenState._extract] — so the
+/// `Isolate.run` closure never shares a lexical scope/context with that
+/// method's other closures (the `setState` callbacks, which do capture
+/// `this`). Dart can allocate one shared context object per scope, so even a
+/// closure that only touches [args] here can end up dragging `this` — and the
+/// `Timer` fields hanging off it — into the isolate message if it's declared
+/// alongside closures that need `this`. Giving it a scope of its own avoids
+/// that entirely.
+Future<(List<String> pagePaths, bool noImages)> _runCbzExtraction(
+  (String zipPath, String cacheDirPath) args,
+) {
+  return Isolate.run(() => _extractCbzOnIsolate(args));
+}
+
 /// Reader for a CBZ — a comic/manga chapter packaged as a zip of page images,
 /// with no text, layout or table of contents of its own (that's what tells it
 /// apart from an EPUB, and why it doesn't get [ReaderScreen]'s text-driven
@@ -227,7 +242,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
       // _extractCbzOnIsolate's doc on what Isolate.run's closure may capture.
       final zipPath = widget.filePath;
       final cacheDirPath = cacheDir.path;
-      final (pages, noImages) = await Isolate.run(() => _extractCbzOnIsolate((zipPath, cacheDirPath)));
+      final (pages, noImages) = await _runCbzExtraction((zipPath, cacheDirPath));
 
       if (!mounted) return;
       if (noImages) {

@@ -67,7 +67,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
 
   bool _showControls = true;
   double _brightness = 1.0;
-  bool _darkGutter = true;
+  PdfColorMode _colorMode = PdfColorMode.light;
   FitPolicy _fitPolicy = FitPolicy.BOTH;
 
   // Tap vs. scroll discrimination for the focus-mode toggle.
@@ -96,7 +96,16 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
     _initialPage = prefs.getInt('book_${_bookId}_pdf_page') ?? 0;
     _currentPage = _initialPage;
     _brightness = prefs.getDouble('reader_brightness') ?? 1.0;
-    _darkGutter = prefs.getBool('reader_pdf_dark_gutter') ?? true;
+    // New three-way mode; fall back to the old dark-gutter bool for anyone
+    // upgrading (their dark gutter maps to night, otherwise light).
+    final savedMode = prefs.getInt('reader_pdf_color_mode');
+    if (savedMode != null) {
+      _colorMode = PdfColorMode.values[savedMode.clamp(0, PdfColorMode.values.length - 1)];
+    } else {
+      _colorMode = (prefs.getBool('reader_pdf_dark_gutter') ?? false)
+          ? PdfColorMode.night
+          : PdfColorMode.light;
+    }
     // BOTH is the default: it always shows the whole page, which single-page
     // horizontal swiping needs (there's no way to scroll to the rest of a page
     // that WIDTH left below the fold). WIDTH is opt-in, for someone who'd
@@ -210,16 +219,18 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
     await prefs.setDouble('reader_brightness', _brightness);
   }
 
-  Future<void> _setGutter(bool dark) async {
-    if (_darkGutter == dark) return;
-    // The native view is rebuilt for this (see the PDFView key), so remember
-    // where we are or the rebuild would drop us back at page one.
+  Future<void> _setColorMode(PdfColorMode mode) async {
+    if (_colorMode == mode) return;
+    // Toggling night mode rebuilds the native view (nightMode is read once at
+    // creation — see the PDFView key), so remember where we are or the rebuild
+    // would drop us back at page one. Sepia is a pure Flutter overlay and needs
+    // no rebuild, but pinning the page here is harmless either way.
     setState(() {
       _initialPage = _currentPage;
-      _darkGutter = dark;
+      _colorMode = mode;
     });
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('reader_pdf_dark_gutter', dark);
+    await prefs.setInt('reader_pdf_color_mode', mode.index);
   }
 
   Future<void> _setFit(FitPolicy fit) async {
@@ -242,11 +253,11 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
       // rebuild, so a StatefulBuilder keeps its controls live as they change.
       builder: (_) => StatefulBuilder(
         builder: (_, setSheetState) => PdfSettingsSheet(
-          darkGutter: _darkGutter,
+          colorMode: _colorMode,
           brightness: _brightness,
           fitPolicy: _fitPolicy,
-          onGutterChanged: (v) async {
-            await _setGutter(v);
+          onColorModeChanged: (v) async {
+            await _setColorMode(v);
             setSheetState(() {});
           },
           onBrightnessChanged: (v) async {
@@ -303,9 +314,17 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bg = _darkGutter ? const Color(0xFF1C1C1E) : Colors.white;
+    // Gutter behind the page, and whether this mode reads as a dark surface
+    // (drives the tint of the focus page-number, loading and error text).
+    final bg = switch (_colorMode) {
+      PdfColorMode.light => Colors.white,
+      PdfColorMode.sepia => const Color(0xFFEADFC6),
+      PdfColorMode.night => const Color(0xFF1C1C1E),
+    };
+    final isDarkSurface = _colorMode == PdfColorMode.night;
+    final nightMode = _colorMode == PdfColorMode.night;
     final inFocus = !_showControls && !_isLoading && _error == null;
-    final focusColor = _darkGutter ? Colors.white38 : Colors.black38;
+    final focusColor = isDarkSurface ? Colors.white38 : Colors.black38;
 
     return Scaffold(
       backgroundColor: bg,
@@ -321,8 +340,10 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                   // nightMode and fitPolicy are read once when the native view
                   // is created, so changing either has to rebuild it — that's
                   // what varying the key does. defaultPage carries our place
-                  // across that rebuild and across reopening the book.
-                  key: ValueKey('pdf_${_darkGutter}_${_fitPolicy.name}_$_initialPage'),
+                  // across that rebuild and across reopening the book. (Sepia
+                  // isn't in the key: it's a Flutter overlay, not a render
+                  // change, so switching to/from it mustn't reload the file.)
+                  key: ValueKey('pdf_${nightMode}_${_fitPolicy.name}_$_initialPage'),
                   filePath: widget.filePath,
                   // One page per swipe, like a real page turn — not a
                   // continuous vertical scroll. Vertical mode showed the tail
@@ -332,13 +353,14 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                   // was the *next page* peeking in because a manga page's
                   // height doesn't divide the screen evenly.
                   swipeHorizontal: true,
-                  // nightMode intentionally left at its default (false) rather
-                  // than tied to _darkGutter: PDFium's nightMode colour-inverts
-                  // the rendered page itself (not just the surrounding gutter),
-                  // which turns a scanned/manga page into a photo negative —
-                  // and it's Android-only, so on iOS the toggle would silently
-                  // do nothing at all. _darkGutter only drives backgroundColor
-                  // below, which is what "koyu zemin" actually promises.
+                  // Night mode inverts the rendered page to light-on-dark — the
+                  // "göz goraýyş" dark reading the user asked for. It's ideal
+                  // for text PDFs (black-on-white becomes white-on-black) and
+                  // poor for scanned/manga pages (they become photo negatives),
+                  // which is why it's an opt-in mode, not the default. PDFium's
+                  // nightMode is Android-only; on iOS it does nothing, so night
+                  // there degrades to the plain page on a dark gutter.
+                  nightMode: nightMode,
                   defaultPage: _initialPage,
                   fitPolicy: _fitPolicy,
                   backgroundColor: bg,
@@ -357,6 +379,19 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                     _isLoading = false;
                   }),
                 ),
+              ),
+            ),
+
+          // ── Sepia eye-care wash ────────────────────────────────────────
+          // A translucent warm tint laid over the whole page. Unlike night
+          // mode this needs no native support — it's an ordinary Flutter layer
+          // painted on top of the platform view, so it warms the page the same
+          // way on Android and iOS. IgnorePointer keeps swipes/taps flowing
+          // through to the PDF underneath.
+          if (_colorMode == PdfColorMode.sepia && _error == null)
+            const Positioned.fill(
+              child: IgnorePointer(
+                child: ColoredBox(color: Color(0x24C8862A)),
               ),
             ),
 
@@ -382,7 +417,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                       Text(
                         ReaderStrings.bookOpening,
                         style: TextStyle(
-                          color: _darkGutter ? Colors.white70 : Colors.black54,
+                          color: isDarkSurface ? Colors.white70 : Colors.black54,
                           fontSize: 13.5,
                           fontWeight: FontWeight.w500,
                         ),
@@ -423,7 +458,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                           ReaderStrings.pdfOpenError,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: _darkGutter ? Colors.white70 : Colors.black54,
+                            color: isDarkSurface ? Colors.white70 : Colors.black54,
                             fontSize: 13.5,
                             height: 1.45,
                           ),
