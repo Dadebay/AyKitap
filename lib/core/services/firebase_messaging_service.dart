@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../firebase_options.dart';
+import 'auth_api_service.dart';
+import 'auth_session.dart';
 import 'local_notifications_service.dart';
 
 /// Push notifications — same singleton pattern as [AnalyticsService].
@@ -26,13 +30,48 @@ class FirebaseMessagingService {
 
     FirebaseMessaging.instance.onTokenRefresh.listen((token) {
       _debugPrintColored('FCM token refreshed: $token', _AnsiColor.cyan);
+      unawaited(_syncTokenWithBackend(token));
     });
+  }
+
+  /// Re-sends whatever FCM token this device currently holds. Boot-time
+  /// [_printTokens] fires before a fresh login exists in [AuthSession], so
+  /// its own sync attempt is a no-op then — callers like [OtpVerifyScreen]
+  /// call this right after a successful login to close that gap without
+  /// waiting for the next [onTokenRefresh] event (which can be days later).
+  Future<void> syncCurrentTokenIfLoggedIn() async {
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null) await _syncTokenWithBackend(token);
+    } catch (e) {
+      _debugPrintColored('FCM token fetch failed: $e', _AnsiColor.red);
+    }
+  }
+
+  /// Never throws — a push-token sync failure must not surface anywhere
+  /// near login or app boot, both of which call this in fire-and-forget style.
+  ///
+  /// [init]'s `onTokenRefresh` listener, [syncCurrentTokenIfLoggedIn], and
+  /// boot-time [_printTokens] all funnel through here and mostly report the
+  /// same still-current token — PATCHing every time would be a request per
+  /// app launch for nothing, so this skips the call when [token] matches
+  /// the last one that actually made it to the backend.
+  Future<void> _syncTokenWithBackend(String token) async {
+    if (!await AuthSession.isLoggedIn()) return;
+    if (await AuthSession.getLastSyncedFcmToken() == token) return;
+    try {
+      await AuthApiService.updateFcmToken(fcmToken: token);
+      await AuthSession.saveLastSyncedFcmToken(token);
+    } catch (e) {
+      _debugPrintColored('FCM token sync failed: $e', _AnsiColor.red);
+    }
   }
 
   Future<void> _printTokens() async {
     try {
       final fcmToken = await FirebaseMessaging.instance.getToken();
       _debugPrintColored('FCM token: $fcmToken', _AnsiColor.cyan);
+      if (fcmToken != null) unawaited(_syncTokenWithBackend(fcmToken));
     } catch (e) {
       _debugPrintColored('FCM token fetch failed: $e', _AnsiColor.red);
     }

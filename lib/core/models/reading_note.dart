@@ -39,6 +39,13 @@ class ReadingNote {
   /// time this book's rendition is set up; see its onEpubLoaded.
   final String? cfi;
 
+  /// The backend `UserNote.id` this note was also persisted as via
+  /// `POST /users/notes`, or null when it wasn't (the reader only calls that
+  /// API when it has a real catalogue book id — see `ReaderScreen.realBookId`;
+  /// the user's own imported files have no such id, so their notes stay
+  /// local-only). Lets a later delete also call `DELETE /users/notes/:id`.
+  final int? remoteId;
+
   const ReadingNote({
     required this.id,
     required this.text,
@@ -49,6 +56,7 @@ class ReadingNote {
     this.bookIndex,
     this.colorValue = 0xFFFFD54F,
     this.cfi,
+    this.remoteId,
   });
 
   /// The catalogue Book this note came from, or null for an imported file that
@@ -70,6 +78,7 @@ class ReadingNote {
     createdAt: createdAt,
     colorValue: colorValue ?? this.colorValue,
     cfi: cfi,
+    remoteId: remoteId,
   );
 
   Map<String, dynamic> toJson() => {
@@ -82,6 +91,7 @@ class ReadingNote {
     'createdAt': createdAt.toIso8601String(),
     'colorValue': colorValue,
     if (cfi != null) 'cfi': cfi,
+    if (remoteId != null) 'remoteId': remoteId,
   };
 
   factory ReadingNote.fromJson(Map<String, dynamic> json) {
@@ -101,6 +111,7 @@ class ReadingNote {
       createdAt: DateTime.parse(json['createdAt'] as String),
       colorValue: json['colorValue'] as int? ?? HighlightColors.defaultColor.toARGB32(),
       cfi: json['cfi'] as String?,
+      remoteId: json['remoteId'] as int?,
     );
   }
 }

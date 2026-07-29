@@ -33,12 +33,24 @@ class PaymentStrings {
         tr: 'Onayla — $amount manat',
       );
   static String get topUpBalance => t(tk: 'Balans doldur', ru: 'Пополнить баланс', tr: 'Bakiye yükle');
+  static String get payNow => t(tk: 'Töle', ru: 'Оплатить', tr: 'Öde');
+  static String get close => t(tk: 'Ýap', ru: 'Закрыть', tr: 'Kapat');
 
   // subscription_screen.dart
-  static String get planWeekly => t(tk: 'Hepdelik', ru: 'Недельный', tr: 'Haftalık');
   static String get planMonthly => t(tk: 'Aýlyk', ru: 'Месячный', tr: 'Aylık');
   static String get plan3Months => t(tk: '3 Aýlyk', ru: '3 месяца', tr: '3 Aylık');
   static String get plan6Months => t(tk: '6 Aýlyk', ru: '6 месяцев', tr: '6 Aylık');
+  static String get planYearly => t(tk: 'Ýyllyk', ru: 'Годовой', tr: 'Yıllık');
+  /// Fallback label for any `month_count` the 4 named getters above don't
+  /// cover — keeps a future/unexpected tariff length from the backend from
+  /// showing up with no label at all.
+  static String planMonthsGeneric(int months) => t(tk: '$months aýlyk', ru: '$months месяцев', tr: '$months aylık');
+  static String get tariffsLoadError => t(
+        tk: 'Planlar ýüklenmedi',
+        ru: 'Не удалось загрузить планы',
+        tr: 'Planlar yüklenemedi',
+      );
+  static String get retry => t(tk: 'Gaýtadan synanyş', ru: 'Повторить', tr: 'Tekrar dene');
   static String get subscriptionTitle => t(tk: 'Abunalyk', ru: 'Подписка', tr: 'Abonelik');
   static String get unlimitedAccessTitle => t(
         tk: 'Ähli kitaplara çäksiz giriş',
@@ -69,4 +81,44 @@ class PaymentStrings {
   static String get activeSubscription => t(tk: 'Işjeň abunalyk', ru: 'Активная подписка', tr: 'Aktif abonelik');
   static String activeUntil(String date) => t(tk: '$date çenli güýjünde', ru: 'Действует до $date', tr: '$date tarihine kadar geçerli');
   static String get renew => t(tk: 'Uzalt', ru: 'Продлить', tr: 'Yenile');
+  static String get subscriptionBalanceInsufficientNote => t(
+        tk: 'Balansyňyz bu meýilnamany satyn almaga ýetmeýär. Bank kartasy bilen töläp bilersiňiz.',
+        ru: 'Вашего баланса недостаточно для покупки этого плана. Вы можете оплатить банковской картой.',
+        tr: 'Bakiyeniz bu planı satın almaya yetmiyor. Banka kartıyla ödeyebilirsiniz.',
+      );
+
+  // widgets/bank_select_sheet.dart
+  static String get payWithCard => t(tk: 'Bank kartasy bilen töle', ru: 'Оплатить банковской картой', tr: 'Banka kartıyla öde');
+  static String get selectBankTitle => t(tk: 'Bank saýlaň', ru: 'Выберите банк', tr: 'Banka seçin');
+  static String get banksLoadError => t(tk: 'Banklar ýüklenmedi', ru: 'Не удалось загрузить банки', tr: 'Bankalar yüklenemedi');
+  static String get paymentUrlError => t(
+        tk: 'Töleg salgysyny alyp bolmady',
+        ru: 'Не удалось получить ссылку для оплаты',
+        tr: 'Ödeme bağlantısı alınamadı',
+      );
+
+  // widgets/payment_method_sheet.dart
+  static String get choosePaymentMethodTitle => t(tk: 'Töleg usulyny saýlaň', ru: 'Выберите способ оплаты', tr: 'Ödeme yöntemini seçin');
+  static String get payWithPromoCode => t(tk: 'Promokod bilen', ru: 'По промокоду', tr: 'Promosyon koduyla');
+
+  // balance_top_up.dart / widgets/top_up_amount_sheet.dart
+  static String get topUpTitle => t(tk: 'Balansy doldur', ru: 'Пополнить баланс', tr: 'Bakiye yükle');
+  static String get topUpAmountTitle => t(tk: 'Näçe manat dolduraly?', ru: 'На какую сумму пополнить?', tr: 'Ne kadar yükleyelim?');
+  static String get topUpAmountHint => t(tk: 'Möçberi giriziň', ru: 'Введите сумму', tr: 'Tutarı girin');
+  static String get topUpContinue => t(tk: 'Dowam et', ru: 'Продолжить', tr: 'Devam et');
+  static String get topUpNotAvailable => t(
+        tk: 'Balans doldurmak entek elýeterli däl',
+        ru: 'Пополнение баланса пока недоступно',
+        tr: 'Bakiye yükleme henüz kullanılamıyor',
+      );
+
+  // widgets/promo_code_sheet.dart
+  static String get promoCodeTitle => t(tk: 'Promokod giriziň', ru: 'Введите промокод', tr: 'Promosyon kodu girin');
+  static String get promoCodeHint => t(tk: 'Promokod', ru: 'Промокод', tr: 'Promosyon kodu');
+  static String get promoCodeApply => t(tk: 'Ulan', ru: 'Применить', tr: 'Uygula');
+  static String get promoCodeAppliedBalance => t(
+        tk: 'Promokod ulanyldy — balansyňyz dolduryldy',
+        ru: 'Промокод применён — баланс пополнен',
+        tr: 'Promosyon kodu uygulandı — bakiyeniz yüklendi',
+      );
 }

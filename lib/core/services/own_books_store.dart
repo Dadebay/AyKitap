@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/own_book.dart';
 import 'cbz_page_cache.dart';
+import 'pdf_reflow_service.dart';
 
 /// Persists the "Öz Kitaplarym" (own EPUB/PDF imports) list across app
 /// restarts. Picked files are copied into app-owned storage so they keep
@@ -81,6 +82,11 @@ class OwnBooksStore extends ChangeNotifier {
     // and books that were never opened.
     if (book.format == OwnBookFormat.cbz) {
       await deleteCbzPageCache(book.filePath);
+    }
+    // Same idea for a PDF's generated reflow EPUB / "it's an image PDF"
+    // marker (PdfReflowService) — otherwise removing the book orphans it.
+    if (book.format == OwnBookFormat.pdf) {
+      await PdfReflowService.instance.deleteCacheFor(book.filePath);
     }
   }
 

@@ -240,9 +240,11 @@ class EpubController {
   ///
   /// epub.js itself has no transition API, so this drives a custom layer in
   /// `epubView.js` that tweens the viewer around the page swap. Accepts
-  /// `slide`, `curl`, `overlay`, `shift`, `scroll` or `none`; `scroll` and
-  /// `none` turn instantly (use [setFlow] to actually switch to scrolled
-  /// reading).
+  /// `slide`, `curl`, `overlay`, `shift`, `scroll` or `none`. All of them run
+  /// over a paginated rendition — `scroll` animates the page up from the
+  /// bottom edge rather than switching epub.js to its scrolled flow, so pair
+  /// it with [EpubViewer.verticalPageNavigation] to move the gesture onto the
+  /// vertical axis too. Only `none` turns instantly.
   Future<void> setPageTransition({required String mode}) async {
     checkEpubLoaded();
     await webViewController?.callAsyncJavaScript(

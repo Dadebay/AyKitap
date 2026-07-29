@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_controller.dart';
 
 class LibraryEmptyState extends StatelessWidget {
   final String label;
@@ -9,18 +9,31 @@ class LibraryEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppTheme.instance.isDark;
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          HugeIcon(icon: HugeIcons.strokeRoundedLibrary, color: AppColors.grey3, size: 56),
-          const SizedBox(height: 12),
-          Text(label, style: TextStyle(color: AppColors.grey2, fontSize: 15)),
-          if (sub != null) ...[
-            const SizedBox(height: 6),
-            Text(sub!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey3, fontSize: 13)),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 220),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: Image.asset(
+                  isDark ? 'assets/images/library_empty_dark.png' : 'assets/images/library_empty_light.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(label, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 15)),
+            if (sub != null) ...[
+              const SizedBox(height: 6),
+              Text(sub!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey3, fontSize: 13)),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../core/services/app_prefs.dart';
+import '../../core/services/home_data_service.dart';
 import '../library/offline_library_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../main_nav/main_nav_screen.dart';
@@ -65,6 +68,13 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   }
 
   Future<void> _bootstrap() async {
+    // Kicked off, not awaited: Home's `/collections/all` + `/banners` fetch
+    // starts right now, during the splash animation, so it's already done
+    // (or close to it) by the time the user actually reaches Home instead
+    // of only starting once that screen mounts. HomeScreen/BannerCarousel
+    // just watch HomeDataService rather than fetching on their own.
+    unawaited(HomeDataService.instance.load());
+
     // Run the prefs read, the connectivity check, and a minimum splash
     // display time in parallel so the animation always gets to breathe,
     // even on a fast device.

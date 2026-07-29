@@ -10,10 +10,12 @@ class AuthSession {
 
   static const _storage = FlutterSecureStorage();
   static const _kBearerToken = 'bearer_token';
+  static const _kUserId = 'auth_user_id';
   static const _kPhone = 'auth_phone';
   static const _kName = 'auth_name';
   static const _kAvatar = 'auth_avatar';
   static const _kAvatarImage = 'auth_avatar_image';
+  static const _kLastSyncedFcmToken = 'auth_last_synced_fcm_token';
 
   static Future<void> saveToken(String token, {String? phone}) async {
     await _storage.write(key: _kBearerToken, value: token);
@@ -21,6 +23,16 @@ class AuthSession {
   }
 
   static Future<String?> getToken() => _storage.read(key: _kBearerToken);
+
+  /// The backend's numeric account id from `/users/verify-login`'s
+  /// `data.user.id`, kept alongside the bearer token for any future
+  /// account-scoped request that needs it.
+  static Future<void> saveUserId(int id) => _storage.write(key: _kUserId, value: '$id');
+
+  static Future<int?> getUserId() async {
+    final raw = await _storage.read(key: _kUserId);
+    return raw == null ? null : int.tryParse(raw);
+  }
 
   static Future<String?> getPhone() => _storage.read(key: _kPhone);
 
@@ -47,11 +59,23 @@ class AuthSession {
 
   static Future<bool> isLoggedIn() async => (await getToken()) != null;
 
+  /// The FCM token last successfully PATCHed to `/users/fcm-token` —
+  /// [FirebaseMessagingService] compares against this to skip the request
+  /// entirely when the device's token hasn't actually changed.
+  static Future<void> saveLastSyncedFcmToken(String token) => _storage.write(key: _kLastSyncedFcmToken, value: token);
+
+  static Future<String?> getLastSyncedFcmToken() => _storage.read(key: _kLastSyncedFcmToken);
+
   static Future<void> clearToken() async {
     await _storage.delete(key: _kBearerToken);
+    await _storage.delete(key: _kUserId);
     await _storage.delete(key: _kPhone);
     await _storage.delete(key: _kName);
     await _storage.delete(key: _kAvatar);
     await _storage.delete(key: _kAvatarImage);
+    // Logging out can be followed by a *different* account logging in on
+    // this same device/token — that new account still needs its own PATCH
+    // to bind the token, so the "already synced" cache can't survive login.
+    await _storage.delete(key: _kLastSyncedFcmToken);
   }
 }

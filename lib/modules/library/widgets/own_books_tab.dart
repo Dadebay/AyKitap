@@ -12,9 +12,9 @@ import '../../../core/localization/strings/library_strings.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../../core/widgets/own_book_spine_cover.dart';
 import '../../reader/provider/reader_provider.dart';
+import '../../reader/utils/pdf_book_opener.dart';
 import '../../reader/views/cbz_reader_screen.dart';
 import '../../reader/views/reader_view.dart';
-import '../../reader/views/pdf_reader_screen.dart';
 import 'shelf_grid.dart';
 
 class OwnBooksTab extends StatefulWidget {
@@ -44,7 +44,7 @@ class _OwnBooksTabState extends State<OwnBooksTab> {
       if (picked == null || path == null) return;
       await _store.addFromPickedFile(sourcePath: path, fileName: picked.name);
     } catch (e) {
-      if (mounted) context.showAppSnackBar(LibraryStrings.fileAddError(e));
+      if (mounted) context.showAppSnackBar(LibraryStrings.fileAddError(e), isError: true);
     } finally {
       if (mounted) setState(() => _picking = false);
     }
@@ -54,7 +54,7 @@ class _OwnBooksTabState extends State<OwnBooksTab> {
     AnalyticsService.instance.logBookOpened(id: book.id, format: book.format.name);
     switch (book.format) {
       case OwnBookFormat.pdf:
-        context.push(PdfReaderScreen(filePath: book.filePath, title: book.title, bookId: stableBookKey(book.id)));
+        openPdfBook(context, filePath: book.filePath, title: book.title, bookId: stableBookKey(book.id));
       case OwnBookFormat.cbz:
         context.push(CbzReaderScreen(filePath: book.filePath, title: book.title, bookId: stableBookKey(book.id)));
       case OwnBookFormat.epub:

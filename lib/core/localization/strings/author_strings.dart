@@ -1,6 +1,6 @@
 import '../strings_base.dart';
 
-/// Strings for [AuthorScreen] and [AllAuthorsScreen].
+/// Strings for [AuthorScreen] and [CatalogAuthorDetailScreen].
 class AuthorStrings {
   AuthorStrings._();
 
@@ -9,5 +9,18 @@ class AuthorStrings {
   static String get readMore => t(tk: 'Dowamyny oka', ru: 'Читать далее', tr: 'Devamını oku');
   static String get allBooks => t(tk: 'Ähli kitaplary', ru: 'Все книги', tr: 'Tüm kitapları');
   static String pagesLabel(int count) => t(tk: '$count', ru: '$count', tr: '$count ');
-  static String get authorsTitle => t(tk: 'Ýazarlar', ru: 'Авторы', tr: 'Yazarlar');
+
+  // catalog_author_detail_screen.dart
+  static String get loadError => t(tk: 'Ýazar ýüklenmedi', ru: 'Не удалось загрузить автора', tr: 'Yazar yüklenemedi');
+  static String get retry => t(tk: 'Gaýtadan synanyş', ru: 'Повторить', tr: 'Tekrar dene');
+  static String get noBooksYetTitle => t(
+        tk: 'Bu ýazaryň entäk kitaby ýok',
+        ru: 'У этого автора пока нет книг',
+        tr: 'Bu yazarın henüz kitabı yok',
+      );
+  static String get noBooksYetSubtitle => t(
+        tk: 'Täze kitap goşulsa, ol şu ýerde peýda bolar.',
+        ru: 'Когда появится новая книга, она будет показана здесь.',
+        tr: 'Yeni bir kitap eklendiğinde burada görünecek.',
+      );
 }

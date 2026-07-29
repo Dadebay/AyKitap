@@ -2,15 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/navigation/app_navigator.dart';
+import '../../core/network/api_exception.dart';
+import '../../core/services/contact_api_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/strings/auth_strings.dart';
 import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/gradient_icon_badge.dart';
 import '../../core/widgets/primary_button.dart';
 import 'otp_verify_screen.dart';
+import 'provider/auth_provider.dart';
 
 /// Hasap Açmak / Giriş — TZ section 2.1, 2.3.
 /// A single phone-number entry screen serves both registration and login:
@@ -27,27 +32,42 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   final _focusNode = FocusNode();
   late final TapGestureRecognizer _termsTap = TapGestureRecognizer(debugOwner: this)..onTap = _openTerms;
 
-  static final Uri _termsUrl = Uri.parse('https://ayterek.com/ru/general-rules');
-
+  // Fetched on tap rather than on screen load — this link is rarely opened,
+  // so there's no point in a `/contacts` call every time this screen shows.
   Future<void> _openTerms() async {
-    await launchUrl(_termsUrl, mode: LaunchMode.externalApplication);
+    try {
+      final contacts = await ContactApiService.getContacts();
+      final link = contacts.userAgreementLink;
+      if (link == null || link.isEmpty) return;
+      final uri = Uri.tryParse(link);
+      if (uri == null) return;
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      context.showAppSnackBar(e.message, isError: true);
+    }
   }
 
   // Demo-only toggle so the "already logged in elsewhere" flow (TZ 2.2) can
   // be shown without a real backend behind it.
   bool _simulateOtherDevice = false;
-  bool _sending = false;
+  final _authProvider = AuthProvider();
 
   static const _digitsNeeded = 8; // XX XX XX XX
 
   String get _digits => _phoneController.text.replaceAll(RegExp(r'\D'), '');
   bool get _isValid => _digits.length == _digitsNeeded;
 
+  // The backend expects a plain `+993XXXXXXXX` string — the spaced
+  // "XX XX XX XX" grouping in [_phoneController] is display-only.
+  String get _apiPhone => '+993$_digits';
+
   @override
   void dispose() {
     _phoneController.dispose();
     _focusNode.dispose();
     _termsTap.dispose();
+    _authProvider.dispose();
     super.dispose();
   }
 
@@ -72,15 +92,17 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   }
 
   Future<void> _sendCode() async {
-    if (!_isValid || _sending) return;
+    if (!_isValid || _authProvider.isLoading) return;
     HapticFeedback.lightImpact();
-    setState(() => _sending = true);
-    await Future.delayed(const Duration(milliseconds: 700)); // mock network
+    final ok = await _authProvider.sendCode(_apiPhone);
     if (!mounted) return;
-    setState(() => _sending = false);
+    if (!ok) {
+      context.showAppSnackBar(_authProvider.errorMessage ?? AuthStrings.genericError, isError: true);
+      return;
+    }
 
     final loggedIn = await context.push<bool>(
-      OtpVerifyScreen(phone: '+993 ${_phoneController.text}', simulateOtherDevice: _simulateOtherDevice),
+      OtpVerifyScreen(phone: _apiPhone, simulateOtherDevice: _simulateOtherDevice),
     );
     if (loggedIn == true && mounted) {
       context.pop(true);
@@ -89,6 +111,13 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _authProvider,
+      child: Consumer<AuthProvider>(builder: (context, auth, _) => _buildScaffold(context, auth)),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context, AuthProvider auth) {
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -134,31 +163,9 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                 const SizedBox(height: 20),
                 // Demo-only: lets you preview the "logged in on another device"
                 // dialog (TZ 2.2) without a real second session.
-                InkWell(
-                  onTap: () => setState(() => _simulateOtherDevice = !_simulateOtherDevice),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      children: [
-                        HugeIcon(
-                          icon: _simulateOtherDevice ? HugeIcons.strokeRoundedCheckmarkCircle01 : HugeIcons.strokeRoundedCircle,
-                          color: _simulateOtherDevice ? AppColors.primary : AppColors.grey3,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            AuthStrings.simulateOtherDeviceLabel,
-                            style: TextStyle(color: AppColors.grey3, fontSize: 12),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+
                 const SizedBox(height: 32),
-                PrimaryButton(label: AuthStrings.sendCodeButton, loading: _sending, onPressed: _isValid ? _sendCode : null),
+                PrimaryButton(label: AuthStrings.sendCodeButton, loading: auth.isLoading, onPressed: _isValid ? _sendCode : null),
                 const SizedBox(height: 14),
                 RichText(
                   textAlign: TextAlign.center,

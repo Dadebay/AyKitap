@@ -11,18 +11,22 @@ import '../../../core/theme/app_colors.dart';
 class CbzSettingsSheet extends StatelessWidget {
   final bool darkGutter;
   final double brightness;
+  final double eyeCare;
   final BoxFit fit;
   final ValueChanged<bool> onGutterChanged;
   final ValueChanged<double> onBrightnessChanged;
+  final ValueChanged<double> onEyeCareChanged;
   final ValueChanged<BoxFit> onFitChanged;
 
   const CbzSettingsSheet({
     super.key,
     required this.darkGutter,
     required this.brightness,
+    required this.eyeCare,
     required this.fit,
     required this.onGutterChanged,
     required this.onBrightnessChanged,
+    required this.onEyeCareChanged,
     required this.onFitChanged,
   });
 
@@ -125,18 +129,50 @@ class CbzSettingsSheet extends StatelessWidget {
           // ── Brightness (TZ §12.4) ──────────────────────────────────────
           _SectionLabel(ReaderStrings.brightnessLabel),
           const SizedBox(height: 10),
-          _BrightnessRow(value: brightness, onChanged: onBrightnessChanged),
+          _SliderRow(
+            leadingIcon: HugeIcons.strokeRoundedSun01,
+            trailingIcon: HugeIcons.strokeRoundedSun01,
+            value: brightness,
+            min: 0.1,
+            onChanged: onBrightnessChanged,
+          ),
+
+          const SizedBox(height: 22),
+
+          // ── Eye care (blue-light filter) ───────────────────────────────
+          // A warm amber wash over the page, shared with the EPUB/PDF readers.
+          _SectionLabel(ReaderStrings.eyeCareLabel),
+          const SizedBox(height: 10),
+          _SliderRow(
+            leadingIcon: HugeIcons.strokeRoundedViewOff,
+            trailingIcon: HugeIcons.strokeRoundedEye,
+            value: eyeCare,
+            min: 0.0,
+            onChanged: onEyeCareChanged,
+          ),
         ],
       ),
     );
   }
 }
 
-class _BrightnessRow extends StatelessWidget {
+/// Full-width slider row: small leading icon, track, larger trailing icon.
+/// Reused for both brightness and the eye-care filter; [min] lets the eye-care
+/// slider reach fully off (0) while brightness bottoms out at 0.1.
+class _SliderRow extends StatelessWidget {
+  final List<List<dynamic>> leadingIcon;
+  final List<List<dynamic>> trailingIcon;
   final double value;
+  final double min;
   final ValueChanged<double> onChanged;
 
-  const _BrightnessRow({required this.value, required this.onChanged});
+  const _SliderRow({
+    required this.leadingIcon,
+    required this.trailingIcon,
+    required this.value,
+    required this.min,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -149,7 +185,7 @@ class _BrightnessRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          HugeIcon(icon: HugeIcons.strokeRoundedSun01, color: AppColors.grey3, size: 15),
+          HugeIcon(icon: leadingIcon, color: AppColors.grey3, size: 15),
           Expanded(
             child: SliderTheme(
               data: SliderTheme.of(context).copyWith(
@@ -161,10 +197,10 @@ class _BrightnessRow extends StatelessWidget {
                 thumbColor: AppColors.primary,
                 overlayColor: AppColors.primary.withValues(alpha: 0.13),
               ),
-              child: Slider(value: value.clamp(0.1, 1.0), min: 0.1, max: 1.0, onChanged: onChanged),
+              child: Slider(value: value.clamp(min, 1.0), min: min, max: 1.0, onChanged: onChanged),
             ),
           ),
-          HugeIcon(icon: HugeIcons.strokeRoundedSun01, color: AppColors.grey1, size: 21),
+          HugeIcon(icon: trailingIcon, color: AppColors.grey1, size: 21),
         ],
       ),
     );

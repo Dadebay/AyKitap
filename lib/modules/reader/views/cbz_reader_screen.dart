@@ -13,7 +13,10 @@ import '../../../core/services/bookmarks_store.dart';
 import '../../../core/services/cbz_page_cache.dart';
 import '../../../core/services/streak_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_controller.dart';
 import '../../../core/utils/stable_hash.dart';
+import '../../../core/widgets/app_snackbar.dart';
+import '../utils/eye_care.dart';
 import '../widgets/cbz_settings_sheet.dart';
 import '../widgets/pdf_bookmarks_sheet.dart';
 import '../widgets/pdf_bottom_bar.dart';
@@ -178,6 +181,9 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
 
   bool _showControls = true;
   double _brightness = 1.0;
+  // Blue-light "eye care" wash, shared across every reader via the
+  // `reader_eye_care` pref. 0.0 = off.
+  double _eyeCare = 0.0;
   bool _darkGutter = true;
   BoxFit _fit = BoxFit.contain;
 
@@ -204,7 +210,10 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
     _initialPage = prefs.getInt('book_${_bookId}_cbz_page') ?? 0;
     _currentPage = _initialPage;
     _brightness = prefs.getDouble('reader_brightness') ?? 1.0;
-    _darkGutter = prefs.getBool('reader_cbz_dark_gutter') ?? true;
+    _eyeCare = prefs.getDouble('reader_eye_care') ?? 0.0;
+    // No saved choice yet: default the gutter to the app's own light/dark
+    // setting rather than always opening dark.
+    _darkGutter = prefs.getBool('reader_cbz_dark_gutter') ?? AppTheme.instance.isDark;
     _fit = (prefs.getBool('reader_cbz_fit_cover') ?? false) ? BoxFit.cover : BoxFit.contain;
     await _applyBrightness();
     await _extract();
@@ -281,11 +290,10 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
   // ── Brightness (TZ §12.4) ────────────────────────────────────────────────
   Future<void> _applyBrightness() async {
     try {
-      if (_brightness >= 1.0) {
-        await ScreenBrightness().resetApplicationScreenBrightness();
-      } else {
-        await ScreenBrightness().setApplicationScreenBrightness(_brightness.clamp(0.0, 1.0));
-      }
+      // Always set an explicit value, even at 1.0 — see ReaderProvider's
+      // _applyReaderBrightness for why releasing control at max used to make
+      // 100% visibly dimmer than the slider promised.
+      await ScreenBrightness().setApplicationScreenBrightness(_brightness.clamp(0.0, 1.0));
     } catch (_) {}
   }
 
@@ -300,6 +308,12 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
     await _applyBrightness();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('reader_brightness', _brightness);
+  }
+
+  Future<void> _setEyeCare(double v) async {
+    setState(() => _eyeCare = v.clamp(0.0, 1.0));
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('reader_eye_care', _eyeCare);
   }
 
   Future<void> _setGutter(bool dark) async {
@@ -354,10 +368,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
     );
     if (!mounted) return;
     setState(() {});
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(added ? ReaderStrings.bookmarkAdded : ReaderStrings.bookmarkRemoved),
-      duration: const Duration(seconds: 1),
-    ));
+    context.showAppSnackBar(added ? ReaderStrings.bookmarkAdded : ReaderStrings.bookmarkRemoved);
   }
 
   // ── Sheets ───────────────────────────────────────────────────────────────
@@ -370,6 +381,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
         builder: (_, setSheetState) => CbzSettingsSheet(
           darkGutter: _darkGutter,
           brightness: _brightness,
+          eyeCare: _eyeCare,
           fit: _fit,
           onGutterChanged: (v) async {
             await _setGutter(v);
@@ -377,6 +389,10 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
           },
           onBrightnessChanged: (v) async {
             await _setBrightness(v);
+            setSheetState(() {});
+          },
+          onEyeCareChanged: (v) async {
+            await _setEyeCare(v);
             setSheetState(() {});
           },
           onFitChanged: (v) async {
@@ -464,6 +480,17 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
                     ),
                   ),
                 ),
+              ),
+            ),
+
+          // ── Eye-care (blue-light) wash ─────────────────────────────────
+          // A warm amber layer over the page, independent of the gutter colour
+          // so it works on a light or dark gutter alike. Shared with the
+          // EPUB/PDF readers via the same pref.
+          if (readerEyeCareColor(_eyeCare, isDarkPage: _darkGutter) != null && _error == null && !_isLoading)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: ColoredBox(color: readerEyeCareColor(_eyeCare, isDarkPage: _darkGutter)!),
               ),
             ),
 
@@ -558,6 +585,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
                     title: widget.title,
                     isBookmarked: _isCurrentPageBookmarked,
                     pageColor: bg,
+                    eyeCare: _eyeCare,
                     onBack: () async {
                       final navigator = Navigator.of(context);
                       await _saveProgress();
@@ -586,6 +614,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
                   duration: const Duration(milliseconds: 200),
                   child: PdfBottomBar(
                     pageColor: bg,
+                    eyeCare: _eyeCare,
                     currentPage: _currentPage + 1,
                     totalPages: _totalPages,
                     progress: _totalPages > 0 ? (_currentPage + 1) / _totalPages : 0.0,

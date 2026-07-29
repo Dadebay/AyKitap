@@ -29,6 +29,10 @@ function setFontFamily(fontFamily, fontBase64, fontMimeType) {
   _currentFontBase64 = fontBase64 || null;
   _currentFontMimeType = fontMimeType || 'font/truetype';
   if (!rendition) return;
+  // A different typeface has different metrics, so it repaginates the book —
+  // clear the frozen page-count divisor so it re-measures. (_resetPageMetrics
+  // is a hoisted function declaration, safe to call from here.)
+  _resetPageMetrics();
   try {
     rendition.getContents().forEach(function(contents) {
       _injectFontCSS(contents, _currentFontFamily, _currentFontBase64, _currentFontMimeType);
@@ -47,12 +51,47 @@ var lastCfiRange = null;
 var selectionTimeout = null;
 var hasSentSelection = false; // Track if we've actually sent a selection event to Flutter
 var lastTapCoords = null; // Store the last tap coordinates for onTouchDown/onTouchUp callbacks
+// ── Page-count metrics ─────────────────────────────────────────────────────
+// The book's total "locations" (book.locations.length()) is a fixed number
+// once generated, so the ONLY thing that made the reported total page count
+// drift on every swipe was the divisor — the estimated number of locations one
+// on-screen page holds — being recomputed live each page. We now measure that
+// divisor over the first few genuine text screens, then FREEZE it: both the
+// page number and the total are derived from the frozen divisor thereafter, so
+// the total stays put. A genuine re-pagination (font size, line spacing, flow,
+// font family) clears the freeze via _resetPageMetrics so it re-measures for
+// the new layout. See pageInfoFor.
+var _perPageSum = 0;        // sum of location-spans over sampled text screens
+var _perPageSamples = 0;    // how many text screens have been folded in
+var _perPageFrozen = 0;     // 0 = still warming up; else the locked divisor
+// Freeze once this many genuine text screens have been sampled — a handful is
+// enough to average out the screen-to-screen variance, then the total locks.
+var _perPageFreezeAfter = 4;
+// Direction of the most recent real page turn — 1 forward, -1 back, set by
+// the rendition.next/prev wrapper in _installPageTransitions and consumed (and
+// reset to 0) the next time pageInfoFor runs. 0 means the relocation was a
+// jump instead (goToChapter, search, restoring position), not a swipe.
+var _lastNavDirection = 0;
+// The last page number pageInfoFor actually reported, so a run of image-only
+// screens (see pageInfoFor) can still be counted forward one at a time.
+var _lastComputedPage = 0;
+
+// Clears the measured/frozen page-count divisor so the next few relocations
+// re-measure it. Called on load and whenever the layout genuinely repaginates.
+function _resetPageMetrics() {
+  _perPageSum = 0;
+  _perPageSamples = 0;
+  _perPageFrozen = 0;
+  _lastNavDirection = 0;
+  _lastComputedPage = 0;
+}
 
 function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScriptedContent, direction, useCustomSwipe, backgroundColor, foregroundColor, fontSize, clearSelectionOnNav, selectAnnotationRangeParam, customCss, savedLocations) {
   // Reset flags for new book
   initialXPathProcessed = false;
   xpathDisplayInProgress = false;
   initialPositionLoading = false;
+  _resetPageMetrics();
   // Store the clearSelectionOnPageChange setting
   clearSelectionOnPageChange = clearSelectionOnNav !== undefined ? clearSelectionOnNav : true;
   // Store the selectAnnotationRange setting
@@ -81,6 +120,13 @@ function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScr
     manager: manager,
     flow: flow,
     spread: spread,
+    // Lay the sections out left-to-right. Without this epub.js builds its
+    // Stage with the container default — "vertical", i.e. display:block — and
+    // only flips it to a flex row later, if and when a view's own load handler
+    // gets round to calling setAxis. Until then the next section sits *below*
+    // the current one, so a page turn slides up from the bottom edge no matter
+    // which horizontal animation was chosen (see _transitionSpec).
+    axis: "horizontal",
     width: "100vw",
     height: "100vh",
     snap: snap && !useCustomSwipe,
@@ -896,7 +942,7 @@ function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScr
 // forever, since no further relocated event fires until the reader turns a page.
 function sendRelocated(location) {
     var percent = location.start.percentage;
-    var pages = pageInfoFor(location.start.cfi);
+    var pages = pageInfoFor(location.start.cfi, location.end && location.end.cfi);
 
     // Convert CFIs to XPath
     Promise.all([
@@ -1549,17 +1595,28 @@ function sendRelocated(location) {
             return;
           }
 
-          if (direction == 'l') {
-            // Double-check before calling
-            if (!hasActiveSelection()) {
+          if (_pageTransition === 'scroll') {
+            // Sections here render one screen at a time (no free-scrolling
+            // *within* one), so — same as every other transition — moving to
+            // the next/previous one is still a discrete swipe, just on the
+            // vertical axis a continuous-scroll layout reads naturally on:
+            // swipe up advances, swipe down goes back. A left/right swipe
+            // reaching here is incidental (a mostly-vertical drag can read as
+            // horizontal too) and must NOT also turn a page, or scrolling
+            // occasionally double-jumps a section.
+            if (direction == 'u') {
               rendition.next();
-            }
-          }
-          if (direction == 'r') {
-            // Double-check before calling
-            if (!hasActiveSelection()) {
+            } else if (direction == 'd') {
               rendition.prev();
             }
+            return;
+          }
+
+          if (direction == 'l') {
+            rendition.next();
+          }
+          if (direction == 'r') {
+            rendition.prev();
           }
         });
       }
@@ -1998,14 +2055,23 @@ function setupRenditionBlocking() {
 // vs scrolled — so the styles are animated here, on the #viewer element that
 // epub.js renders into. The page swap itself is still epub.js's; we just play
 // an "out" tween, let it commit, then play an "in" tween.
-var _pageTransition = 'slide'; // slide | curl | overlay | scroll | shift | none
+// slide | curl | overlay | scroll | shift | none. 'scroll' (Prokrutka) is the
+// default here to match ReaderProvider's, which is what a reader who has never
+// touched the setting gets — the two have to agree, or the first turns of a
+// freshly-opened book animate as 'slide' until Flutter pushes the real mode
+// through setPageTransition on the 'displayed' event.
+var _pageTransition = 'scroll';
 var _turnAnimating = false;
 
 function setPageTransition(mode) {
-  _pageTransition = mode || 'slide';
+  _pageTransition = mode || 'scroll';
 }
 
 // dir: 1 = forward, -1 = backward.
+// Every spec may carry `outOrigin`/`inOrigin` (transform-origin for each half
+// of the turn) and `shadow` (a box-shadow played while the page is in flight).
+// Both default to "nothing special" in _animatedTurn, so only the modes that
+// need a hinge or a lift have to name them.
 function _transitionSpec(mode, dir) {
   var ease = 'cubic-bezier(0.4, 0.0, 0.2, 1)';
   switch (mode) {
@@ -2019,26 +2085,53 @@ function _transitionSpec(mode, dir) {
       return { out: 'scale(0.97)', outOpacity: 0,
                inFrom: 'scale(1.04)', inOpacity: 0,
                outMs: 140, inMs: 210, ease: ease };
-    // Снятие — a true page curl needs canvas/WebGL; this is a 3-D peel that
-    // reads as the page being lifted away.
+    // Снятие — a true page curl needs canvas/WebGL. This used to fake it with
+    // perspective()+rotateY(), a 3-D transform — but #viewer holds epub.js's
+    // iframe, and asking mobile WebViews to composite a 3-D-rotated iframe
+    // means rasterizing its whole content into a texture every turn, which is
+    // exactly the kind of work that reads as the reader "freezing" on a
+    // mid-range phone (reported in release builds too, so not a debug-mode
+    // slowdown). scale()+skewY() reads as a similar peel/lift but is a plain
+    // 2-D transform — cheap for any WebView to composite.
     case 'curl':
-      return { out: 'perspective(1400px) rotateY(' + (-24 * dir) + 'deg) translateX(' + (-45 * dir) + '%)', outOpacity: 0,
-               inFrom: 'perspective(1400px) rotateY(' + (12 * dir) + 'deg) translateX(' + (18 * dir) + '%)', inOpacity: 0.15,
-               outMs: 210, inMs: 230, ease: ease };
-    // Листание — the standard gentle slide.
+      return { out: 'scale(0.92) skewY(' + (-5 * dir) + 'deg) translateX(' + (-55 * dir) + '%)', outOpacity: 0,
+               inFrom: 'scale(0.95) skewY(' + (3 * dir) + 'deg) translateX(' + (28 * dir) + '%)', inOpacity: 0.15,
+               outMs: 200, inMs: 220, ease: ease };
+    // Прокрутка — the only *vertical* mode. The new page rises up from the
+    // bottom edge into place (never sideways), the old one lifts slightly and
+    // fades out the top, and the swipe that drives it is vertical too (see the
+    // detectSwipe callback). Non-directional — an arrival, not a left/right
+    // turn — with a slower entrance than exit so the rise itself is what reads
+    // on screen. Paired with a vertical swipe this reads as "scrolling up to
+    // the next page", which is what "Prokrutka" is meant to feel like.
+    case 'scroll':
+      return { out: 'translateY(-10%)', outOpacity: 0,
+               inFrom: 'translateY(72%)', inOpacity: 0,
+               outMs: 150, inMs: 280, ease: ease };
+    // Листание — the plain horizontal page slide every reader does: the page
+    // travels the full width sideways, so it leaves and arrives edge-to-edge
+    // rather than fading in place. No squeeze, skew or fade — an earlier fold
+    // effect here read as the page distorting, not sliding. The soft shadow is
+    // the only ornament: it gives the travelling page an edge to read against
+    // the one behind it. ('shift' is the same motion without the shadow and a
+    // touch snappier — the two are deliberately close.)
     case 'slide':
     default:
-      return { out: 'translateX(' + (-28 * dir) + '%)', outOpacity: 0,
-               inFrom: 'translateX(' + (28 * dir) + '%)', inOpacity: 0,
-               outMs: 150, inMs: 190, ease: ease };
+      return { out: 'translateX(' + (-100 * dir) + '%)', outOpacity: 1,
+               inFrom: 'translateX(' + (100 * dir) + '%)', inOpacity: 1,
+               shadow: '0 0 26px rgba(0,0,0,0.38)',
+               outMs: 200, inMs: 230, ease: ease };
   }
 }
 
 function _animatedTurn(dir, commit) {
   var el = document.getElementById('viewer');
-  // Scrolled flow does its own movement, and 'none' is meant to be instant.
-  // Bailing while one tween is in flight keeps fast swipes from stacking.
-  if (!el || !_pageTransition || _pageTransition === 'none' || _pageTransition === 'scroll' || _turnAnimating) {
+  // 'none' is meant to be instant. Bailing while one tween is in flight keeps
+  // fast swipes from stacking. ('scroll' used to bail here too, back when it
+  // ran on epub.js's continuous scrolled flow; it's now a vertical *paginated*
+  // mode with its own bottom-to-top tween — see _transitionSpec's 'scroll'
+  // case — so it animates like every other paginated turn.)
+  if (!el || !_pageTransition || _pageTransition === 'none' || _turnAnimating) {
     return commit();
   }
 
@@ -2063,6 +2156,8 @@ function _animatedTurn(dir, commit) {
     el.style.transform = '';
     el.style.opacity = '';
     el.style.willChange = '';
+    el.style.transformOrigin = '';
+    el.style.boxShadow = '';
     _turnAnimating = false;
   };
 
@@ -2074,6 +2169,8 @@ function _animatedTurn(dir, commit) {
   }, s.outMs + s.inMs + 2000);
 
   el.style.willChange = 'transform, opacity';
+  el.style.transformOrigin = s.outOrigin || 'center center';
+  if (s.shadow) el.style.boxShadow = s.shadow;
   el.style.transition = 'transform ' + s.outMs + 'ms ' + s.ease + ', opacity ' + s.outMs + 'ms ' + s.ease;
   el.style.transform = s.out;
   el.style.opacity = s.outOpacity;
@@ -2087,14 +2184,22 @@ function _animatedTurn(dir, commit) {
       if (proceeded || released) return;
       proceeded = true;
       el.style.transition = 'none';
+      // The arriving half hinges on the opposite edge, so the origin flips
+      // between the two tweens — set it in the same un-transitioned frame as
+      // the incoming pose, or the switch itself animates and the fold jumps.
+      el.style.transformOrigin = s.inOrigin || s.outOrigin || 'center center';
       el.style.transform = s.inFrom;
       el.style.opacity = s.inOpacity;
       requestAnimationFrame(function () {
         requestAnimationFrame(function () {
           if (released) return;
-          el.style.transition = 'transform ' + s.inMs + 'ms ' + s.ease + ', opacity ' + s.inMs + 'ms ' + s.ease;
+          el.style.transition = 'transform ' + s.inMs + 'ms ' + s.ease + ', opacity ' + s.inMs + 'ms ' + s.ease +
+                                (s.shadow ? ', box-shadow ' + s.inMs + 'ms ' + s.ease : '');
           el.style.transform = 'none';
           el.style.opacity = 1;
+          // Fade the fold's shadow out with the motion; release() clears it
+          // outright, which would otherwise pop once the page is already flat.
+          if (s.shadow) el.style.boxShadow = 'none';
           setTimeout(release, s.inMs + 20);
         });
       });
@@ -2127,8 +2232,8 @@ function _installPageTransitions(r) {
   // alike — reaches the reader through exactly one of these two calls, since
   // nothing else in this file calls rendition.next()/prev(). One log here is a
   // log of every real page turn, without duplicating it at each gesture source.
-  r.next = function () { console.log('👉 SWIPE: next page (mode=' + _pageTransition + ')'); return _animatedTurn(1, origNext); };
-  r.prev = function () { console.log('👈 SWIPE: previous page (mode=' + _pageTransition + ')'); return _animatedTurn(-1, origPrev); };
+  r.next = function () { console.log('👉 SWIPE: next page (mode=' + _pageTransition + ')'); _lastNavDirection = 1; return _animatedTurn(1, origNext); };
+  r.prev = function () { console.log('👈 SWIPE: previous page (mode=' + _pageTransition + ')'); _lastNavDirection = -1; return _animatedTurn(-1, origPrev); };
   r.__transitionsInstalled = true;
 }
 
@@ -2251,23 +2356,82 @@ function getCurrentLocation(requestId) {
 // ── Page numbers ─────────────────────────────────────────────────────────
 // epub.js has no notion of a page: reflowable text has no fixed pagination, so
 // the only stable unit it offers is a "location" — a fixed-length slice of the
-// book's text produced by book.locations.generate(N). Those slices are what we
-// number, which is the same approach Kindle/Kobo take, and unlike the raw
-// column count they don't change when the reader picks a bigger font.
+// book's text produced by book.locations.generate(N). We number *screens*
+// rather than raw locations: one on-screen page holds several locations, so
+// numbering locations directly makes the counter jump by 3–5 on every swipe.
+//
+// The number of locations a screen holds is measured live from the start→end
+// span of the current view (font-adaptive: a bigger font fits fewer locations
+// per screen, giving more, shorter pages) and smoothed with an EMA so the
+// derived total doesn't wobble as slightly different amounts of text land on
+// each screen. Dividing the location index/length by that gives a page that
+// advances by ~1 per swipe and a total that reads like a real page count.
 //
 // locations.generate() is async (see book.ready below) and takes a while on a
 // long book, so both values are 0 until it finishes — callers must treat 0 as
 // "not counted yet" rather than as page zero.
-function pageInfoFor(cfi) {
+function pageInfoFor(startCfi, endCfi) {
   var info = { page: 0, totalPages: 0 };
   try {
     if (!book.locations || !book.locations.length()) return info;
-    info.totalPages = book.locations.length();
-    // locationFromCfi is 0-based; readers count from 1.
-    var idx = book.locations.locationFromCfi(cfi);
-    if (typeof idx === 'number' && idx >= 0) {
-      info.page = Math.min(idx + 1, info.totalPages);
+    var totalLocations = book.locations.length();
+
+    // locationFromCfi is 0-based.
+    var startIdx = book.locations.locationFromCfi(startCfi);
+    if (typeof startIdx !== 'number' || startIdx < 0) startIdx = 0;
+    var endIdx = endCfi ? book.locations.locationFromCfi(endCfi) : startIdx;
+    if (typeof endIdx !== 'number' || endIdx < startIdx) endIdx = startIdx;
+
+    // Locations visible on this one screen (at least 1). endIdx is inclusive.
+    var locationsThisPage = (endIdx - startIdx) + 1;
+    if (locationsThisPage < 1) locationsThisPage = 1;
+
+    // Warm-up: average the location-span of the first few genuine text screens,
+    // then freeze that average as the divisor (see _perPageFrozen). Image-only
+    // screens (covers, front-matter illustrations) carry no text, so epub.js
+    // collapses them onto the same location marker as their neighbours —
+    // reporting a span of 1, same as a real single-location text page would.
+    // Sampling those would skew the divisor, so only multi-location (text)
+    // screens are folded in.
+    if (_perPageFrozen === 0 && locationsThisPage > 1) {
+      _perPageSum += locationsThisPage;
+      _perPageSamples += 1;
+      if (_perPageSamples >= _perPageFreezeAfter) {
+        _perPageFrozen = _perPageSum / _perPageSamples;
+      }
     }
+
+    // The divisor: the frozen value once we have it; otherwise the running
+    // average so far; otherwise 1 until the first text screen is measured.
+    var perPage = _perPageFrozen > 0
+      ? _perPageFrozen
+      : (_perPageSamples > 0 ? _perPageSum / _perPageSamples : 1);
+
+    info.totalPages = Math.max(1, Math.round(totalLocations / perPage));
+    // +1 so readers count from 1.
+    info.page = Math.floor(startIdx / perPage) + 1;
+
+    // Image-only screens collapse onto one location marker, so a run of them
+    // all resolve to the same startIdx — the math above would then report the
+    // same page for several real swipes in a row. A genuine next()/prev() (as
+    // opposed to a jump — goToChapter, search, restoring position, all of
+    // which go through rendition.display() instead) always moves exactly one
+    // page, so enforce that when the location math didn't agree with the
+    // direction the reader actually swiped.
+    if (_lastNavDirection === 1 && info.page <= _lastComputedPage) {
+      info.page = _lastComputedPage + 1;
+    } else if (_lastNavDirection === -1 && info.page >= _lastComputedPage && _lastComputedPage > 1) {
+      info.page = _lastComputedPage - 1;
+    }
+    // Clamp the page to the (now-frozen) total rather than growing the total to
+    // fit the page — the whole point is that the total stays put. At the very
+    // end of the book this means the last couple of image screens read as
+    // "N / N" instead of nudging the total upward.
+    if (info.page > info.totalPages) info.page = info.totalPages;
+    info.page = Math.max(1, info.page);
+
+    _lastComputedPage = info.page;
+    _lastNavDirection = 0;
   } catch (e) {
     console.error('Error computing page info:', e);
   }
@@ -2439,19 +2603,48 @@ function searchInBook(query, requestId, includeXPath) {
 }
 
 
+// Re-measures every annotation overlay and re-lays the marks drawn on it.
+//
+// marks-pane draws a highlight at (rangeRect - paneOrigin), where paneOrigin is
+// whatever Pane.render() measured last. Pane.render() runs on construction and
+// on epub.js's resize — but Pane.addMark() deliberately does NOT re-run it, so
+// any layout change since the pane was built leaves that origin stale and every
+// mark added afterwards lands offset from its own text, typically by a couple of
+// paragraphs. The everyday trigger is adding a note: the note sheet's keyboard
+// resizes the WebView and reflows the page while the sheet is open, and the
+// highlight is only painted once it closes.
+function _refreshAnnotationPanes() {
+  // Two frames, so the measurement happens after the layout that follows the
+  // mark being inserted has actually been committed.
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () {
+      try {
+        rendition.views().forEach(function (view) {
+          if (view && view.pane) view.pane.render();
+        });
+      } catch (e) {
+        console.error('Error refreshing annotation panes:', e);
+      }
+    });
+  });
+}
+
 // adds highlight with given color
 function addHighlight(cfiRange, color, opacity) {
   rendition.annotations.highlight(cfiRange, {}, (e) => {
     // Highlight clicked handler (can be extended if needed)
   }, "hl", { "fill": color, "fill-opacity": '0.3', "mix-blend-mode": "multiply" });
+  _refreshAnnotationPanes();
 }
 
 function addUnderLine(cfiString) {
   rendition.annotations.underline(cfiString)
+  _refreshAnnotationPanes();
 }
 
 function addMark(cfiString) {
   rendition.annotations.mark(cfiString)
+  _refreshAnnotationPanes();
 }
 
 function removeHighlight(cfiString) {
@@ -2579,6 +2772,9 @@ function setSpread(spread) {
 }
 
 function setFlow(flow) {
+  // Paginated vs. scrolled is a wholesale layout change — re-measure the page
+  // divisor for it.
+  _resetPageMetrics();
   rendition.flow(flow);
 }
 
@@ -2587,6 +2783,9 @@ function setManager(manager) {
 }
 
 function setFontSize(fontSize) {
+  // Bigger/smaller text repaginates the book, so the frozen page-count divisor
+  // no longer holds — clear it before reportLocation triggers a fresh measure.
+  _resetPageMetrics();
   rendition.themes.fontSize(`${fontSize}px`);
   rendition.reportLocation();
 }
@@ -2629,6 +2828,13 @@ function getTextFromCfi(startCfi, endCfi) {
 
 ///update theme
 function updateTheme(backgroundColor, foregroundColor, customCss) {
+  // Line spacing reaches the rendition through customCss here, and changing it
+  // repaginates the book — so re-measure the page-count divisor. A pure colour
+  // change (theme swatch) doesn't repaginate, but it also routes through here;
+  // re-measuring in that case is harmless (a few pages re-lock to the same
+  // total), and telling the two apart isn't worth the complexity.
+  _resetPageMetrics();
+
   var rules = {};
   var themeObj = {};
 

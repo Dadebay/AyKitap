@@ -37,4 +37,10 @@ class StreakStrings {
 
   static String pagesLabel(int count) => t(tk: '$count sahypa', ru: '$count страниц', tr: '$count sayfa');
   static String minutesLabel(int count) => t(tk: '$count min', ru: '$count мин', tr: '$count dk');
+
+  static String get monthlyReading => t(tk: 'Aýlyk okaýyş', ru: 'Чтение по месяцам', tr: 'Aylık okuma');
+  static String get thisMonth => t(tk: 'Bu aý', ru: 'В этом месяце', tr: 'Bu ay');
+  static String get lastMonth => t(tk: 'Geçen aý', ru: 'В прошлом месяце', tr: 'Geçen ay');
+  static String get pagesRead => t(tk: 'Okalan sahypa', ru: 'Прочитано страниц', tr: 'Okunan sayfa');
+  static String get readingTime => t(tk: 'Okalan wagt', ru: 'Время чтения', tr: 'Okuma süresi');
 }

@@ -5,18 +5,26 @@ import 'package:flutter/services.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:lottie/lottie.dart';
+import 'package:provider/provider.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/localization/strings/reader_strings.dart';
 import '../../../core/services/bookmarks_store.dart';
+import '../../../core/services/pdf_reflow_service.dart';
 import '../../../core/services/streak_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_controller.dart';
 import '../../../core/utils/stable_hash.dart';
+import '../../../core/widgets/app_snackbar.dart';
+import '../provider/reader_provider.dart';
+import '../utils/eye_care.dart';
+import '../utils/pdf_book_opener.dart';
 import '../widgets/pdf_bookmarks_sheet.dart';
 import '../widgets/pdf_bottom_bar.dart';
 import '../widgets/pdf_go_to_page_sheet.dart';
 import '../widgets/pdf_settings_sheet.dart';
 import '../widgets/reader_top_bar.dart';
+import 'reader_view.dart';
 
 /// Full-screen PDF reader, styled to match the EPUB [ReaderScreen] as closely
 /// as a fixed-layout format allows.
@@ -66,7 +74,16 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
   String? _error;
 
   bool _showControls = true;
+  // A non-null value means this book has a cached reflow (text) conversion
+  // sitting unused because the reader forced fixed page images — see the
+  // "view original PDF pages" option in ReaderSettingsSheet. Offering the
+  // reverse switch here only when this exists means the option shows up
+  // exactly for a book the reader themselves stepped out of reflow mode.
+  String? _reflowEpubPath;
   double _brightness = 1.0;
+  // Blue-light "eye care" wash, shared across every reader via the
+  // `reader_eye_care` pref (see ReaderProvider). 0.0 = off.
+  double _eyeCare = 0.0;
   PdfColorMode _colorMode = PdfColorMode.light;
   FitPolicy _fitPolicy = FitPolicy.BOTH;
 
@@ -96,15 +113,19 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
     _initialPage = prefs.getInt('book_${_bookId}_pdf_page') ?? 0;
     _currentPage = _initialPage;
     _brightness = prefs.getDouble('reader_brightness') ?? 1.0;
+    _eyeCare = prefs.getDouble('reader_eye_care') ?? 0.0;
     // New three-way mode; fall back to the old dark-gutter bool for anyone
-    // upgrading (their dark gutter maps to night, otherwise light).
+    // upgrading (their dark gutter maps to night, otherwise light). With
+    // neither ever saved (first PDF ever opened), default to the app's own
+    // light/dark setting rather than always opening on a white page.
     final savedMode = prefs.getInt('reader_pdf_color_mode');
+    final legacyDarkGutter = prefs.getBool('reader_pdf_dark_gutter');
     if (savedMode != null) {
       _colorMode = PdfColorMode.values[savedMode.clamp(0, PdfColorMode.values.length - 1)];
+    } else if (legacyDarkGutter != null) {
+      _colorMode = legacyDarkGutter ? PdfColorMode.night : PdfColorMode.light;
     } else {
-      _colorMode = (prefs.getBool('reader_pdf_dark_gutter') ?? false)
-          ? PdfColorMode.night
-          : PdfColorMode.light;
+      _colorMode = AppTheme.instance.isDark ? PdfColorMode.night : PdfColorMode.light;
     }
     // BOTH is the default: it always shows the whole page, which single-page
     // horizontal swiping needs (there's no way to scroll to the rest of a page
@@ -112,7 +133,30 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
     // rather fill the width and accept a taller page running off-screen.
     _fitPolicy = (prefs.getBool('reader_pdf_fit_width') ?? false) ? FitPolicy.WIDTH : FitPolicy.BOTH;
     _applyBrightness();
+    _reflowEpubPath = await PdfReflowService.instance.cachedReflowEpubPath(widget.filePath);
     if (mounted) setState(() {});
+  }
+
+  Future<void> _switchToTextView() async {
+    final epubPath = _reflowEpubPath;
+    if (epubPath == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(preferFixedPrefKey(_bookId));
+    await _saveProgress();
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => ReaderProvider(),
+          child: ReaderScreen(
+            bookPath: epubPath,
+            bookId: _bookId,
+            bookTitle: widget.title,
+            originalPdfPath: widget.filePath,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -128,11 +172,10 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
   // ── Brightness (TZ §12.4), device-level, same policy as ReaderProvider ─────
   Future<void> _applyBrightness() async {
     try {
-      if (_brightness >= 1.0) {
-        await ScreenBrightness().resetApplicationScreenBrightness();
-      } else {
-        await ScreenBrightness().setApplicationScreenBrightness(_brightness.clamp(0.0, 1.0));
-      }
+      // Always set an explicit value, even at 1.0 — see ReaderProvider's
+      // _applyReaderBrightness for why releasing control at max used to make
+      // 100% visibly dimmer than the slider promised.
+      await ScreenBrightness().setApplicationScreenBrightness(_brightness.clamp(0.0, 1.0));
     } catch (_) {}
   }
 
@@ -174,6 +217,8 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
   // ── Page changes ───────────────────────────────────────────────────────────
   void _onPageChanged(int? page, int? total) {
     final p = page ?? 0;
+    final t = total ?? _totalPages;
+    log('📄 PDF page=${p + 1}/$t');
     if (_lastLoggedPage != null && p > _lastLoggedPage!) {
       StreakService.instance.recordPageRead(count: (p - _lastLoggedPage!).clamp(1, 5));
     }
@@ -206,10 +251,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
     );
     if (!mounted) return;
     setState(() {});
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(added ? ReaderStrings.bookmarkAdded : ReaderStrings.bookmarkRemoved),
-      duration: const Duration(seconds: 1),
-    ));
+    context.showAppSnackBar(added ? ReaderStrings.bookmarkAdded : ReaderStrings.bookmarkRemoved);
   }
 
   Future<void> _setBrightness(double v) async {
@@ -217,6 +259,12 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
     await _applyBrightness();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('reader_brightness', _brightness);
+  }
+
+  Future<void> _setEyeCare(double v) async {
+    setState(() => _eyeCare = v.clamp(0.0, 1.0));
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('reader_eye_care', _eyeCare);
   }
 
   Future<void> _setColorMode(PdfColorMode mode) async {
@@ -255,6 +303,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
         builder: (_, setSheetState) => PdfSettingsSheet(
           colorMode: _colorMode,
           brightness: _brightness,
+          eyeCare: _eyeCare,
           fitPolicy: _fitPolicy,
           onColorModeChanged: (v) async {
             await _setColorMode(v);
@@ -264,10 +313,15 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
             await _setBrightness(v);
             setSheetState(() {});
           },
+          onEyeCareChanged: (v) async {
+            await _setEyeCare(v);
+            setSheetState(() {});
+          },
           onFitChanged: (v) async {
             await _setFit(v);
             setSheetState(() {});
           },
+          onSwitchToTextView: _reflowEpubPath != null ? _switchToTextView : null,
         ),
       ),
     );
@@ -395,6 +449,17 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
               ),
             ),
 
+          // ── Eye-care (blue-light) wash ─────────────────────────────────
+          // A warm amber layer over the page, independent of the colour mode
+          // so it stacks on top of light / sepia / night alike. Shared with
+          // the EPUB reader via the same pref (see _eyeCare).
+          if (readerEyeCareColor(_eyeCare, isDarkPage: isDarkSurface) != null && _error == null)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: ColoredBox(color: readerEyeCareColor(_eyeCare, isDarkPage: isDarkSurface)!),
+              ),
+            ),
+
           // Same opening animation the EPUB reader uses, so a book looks like
           // it's opening rather than the app looking like it's stalled.
           if (_isLoading)
@@ -488,6 +553,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                     title: widget.title,
                     isBookmarked: _isCurrentPageBookmarked,
                     pageColor: bg,
+                    eyeCare: _eyeCare,
                     onBack: () async {
                       final navigator = Navigator.of(context);
                       await _saveProgress();
@@ -516,6 +582,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                   duration: const Duration(milliseconds: 200),
                   child: PdfBottomBar(
                     pageColor: bg,
+                    eyeCare: _eyeCare,
                     currentPage: _currentPage + 1,
                     totalPages: _totalPages,
                     progress: _totalPages > 0 ? (_currentPage + 1) / _totalPages : 0.0,

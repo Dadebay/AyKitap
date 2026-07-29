@@ -1,27 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:carousel_slider/carousel_slider.dart';
-import '../../core/data/mock/mock_data.dart';
+import 'package:provider/provider.dart';
+import '../../core/models/collection.dart';
+import '../../core/models/library_book.dart';
 import '../../core/navigation/app_navigator.dart';
+import '../../core/services/home_data_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/strings/home_strings.dart';
 import '../../core/services/auth_session.dart';
 import '../../core/services/streak_service.dart';
-import '../../core/widgets/book_card.dart';
 import '../../core/widgets/section_header.dart';
-import '../../core/widgets/series_card.dart';
-import '../author/author_screen.dart';
-import '../book_detail/book_detail_screen.dart';
-import '../notifications/notification_screen.dart';
-import '../popular/collection_books_screen.dart';
-import '../series/all_series_screen.dart';
 import '../streak/streak_screen.dart';
-import 'widgets/author_avatar.dart';
+import 'catalog_collection_books_screen.dart';
 import 'widgets/banner_carousel.dart';
-import 'widgets/bundled_books_debug_screen.dart';
-import 'widgets/collection_card.dart';
+import 'widgets/catalog_author_avatar.dart';
+import 'widgets/catalog_book_card.dart';
+import 'widgets/catalog_rank_shelf_card.dart';
+import 'widgets/catalog_series_card.dart';
 import 'widgets/home_header.dart';
-import 'widgets/rank_shelf_card.dart';
+import 'widgets/home_shimmer.dart';
 
+/// Home tab — every section below the header/banner comes straight from
+/// `GET /collections/all` ([HomeDataService], prefetched starting at the
+/// splash screen); nothing here is mock catalogue data. Search still runs
+/// on the mock catalogue ([MockData]) — that migration is a separate,
+/// much larger piece of work.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -37,6 +39,10 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadName();
     StreakService.instance.load();
+    // Fallback only — the splash screen already kicked this off. Idempotent,
+    // so this is a no-op on the normal path (already loading/loaded by the
+    // time Home mounts).
+    HomeDataService.instance.load();
   }
 
   Future<void> _loadName() async {
@@ -44,14 +50,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted && name != null && name.isNotEmpty) setState(() => _name = name);
   }
 
-  // Täze Gelenler / Hepdelik Iň Köp Okunanlar / Bestsellers / Redaktoryň
-  // Saýlawlary come first in MockData.homeSections; Kolleksiýalar sits
-  // right after them and before the genre rows.
-  static const _topSectionsCount = 4;
-
   @override
   Widget build(BuildContext context) {
-    final sections = MockData.homeSections;
+    final collections = context.watch<HomeDataService>().collections;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -61,210 +62,148 @@ class _HomeScreenState extends State<HomeScreen> {
             child: HomeHeader(
               name: _name,
               onStreakTap: () => context.push(const StreakScreen()),
-              onNotificationsTap: () => context.push(const NotificationScreen()),
             ),
           ),
           const SliverToBoxAdapter(child: BannerCarousel()),
-          SliverToBoxAdapter(child: _buildBundledBooksEntry(context)),
           const SliverToBoxAdapter(child: SizedBox(height: 4)),
-          SliverToBoxAdapter(child: _buildSection(context, HomeStrings.popularBooks, seed: 99)),
-          SliverToBoxAdapter(child: _buildPopularRankCard(context)),
-          for (int i = 0; i < _topSectionsCount; i++) SliverToBoxAdapter(child: _buildSection(context, sections[i].title, subtitle: sections[i].subtitle, seed: i * 3)),
-          SliverToBoxAdapter(child: _buildCollectionsRow(context)),
-          SliverToBoxAdapter(child: _buildSeriesRow(context)),
-          SliverToBoxAdapter(child: _buildAuthorsRow(context)),
-          for (int i = _topSectionsCount; i < sections.length; i++) SliverToBoxAdapter(child: _buildSection(context, sections[i].title, subtitle: sections[i].subtitle, seed: i * 3)),
-          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+          if (collections == null)
+            const SliverToBoxAdapter(child: HomeShimmer())
+          else
+            // "Täze gelenler", "Hepdelik iň köp okalanlar", "Rus Ýazarlar",
+            // ... — one stacked straight from `GET /collections/all`, in
+            // whatever order/count the backend sends. Consecutive entries
+            // that share the same `queue_position` (e.g. "Biznes / Maliýe",
+            // "Şahsy Ösüş", "Psihologiýa", "Liderlik" all at 41) are meant to
+            // sit side by side as one horizontal row instead of each getting
+            // its own stacked section — see [_groupByQueuePosition].
+            for (final group in _groupByQueuePosition(collections))
+              SliverToBoxAdapter(
+                child: group.length > 1 ? _buildGenreShelfRow(context, group) : _buildCollectionEntry(context, group.first),
+              ),
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
     );
   }
 
-  /// Dev-only shortcut to [BundledBooksDebugScreen]. The catalogue maps mock
-  /// books onto sample EPUBs by hash, so there's no way to tell from a cover
-  /// which file it will open — this reaches the files directly, by name.
-  /// Remove along with the debug screen once the backend serves real content.
-  Widget _buildBundledBooksEntry(BuildContext context) {
+  /// Splits [collections] into consecutive runs that share one
+  /// `queue_position` — most positions are unique (a run of 1, rendered
+  /// exactly as before), but the backend uses a shared position to mean
+  /// "these belong in the same horizontal row" (e.g. a set of genre
+  /// shelves). Only consecutive entries are grouped — the backend already
+  /// sends same-position rows next to each other, so this doesn't need to
+  /// re-sort or hunt through the whole list.
+  List<List<Collection>> _groupByQueuePosition(List<Collection> collections) {
+    final groups = <List<Collection>>[];
+    for (final c in collections) {
+      if (groups.isNotEmpty && groups.last.first.queuePosition == c.queuePosition) {
+        groups.last.add(c);
+      } else {
+        groups.add([c]);
+      }
+    }
+    return groups;
+  }
+
+  Widget _buildGenreShelfRow(BuildContext context, List<Collection> group) {
+    final shelves = group.where((c) => c.type == CollectionType.book && c.books.isNotEmpty).toList();
+    if (shelves.isEmpty) return const SizedBox.shrink();
+    final hasRankShelf = shelves.any((c) => c.cardType == CollectionCardType.card2);
+    final rowHeight = hasRankShelf ? 460.0 : 300.0;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: Material(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => context.push(const BundledBooksDebugScreen()),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.bug_report_outlined, color: AppColors.primary, size: 19),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    HomeStrings.bundledBooksTitle,
-                    style: TextStyle(color: AppColors.white, fontSize: 13.5, fontWeight: FontWeight.w600),
-                  ),
-                ),
-                Icon(Icons.chevron_right, color: AppColors.grey3, size: 20),
-              ],
-            ),
-          ),
+      padding: const EdgeInsets.fromLTRB(0, 20, 0, 20),
+      child: SizedBox(
+        height: rowHeight,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          itemCount: shelves.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          itemBuilder: (_, i) => _buildGenreShelfTile(shelves[i]),
         ),
       ),
     );
   }
 
-  Widget _buildSection(BuildContext context, String title, {required int seed, String? subtitle}) {
-    final books = MockData.generateBooks(15, seed: seed);
+  Widget _buildGenreShelfTile(Collection collection) {
+    switch (collection.cardType) {
+      case CollectionCardType.card2:
+        return SizedBox(width: 320, child: CatalogRankShelfCard(collection: collection));
+      case CollectionCardType.card3:
+        return SizedBox(width: 320, child: CatalogSeriesCard(collection: collection));
+      case CollectionCardType.card1:
+        return SizedBox(width: 320, child: CatalogSeriesCard(collection: collection));
+    }
+  }
+
+  /// Dispatches one [Collection] to the right visual: [CollectionType.author]
+  /// renders its `authors` as an avatar row regardless of `card_type` (a
+  /// themed author set has nothing to rank/series-ify); otherwise
+  /// `card_type` picks between a plain book row, a ranked-shelf card, or a
+  /// big series-style card. Unknown/empty cases collapse to nothing rather
+  /// than showing an empty header.
+  Widget _buildCollectionEntry(BuildContext context, Collection collection) {
+    if (collection.type == CollectionType.author) {
+      final authors = collection.authors ?? const [];
+      if (authors.isEmpty) return const SizedBox.shrink();
+      return _buildCatalogAuthorsRow(collection, authors);
+    }
+    if (collection.books.isEmpty) return const SizedBox.shrink();
+    switch (collection.cardType) {
+      case CollectionCardType.card2:
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          child: CatalogRankShelfCard(collection: collection),
+        );
+      case CollectionCardType.card3:
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 30, 20, 10),
+          child: SizedBox(height: 380, child: CatalogSeriesCard(collection: collection)),
+        );
+      case CollectionCardType.card1:
+        return _buildCatalogBookSection(context, collection);
+    }
+  }
+
+  Widget _buildCatalogBookSection(BuildContext context, Collection collection) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionHeader(
-          title: title,
-          subtitle: subtitle,
+          title: collection.name,
+          subtitle: collection.subTitle,
           seeAllLabel: HomeStrings.seeAll,
-          onSeeAll: () => context.push(CollectionBooksScreen(title: title, books: MockData.generateBooks(30, seed: seed))),
+          onSeeAll: () => context.push(CatalogCollectionBooksScreen(title: collection.name, books: collection.books)),
         ),
         SizedBox(
           height: 200,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: books.length,
-            itemBuilder: (_, i) => BookCard(book: books[i], onTap: () => context.push(BookDetailScreen(book: books[i]))),
+            itemCount: collection.books.length,
+            itemBuilder: (_, i) => CatalogBookCard(book: collection.books[i]),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildCollectionsRow(BuildContext context) {
-    final collections = MockData.collections;
+  Widget _buildCatalogAuthorsRow(Collection collection, List<LibraryBookAuthor> authors) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionHeader(title: HomeStrings.collections),
-        CarouselSlider.builder(
-          itemCount: collections.length,
-          options: CarouselOptions(
-            height: 150,
-            viewportFraction: 0.62,
-            enlargeCenterPage: true,
-            enlargeFactor: 0.18,
-            enableInfiniteScroll: false,
-            padEnds: false,
-          ),
-          itemBuilder: (context, i, realIdx) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: GestureDetector(
-              onTap: () => context.push(CollectionBooksScreen(title: collections[i].title, books: collections[i].books)),
-              child: CollectionCard(collection: collections[i]),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Serialar üçin Kolleksiýa v2 — the first 10 series as big image cards in
-  // a horizontal row; "Ählisi" opens the full list of every series.
-  Widget _buildSeriesRow(BuildContext context) {
-    final series = MockData.series.take(10).toList();
-    final cardWidth = MediaQuery.of(context).size.width * 0.74;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SectionHeader(title: HomeStrings.series, seeAllLabel: HomeStrings.seriesSeeAll, onSeeAll: () => context.push(const AllSeriesScreen())),
+        SectionHeader(title: collection.name, subtitle: collection.subTitle),
         SizedBox(
-          height: cardWidth * 1.10,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: series.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (_, i) => SizedBox(
-              width: cardWidth,
-              child: SeriesCard(series: series[i]),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Ýazarlar row — TZ section 11: a horizontal strip of author avatars,
-  // "Ählisini gör" opens the full grid (AllAuthorsScreen).
-  Widget _buildAuthorsRow(BuildContext context) {
-    final authors = MockData.authors.take(12).toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SectionHeader(title: HomeStrings.authors, seeAllLabel: HomeStrings.seeAll, onSeeAll: () => context.push(const AllAuthorsScreen())),
-        SizedBox(
-          height: 146,
+          height: 160,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             itemCount: authors.length,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (_, i) => GestureDetector(
-              onTap: () => context.push(AuthorScreen(author: authors[i])),
-              child: AuthorAvatar(author: authors[i]),
-            ),
+            itemBuilder: (_, i) => CatalogAuthorAvatar(author: authors[i]),
           ),
         ),
       ],
-    );
-  }
-
-  // Several "İlk 100"-style shelf cards — swiping the outer carousel moves
-  // between whole cards (the next one peeks at the right edge), each with
-  // its own banner photo, tag, and top-5 ranking.
-  List<RankShelf> get _rankShelves {
-    final byReadCount = [...MockData.books]..sort((a, b) => b.readCount.compareTo(a.readCount));
-    return [
-      RankShelf(
-        tag: HomeStrings.rankTagTop100,
-        subtitle: HomeStrings.rankSubtitleTop100,
-        bannerImage: 'assets/images/banners/banner_04.jpg',
-        books: byReadCount.take(4).toList(),
-        allBooks: byReadCount,
-      ),
-      RankShelf(
-        tag: HomeStrings.rankTagEditorsChoice,
-        subtitle: HomeStrings.rankSubtitleEditorsChoice,
-        bannerImage: 'assets/images/banners/banner_02.jpg',
-        books: MockData.generateBooks(4, seed: 77),
-        allBooks: MockData.generateBooks(50, seed: 77),
-      ),
-      RankShelf(
-        tag: HomeStrings.rankTagNewlyAdded,
-        subtitle: HomeStrings.rankSubtitleNewlyAdded,
-        bannerImage: 'assets/images/banners/banner_01.jpg',
-        books: MockData.generateBooks(4, seed: 12),
-        allBooks: MockData.generateBooks(50, seed: 12),
-      ),
-    ];
-  }
-
-  Widget _buildPopularRankCard(BuildContext context) {
-    final shelves = _rankShelves;
-    return CarouselSlider.builder(
-      itemCount: shelves.length,
-      options: CarouselOptions(
-        height: 465,
-        viewportFraction: 0.92,
-        enableInfiniteScroll: false,
-        padEnds: false,
-      ),
-      itemBuilder: (context, i, realIdx) => Padding(
-        padding: const EdgeInsets.only(right: 10, left: 10, top: 20, bottom: 8),
-        child: RankShelfCard(shelf: shelves[i]),
-      ),
     );
   }
 }

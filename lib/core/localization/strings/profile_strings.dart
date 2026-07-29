@@ -1,33 +1,10 @@
 import '../strings_base.dart';
 
-/// Strings for the rest of the "profile" module: [FinanceScreen],
-/// [BookRequestSheet], [EditProfileScreen], [NotesScreen], and
+/// Strings for the rest of the "profile" module: [BookRequestSheet],
+/// [ReportProblemSheet], [EditProfileScreen], [NotesScreen], and
 /// [ProfileScreen]. (Settings has its own `SettingsStrings`.)
 class ProfileStrings {
   ProfileStrings._();
-
-  // Shared across finance_screen.dart and profile_screen.dart.
-  static String get finance => t(tk: 'Maliýe', ru: 'Финансы', tr: 'Finans');
-  static String balanceManat(Object amount) => t(
-        tk: '$amount manat',
-        ru: '$amount манат',
-        tr: '$amount manat',
-      );
-
-  // finance_screen.dart
-  static String get balance => t(tk: 'Balans', ru: 'Баланс', tr: 'Bakiye');
-  static String get promoCodeHint => t(tk: 'Promo kod', ru: 'Промокод', tr: 'Promosyon kodu');
-  static String get promoCheckingMock => t(
-        tk: 'Promo kod barlanýar (mock)',
-        ru: 'Промокод проверяется (мок)',
-        tr: 'Promosyon kodu kontrol ediliyor (mock)',
-      );
-  static String get use => t(tk: 'Ulan', ru: 'Применить', tr: 'Kullan');
-  static String get topUpWithCard => t(
-        tk: 'Bank kartasy bilen doldurmak',
-        ru: 'Пополнить банковской картой',
-        tr: 'Banka kartıyla yükle',
-      );
 
   // book_request_sheet.dart
   static String get languageTurkmen => t(tk: 'Türkmen dili', ru: 'Туркменский язык', tr: 'Türkmence');
@@ -35,10 +12,10 @@ class ProfileStrings {
   static String get languageRussian => t(tk: 'Rus dili', ru: 'Русский язык', tr: 'Rusça');
   static String get languageEnglish => t(tk: 'Iňlis dili', ru: 'Английский язык', tr: 'İngilizce');
   static String get languageOther => t(tk: 'Beýleki', ru: 'Другое', tr: 'Diğer');
-  static String get requestSentMock => t(
-        tk: 'Haýyşyňyz iberildi (mock)',
-        ru: 'Ваш запрос отправлен (мок)',
-        tr: 'İsteğiniz gönderildi (mock)',
+  static String get bookRequestSentSuccess => t(
+        tk: 'Haýyşyňyz iberildi',
+        ru: 'Ваш запрос отправлен',
+        tr: 'İsteğiniz gönderildi',
       );
   static String get bookRequestTitle => t(tk: 'Kitap haýyşy', ru: 'Запрос книги', tr: 'Kitap talebi');
   static String get bookRequestSubtitle => t(
@@ -58,8 +35,50 @@ class ProfileStrings {
         ru: 'Например: Осман Одаев',
         tr: 'Örnek: Osman Ödeýew',
       );
+  static String get descriptionLabel => t(
+        tk: 'Beýany (hökman däl)',
+        ru: 'Описание (необязательно)',
+        tr: 'Açıklama (opsiyonel)',
+      );
+  static String get descriptionHint => t(
+        tk: 'Kitap barada goşmaça maglumat',
+        ru: 'Дополнительная информация о книге',
+        tr: 'Kitap hakkında ek bilgi',
+      );
   static String get languageLabel => t(tk: 'Dili', ru: 'Язык', tr: 'Dili');
   static String get send => t(tk: 'Iber', ru: 'Отправить', tr: 'Gönder');
+
+  // report_problem_sheet.dart
+  static String get reportProblemTitle => t(
+        tk: 'Kynçylyk barada habar ber',
+        ru: 'Сообщить о проблеме',
+        tr: 'Sorun bildir',
+      );
+  static String get reportProblemSubtitle => t(
+        tk: 'Duşan kynçylygyňyzy beýan ediň, biz derňäris',
+        ru: 'Опишите проблему, с которой столкнулись — мы разберёмся',
+        tr: 'Karşılaştığınız sorunu anlatın, inceleyelim',
+      );
+  static String get reportProblemHint => t(
+        tk: 'Näme boldy? Mümkin boldugyça jikme-jik ýazyň...',
+        ru: 'Что произошло? Опишите как можно подробнее...',
+        tr: 'Ne oldu? Mümkün olduğunca ayrıntılı yazın...',
+      );
+  static String get reportProblemSentSuccess => t(
+        tk: 'Habaryňyz iberildi, sag boluň!',
+        ru: 'Ваше сообщение отправлено, спасибо!',
+        tr: 'Bildiriminiz gönderildi, teşekkürler!',
+      );
+  static String get reportProblemEntryTitle => t(
+        tk: 'Kynçylyk barada habar ber',
+        ru: 'Сообщить о проблеме',
+        tr: 'Sorun bildir',
+      );
+  static String get reportProblemTooShort => t(
+        tk: 'Azyndan 10 harp ýazyň',
+        ru: 'Введите не менее 10 символов',
+        tr: 'En az 10 karakter yazın',
+      );
 
   // edit_profile_screen.dart (defaultReaderName also used by profile_screen.dart;
   // save also used by notes_screen.dart)
@@ -100,7 +119,12 @@ class ProfileStrings {
   static String get delete => t(tk: 'Poz', ru: 'Удалить', tr: 'Sil');
   static String get cancel => t(tk: 'Ýatyr', ru: 'Отмена', tr: 'Vazgeç');
   static String get notesTitle => t(tk: 'Notlar', ru: 'Заметки', tr: 'Notlar');
-  static String get noNotesYet => t(tk: 'Entäk not ýok', ru: 'Пока нет заметок', tr: 'Henüz not yok');
+  static String get noNotesYetTitle => t(tk: 'Ilkinji belligiňizi ediň', ru: 'Сделайте первую заметку', tr: 'İlk notunuzu oluşturun');
+  static String get noNotesYetSubtitle => t(
+        tk: 'Kitap okaýarkaň bir ýeri saýlap belläň — alyntyňyz we pikiriňiz şu ýerde toplanar.',
+        ru: 'Выделите отрывок во время чтения — ваши цитаты и мысли соберутся здесь.',
+        tr: 'Kitap okurken bir yeri seçip işaretleyin — alıntılarınız ve notlarınız burada toplanır.',
+      );
   static String get goToBook => t(tk: 'Kitaba geç', ru: 'Перейти к книге', tr: 'Kitaba git');
   static String get editNoteTitle => t(tk: 'Noty redaktirle', ru: 'Редактировать заметку', tr: 'Notu düzenle');
   static String get editNoteSubtitle => t(
@@ -121,7 +145,11 @@ class ProfileStrings {
       );
   static String get login => t(tk: 'Giriş et', ru: 'Войти', tr: 'Giriş yap');
   static String get subscription => t(tk: 'Abunalyk', ru: 'Подписка', tr: 'Abonelik');
-  static String get daysLeft => t(tk: '12 gün galdy', ru: 'Осталось 12 дней', tr: '12 gün kaldı');
+  static String subscriptionActiveUntil(String date) => t(
+        tk: 'Işjeň — $date çenli',
+        ru: 'Активна до $date',
+        tr: 'Aktif — $date tarihine kadar',
+      );
   static String get subscribeNow => t(tk: 'Abuna ýazyl', ru: 'Оформить подписку', tr: 'Abone ol');
   static String streakDays(Object count) => t(
         tk: '$count gün yzly-yzyna',
@@ -133,18 +161,46 @@ class ProfileStrings {
         ru: 'Лучший результат: $count дней',
         tr: 'En iyi sonuç: $count gün',
       );
-  static String get settingsEntryTitle => t(tk: 'Sazlamalar', ru: 'Настройки', tr: 'Ayarlar');
-  static String get viewAllNotes => t(tk: 'Ähli notlary gör', ru: 'Смотреть все заметки', tr: 'Tüm notları gör');
-  static String get viewAllBookmarks => t(tk: 'Ähli bellikleri gör', ru: 'Смотреть все закладки', tr: 'Tüm yer imlerini gör');
-  static String get bookmarksTitle => t(tk: 'Bellikler', ru: 'Закладки', tr: 'Yer imleri');
-  static String get bookmarksEmpty => t(
-        tk: 'Entäk bellik ýok.\nKitap okap, sahypany belläň.',
-        ru: 'Пока нет закладок.\nОткройте книгу и отметьте страницу.',
-        tr: 'Henüz yer imi yok.\nBir kitap açıp sayfa işaretleyin.',
+  // widgets/balance_card.dart
+  static String get balanceTitle => t(tk: 'Balansym', ru: 'Мой баланс', tr: 'Bakiyem');
+  static String get balanceSubtitle => t(
+        tk: 'Abunalyk we kitap satyn almak üçin',
+        ru: 'Для подписки и покупки книг',
+        tr: 'Abonelik ve kitap satın almak için',
       );
+  static String get topUpBalance => t(tk: 'Doldur', ru: 'Пополнить', tr: 'Yükle');
+
+  // balance_screen.dart
+  static String get balanceHistoryTitle => t(tk: 'Doldurma taryhy', ru: 'История пополнений', tr: 'Yükleme geçmişi');
+  static String get balanceHistoryEmptyTitle => t(tk: 'Entek hiç zat ýok', ru: 'Пока ничего нет', tr: 'Henüz bir şey yok');
+  static String get balanceHistoryEmptySubtitle => t(
+        tk: 'Balansy dolduranyňyzda, taryhy şu ýerde görkeziler.',
+        ru: 'Когда вы пополните баланс, история появится здесь.',
+        tr: 'Bakiye yüklediğinizde geçmişi burada görünecek.',
+      );
+
+  static String get settingsEntryTitle => t(tk: 'Sazlamalar', ru: 'Настройки', tr: 'Ayarlar');
+  static String get viewAllNotes => t(tk: 'Notlar', ru: 'Заметки', tr: 'Notlar');
   static String get sendBookRequest => t(
         tk: 'Kitap haýyşy iber',
         ru: 'Отправить запрос книги',
         tr: 'Kitap talebi gönder',
       );
+
+  // book_suggestions_screen.dart / widgets/book_suggestion_card.dart
+  static String get myBookRequestsTitle => t(
+        tk: 'Kitap haýyşlarym',
+        ru: 'Мои запросы книг',
+        tr: 'Kitap taleplerim',
+      );
+  static String get noSuggestionsYet => t(
+        tk: 'Entäk haýyş ýok.\nAşakdaky düwme bilen kitap haýyş ediň.',
+        ru: 'Пока нет запросов.\nЗапросите книгу кнопкой ниже.',
+        tr: 'Henüz talep yok.\nAşağıdaki düğmeyle kitap talep edin.',
+      );
+  static String get retry => t(tk: 'Gaýtadan synanyş', ru: 'Повторить', tr: 'Tekrar dene');
+  static String get suggestionStatusPending => t(tk: 'Garaşylýar', ru: 'На рассмотрении', tr: 'Beklemede');
+  static String get suggestionStatusAccepted => t(tk: 'Kabul edildi', ru: 'Принято', tr: 'Kabul edildi');
+  static String get suggestionStatusRejected => t(tk: 'Ret edildi', ru: 'Отклонено', tr: 'Reddedildi');
+  static String get newBookRequest => t(tk: 'Täze haýyş', ru: 'Новый запрос', tr: 'Yeni talep');
 }

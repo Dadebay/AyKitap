@@ -1,18 +1,22 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
 import '../../core/navigation/app_navigator.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/services/auth_session.dart';
 import '../../core/services/device_fingerprint.dart';
+import '../../core/services/firebase_messaging_service.dart';
 import '../../core/localization/strings/auth_strings.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/gradient_icon_badge.dart';
 import '../../core/widgets/primary_button.dart';
 import 'name_entry_screen.dart';
+import 'provider/auth_provider.dart';
 import 'widgets/other_device_dialog.dart';
 import 'widgets/otp_code_row.dart';
 
@@ -32,39 +36,24 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
   late final List<TextEditingController> _controllers = List.generate(_length, (_) => TextEditingController());
   late final List<FocusNode> _focusNodes = List.generate(_length, (_) => FocusNode());
 
-  Timer? _timer;
-  int _secondsLeft = 30;
-  bool _verifying = false;
   String? _error;
+  final _authProvider = AuthProvider();
 
   @override
   void initState() {
     super.initState();
-    _startTimer();
     WidgetsBinding.instance.addPostFrameCallback((_) => _focusNodes[0].requestFocus());
-  }
-
-  void _startTimer() {
-    _secondsLeft = 30;
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (_secondsLeft <= 0) {
-        t.cancel();
-      } else {
-        setState(() => _secondsLeft--);
-      }
-    });
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
     for (final c in _controllers) {
       c.dispose();
     }
     for (final f in _focusNodes) {
       f.dispose();
     }
+    _authProvider.dispose();
     super.dispose();
   }
 
@@ -84,58 +73,77 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
   }
 
   Future<void> _verify() async {
-    if (_verifying) return;
+    if (_authProvider.isLoading) return;
     FocusScope.of(context).unfocus();
-    setState(() => _verifying = true);
+    setState(() => _error = null);
+
     // Already resolved and cached by the time we get here (warmed at app
     // start in main.dart) — this just reads the cache.
-    // TODO(backend): once the OTP-verify endpoint accepts a device
-    // fingerprint field, send `deviceId` in that request body so the
-    // server can enforce "bir hasap — bir enjam" (TZ 2.2) itself instead
-    // of the client-side `simulateOtherDevice` mock below.
     final deviceId = await DeviceFingerprint.get();
-    await Future.delayed(const Duration(milliseconds: 800)); // mock network
+    final result = await _authProvider.verifyLogin(phone: widget.phone, code: _code, deviceId: deviceId);
     if (!mounted) return;
-    setState(() => _verifying = false);
+    if (result == null) {
+      setState(() => _error = _authProvider.errorMessage ?? AuthStrings.genericError);
+      return;
+    }
 
-    // Any 4-digit code is accepted in this mock.
     if (widget.simulateOtherDevice) {
       final confirmed = await showOtherDeviceDialog(context);
+      // Bail out before touching AuthSession — a cancelled "other device"
+      // confirmation must leave the previous session (if any) untouched,
+      // same as if verifyLogin above had never been called.
       if (confirmed != true) return;
     }
 
-    // A real backend would return this in the OTP-verify response. Its
-    // presence in secure storage is what the rest of the app treats as
-    // "logged in".
-    await AuthSession.saveToken('mock-bearer-${DateTime.now().millisecondsSinceEpoch}', phone: widget.phone);
+    await AuthSession.saveToken(result.accessToken, phone: widget.phone);
+    await AuthSession.saveUserId(result.user.id);
     AnalyticsService.instance.logLogin();
-    debugPrint('device fingerprint ready to send once the API accepts it: $deviceId');
+    // Boot-time token fetch in FirebaseMessagingService.init() ran before
+    // this login existed, so its own sync was a no-op — push it now instead
+    // of waiting for the next onTokenRefresh event.
+    unawaited(FirebaseMessagingService.instance.syncCurrentTokenIfLoggedIn());
 
-    // First-time account (no name on file yet) — the real backend would
-    // tell us this is a signup rather than a login; here we just key off
-    // whether a name was ever saved. Mandatory: no back arrow, no skip.
-    if (await AuthSession.getName() == null) {
+    // A brand-new account comes back with `username: null` — that's the
+    // backend's own signal that this is a signup rather than a login, so
+    // there's no name on file yet to skip this step for. Mandatory: no
+    // back arrow, no skip.
+    final username = result.user.username;
+    if (username == null || username.isEmpty) {
       if (!mounted) return;
       final name = await context.push<String>(const NameEntryScreen());
       if (name != null) await AuthSession.saveName(name);
+    } else {
+      await AuthSession.saveName(username);
     }
     if (mounted) context.pop(true);
   }
 
-  void _resend() {
-    if (_secondsLeft > 0) return;
+  Future<void> _resend() async {
+    if (_authProvider.isLoading) return;
     HapticFeedback.lightImpact();
+    final ok = await _authProvider.sendCode(widget.phone);
+    if (!mounted) return;
+    if (!ok) {
+      context.showAppSnackBar(_authProvider.errorMessage ?? AuthStrings.genericError, isError: true);
+      return;
+    }
     for (final c in _controllers) {
       c.clear();
     }
     setState(() => _error = null);
-    _startTimer();
     _focusNodes[0].requestFocus();
     context.showAppSnackBar(AuthStrings.resendSnackbar);
   }
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _authProvider,
+      child: Consumer<AuthProvider>(builder: (context, auth, _) => _buildScaffold(context, auth)),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context, AuthProvider auth) {
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -169,17 +177,15 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
                 ],
                 const SizedBox(height: 28),
                 Center(
-                  child: _secondsLeft > 0
-                      ? Text(AuthStrings.resendCountdown(_secondsLeft.toString().padLeft(2, '0')), style: TextStyle(color: AppColors.grey3, fontSize: 13))
-                      : GestureDetector(
-                          onTap: _resend,
-                          child: Text(AuthStrings.resendAction, style: TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w700)),
-                        ),
+                  child: GestureDetector(
+                    onTap: _resend,
+                    child: Text(AuthStrings.resendAction, style: TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w700)),
+                  ),
                 ),
                 const SizedBox(height: 32),
                 PrimaryButton(
                   label: AuthStrings.confirmButton,
-                  loading: _verifying,
+                  loading: auth.isLoading,
                   onPressed: _code.length == _length ? _verify : null,
                 ),
               ],

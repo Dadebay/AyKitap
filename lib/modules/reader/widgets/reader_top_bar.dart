@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/icon_circle_button.dart';
+import '../utils/eye_care.dart';
 
 /// TZ §12.1 — back on the left, centred chapter title, bookmark toggle on the
 /// right.
@@ -18,6 +19,11 @@ class ReaderTopBar extends StatelessWidget {
   /// Background colour of the page underneath (the reader theme's colour).
   final Color pageColor;
 
+  /// Blue-light filter strength (TZ §12.4), 0.0 (off) … 1.0 — tints the icon
+  /// wells the same warm cast as the page overlay, so the bar doesn't sit on
+  /// top of a tinted page as a stray neutral black/white. See [eyeCareTint].
+  final double eyeCare;
+
   final VoidCallback onBack;
   final VoidCallback onBookmark;
 
@@ -26,6 +32,7 @@ class ReaderTopBar extends StatelessWidget {
     required this.title,
     required this.isBookmarked,
     required this.pageColor,
+    this.eyeCare = 0.0,
     required this.onBack,
     required this.onBookmark,
   });
@@ -34,7 +41,11 @@ class ReaderTopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDarkPage = pageColor.computeLuminance() < 0.4;
     final fg = isDarkPage ? Colors.white : const Color(0xFF1A1A22);
-    final well = isDarkPage ? Colors.white.withValues(alpha: 0.13) : Colors.black.withValues(alpha: 0.07);
+    final well = eyeCareTint(
+      isDarkPage ? Colors.white.withValues(alpha: 0.13) : Colors.black.withValues(alpha: 0.07),
+      eyeCare,
+      isDarkPage: isDarkPage,
+    );
 
     return DecoratedBox(
       decoration: BoxDecoration(

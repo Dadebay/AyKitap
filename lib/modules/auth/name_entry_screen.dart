@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
+import '../../core/network/api_exception.dart';
+import '../../core/services/auth_api_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/strings/auth_strings.dart';
+import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/gradient_icon_badge.dart';
 import '../../core/widgets/primary_button.dart';
@@ -41,7 +44,21 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
     if (!_isValid || _saving) return;
     HapticFeedback.lightImpact();
     setState(() => _saving = true);
-    Navigator.pop(context, _nameController.text.trim());
+    final name = _nameController.text.trim();
+    try {
+      // The bearer token is already in secure storage by the time this
+      // screen shows (OtpVerifyScreen saves it before pushing here), so
+      // this PATCH lands on the account that was just created — the
+      // backend has a `username` on file the moment the account does,
+      // not just this device's local copy of it.
+      await AuthApiService.updateUsername(username: name);
+      if (!mounted) return;
+      Navigator.pop(context, name);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      context.showAppSnackBar(e.message, isError: true);
+    }
   }
 
   @override

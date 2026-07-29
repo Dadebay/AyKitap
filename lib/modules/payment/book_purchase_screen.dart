@@ -4,17 +4,19 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/models/book.dart';
 import '../../core/navigation/app_navigator.dart';
+import '../../core/services/account_service.dart';
 import '../../core/services/analytics_service.dart';
-import '../../core/services/streak_service.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/app_snackbar.dart';
-import '../profile/finance_screen.dart';
 import '../../core/localization/strings/payment_strings.dart';
+import '../profile/balance_screen.dart';
 
 /// Kitap satyn alyş sahypasy — TZ §10.2. A single-book checkout: shows the
-/// cover, price and the on-device balance, then debits the balance via
-/// [StreakService.spendBalance]. Pops `true` once the purchase succeeds so
-/// [BookDetailScreen] can flip its CTA from "Satyn al" to "Oka".
+/// cover, price and the balance ([AccountService.balanceManat] — the same
+/// number Profile/[BalanceScreen] show, topped up there via promo code or
+/// bank card), then debits it via [AccountService.debitBalance]. Pops `true`
+/// once the purchase succeeds so [BookDetailScreen] can flip its CTA from
+/// "Satyn al" to "Oka".
 class BookPurchaseScreen extends StatefulWidget {
   final Book book;
   const BookPurchaseScreen({super.key, required this.book});
@@ -28,30 +30,29 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
 
   Future<void> _confirm() async {
     if (_processing) return;
+    final balance = AccountService.instance.balanceManat;
+    if (balance == null || balance < widget.book.priceManat) {
+      context.showAppSnackBar(PaymentStrings.balanceNotEnough, isError: true);
+      return;
+    }
     setState(() => _processing = true);
-    final ok = await StreakService.instance.spendBalance(widget.book.priceManat);
+    AccountService.instance.debitBalance(widget.book.priceManat);
     if (!mounted) return;
     setState(() => _processing = false);
-    if (ok) {
-      AnalyticsService.instance.logPurchase(
-        bookId: widget.book.id,
-        value: widget.book.priceManat.toDouble(),
-        currency: 'TMT',
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(PaymentStrings.purchasedSnackbar(widget.book.title)), backgroundColor: AppColors.primary),
-      );
-      context.pop(true);
-    } else {
-      context.showAppSnackBar(PaymentStrings.balanceNotEnough);
-    }
+    AnalyticsService.instance.logPurchase(
+      bookId: widget.book.id,
+      value: widget.book.priceManat.toDouble(),
+      currency: 'TMT',
+    );
+    context.showAppSnackBar(PaymentStrings.purchasedSnackbar(widget.book.title));
+    context.pop(true);
   }
 
   @override
   Widget build(BuildContext context) {
     final book = widget.book;
-    final balance = context.watch<StreakService>().balanceManat;
-    final enough = balance >= book.priceManat;
+    final balance = context.watch<AccountService>().balanceManat;
+    final enough = balance != null && balance >= book.priceManat;
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -105,7 +106,7 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
                       children: [
                         _row(PaymentStrings.bookPrice, PaymentStrings.manat(book.priceManat)),
                         const SizedBox(height: 12),
-                        _row(PaymentStrings.yourBalance, PaymentStrings.manat(balance), valueColor: enough ? AppColors.grey1 : Colors.redAccent),
+                        _row(PaymentStrings.yourBalance, balance != null ? PaymentStrings.manat(balance) : '…', valueColor: enough ? AppColors.grey1 : Colors.redAccent),
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           child: Divider(color: AppColors.border, height: 1),
@@ -160,7 +161,7 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
                       ? null
                       : enough
                           ? _confirm
-                          : () => context.push(const FinanceScreen()),
+                          : () => context.push(const BalanceScreen()),
                   child: _processing
                       ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.4))
                       : Text(

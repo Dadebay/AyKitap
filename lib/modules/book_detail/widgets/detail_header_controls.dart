@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:iconly/iconly.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/icon_circle_button.dart';
 
@@ -36,9 +37,20 @@ class DetailHeaderControls extends StatelessWidget {
         children: [
           _overlayIcon(HugeIcons.strokeRoundedArrowLeft01, onTap: onBack),
           const Spacer(),
-          _overlayIcon(HugeIcons.strokeRoundedFlag02, active: isFinished, onTap: onToggleFinished),
+          _overlayIcon(
+            HugeIcons.strokeRoundedFlag02,
+            active: isFinished,
+            filledIcon: isFinished ? IconlyBold.tick_square : null,
+            onTap: onToggleFinished,
+          ),
           const SizedBox(width: 8),
-          _overlayIcon(HugeIcons.strokeRoundedFavourite, active: isFavorite, onTap: onToggleFavorite),
+          _overlayIcon(
+            HugeIcons.strokeRoundedFavourite,
+            active: isFavorite,
+            activeColor: Colors.red,
+            filledIcon: isFavorite ? IconlyBold.heart : null,
+            onTap: onToggleFavorite,
+          ),
           const SizedBox(width: 8),
           _overlayIcon(HugeIcons.strokeRoundedShare08, onTap: onShare),
         ],
@@ -46,14 +58,21 @@ class DetailHeaderControls extends StatelessWidget {
     );
   }
 
-  Widget _overlayIcon(List<List<dynamic>> icon, {bool active = false, required VoidCallback onTap}) {
+  Widget _overlayIcon(
+    List<List<dynamic>> icon, {
+    bool active = false,
+    Color? activeColor,
+    IconData? filledIcon,
+    required VoidCallback onTap,
+  }) {
     return IconCircleButton(
       icon: icon,
+      filledIcon: filledIcon,
       onTap: onTap,
       size: 38,
       iconSize: 18,
       backgroundColor: Colors.black.withValues(alpha: 0.35),
-      iconColor: active ? AppColors.primary : Colors.white,
+      iconColor: active ? (activeColor ?? AppColors.primary) : Colors.white,
     );
   }
 }

@@ -32,19 +32,29 @@ enum PdfColorMode { light, sepia, night }
 class PdfSettingsSheet extends StatelessWidget {
   final PdfColorMode colorMode;
   final double brightness;
+  final double eyeCare;
   final FitPolicy fitPolicy;
   final ValueChanged<PdfColorMode> onColorModeChanged;
   final ValueChanged<double> onBrightnessChanged;
+  final ValueChanged<double> onEyeCareChanged;
   final ValueChanged<FitPolicy> onFitChanged;
+
+  /// Set only when this PDF was previously reflowed into text (a cached
+  /// conversion exists) and the reader chose to fall back to these fixed
+  /// pages — offers a way back to the reflowable text view.
+  final VoidCallback? onSwitchToTextView;
 
   const PdfSettingsSheet({
     super.key,
     required this.colorMode,
     required this.brightness,
+    required this.eyeCare,
     required this.fitPolicy,
     required this.onColorModeChanged,
     required this.onBrightnessChanged,
+    required this.onEyeCareChanged,
     required this.onFitChanged,
+    this.onSwitchToTextView,
   });
 
   @override
@@ -162,21 +172,116 @@ class PdfSettingsSheet extends StatelessWidget {
           // narrow box floating in the middle of otherwise full-width rows.
           _SectionLabel(ReaderStrings.brightnessLabel),
           const SizedBox(height: 10),
-          _BrightnessRow(value: brightness, onChanged: onBrightnessChanged),
+          _SliderRow(
+            leadingIcon: HugeIcons.strokeRoundedSun01,
+            trailingIcon: HugeIcons.strokeRoundedSun01,
+            value: brightness,
+            min: 0.1,
+            onChanged: onBrightnessChanged,
+          ),
+
+          const SizedBox(height: 22),
+
+          // ── Eye care (blue-light filter) ───────────────────────────────
+          // A warm amber wash over the page to cut blue light; strength runs
+          // from off (0) to warmest. Shared with the EPUB reader.
+          _SectionLabel(ReaderStrings.eyeCareLabel),
+          const SizedBox(height: 10),
+          _SliderRow(
+            leadingIcon: HugeIcons.strokeRoundedViewOff,
+            trailingIcon: HugeIcons.strokeRoundedEye,
+            value: eyeCare,
+            min: 0.0,
+            onChanged: onEyeCareChanged,
+          ),
+
+          // ── Back to the reflowable text view ───────────────────────────
+          if (onSwitchToTextView != null) ...[
+            const SizedBox(height: 22),
+            _TextViewRow(
+              onTap: () {
+                Navigator.pop(context);
+                onSwitchToTextView!();
+              },
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-/// Full-width brightness slider: dim icon, track, bright icon — the familiar
-/// shape for a single-value control, matching the width of every other row in
-/// this sheet instead of standing out as a differently-shaped tile.
-class _BrightnessRow extends StatelessWidget {
+/// The reverse of the EPUB reader's "view original PDF pages" row: offered
+/// here once a text-layer conversion for this book already exists in cache,
+/// for a reader who forced fixed page images and wants the reflowable view
+/// back.
+class _TextViewRow extends StatelessWidget {
+  final VoidCallback onTap;
+  const _TextViewRow({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.card,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              HugeIcon(icon: HugeIcons.strokeRoundedBookOpen01, color: AppColors.primary, size: 19),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ReaderStrings.pdfTextViewLabel,
+                      style: TextStyle(color: AppColors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      ReaderStrings.pdfTextViewHint,
+                      style: TextStyle(color: AppColors.grey2, fontSize: 11.5),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right, color: AppColors.grey3, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Full-width slider row: small leading icon, track, larger trailing icon —
+/// the familiar shape for a single-value control, matching the width of every
+/// other row in this sheet instead of standing out as a differently-shaped
+/// tile. Reused for both brightness and the eye-care filter; [min] lets the
+/// eye-care slider reach fully off (0) while brightness bottoms out at 0.1.
+class _SliderRow extends StatelessWidget {
+  final List<List<dynamic>> leadingIcon;
+  final List<List<dynamic>> trailingIcon;
   final double value;
+  final double min;
   final ValueChanged<double> onChanged;
 
-  const _BrightnessRow({required this.value, required this.onChanged});
+  const _SliderRow({
+    required this.leadingIcon,
+    required this.trailingIcon,
+    required this.value,
+    required this.min,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -189,7 +294,7 @@ class _BrightnessRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          HugeIcon(icon: HugeIcons.strokeRoundedSun01, color: AppColors.grey3, size: 15),
+          HugeIcon(icon: leadingIcon, color: AppColors.grey3, size: 15),
           Expanded(
             child: SliderTheme(
               data: SliderTheme.of(context).copyWith(
@@ -201,10 +306,10 @@ class _BrightnessRow extends StatelessWidget {
                 thumbColor: AppColors.primary,
                 overlayColor: AppColors.primary.withValues(alpha: 0.13),
               ),
-              child: Slider(value: value.clamp(0.1, 1.0), min: 0.1, max: 1.0, onChanged: onChanged),
+              child: Slider(value: value.clamp(min, 1.0), min: min, max: 1.0, onChanged: onChanged),
             ),
           ),
-          HugeIcon(icon: HugeIcons.strokeRoundedSun01, color: AppColors.grey1, size: 21),
+          HugeIcon(icon: trailingIcon, color: AppColors.grey1, size: 21),
         ],
       ),
     );

@@ -2,11 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/theme_controller.dart';
 import '../../core/models/book.dart';
 import '../../core/data/mock/mock_data.dart';
 import '../../core/navigation/app_navigator.dart';
 import '../../core/services/analytics_service.dart';
-import '../book_detail/book_detail_screen.dart';
 import '../filter/filter_screen.dart';
 import '../../core/localization/strings/search_strings.dart';
 import 'widgets/quick_chip.dart';
@@ -201,7 +201,29 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildGrid(List<Book> books) {
     if (books.isEmpty) {
-      return Center(child: Text(SearchStrings.noResults, style: TextStyle(color: AppColors.grey2, fontSize: 15)));
+      final isDark = AppTheme.instance.isDark;
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 260),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Image.asset(
+                    isDark ? 'assets/images/search_empty_dark.png' : 'assets/images/search_empty_light.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(SearchStrings.noResults, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 15)),
+            ],
+          ),
+        ),
+      );
     }
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
@@ -215,10 +237,7 @@ class _SearchScreenState extends State<SearchScreen> {
       itemBuilder: (_, i) {
         final book = books[i];
         return GestureDetector(
-          onTap: () {
-            AnalyticsService.instance.logSelectBook(id: book.id, title: book.title);
-            context.push(BookDetailScreen(book: book));
-          },
+          onTap: () => AnalyticsService.instance.logSelectBook(id: book.id, title: book.title),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: Container(

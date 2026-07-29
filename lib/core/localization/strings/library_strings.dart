@@ -18,6 +18,7 @@ class LibraryStrings {
   static String get emptyReading => t(tk: 'Häzir okalýan kitap ýok', ru: 'Сейчас нет читаемых книг', tr: 'Şu anda okunan kitap yok');
   static String get emptyDownloaded => t(tk: 'Ýüklenen kitap ýok', ru: 'Нет загруженных книг', tr: 'İndirilen kitap yok');
   static String get emptyDownloadedSub => t(tk: 'Oflaýn okamak üçin kitap ýükläň', ru: 'Загрузите книгу для чтения офлайн', tr: 'Çevrimdışı okumak için kitap indirin');
+  static String get retry => t(tk: 'Gaýtadan synanyş', ru: 'Повторить', tr: 'Tekrar dene');
 
   // Own-books tab.
   static String fileAddError(Object e) => t(tk: 'Faýl goşulmady: $e', ru: 'Файл не добавлен: $e', tr: 'Dosya eklenemedi: $e');

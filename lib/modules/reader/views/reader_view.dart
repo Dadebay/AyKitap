@@ -2,11 +2,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:lottie/lottie.dart';
 import 'package:sakura_epub/sakura_epub.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../provider/reader_provider.dart';
+import '../utils/pdf_book_opener.dart';
+import '../widgets/book_opening_overlay.dart';
 import '../widgets/reader_top_bar.dart';
 import '../widgets/reader_bottom_bar.dart';
 import '../widgets/reader_settings_sheet.dart';
@@ -14,9 +16,12 @@ import '../widgets/bookmarks_sheet.dart';
 import '../widgets/chapter_list_sheet.dart';
 import '../widgets/search_sheet.dart';
 import '../widgets/selection_toolbar.dart';
+import 'pdf_reader_screen.dart';
+import '../utils/eye_care.dart';
 import '../../../core/services/notes_store.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/highlight_colors.dart';
+import '../../../core/widgets/app_snackbar.dart';
 import '../../profile/widgets/edit_note_sheet.dart';
 import '../../../core/localization/app_locale.dart';
 import '../../../core/localization/strings/reader_strings.dart';
@@ -41,6 +46,23 @@ class ReaderScreen extends StatefulWidget {
   /// user's own imported files, which no catalogue book can regenerate.
   final String? bookRef;
 
+  /// The real `/books/:id` catalogue id, present only when this book was
+  /// opened from the real backend catalogue (not yet possible anywhere in
+  /// the app today — `CatalogBookDetailScreen` has no working "Oku" yet, so
+  /// this is always null in practice until that's wired up). When set,
+  /// notes captured here are also persisted via `POST /users/notes` (see
+  /// [_addNote]) instead of staying purely local like the user's own
+  /// imported files.
+  final int? realBookId;
+
+  /// Set only when [bookPath] is a synthetic EPUB generated from a PDF by
+  /// [PdfReflowService] — the original file, so the settings sheet can offer
+  /// "view original PDF pages" for a book whose source has a broken
+  /// font/text encoding (some words extract as gibberish even though the
+  /// page itself renders fine). Null for a real EPUB, where there's no fixed
+  /// page view to fall back to.
+  final String? originalPdfPath;
+
   const ReaderScreen({
     super.key,
     required this.bookPath,
@@ -49,6 +71,8 @@ class ReaderScreen extends StatefulWidget {
     this.coverUrl,
     this.bookPages,
     this.bookRef,
+    this.realBookId,
+    this.originalPdfPath,
   });
 
   @override
@@ -111,6 +135,19 @@ class _ReaderScreenState extends State<ReaderScreen> {
           },
           child: Scaffold(
             backgroundColor: bgColor,
+            // The add-note sheet's text field autofocuses, so the keyboard
+            // opens the instant it appears. Left at the default (true), this
+            // Scaffold — still mounted behind that modal — shrank to avoid
+            // it too, and epub.js treats a resized viewport as a real
+            // layout change: it re-lays-out and re-displays the current
+            // location, and on a resize that arrives mid-transition (the
+            // keyboard's own slide-up animation firing several in a row)
+            // that redisplay can land on the *section's* start rather than
+            // the exact page — which for anyone still in the book's first
+            // chapter reads as being thrown back to page 1 just for adding a
+            // highlight. The sheet already pads its own content for the
+            // keyboard, so the reader behind it never needs to move.
+            resizeToAvoidBottomInset: false,
 
             // The bars are *overlays*, not Scaffold appBar/bottomNavigationBar.
             // As slots they resized the body every time they toggled, which
@@ -140,6 +177,17 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   ),
                 ),
 
+                // ── Eye-care (blue-light) wash ─────────────────────────────
+                // A warm amber layer over the page, independent of the reader
+                // theme so it works on a light or dark page alike. IgnorePointer
+                // keeps taps/swipes flowing through to the WebView underneath.
+                if (readerEyeCareColor(provider.eyeCare, isDarkPage: isDarkPage) != null)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: ColoredBox(color: readerEyeCareColor(provider.eyeCare, isDarkPage: isDarkPage)!),
+                    ),
+                  ),
+
                 // ── Top bar (TZ §12.1) ─────────────────────────────────────
                 Positioned(
                   top: 0,
@@ -160,6 +208,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                           title: provider.currentChapterTitle ?? widget.bookTitle,
                           isBookmarked: provider.isCurrentPageBookmarked,
                           pageColor: bgColor,
+                          eyeCare: provider.eyeCare,
                           onBack: () async {
                             await provider.saveAndClose();
                             if (context.mounted) Navigator.of(context).pop();
@@ -193,6 +242,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                             currentPage: provider.currentPage,
                             totalPages: provider.totalPages,
                             pageColor: bgColor,
+                            eyeCare: provider.eyeCare,
                             onSettings: () => _showSettings(context),
                             onChapters: () => _showChapters(context, provider),
                             onSearch: () => _showSearch(context, provider),
@@ -257,7 +307,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
                 // ── Loading overlay ────────────────────────────────────────
                 if (_showLoadingOverlay)
-                  _LoadingOverlay(
+                  BookOpeningOverlay(
                     bgColor: bgColor,
                     loaded: !provider.isLoading,
                     onDone: () {
@@ -274,7 +324,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     // won't offer "go to book" on the saved note (no catalogue
                     // entry to open); see NoteCard.
                     canAnnotate: true,
+                    isExistingHighlight: provider.selectedHighlight != null,
                     onAddNote: () => _addNote(context, provider),
+                    onRemoveHighlight: () => _removeHighlight(context, provider),
                     onCopy: () {
                       Clipboard.setData(ClipboardData(text: provider.selectedText));
                       provider.clearSelection();
@@ -338,6 +390,17 @@ class _ReaderScreenState extends State<ReaderScreen> {
       // is the only menu we want — suppress the WebView's native Android/iOS
       // one so it doesn't show a second, duplicate toolbar over the selection.
       suppressNativeContextMenu: true,
+      // Prokrutka is the one mode that moves *down* the book, so it's the one
+      // mode whose page turn hangs off a vertical flick. Android reads the
+      // mode straight out of epubView.js; iOS runs its own detector, which
+      // needs telling.
+      verticalPageNavigation:
+          provider.pageTransition == ReaderPageTransition.scroll,
+      // Tapping an already-painted highlight re-selects its exact range
+      // instead of doing nothing — see ReaderProvider.selectedHighlight and
+      // _removeHighlight, which together are the only way to undo a
+      // highlight once it's been made.
+      selectAnnotationRange: true,
       onEpubLoaded: provider.onEpubLoaded,
       onEpubLoadFailed: provider.onEpubLoadFailed,
       onChaptersLoaded: provider.onChaptersLoaded,
@@ -438,14 +501,43 @@ class _ReaderScreenState extends State<ReaderScreen> {
     if (context.mounted) _showSnack(context, ReaderStrings.noteSavedMessage);
   }
 
-  void _showSettings(BuildContext context) {
-    showModalBottomSheet(
+  /// Reverse of [_addNote]: tapping an already-painted highlight re-selects
+  /// its exact range (see the viewer's `selectAnnotationRange`), which
+  /// [ReaderProvider.selectedHighlight] matches back to the note that
+  /// created it — this erases both the paint on the page and the saved note,
+  /// which was previously impossible to undo once a highlight was made.
+  Future<void> _removeHighlight(BuildContext context, ReaderProvider provider) async {
+    final note = provider.selectedHighlight;
+    provider.clearSelection();
+    if (note == null) return;
+    final cfi = note.cfi;
+    if (cfi != null && cfi.isNotEmpty) {
+      provider.epubController.removeHighlight(cfi: cfi);
+    }
+    await NotesStore.instance.remove(note.id);
+    if (context.mounted) _showSnack(context, ReaderStrings.highlightRemovedMessage);
+  }
+
+  void _showSettings(BuildContext context) async {
+    final provider = context.read<ReaderProvider>();
+    final switchToOriginalPdf = await showModalBottomSheet<bool>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => ChangeNotifierProvider.value(
-        value: context.read<ReaderProvider>(),
-        child: const ReaderSettingsSheet(),
+        value: provider,
+        child: ReaderSettingsSheet(showOriginalPdfOption: widget.originalPdfPath != null),
+      ),
+    );
+    final pdfPath = widget.originalPdfPath;
+    if (switchToOriginalPdf != true || pdfPath == null || !context.mounted) return;
+    await provider.saveAndClose();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(preferFixedPrefKey(widget.bookId), true);
+    if (!context.mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => PdfReaderScreen(filePath: pdfPath, title: widget.bookTitle, bookId: widget.bookId),
       ),
     );
   }
@@ -494,9 +586,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   void _showSnack(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), duration: const Duration(seconds: 1)),
-    );
+    context.showAppSnackBar(msg);
   }
 }
 
@@ -552,131 +642,3 @@ class _EpubErrorView extends StatelessWidget {
   }
 }
 
-/// Book-opening screen: [book_reading_boy.json] plus a 0→100% readout.
-///
-/// The underlying load (read file → base64-encode → hand to the WebView →
-/// epub.js parses and paginates) exposes no byte-level progress, so there's
-/// nothing genuine to report — the percentage below is a timed ramp, not a
-/// measurement. It eases up to 92% over ~3s and holds there for however long
-/// the real load takes, then snaps to 100% the moment [loaded] actually turns
-/// true, holds briefly so the number is readable, and calls [onDone].
-class _LoadingOverlay extends StatefulWidget {
-  final Color bgColor;
-  final bool loaded;
-  final VoidCallback onDone;
-
-  const _LoadingOverlay({
-    required this.bgColor,
-    required this.loaded,
-    required this.onDone,
-  });
-
-  @override
-  State<_LoadingOverlay> createState() => _LoadingOverlayState();
-}
-
-class _LoadingOverlayState extends State<_LoadingOverlay> with SingleTickerProviderStateMixin {
-  static const _rampCeiling = 0.92;
-  static const _rampDuration = Duration(milliseconds: 3200);
-  static const _finishDuration = Duration(milliseconds: 260);
-  static const _holdAt100 = Duration(milliseconds: 400);
-
-  late final AnimationController _controller;
-  late Animation<double> _percent;
-  bool _finishing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(vsync: this, duration: _rampDuration);
-    _percent = Tween<double>(begin: 0, end: _rampCeiling).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
-    _controller.forward();
-    if (widget.loaded) _finish();
-  }
-
-  @override
-  void didUpdateWidget(covariant _LoadingOverlay old) {
-    super.didUpdateWidget(old);
-    if (widget.loaded && !old.loaded) _finish();
-  }
-
-  Future<void> _finish() async {
-    if (_finishing) return;
-    _finishing = true;
-    final start = _percent.value;
-    _controller
-      ..stop()
-      ..duration = _finishDuration;
-    _percent = Tween<double>(begin: start, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-    _controller.value = 0;
-    await _controller.forward();
-    await Future.delayed(_holdAt100);
-    if (mounted) widget.onDone();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = widget.bgColor.computeLuminance() < 0.4;
-    final fg = isDark ? Colors.white : Colors.black87;
-    final fgMuted = isDark ? Colors.white54 : Colors.black45;
-
-    return Container(
-      color: widget.bgColor,
-      child: Center(
-        child: AnimatedBuilder(
-          animation: _percent,
-          builder: (context, _) {
-            final shown = (_percent.value * 100).round().clamp(0, 100);
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 280,
-                  height: 280,
-                  child: Lottie.asset(
-                    'assets/animations/book_reading_boy.json',
-                    repeat: true,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '$shown%',
-                  style: TextStyle(color: fg, fontSize: 22, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: 150,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(3),
-                    child: LinearProgressIndicator(
-                      value: _percent.value,
-                      minHeight: 5,
-                      backgroundColor: fgMuted.withValues(alpha: 0.2),
-                      valueColor: AlwaysStoppedAnimation(AppColors.primary),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  ReaderStrings.bookOpening,
-                  style: TextStyle(color: fgMuted, fontSize: 14),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-}

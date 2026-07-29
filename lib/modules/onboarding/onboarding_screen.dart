@@ -4,7 +4,7 @@ import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/app_prefs.dart';
 import '../../core/localization/strings/onboarding_strings.dart';
-import '../main_nav/main_nav_screen.dart';
+import 'language_select_screen.dart';
 import 'widgets/onboard_page.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -65,10 +65,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void _goHome() {
     // Remember that the intro has been completed so it never shows again.
     AppPrefs.setOnboardingSeen();
+    // First-time entry only — the one-time language picker sits between
+    // onboarding and the app itself, whether the user skipped or finished.
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
-        pageBuilder: (_, a, __) => const MainNavScreen(),
+        pageBuilder: (_, a, __) => const LanguageSelectScreen(),
         transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child),
         transitionDuration: const Duration(milliseconds: 400),
       ),
