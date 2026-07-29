@@ -8,10 +8,12 @@ import 'package:sakura_epub/sakura_epub.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/models/bookmark.dart';
+import '../../../core/models/reading_note.dart';
 import '../../../core/services/bookmarks_store.dart';
 import '../../../core/services/notes_store.dart';
 import '../../../core/services/streak_service.dart';
 import '../../../core/theme/highlight_colors.dart';
+import '../../../core/theme/theme_controller.dart';
 
 enum ReaderThemeMode { white, sepia, dark, black }
 
@@ -21,11 +23,11 @@ enum ReaderThemeMode { white, sepia, dark, black }
 enum ReaderFontFamily { sanFrancisco, arial, notoSerif, openSans }
 
 /// TZ §12.2 — the six page-change styles shown in the reference panel.
-/// sakura_epub only distinguishes paginated vs. scrolled natively, so the
-/// scroll option maps to [EpubFlow.scrolled] and every other option to
-/// [EpubFlow.paginated]; the distinct curl/overlay/shift animations are a
-/// visual layer epub.js doesn't expose, so they currently share the standard
-/// slide behaviour while still being remembered as the user's preference.
+/// epub.js has no transition API, so each style's tween is a visual layer
+/// applied in epubView.js's `_transitionSpec`; all six run on [EpubFlow.paginated].
+/// Most are horizontal turns on a horizontal swipe; [scroll] (Prokrutka) is the
+/// odd one — a vertical bottom-to-top slide driven by a *vertical* swipe, the
+/// closest a paginated turn gets to the feel of scrolling to the next page.
 enum ReaderPageTransition { slide, curl, overlay, scroll, shift, none }
 
 class ReaderProvider extends ChangeNotifier {
@@ -172,6 +174,23 @@ class ReaderProvider extends ChangeNotifier {
   Rect? get selectionRect => _selectionRect;
   bool get hasSelection => _selectedText.isNotEmpty;
 
+  /// The existing highlight whose CFI exactly matches the current selection,
+  /// or null for a fresh selection with no highlight yet. Tapping an already
+  /// painted highlight (see [EpubDisplaySettings]'s `selectAnnotationRange`
+  /// on the viewer) re-selects the exact range it was created with, so an
+  /// exact-string match against every saved note's own `cfi` is enough to
+  /// tell "selecting new text" apart from "tapped an existing highlight" —
+  /// letting the selection toolbar offer removal instead of adding a note.
+  ReadingNote? get selectedHighlight {
+    final bookId = _bookId;
+    final cfi = _selectedCfi;
+    if (bookId == null || cfi == null || cfi.isEmpty) return null;
+    for (final note in NotesStore.instance.highlightsForBook(bookId: bookId)) {
+      if (note.cfi == cfi) return note;
+    }
+    return null;
+  }
+
   // ── Theme & font ─────────────────────────────────────────────────────────
 
   /// Bounds of the font-size slider, in CSS px. The reader's viewport is
@@ -194,17 +213,23 @@ class ReaderProvider extends ChangeNotifier {
   // TZ §12.4 — screen dimming, 0.1 (darkest) … 1.0 (full). Applied as an
   // overlay in the reader view, independent of the OS brightness.
   double _brightness = 1.0;
+  // Blue-light "eye care" filter: a warm wash laid over the page, 0.0 (off) …
+  // 1.0 (warmest). Painted as a Flutter overlay in the reader view — see
+  // readerEyeCareColor in eye_care.dart, which picks a light- or dark-page
+  // variant of the tint so the wash never lightens a dark page toward white.
+  double _eyeCare = 0.0;
 
   ReaderThemeMode get themeMode => _themeMode;
   ReaderFontFamily get fontFamily => _fontFamily;
   double get fontSize => _fontSize;
   double get lineSpacing => _lineSpacing;
   double get brightness => _brightness;
+  double get eyeCare => _eyeCare;
 
   EpubTheme get currentEpubTheme => _buildEpubTheme();
 
   // ── Page transition & reading direction (TZ §12.2) ────────────────────────
-  ReaderPageTransition _pageTransition = ReaderPageTransition.slide;
+  ReaderPageTransition _pageTransition = ReaderPageTransition.scroll;
   bool _leftHandMode = false;
 
   ReaderPageTransition get pageTransition => _pageTransition;
@@ -267,8 +292,13 @@ class ReaderProvider extends ChangeNotifier {
     _savedLocationsJson = prefs.getString('book_${bookId}_locations');
     _lastLoggedPage = null;
 
-    final savedTheme = prefs.getInt('reader_theme') ?? 0;
-    _themeMode = ReaderThemeMode.values[savedTheme.clamp(0, ReaderThemeMode.values.length - 1)];
+    // No saved choice yet (first book ever opened): default the page to the
+    // app's own light/dark setting instead of always opening white, so a dark-
+    // mode app doesn't dump the reader into a blindingly bright page.
+    final savedTheme = prefs.getInt('reader_theme');
+    _themeMode = savedTheme != null
+        ? ReaderThemeMode.values[savedTheme.clamp(0, ReaderThemeMode.values.length - 1)]
+        : (AppTheme.instance.isDark ? ReaderThemeMode.dark : ReaderThemeMode.white);
 
     final savedFont = prefs.getInt('reader_font') ?? 0;
     _fontFamily = ReaderFontFamily.values[savedFont.clamp(0, ReaderFontFamily.values.length - 1)];
@@ -276,11 +306,18 @@ class ReaderProvider extends ChangeNotifier {
     _fontSize = prefs.getDouble('reader_font_size') ?? defaultFontSize;
     _lineSpacing = prefs.getDouble('reader_line_spacing') ?? 1.5;
     _brightness = prefs.getDouble('reader_brightness') ?? 1.0;
+    // Shared across every reader (like brightness), so the filter the reader
+    // set in the PDF reader is still on when they open an EPUB.
+    _eyeCare = prefs.getDouble('reader_eye_care') ?? 0.0;
     // Apply the saved reading brightness to the device screen now that we're
     // in the reader (restored to system brightness again on close).
     _applyReaderBrightness();
 
-    final savedTransition = prefs.getInt('reader_page_transition') ?? 0;
+    // No saved choice yet: default to scroll (Prokrutka) — a continuous
+    // vertical scroll needs a genuinely vertical swipe to move, so it never
+    // hits the gesture/animation mismatch a horizontal-swiped paginated mode
+    // can (see the 'slide' transition's own doc comment in epubView.js).
+    final savedTransition = prefs.getInt('reader_page_transition') ?? ReaderPageTransition.scroll.index;
     _pageTransition = ReaderPageTransition.values[savedTransition.clamp(0, ReaderPageTransition.values.length - 1)];
     _leftHandMode = prefs.getBool('reader_left_hand') ?? false;
 
@@ -336,11 +373,9 @@ class ReaderProvider extends ChangeNotifier {
     log('📖 EPUB loaded — configuring rendition');
 
     // Push the saved page-change style into the freshly-created rendition —
-    // it only lives in the webview, so it has to be re-applied per book.
+    // it only lives in the webview, so it has to be re-applied per book. No
+    // setFlow: every mode (scroll/Prokrutka included) reads paginated now.
     epubController.setPageTransition(mode: _pageTransition.name);
-    if (_pageTransition == ReaderPageTransition.scroll) {
-      epubController.setFlow(flow: EpubFlow.scrolled);
-    }
 
     // The chosen body font is a WebView @font-face, so it also has to be
     // (re)injected each time a book's rendition is created. Once is enough:
@@ -550,17 +585,26 @@ class ReaderProvider extends ChangeNotifier {
     await prefs.setDouble('reader_brightness', _brightness);
   }
 
+  Future<void> setEyeCare(double value) async {
+    _eyeCare = value.clamp(0.0, 1.0);
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('reader_eye_care', _eyeCare);
+  }
+
   /// Drives the actual device screen brightness (TZ §12.4). At full brightness
   /// we release control so the reader follows the system setting; below full,
   /// the app screen is dimmed to the chosen level. All app-scoped, so it's
   /// undone automatically when the app backgrounds — and explicitly on close.
   Future<void> _applyReaderBrightness() async {
     try {
-      if (_brightness >= 1.0) {
-        await ScreenBrightness().resetApplicationScreenBrightness();
-      } else {
-        await ScreenBrightness().setApplicationScreenBrightness(_brightness.clamp(0.0, 1.0));
-      }
+      // Always set an explicit value, even at 1.0 — releasing control back to
+      // the system here (as this used to do) meant dragging the slider to
+      // 100% could visibly *dim* the screen, snapping to whatever the OS
+      // brightness happened to be instead of showing true full brightness.
+      // Control is only handed back on [_releaseBrightness], when the reader
+      // actually closes.
+      await ScreenBrightness().setApplicationScreenBrightness(_brightness.clamp(0.0, 1.0));
     } catch (e) {
       log('❌ Brightness error: $e');
     }
@@ -581,14 +625,11 @@ class ReaderProvider extends ChangeNotifier {
   Future<void> setPageTransition(ReaderPageTransition transition) async {
     log('🔀 Page transition selected: ${transition.name}');
     _pageTransition = transition;
-    // Three levers: `flow` picks paginated vs scrolled reading, the custom
-    // animation layer in epubView.js plays the chosen tween on each turn, and
-    // the reading CSS switches between the novel and manga layouts — see
-    // [_isMangaLayout]. The theme has to be re-pushed because it's built from
-    // the mode we just changed.
-    epubController.setFlow(
-      flow: transition == ReaderPageTransition.scroll ? EpubFlow.scrolled : EpubFlow.paginated,
-    );
+    // Every mode is paginated now (scroll/Prokrutka is a vertical *paginated*
+    // turn, not epub.js's continuous scrolled flow) — so no `setFlow` here; the
+    // book already loaded paginated and stays that way. The custom animation
+    // layer in epubView.js plays the chosen tween on each turn; the theme is
+    // re-pushed only because it's rebuilt from the mode we just changed.
     epubController.setPageTransition(mode: transition.name);
     epubController.updateTheme(theme: _buildEpubTheme());
     notifyListeners();
@@ -707,10 +748,13 @@ class ReaderProvider extends ChangeNotifier {
 
   /// TZ §12.2 — whether the reader is in manga/webtoon layout.
   ///
-  /// [ReaderPageTransition.scroll] is the only mode that puts epub.js into
-  /// continuous vertical flow, and vertical flow is how manga is read, so the
-  /// two are one setting. The paginated modes keep the novel layout.
-  bool get _isMangaLayout => _pageTransition == ReaderPageTransition.scroll;
+  /// Always false now: every mode is paginated, and scroll/Prokrutka became a
+  /// vertical *paginated* page-turn (a bottom-to-top slide on a vertical swipe)
+  /// rather than epub.js's continuous scrolled flow, so no mode selects the
+  /// manga image layout any more. Kept as a named getter — rather than inlining
+  /// `false` — so the novel/manga split in [_readerCss] stays readable and a
+  /// future continuous-scroll mode has one obvious place to switch back on.
+  bool get _isMangaLayout => false;
 
   /// sakura_epub's `customCss` is a map of **CSS selector → { property: value }**
   /// (its `updateTheme` merges each selector's object into the epub.js theme

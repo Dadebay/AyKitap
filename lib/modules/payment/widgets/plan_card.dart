@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import '../../../core/services/subscription_service.dart';
+import '../../../core/models/tariff.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/strings/payment_strings.dart';
 
-class Plan {
-  final SubscriptionPlanType type;
-  final String name;
-  final bool best;
-  const Plan({required this.type, required this.name, this.best = false});
-
-  int get priceManat => type.priceManat;
-}
-
-/// A selectable plan row. Selection is driven entirely by implicit
-/// animations (border, glow, background tint, icon crossfade, price
-/// emphasis) so tapping a different plan reads as a deliberate transition
-/// rather than an instant style swap.
+/// A selectable plan row for one [Tariff]. Selection is driven entirely by
+/// implicit animations (border, glow, background tint, icon crossfade,
+/// price emphasis) so tapping a different plan reads as a deliberate
+/// transition rather than an instant style swap.
 class PlanCard extends StatelessWidget {
-  final Plan plan;
+  final Tariff tariff;
+  final String label;
+  final bool best;
   final bool selected;
   final VoidCallback onTap;
-  const PlanCard({super.key, required this.plan, required this.selected, required this.onTap});
+  const PlanCard({
+    super.key,
+    required this.tariff,
+    required this.label,
+    this.best = false,
+    required this.selected,
+    required this.onTap,
+  });
 
   static const _duration = Duration(milliseconds: 220);
 
@@ -68,9 +68,9 @@ class PlanCard extends StatelessWidget {
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
-                      child: Text(plan.name),
+                      child: Text(label),
                     ),
-                    if (plan.best) ...[
+                    if (best) ...[
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -81,15 +81,45 @@ class PlanCard extends StatelessWidget {
                   ],
                 ),
               ),
-              AnimatedDefaultTextStyle(
-                duration: _duration,
-                style: TextStyle(
-                  color: selected ? AppColors.primary : AppColors.white,
-                  fontFamily: 'Gilroy',
-                  fontSize: selected ? 17 : 16,
-                  fontWeight: FontWeight.w800,
-                ),
-                child: Text(PaymentStrings.manat(plan.priceManat)),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (tariff.hasDiscount) ...[
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          PaymentStrings.manat(tariff.actualPrice!),
+                          style: TextStyle(
+                            color: AppColors.grey2,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.lineThrough,
+                            decorationColor: AppColors.grey2,
+                            decorationThickness: 1.8,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: Colors.redAccent.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(6)),
+                          child: Text('-${tariff.discountPercent}%', style: const TextStyle(color: Colors.redAccent, fontSize: 10.5, fontWeight: FontWeight.w800)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                  ],
+                  AnimatedDefaultTextStyle(
+                    duration: _duration,
+                    style: TextStyle(
+                      color: selected ? AppColors.primary : AppColors.white,
+                      fontFamily: 'Gilroy',
+                      fontSize: selected ? 17 : 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    child: Text(PaymentStrings.manat(tariff.price)),
+                  ),
+                ],
               ),
             ],
           ),

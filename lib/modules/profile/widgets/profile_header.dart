@@ -72,6 +72,7 @@ class ProfileTopSection extends StatelessWidget {
     required this.maskedPhone,
     required this.avatarIndex,
     required this.avatarImage,
+    this.avatarUrl,
     required this.onTap,
   });
 
@@ -79,6 +80,7 @@ class ProfileTopSection extends StatelessWidget {
   final String maskedPhone;
   final int avatarIndex;
   final String? avatarImage;
+  final String? avatarUrl;
   final VoidCallback onTap;
 
   @override
@@ -89,7 +91,7 @@ class ProfileTopSection extends StatelessWidget {
           onTap: onTap,
           child: Stack(
             children: [
-              ProfileAvatar(index: avatarIndex, size: 88, imageBase64: avatarImage),
+              ProfileAvatar(index: avatarIndex, size: 88, imageBase64: avatarImage, imageUrl: avatarUrl),
               Positioned(
                 bottom: 0,
                 right: 0,

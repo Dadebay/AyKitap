@@ -22,7 +22,10 @@ class StreakService extends ChangeNotifier {
   static const dailyGoalSeconds = 15 * 60;
   static const _rewardIntervalDays = 30;
   static const _rewardManat = 10;
-  static const _logRetentionDays = 60;
+  // 70, not 60: the monthly breakdown ([pagesInMonth]) needs "last calendar
+  // month" fully intact no matter what day it is today — worst case (today
+  // is the 1st) that's a 31-day month plus today, i.e. 62 days back.
+  static const _logRetentionDays = 70;
 
   Map<String, int> _dailyLog = {};
   Map<String, int> _dailyPages = {};
@@ -48,6 +51,29 @@ class StreakService extends ChangeNotifier {
         .map((k) => StreakDayLog(date: DateTime.parse(k), seconds: _dailyLog[k] ?? 0, pages: _dailyPages[k] ?? 0))
         .where((e) => e.seconds > 0 || e.pages > 0)
         .toList();
+  }
+
+  /// Total pages turned within the calendar month containing [month] (only
+  /// its year/month matter, not the day). Backs the "this month / last
+  /// month" toggle on the streak screen.
+  int pagesInMonth(DateTime month) {
+    var total = 0;
+    _dailyPages.forEach((k, pages) {
+      final d = DateTime.parse(k);
+      if (d.year == month.year && d.month == month.month) total += pages;
+    });
+    return total;
+  }
+
+  /// Total minutes read within the calendar month containing [month] — same
+  /// month-matching as [pagesInMonth], off [_dailyLog] instead of pages.
+  int minutesInMonth(DateTime month) {
+    var totalSeconds = 0;
+    _dailyLog.forEach((k, seconds) {
+      final d = DateTime.parse(k);
+      if (d.year == month.year && d.month == month.month) totalSeconds += seconds;
+    });
+    return totalSeconds ~/ 60;
   }
 
   /// Mon..Sun read/not-read for the current calendar week — feeds the week

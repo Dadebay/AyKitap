@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/data/mock/mock_data.dart';
+import '../../core/services/book_api_service.dart';
 import '../../core/localization/strings/library_strings.dart';
 import 'widgets/library_tabs.dart';
 import 'widgets/own_books_tab.dart';
@@ -57,10 +57,22 @@ class _LibraryScreenState extends State<LibraryScreen> with SingleTickerProvider
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  ReadingTab(books: MockData.generateBooks(6, seed: 12)),
-                  DownloadedTab(books: MockData.generateBooks(4, seed: 20)),
-                  const PurchasedTab(),
-                  SimpleBookListTab(books: MockData.generateBooks(3, seed: 44), emptyLabel: LibraryStrings.emptyFavorites, heart: true),
+                  ApiBooksTab(
+                    fetcher: () => BookApiService.listBooks(myBooks: true),
+                    emptyLabel: LibraryStrings.emptyReading,
+                    showProgress: true,
+                  ),
+                  // No `/books/all` filter for this — see
+                  // DownloadedBooksStore's doc comment.
+                  const DownloadedTab(),
+                  ApiBooksTab(
+                    fetcher: () => BookApiService.listBooks(bought: true),
+                    emptyLabel: LibraryStrings.emptyPurchased,
+                  ),
+                  ApiBooksTab(
+                    fetcher: () => BookApiService.listBooks(wantsTo: true),
+                    emptyLabel: LibraryStrings.emptyFavorites,
+                  ),
                   const OwnBooksTab(),
                 ],
               ),

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../theme/app_colors.dart';
+import 'network_cover_image.dart';
 
 /// A preset avatar ("awatarlar boil", TZ 8.1): a gradient disc with an emoji.
 /// The app ships no avatar photos, so users pick from this fixed set instead
@@ -29,13 +30,17 @@ const List<ProfileAvatarData> kProfileAvatars = [
 
 /// Renders avatar [index] from [kProfileAvatars], or a neutral placeholder
 /// disc when [index] is out of range (no avatar chosen yet). When
-/// [imageBase64] is set (the user picked their own photo) it's shown
-/// instead, taking priority over the preset index.
+/// [imageBase64] is set (the user picked their own photo on this device but
+/// hasn't necessarily synced it yet) it's shown instead, taking priority
+/// over both [imageUrl] and the preset index. [imageUrl] (the backend's
+/// `/users/me` `image`) is the next fallback — shown when there's no local
+/// pick to prefer, e.g. right after a fresh install on a second device.
 class ProfileAvatar extends StatelessWidget {
   final int index;
   final double size;
   final String? imageBase64;
-  const ProfileAvatar({super.key, required this.index, this.size = 88, this.imageBase64});
+  final String? imageUrl;
+  const ProfileAvatar({super.key, required this.index, this.size = 88, this.imageBase64, this.imageUrl});
 
   @override
   Widget build(BuildContext context) {
@@ -49,13 +54,15 @@ class ProfileAvatar extends StatelessWidget {
         ),
       );
     }
-    if (index < 0 || index >= kProfileAvatars.length) {
-      return Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: AppColors.card, shape: BoxShape.circle),
-        child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedUser, color: AppColors.grey2, size: size * 0.45)),
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return ClipOval(
+        // A broken/unreachable URL shouldn't take the whole avatar down —
+        // falls back to the same placeholder an unset avatar gets.
+        child: NetworkCoverImage(url: imageUrl!, width: size, height: size, placeholder: (_) => _placeholder()),
       );
+    }
+    if (index < 0 || index >= kProfileAvatars.length) {
+      return _placeholder();
     }
     final avatar = kProfileAvatars[index];
     return Container(
@@ -66,6 +73,15 @@ class ProfileAvatar extends StatelessWidget {
         gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: avatar.gradient),
       ),
       child: Center(child: Text(avatar.emoji, style: TextStyle(fontSize: size * 0.5))),
+    );
+  }
+
+  Widget _placeholder() {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(color: AppColors.card, shape: BoxShape.circle),
+      child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedUser, color: AppColors.grey2, size: size * 0.45)),
     );
   }
 }

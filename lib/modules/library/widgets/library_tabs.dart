@@ -1,35 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/models/book.dart';
-import '../../../core/services/purchased_books_store.dart';
+import '../../../core/models/library_book.dart';
+import '../../../core/network/api_exception.dart';
+import '../../../core/services/book_api_service.dart';
+import '../../../core/services/downloaded_books_store.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/strings/library_strings.dart';
+import 'library_book_cover.dart';
 import 'library_empty_state.dart';
-import 'shelf_book_cover.dart';
 import 'shelf_grid.dart';
 
-class ReadingTab extends StatelessWidget {
-  final List<Book> books;
-  const ReadingTab({super.key, required this.books});
+/// No backend endpoint tracks this (see [DownloadedBooksStore]'s doc
+/// comment) — the list is whatever's been saved to local storage, not a
+/// fetch, so this just watches the store instead of loading/erroring like
+/// [ApiBooksTab].
+class DownloadedTab extends StatefulWidget {
+  const DownloadedTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    if (books.isEmpty) return LibraryEmptyState(label: LibraryStrings.emptyReading);
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: ShelfGrid(
-        itemCount: books.length,
-        itemBuilder: (context, i) => ShelfBookCover(book: books[i], progress: ((i + 1) * 17) % 100 / 100),
-      ),
-    );
-  }
+  State<DownloadedTab> createState() => _DownloadedTabState();
 }
 
-class DownloadedTab extends StatelessWidget {
-  final List<Book> books;
-  const DownloadedTab({super.key, required this.books});
+class _DownloadedTabState extends State<DownloadedTab> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    DownloadedBooksStore.instance.load();
+  }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+    final books = context.watch<DownloadedBooksStore>().books;
     if (books.isEmpty) {
       return LibraryEmptyState(label: LibraryStrings.emptyDownloaded, sub: LibraryStrings.emptyDownloadedSub);
     }
@@ -37,49 +42,96 @@ class DownloadedTab extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 20),
       child: ShelfGrid(
         itemCount: books.length,
-        itemBuilder: (context, i) => ShelfBookCover(book: books[i], downloaded: true),
+        itemBuilder: (context, i) => LibraryBookCover(book: books[i]),
       ),
     );
   }
 }
 
-/// "Satyn Alinanlar" — real per-book purchases from [PurchasedBooksStore],
-/// unlike the other tabs here which still show mock catalogue slices.
-class PurchasedTab extends StatefulWidget {
-  const PurchasedTab({super.key});
+/// A [LibraryScreen] tab backed by `GET /books/all` — [fetcher] is one of
+/// [BookApiService.listBooks]'s `my_books`/`bought`/`wants_to` filters,
+/// wired up per tab in [LibraryScreen]. Kept alive across tab switches
+/// ([AutomaticKeepAliveClientMixin]) so flipping tabs back and forth doesn't
+/// re-fetch every time.
+class ApiBooksTab extends StatefulWidget {
+  final Future<List<LibraryBook>> Function() fetcher;
+  final String emptyLabel;
+  final bool showProgress;
+  const ApiBooksTab({super.key, required this.fetcher, required this.emptyLabel, this.showProgress = false});
 
   @override
-  State<PurchasedTab> createState() => _PurchasedTabState();
+  State<ApiBooksTab> createState() => _ApiBooksTabState();
 }
 
-class _PurchasedTabState extends State<PurchasedTab> {
+class _ApiBooksTabState extends State<ApiBooksTab> with AutomaticKeepAliveClientMixin {
+  List<LibraryBook>? _books;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
-    PurchasedBooksStore.instance.load();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final books = await widget.fetcher();
+      if (!mounted) return;
+      setState(() {
+        _books = books;
+        _loading = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+        _loading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final books = context.watch<PurchasedBooksStore>().purchasedBooks;
-    return SimpleBookListTab(books: books, emptyLabel: LibraryStrings.emptyPurchased);
-  }
-}
-
-class SimpleBookListTab extends StatelessWidget {
-  final List<Book> books;
-  final String emptyLabel;
-  final bool heart;
-  const SimpleBookListTab({super.key, required this.books, required this.emptyLabel, this.heart = false});
-
-  @override
-  Widget build(BuildContext context) {
-    if (books.isEmpty) return LibraryEmptyState(label: emptyLabel);
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: ShelfGrid(
-        itemCount: books.length,
-        itemBuilder: (context, i) => ShelfBookCover(book: books[i], heart: heart),
+    super.build(context);
+    if (_loading) {
+      return Center(child: CircularProgressIndicator(color: AppColors.primary));
+    }
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+              const SizedBox(height: 12),
+              TextButton(onPressed: _load, child: Text(LibraryStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700))),
+            ],
+          ),
+        ),
+      );
+    }
+    final books = _books ?? const [];
+    if (books.isEmpty) return LibraryEmptyState(label: widget.emptyLabel);
+    return RefreshIndicator(
+      onRefresh: _load,
+      color: AppColors.primary,
+      backgroundColor: AppColors.surface,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 20),
+        child: ShelfGrid(
+          itemCount: books.length,
+          itemBuilder: (context, i) => LibraryBookCover(book: books[i], showProgress: widget.showProgress),
+        ),
       ),
     );
   }

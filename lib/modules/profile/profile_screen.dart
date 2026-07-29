@@ -1,21 +1,28 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/navigation/app_navigator.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/network/api_config.dart';
+import '../../core/services/account_service.dart';
 import '../../core/services/auth_session.dart';
 import '../../core/services/streak_service.dart';
+import '../../core/services/subscription_service.dart';
 import '../../core/widgets/streak_flame.dart';
 import '../../core/widgets/streak_week_row.dart';
+import '../../core/localization/strings/payment_strings.dart';
 import '../../core/localization/strings/profile_strings.dart';
 import '../auth/phone_login_screen.dart';
 import '../payment/subscription_screen.dart';
 import '../streak/streak_screen.dart';
-import 'bookmarks_screen.dart';
-import 'notes_screen.dart';
-import 'book_request_sheet.dart';
+import 'balance_screen.dart';
+import 'book_suggestions_screen.dart';
 import 'edit_profile_screen.dart';
-import 'finance_screen.dart';
+import 'notes_screen.dart';
+import 'report_problem_sheet.dart';
 import 'settings_screen.dart';
 import 'widgets/profile_entry_card.dart';
 import 'widgets/profile_header.dart';
@@ -28,19 +35,21 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  static const _hasSubscription = false;
-
   bool _isLoggedIn = false;
   String _phone = '';
   String _name = ProfileStrings.defaultReaderName;
   int _avatarIndex = -1;
   String? _avatarImage;
+  // Backend-sourced (`/users/me`) — null until a sync succeeds at least
+  // once, so the UI falls back to the local/mock values below until then.
+  String? _backendAvatarUrl;
 
   @override
   void initState() {
     super.initState();
     _refreshSession();
     StreakService.instance.load();
+    SubscriptionService.instance.load();
   }
 
   // The bearer token in secure storage is the single source of truth for
@@ -61,6 +70,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _avatarImage = avatarImage;
       });
     }
+    if (loggedIn) unawaited(_syncFromBackend());
+  }
+
+  // Best-effort only: the locally cached values (read above) are already
+  // what the rest of the app renders off of, so a `/users/me` failure here
+  // (offline, expired token, ...) is silently ignored rather than surfaced —
+  // this just keeps name/phone/avatar/balance fresh when the backend has a
+  // newer copy (e.g. edited from another device).
+  //
+  // Routed through [AccountService] rather than calling [AuthApiService]
+  // directly so the balance this screen shows is the same cached record the
+  // rest of the app spends from, refreshed by one request instead of two.
+  Future<void> _syncFromBackend() async {
+    await AccountService.instance.refresh();
+    final user = AccountService.instance.user;
+    if (user == null) return; // Offline — keep the locally cached values.
+    final username = user.username;
+    if (username != null && username.isNotEmpty && username != _name) {
+      await AuthSession.saveName(username);
+    }
+    if (!mounted) return;
+    setState(() {
+      if (username != null && username.isNotEmpty) _name = username;
+      if (user.phone.isNotEmpty) _phone = user.phone;
+      _backendAvatarUrl = (user.image != null && user.image!.isNotEmpty) ? ApiConfig.resolveImageUrl(user.image!) : null;
+    });
+  }
+
+  Future<void> _openBalance() async {
+    await context.push(const BalanceScreen());
   }
 
   // TZ 8.1: phone shown half-hidden as "+993 XX ***XX". Works off the digits
@@ -95,6 +134,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     context.watch<StreakService>();
+    final balance = context.watch<AccountService>().balanceManat;
+    final subscription = context.watch<SubscriptionService>();
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -112,20 +153,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 110),
           children: _isLoggedIn
               ? [
-                  ProfileTopSection(name: _name, maskedPhone: _maskedPhone, avatarIndex: _avatarIndex, avatarImage: _avatarImage, onTap: _openEditProfile),
+                  ProfileTopSection(name: _name, maskedPhone: _maskedPhone, avatarIndex: _avatarIndex, avatarImage: _avatarImage, avatarUrl: _backendAvatarUrl, onTap: _openEditProfile),
                   const SizedBox(height: 24),
-                  _buildSubscriptionEntry(context),
+                  _buildBalanceEntry(context, balance),
+                  const SizedBox(height: 12),
+                  _buildSubscriptionEntry(context, subscription),
                   const SizedBox(height: 12),
                   _buildStreakSection(context),
                   const SizedBox(height: 12),
-                  _buildFinanceEntry(context),
-                  const SizedBox(height: 12),
                   _buildSettingsEntry(context),
                   const SizedBox(height: 12),
-                  _buildNotesSection(context),
-                  _buildBookmarksSection(context),
+                  _buildNotesButton(context),
                   const SizedBox(height: 12),
                   _buildBookRequestButton(context),
+                  const SizedBox(height: 12),
+                  _buildReportProblemButton(context),
                 ]
               : [
                   LoggedOutSection(onLogin: _startLogin),
@@ -137,11 +179,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSubscriptionEntry(BuildContext context) {
+  Widget _buildBalanceEntry(BuildContext context, int? balance) {
     return ProfileEntryCard(
-      leading: profileIconCircle(HugeIcons.strokeRoundedDiamond),
+      leading: profileIconCircle(HugeIcons.strokeRoundedWallet01),
+      title: ProfileStrings.balanceTitle,
+      subtitle: balance != null ? PaymentStrings.manat(balance) : null,
+      onTap: _openBalance,
+    );
+  }
+
+  // Highlighted (primary tint + border, same treatment as the book-request
+  // CTA below) and shows the real expiry when active, rather than the always-
+  // -on "Abuna ýazyl" subtitle — so an active subscription is obvious right
+  // on this row, without opening SubscriptionScreen to check.
+  Widget _buildSubscriptionEntry(BuildContext context, SubscriptionService subscription) {
+    final active = subscription.isActive;
+    final expiresAt = subscription.expiresAt;
+    return ProfileEntryCard(
+      leading: profileIconCircle(active ? HugeIcons.strokeRoundedCheckmarkCircle01 : HugeIcons.strokeRoundedDiamond),
       title: ProfileStrings.subscription,
-      subtitle: _hasSubscription ? ProfileStrings.daysLeft : ProfileStrings.subscribeNow,
+      subtitle: active && expiresAt != null ? ProfileStrings.subscriptionActiveUntil(DateFormat.yMMMd().format(expiresAt)) : ProfileStrings.subscribeNow,
+      highlighted: active,
       onTap: () => context.push(const SubscriptionScreen()),
     );
   }
@@ -156,15 +214,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildFinanceEntry(BuildContext context) {
-    return ProfileEntryCard(
-      leading: profileIconCircle(HugeIcons.strokeRoundedWallet01),
-      title: ProfileStrings.finance,
-      subtitle: ProfileStrings.balanceManat(StreakService.instance.balanceManat),
-      onTap: () => context.push(const FinanceScreen()),
-    );
-  }
-
   Widget _buildSettingsEntry(BuildContext context) {
     return ProfileEntryCard(
       leading: profileIconCircle(HugeIcons.strokeRoundedSettings01),
@@ -173,19 +222,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildNotesSection(BuildContext context) {
+  Widget _buildNotesButton(BuildContext context) {
     return ProfileEntryCard(
       leading: profileIconCircle(HugeIcons.strokeRoundedNote01),
       title: ProfileStrings.viewAllNotes,
       onTap: () => context.push(const NotesScreen()),
-    );
-  }
-
-  Widget _buildBookmarksSection(BuildContext context) {
-    return ProfileEntryCard(
-      leading: profileIconCircle(HugeIcons.strokeRoundedBookmark01),
-      title: ProfileStrings.viewAllBookmarks,
-      onTap: () => context.push(const BookmarksScreen()),
     );
   }
 
@@ -194,7 +235,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       leading: profileIconCircle(HugeIcons.strokeRoundedBookOpen01),
       title: ProfileStrings.sendBookRequest,
       highlighted: true,
-      onTap: () => BookRequestSheet.show(context),
+      onTap: () => context.push(const BookSuggestionsScreen()),
+    );
+  }
+
+  Widget _buildReportProblemButton(BuildContext context) {
+    return ProfileEntryCard(
+      leading: profileIconCircle(HugeIcons.strokeRoundedBug01),
+      title: ProfileStrings.reportProblemEntryTitle,
+      onTap: () => ReportProblemSheet.show(context),
     );
   }
 }

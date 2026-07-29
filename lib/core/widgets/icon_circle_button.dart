@@ -11,6 +11,7 @@ class IconCircleButton extends StatelessWidget {
   const IconCircleButton({
     super.key,
     required this.icon,
+    this.filledIcon,
     this.onTap,
     this.size = 40,
     this.iconSize = 20,
@@ -20,6 +21,10 @@ class IconCircleButton extends StatelessWidget {
   });
 
   final List<List<dynamic>> icon;
+  /// A solid/bold [IconData] to render instead of [icon] — e.g. a filled
+  /// heart for a "liked" state, where the outline HugeIcons style has no
+  /// bold counterpart in the free icon set this app ships with.
+  final IconData? filledIcon;
   final VoidCallback? onTap;
   final double size;
   final double iconSize;
@@ -40,7 +45,9 @@ class IconCircleButton extends StatelessWidget {
           shape: borderRadius == null ? BoxShape.circle : BoxShape.rectangle,
           borderRadius: borderRadius,
         ),
-        child: HugeIcon(icon: icon, color: iconColor ?? AppColors.grey1, size: iconSize),
+        child: filledIcon != null
+            ? Icon(filledIcon, color: iconColor ?? AppColors.grey1, size: iconSize)
+            : HugeIcon(icon: icon, color: iconColor ?? AppColors.grey1, size: iconSize),
       ),
     );
   }

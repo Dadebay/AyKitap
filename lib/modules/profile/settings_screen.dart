@@ -3,10 +3,13 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_controller.dart';
+import '../../core/services/account_service.dart';
+import '../../core/services/auth_api_service.dart';
 import '../../core/services/auth_session.dart';
 import '../../core/localization/app_locale.dart';
 import '../../core/localization/strings/settings_strings.dart';
 import '../../core/widgets/app_back_button.dart';
+import 'widgets/contact_us_sheet.dart';
 import 'widgets/language_sheet.dart';
 import 'widgets/settings_tiles.dart';
 
@@ -25,6 +28,15 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   AppLanguage _languageFor(AppLanguageCode code) => kSettingsLanguages.firstWhere((l) => l.code == code);
 
+  // Best-effort: the local session (see [AuthSession]) is what "logged in"
+  // actually means to the rest of the app, so a failed/offline logout call
+  // must never block clearing it — the caller clears the token regardless.
+  Future<void> _notifyBackendLogout() async {
+    try {
+      await AuthApiService.logout();
+    } catch (_) {}
+  }
+
   void _pickLanguage() async {
     final current = _languageFor(AppLocale.instance.current);
     final result = await showModalBottomSheet<AppLanguage>(
@@ -34,6 +46,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (_) => LanguageSheet(languages: kSettingsLanguages, selected: current),
     );
     if (result != null) await AppLocale.instance.setLanguage(result.code);
+  }
+
+  // Same shape as [_confirmDeleteAccount] — a centred icon, title, body, and
+  // a stacked primary/cancel action pair — just with the logout icon and the
+  // app's own accent colour instead of the destructive red, since leaving a
+  // session isn't a destructive action the way deleting the account is.
+  void _confirmLogout() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        icon: Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.15), shape: BoxShape.circle),
+          child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedLogout01, color: AppColors.primary, size: 26)),
+        ),
+        title: Text(
+          SettingsStrings.logoutTitle,
+          textAlign: TextAlign.center,
+          style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800),
+        ),
+        content: Text(
+          SettingsStrings.logoutBody,
+          textAlign: TextAlign.center,
+          style: TextStyle(color: AppColors.grey2, fontSize: 13.5, height: 1.5),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+        actions: [
+          Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
+                  onPressed: () async {
+                    await _notifyBackendLogout();
+                    await AuthSession.clearToken();
+                    // Drop the cached /users/me record too, so the next
+                    // account doesn't briefly see this one's balance.
+                    AccountService.instance.clear();
+                    if (!mounted) return;
+                    Navigator.pop(context); // close the dialog
+                    Navigator.pop(context, 'logout'); // leave the settings screen logged out
+                  },
+                  child: Text(SettingsStrings.logoutConfirm, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(SettingsStrings.cancel, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   void _confirmDeleteAccount() {
@@ -69,7 +146,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
                   onPressed: () async {
+                    await _notifyBackendLogout();
                     await AuthSession.clearToken();
+                    // Drop the cached /users/me record too, so the next
+                    // account doesn't briefly see this one's balance.
+                    AccountService.instance.clear();
                     if (!mounted) return;
                     Navigator.pop(context); // close the dialog
                     Navigator.pop(context, 'logout'); // leave the settings screen logged out
@@ -129,7 +210,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ]),
           const SizedBox(height: 16),
           SettingsGroup(children: [
-            NavTile(icon: HugeIcons.strokeRoundedCustomerService01, label: SettingsStrings.contactUs, value: '', onTap: () {}),
+            NavTile(icon: HugeIcons.strokeRoundedCustomerService01, label: SettingsStrings.contactUs, value: '', onTap: () => ContactUsSheet.show(context)),
           ]),
           if (widget.isLoggedIn) ...[
             const SizedBox(height: 16),
@@ -138,11 +219,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: HugeIcons.strokeRoundedLogout01,
                 label: SettingsStrings.logout,
                 danger: true,
-                onTap: () async {
-                  await AuthSession.clearToken();
-                  if (!mounted) return;
-                  Navigator.pop(context, 'logout');
-                },
+                onTap: _confirmLogout,
               ),
               NavTile(icon: HugeIcons.strokeRoundedDelete02, label: SettingsStrings.deleteAccount, danger: true, onTap: _confirmDeleteAccount),
             ]),

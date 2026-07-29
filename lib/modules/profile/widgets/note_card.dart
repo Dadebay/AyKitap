@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import '../../../core/models/reading_note.dart';
+import '../../../core/models/user_note.dart';
+import '../../../core/network/api_config.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/network_cover_image.dart';
 import '../../../core/localization/strings/profile_strings.dart';
 
 class NoteCard extends StatelessWidget {
-  final ReadingNote note;
+  final UserNote note;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onGoToBook;
@@ -13,34 +15,39 @@ class NoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final noteColor = Color(note.colorValue);
-    final book = note.book;
+    final snippet = note.snippet;
+    final image = note.bookImage;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
-        // The note's highlight colour, echoed as a left accent bar so the
-        // list mirrors what the reader painted on the page.
-        border: Border(left: BorderSide(color: noteColor, width: 4)),
+        border: Border(left: BorderSide(color: AppColors.primary, width: 4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('“', style: TextStyle(color: noteColor, fontSize: 38, fontWeight: FontWeight.w900, height: 0.5)),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(note.text, style: TextStyle(color: AppColors.grey1, fontSize: 14.5, height: 1.5, fontStyle: FontStyle.italic)),
+          if (snippet != null && snippet.isNotEmpty) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('“', style: TextStyle(color: AppColors.primary, fontSize: 38, fontWeight: FontWeight.w900, height: 0.5)),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(snippet, style: TextStyle(color: AppColors.grey1, fontSize: 14.5, height: 1.5, fontStyle: FontStyle.italic)),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
+              ],
+            ),
+            const SizedBox(height: 6),
+          ],
+          if (note.note.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(note.note, style: TextStyle(color: AppColors.white, fontSize: 14, fontWeight: FontWeight.w600, height: 1.4)),
+            ),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -53,46 +60,42 @@ class NoteCard extends StatelessWidget {
           Divider(color: AppColors.border, height: 1),
           const SizedBox(height: 12),
           GestureDetector(
-            // Only catalogue books can open a detail page; an imported file has
-            // no book to navigate to (book == null), so the tap does nothing.
-            onTap: book == null ? null : onGoToBook,
+            onTap: onGoToBook,
             behavior: HitTestBehavior.opaque,
             child: Row(
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(6),
-                  child: book != null
-                      ? Image.asset(book.coverImage, width: 32, height: 44, fit: BoxFit.cover)
-                      : Container(
+                  child: image != null && image.isNotEmpty
+                      ? SizedBox(
                           width: 32,
                           height: 44,
-                          color: AppColors.surface,
-                          child: HugeIcon(icon: HugeIcons.strokeRoundedBook02, color: AppColors.grey3, size: 16),
-                        ),
+                          child: NetworkCoverImage(url: ApiConfig.resolveImageUrl(image), placeholder: (_) => _coverPlaceholder()),
+                        )
+                      : _coverPlaceholder(),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    note.bookTitle,
+                    note.bookName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: AppColors.white, fontSize: 13.5, fontWeight: FontWeight.w700),
                   ),
                 ),
                 const SizedBox(width: 8),
-                if (book != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(ProfileStrings.goToBook, style: TextStyle(color: AppColors.primary, fontSize: 11.5, fontWeight: FontWeight.w700)),
-                        const SizedBox(width: 4),
-                        HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: AppColors.primary, size: 12),
-                      ],
-                    ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(ProfileStrings.goToBook, style: TextStyle(color: AppColors.primary, fontSize: 11.5, fontWeight: FontWeight.w700)),
+                      const SizedBox(width: 4),
+                      HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: AppColors.primary, size: 12),
+                    ],
                   ),
+                ),
               ],
             ),
           ),
@@ -100,6 +103,13 @@ class NoteCard extends StatelessWidget {
       ),
     );
   }
+
+  Widget _coverPlaceholder() => Container(
+        width: 32,
+        height: 44,
+        color: AppColors.surface,
+        child: HugeIcon(icon: HugeIcons.strokeRoundedBook02, color: AppColors.grey3, size: 16),
+      );
 }
 
 class _ActionIcon extends StatelessWidget {

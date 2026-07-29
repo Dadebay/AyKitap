@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/network/api_exception.dart';
+import '../../core/services/auth_api_service.dart';
 import '../../core/services/auth_session.dart';
 import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/profile_avatar.dart';
 import '../../core/localization/strings/profile_strings.dart';
 import 'widgets/avatar_picker_sheet.dart';
@@ -24,6 +27,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _avatarImage;
   String _phone = '';
   bool _loading = true;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -72,14 +76,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _save() async {
+    if (_saving) return;
     final name = _nameController.text.trim();
-    await AuthSession.saveName(name.isEmpty ? ProfileStrings.defaultReaderName : name);
+    final finalName = name.isEmpty ? ProfileStrings.defaultReaderName : name;
+    setState(() => _saving = true);
+
+    await AuthSession.saveName(finalName);
     await AuthSession.saveAvatar(_avatarIndex);
     if (_avatarImage != null) {
       await AuthSession.saveAvatarImage(_avatarImage!);
     } else {
       await AuthSession.clearAvatarImage();
     }
+
+    // Local storage above is already what the rest of the app reads from,
+    // so a backend failure here (offline, ...) shouldn't trap the user on
+    // this screen — it's surfaced but the edit still stands locally.
+    try {
+      await AuthApiService.updateUsername(username: finalName);
+      // Only the picked-photo case has a real image to push — a preset
+      // avatar is a purely local concept the backend has no field for.
+      if (_avatarImage != null) {
+        await AuthApiService.updateImage(imageBase64: _avatarImage!);
+      }
+    } on ApiException catch (e) {
+      if (mounted) context.showAppSnackBar(e.message, isError: true);
+    }
+
     if (mounted) Navigator.pop(context, true);
   }
 
@@ -157,8 +180,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   height: 52,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
-                    onPressed: _save,
-                    child: Text(ProfileStrings.save, style: const TextStyle(color: Colors.white, fontSize: 15.5, fontWeight: FontWeight.w700)),
+                    onPressed: _saving ? null : _save,
+                    child: _saving
+                        ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white))
+                        : Text(ProfileStrings.save, style: const TextStyle(color: Colors.white, fontSize: 15.5, fontWeight: FontWeight.w700)),
                   ),
                 ),
               ],

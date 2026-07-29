@@ -65,6 +65,7 @@ class EpubViewer extends StatefulWidget {
     this.suppressNativeContextMenu = false,
     this.clearSelectionOnPageChange = true,
     this.selectAnnotationRange = false,
+    this.verticalPageNavigation = false,
   });
 
   //Epub controller to manage epub
@@ -198,6 +199,18 @@ class EpubViewer extends StatefulWidget {
   /// When false (default), annotation clicks will only trigger [onAnnotationClicked]
   /// without programmatically selecting the text.
   final bool selectAnnotationRange;
+
+  /// Turns pages on *vertical* flicks (swipe up = next) instead of horizontal
+  /// ones, for reading modes that move down the book rather than across it.
+  ///
+  /// This is about the gesture axis alone, not [EpubFlow]: a vertical page
+  /// animation can be played over a perfectly ordinary `paginated` rendition,
+  /// and when it is, a horizontal swipe driving it reads as the page flying in
+  /// from the wrong direction. Android decides the same thing inside
+  /// `epubView.js`'s detectSwipe callback; this flag is what the iOS detector
+  /// below — which exists because WKWebView never delivers the touch sequence
+  /// that JS path relies on — reads instead.
+  final bool verticalPageNavigation;
 
   /// Callback fired when the user touches down on the EPUB viewer.
   ///
@@ -893,13 +906,40 @@ class _EpubViewerState extends State<EpubViewer> {
             final duration =
                 DateTime.now().millisecondsSinceEpoch - _swipeStartTime;
             final dx = event.position.dx - _swipeStartPos!.dx;
-            final dy = (event.position.dy - _swipeStartPos!.dy).abs();
-            // Short (<400ms), clearly horizontal (>60px, dy<50, ratio>2x) flick.
-            if (duration < 400 && dx.abs() > 60 && dy < 50 && dx.abs() > dy * 2) {
-              if (dx < 0) {
-                widget.epubController.next();
-              } else {
-                widget.epubController.prev();
+            final dy = event.position.dy - _swipeStartPos!.dy;
+            // Sections render one screen at a time even in continuous scroll
+            // mode, so moving to the next/previous one is still a discrete
+            // flick there too — just on the vertical axis, which is what a
+            // scroll layout reads naturally on: swipe up advances, swipe down
+            // goes back. The same distinction is made on Android in
+            // epubView.js's detectSwipe callback; iOS needs its own copy
+            // since WKWebView never delivers the touch sequence that JS path
+            // relies on, hence this whole Flutter-level detector.
+            //
+            // Keyed off [verticalPageNavigation], not the flow: this used to
+            // ask whether flow was EpubFlow.scrolled, which a reader that
+            // stays paginated and only animates vertically never is — so the
+            // vertical branch was dead on iOS and horizontal swipes drove the
+            // upward animation instead.
+            if (duration < 400) {
+              if (widget.verticalPageNavigation) {
+                // Short, clearly vertical (>60px, dx<50, ratio>2x) flick.
+                if (dy.abs() > 60 && dx.abs() < 50 && dy.abs() > dx.abs() * 2) {
+                  if (dy < 0) {
+                    widget.epubController.next();
+                  } else {
+                    widget.epubController.prev();
+                  }
+                }
+              } else if (dx.abs() > 60 &&
+                  dy.abs() < 50 &&
+                  dx.abs() > dy.abs() * 2) {
+                // Short, clearly horizontal (>60px, dy<50, ratio>2x) flick.
+                if (dx < 0) {
+                  widget.epubController.next();
+                } else {
+                  widget.epubController.prev();
+                }
               }
             }
             _swipeStartPos = null;

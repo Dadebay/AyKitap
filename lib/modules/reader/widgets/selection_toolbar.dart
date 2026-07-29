@@ -14,12 +14,19 @@ import '../../../core/theme/app_colors.dart';
 /// "Not" opens the add-note sheet, which carries the colour picker: the chosen
 /// colour is what the passage gets highlighted in once the note is saved. The
 /// note action appears only when [canAnnotate] is true.
+///
+/// Tapping an *already* highlighted passage lands here too (the viewer
+/// re-selects that exact range), so [isExistingHighlight] swaps "Not" for
+/// "Poz" (remove) — there being no built-in way, otherwise, to take a
+/// highlight back off the page.
 class SelectionToolbar extends StatelessWidget {
   final String selectedText;
   final Rect? selectionRect;
   final bool canAnnotate;
+  final bool isExistingHighlight;
 
   final VoidCallback onAddNote;
+  final VoidCallback onRemoveHighlight;
   final VoidCallback onCopy;
   final VoidCallback onShare;
   final VoidCallback onClose;
@@ -29,7 +36,9 @@ class SelectionToolbar extends StatelessWidget {
     required this.selectedText,
     required this.selectionRect,
     required this.canAnnotate,
+    this.isExistingHighlight = false,
     required this.onAddNote,
+    required this.onRemoveHighlight,
     required this.onCopy,
     required this.onShare,
     required this.onClose,
@@ -75,7 +84,13 @@ class SelectionToolbar extends StatelessWidget {
             const SizedBox(height: 6),
             Row(
               children: [
-                if (canAnnotate)
+                if (isExistingHighlight)
+                  _Action(
+                    icon: HugeIcons.strokeRoundedDelete02,
+                    label: ReaderStrings.removeHighlightLabel,
+                    onTap: onRemoveHighlight,
+                  )
+                else if (canAnnotate)
                   _Action(icon: HugeIcons.strokeRoundedNoteAdd, label: ReaderStrings.noteLabel, onTap: onAddNote),
                 _Action(icon: HugeIcons.strokeRoundedCopy01, label: ReaderStrings.copyLabel, onTap: onCopy),
                 _Action(icon: HugeIcons.strokeRoundedShare08, label: ReaderStrings.shareLabel, onTap: onShare),

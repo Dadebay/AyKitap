@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../core/localization/strings/reader_strings.dart';
+import '../utils/eye_care.dart';
+import 'reader_progress_scrubber.dart';
 
 /// The PDF reader's bottom toolbar, built to the same design as the EPUB
 /// [ReaderBottomBar]: a scrim derived from the page colour (densest at the
@@ -21,6 +23,11 @@ class PdfBottomBar extends StatelessWidget {
   /// light/dark gutter the way the EPUB bar follows the page theme.
   final Color pageColor;
 
+  /// Blue-light filter strength (TZ §12.4), 0.0 (off) … 1.0 — tints the
+  /// hairline and icon wells the same warm cast as the page overlay. See
+  /// [eyeCareTint].
+  final double eyeCare;
+
   final VoidCallback onBookmarks;
   final VoidCallback onSettings;
   final VoidCallback onGoToPage;
@@ -32,6 +39,7 @@ class PdfBottomBar extends StatelessWidget {
     required this.currentPage,
     required this.totalPages,
     required this.pageColor,
+    this.eyeCare = 0.0,
     required this.onBookmarks,
     required this.onSettings,
     required this.onGoToPage,
@@ -44,8 +52,16 @@ class PdfBottomBar extends StatelessWidget {
     final isDarkPage = pageColor.computeLuminance() < 0.4;
     final labelColor = isDarkPage ? Colors.white38 : Colors.black45;
     final iconColor = isDarkPage ? Colors.white70 : const Color(0xFF44444F);
-    final borderColor = isDarkPage ? Colors.white.withValues(alpha: 0.10) : Colors.black.withValues(alpha: 0.08);
-    final wellColor = isDarkPage ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05);
+    final borderColor = eyeCareTint(
+      isDarkPage ? Colors.white.withValues(alpha: 0.10) : Colors.black.withValues(alpha: 0.08),
+      eyeCare,
+      isDarkPage: isDarkPage,
+    );
+    final wellColor = eyeCareTint(
+      isDarkPage ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
+      eyeCare,
+      isDarkPage: isDarkPage,
+    );
     const accent = Color(0xFFE8712C);
 
     return Container(
@@ -72,28 +88,15 @@ class PdfBottomBar extends StatelessWidget {
           // ── Page scrubber ─────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                Text('$currentPage', style: TextStyle(color: labelColor, fontSize: 11)),
-                Expanded(
-                  child: SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      trackHeight: 2,
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
-                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-                      activeTrackColor: accent,
-                      inactiveTrackColor: isDarkPage ? Colors.white24 : const Color(0xFFE0E0E0),
-                      thumbColor: accent,
-                      overlayColor: const Color(0x22E8712C),
-                    ),
-                    child: Slider(
-                      value: progress.clamp(0.0, 1.0),
-                      onChanged: onProgressChanged,
-                    ),
-                  ),
-                ),
-                Text('$totalPages', style: TextStyle(color: labelColor, fontSize: 11)),
-              ],
+            child: ReaderProgressScrubber(
+              progress: progress,
+              currentPage: currentPage,
+              totalPages: totalPages,
+              labelColor: labelColor,
+              activeColor: accent,
+              inactiveTrackColor: isDarkPage ? Colors.white24 : const Color(0xFFE0E0E0),
+              overlayColor: const Color(0x22E8712C),
+              onSeek: onProgressChanged,
             ),
           ),
 

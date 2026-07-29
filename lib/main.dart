@@ -5,14 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
-import 'core/data/book_repository.dart';
-import 'core/data/mock_book_repository.dart';
 import 'core/localization/app_locale.dart';
 import 'core/localization/localization_delegates.dart';
+import 'core/services/account_service.dart';
 import 'core/services/analytics_service.dart';
 import 'core/services/bookmarks_store.dart';
 import 'core/services/device_fingerprint.dart';
+import 'core/services/downloaded_books_store.dart';
 import 'core/services/firebase_messaging_service.dart';
+import 'core/services/home_data_service.dart';
 import 'core/services/notes_store.dart';
 import 'core/services/own_books_store.dart';
 import 'core/services/purchased_books_store.dart';
@@ -23,6 +24,12 @@ import 'modules/splash/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Default is 1000 images / 100MB — too tight for how many book covers Home,
+  // Library and Search keep on screen at once, so returning from a detail
+  // page after viewing a few others could evict an earlier cover and force
+  // a visible reload. A bigger budget keeps decoded covers resident.
+  PaintingBinding.instance.imageCache.maximumSize = 3000;
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 200 << 20;
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   // Hide Android's 3-button navigation bar entirely (keep the status bar).
   // A swipe up from the bottom edge still reveals it temporarily.
@@ -52,11 +59,13 @@ void main() async {
         ChangeNotifierProvider<AppLocale>.value(value: AppLocale.instance),
         ChangeNotifierProvider<StreakService>.value(value: StreakService.instance),
         ChangeNotifierProvider<SubscriptionService>.value(value: SubscriptionService.instance),
+        ChangeNotifierProvider<AccountService>.value(value: AccountService.instance),
         ChangeNotifierProvider<NotesStore>.value(value: NotesStore.instance),
         ChangeNotifierProvider<BookmarksStore>.value(value: BookmarksStore.instance),
         ChangeNotifierProvider<PurchasedBooksStore>.value(value: PurchasedBooksStore.instance),
         ChangeNotifierProvider<OwnBooksStore>.value(value: OwnBooksStore.instance),
-        Provider<BookRepository>(create: (_) => MockBookRepository()),
+        ChangeNotifierProvider<DownloadedBooksStore>.value(value: DownloadedBooksStore.instance),
+        ChangeNotifierProvider<HomeDataService>.value(value: HomeDataService.instance),
       ],
       child: const AykitapApp(),
     ),

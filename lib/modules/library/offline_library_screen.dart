@@ -13,9 +13,9 @@ import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/own_book_spine_cover.dart';
 import '../main_nav/main_nav_screen.dart';
 import '../reader/provider/reader_provider.dart';
+import '../reader/utils/pdf_book_opener.dart';
 import '../reader/views/cbz_reader_screen.dart';
 import '../reader/views/reader_view.dart';
-import '../reader/views/pdf_reader_screen.dart';
 import '../../core/localization/strings/library_strings.dart';
 
 /// TZ 12.6: shown right after the splash screen instead of the normal app
@@ -51,7 +51,7 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
     if (isOnline) {
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainNavScreen()));
     } else {
-      context.showAppSnackBar(LibraryStrings.noInternetSnackbar);
+      context.showAppSnackBar(LibraryStrings.noInternetSnackbar, isError: true);
     }
   }
 
@@ -59,7 +59,7 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
     AnalyticsService.instance.logBookOpened(id: book.id, format: book.format.name);
     switch (book.format) {
       case OwnBookFormat.pdf:
-        context.push(PdfReaderScreen(filePath: book.filePath, title: book.title, bookId: stableBookKey(book.id)));
+        openPdfBook(context, filePath: book.filePath, title: book.title, bookId: stableBookKey(book.id));
       case OwnBookFormat.cbz:
         context.push(CbzReaderScreen(filePath: book.filePath, title: book.title, bookId: stableBookKey(book.id)));
       case OwnBookFormat.epub:

@@ -33,15 +33,26 @@ class StreakScreen extends StatefulWidget {
 }
 
 class _StreakScreenState extends State<StreakScreen> {
+  bool _showLastMonth = false;
+
   @override
   void initState() {
     super.initState();
     StreakService.instance.load();
   }
 
+  DateTime get _selectedMonth {
+    final now = DateTime.now();
+    // DateTime normalizes month 0 to December of the previous year, so this
+    // is safe in January too.
+    return _showLastMonth ? DateTime(now.year, now.month - 1) : DateTime(now.year, now.month);
+  }
+
   @override
   Widget build(BuildContext context) {
     final streak = context.watch<StreakService>();
+    final monthPages = streak.pagesInMonth(_selectedMonth);
+    final monthMinutes = streak.minutesInMonth(_selectedMonth);
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -93,6 +104,84 @@ class _StreakScreenState extends State<StreakScreen> {
                         fontWeight: FontWeight.w700)),
                 const SizedBox(height: 16),
                 StreakWeekRow(weekRead: streak.weekRead, circleSize: 38),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+                color: AppColors.card, borderRadius: BorderRadius.circular(16)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(StreakStrings.monthlyReading,
+                        style: TextStyle(
+                            color: AppColors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700)),
+                    Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(10)),
+                      child: Row(
+                        children: [
+                          _MonthToggleChip(
+                            label: StreakStrings.thisMonth,
+                            selected: !_showLastMonth,
+                            onTap: () => setState(() => _showLastMonth = false),
+                          ),
+                          _MonthToggleChip(
+                            label: StreakStrings.lastMonth,
+                            selected: _showLastMonth,
+                            onTap: () => setState(() => _showLastMonth = true),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('$monthPages',
+                              style: TextStyle(
+                                  color: AppColors.primary,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 2),
+                          Text(StreakStrings.pagesRead,
+                              style: TextStyle(color: AppColors.grey2, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    Container(width: 1, height: 34, color: AppColors.border),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(StreakStrings.minutesLabel(monthMinutes),
+                              style: TextStyle(
+                                  color: AppColors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 2),
+                          Text(StreakStrings.readingTime,
+                              style: TextStyle(color: AppColors.grey2, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -200,6 +289,37 @@ class _StreakScreenState extends State<StreakScreen> {
               ),
             ),
         ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MonthToggleChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _MonthToggleChip({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : AppColors.grey2,
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );

@@ -15,7 +15,14 @@ import '../../../core/localization/strings/reader_strings.dart';
 /// (light/dark), independent of the reader's page theme — the swatch buttons
 /// below still show their own fixed page colours.
 class ReaderSettingsSheet extends StatelessWidget {
-  const ReaderSettingsSheet({super.key});
+  /// Shown only when this reader is actually a synthetic EPUB generated from
+  /// a PDF — offers a way back to the original fixed page images for a book
+  /// whose source PDF has a broken font/text encoding (see
+  /// [ReaderScreen.originalPdfPath]). Tapping it pops this sheet with `true`,
+  /// which the reader screen reads to perform the actual switch.
+  final bool showOriginalPdfOption;
+
+  const ReaderSettingsSheet({super.key, this.showOriginalPdfOption = false});
 
   @override
   Widget build(BuildContext context) {
@@ -112,40 +119,65 @@ class ReaderSettingsSheet extends StatelessWidget {
 
                       const SizedBox(height: 22),
 
-                      // ── Size / line spacing / brightness — vertical
-                      // "fill level" tiles: drag or tap inside a tile to set
-                      // its value, the coloured band tracks it live.
+                      // ── Size / line spacing / brightness / eye care —
+                      // vertical "fill level" tiles: drag or tap inside a tile
+                      // to set its value, the coloured band tracks it live and
+                      // the number at the top reads out the current value.
+                      // Expanded (not fixed-width) so all four fit side by side
+                      // on narrow phones without overflowing.
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _LevelTile(
-                            iconBuilder: (c) => Text(
-                              'Aa',
-                              style: TextStyle(color: c, fontSize: 16, fontWeight: FontWeight.w800),
+                          Expanded(
+                            child: _LevelTile(
+                              iconBuilder: (c) => Text(
+                                'Aa',
+                                style: TextStyle(color: c, fontSize: 16, fontWeight: FontWeight.w800),
+                              ),
+                              label: ReaderStrings.fontSizeLabel,
+                              valueText: '${provider.fontSize.round()}',
+                              value: provider.fontSize,
+                              min: ReaderProvider.minFontSize,
+                              max: ReaderProvider.maxFontSize,
+                              onChanged: provider.setFontSize,
                             ),
-                            label: ReaderStrings.fontSizeLabel,
-                            value: provider.fontSize,
-                            min: ReaderProvider.minFontSize,
-                            max: ReaderProvider.maxFontSize,
-                            onChanged: provider.setFontSize,
                           ),
-                          _LevelTile(
-                            iconBuilder: (c) =>
-                                HugeIcon(icon: HugeIcons.strokeRoundedLeftToRightListDash, color: c, size: 20),
-                            label: ReaderStrings.lineSpacingLabel,
-                            value: provider.lineSpacing,
-                            min: 1.0,
-                            max: 2.5,
-                            onChanged: provider.setLineSpacing,
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _LevelTile(
+                              iconBuilder: (c) =>
+                                  HugeIcon(icon: HugeIcons.strokeRoundedLeftToRightListDash, color: c, size: 20),
+                              label: ReaderStrings.lineSpacingLabel,
+                              valueText: provider.lineSpacing.toStringAsFixed(1),
+                              value: provider.lineSpacing,
+                              min: 1.0,
+                              max: 2.5,
+                              onChanged: provider.setLineSpacing,
+                            ),
                           ),
-                          _LevelTile(
-                            iconBuilder: (c) => HugeIcon(icon: HugeIcons.strokeRoundedSun01, color: c, size: 20),
-                            label: ReaderStrings.brightnessLabel,
-                            value: provider.brightness,
-                            min: 0.1,
-                            max: 1.0,
-                            onChanged: provider.setBrightness,
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _LevelTile(
+                              iconBuilder: (c) => HugeIcon(icon: HugeIcons.strokeRoundedSun01, color: c, size: 20),
+                              label: ReaderStrings.brightnessLabel,
+                              valueText: '${(provider.brightness * 100).round()}%',
+                              value: provider.brightness,
+                              min: 0.1,
+                              max: 1.0,
+                              onChanged: provider.setBrightness,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _LevelTile(
+                              iconBuilder: (c) => HugeIcon(icon: HugeIcons.strokeRoundedEye, color: c, size: 20),
+                              label: ReaderStrings.eyeCareLabel,
+                              valueText: provider.eyeCare <= 0.0 ? '0%' : '${(provider.eyeCare * 100).round()}%',
+                              value: provider.eyeCare,
+                              min: 0.0,
+                              max: 1.0,
+                              onChanged: provider.setEyeCare,
+                            ),
                           ),
                         ],
                       ),
@@ -154,6 +186,17 @@ class ReaderSettingsSheet extends StatelessWidget {
 
                       // ── Page transition (TZ §12.2) — opens its own sheet ─
                       const PageTransitionRow(),
+
+                      // ── Fall back to the original PDF pages ────────────
+                      // Only for a book that's actually a PDF reflowed into
+                      // this reader — an escape hatch for a source file
+                      // whose font/text encoding turns some sentences into
+                      // gibberish once extracted, even though the real page
+                      // (a picture, not text) still renders correctly.
+                      if (showOriginalPdfOption) ...[
+                        const SizedBox(height: 10),
+                        _OriginalPdfRow(onTap: () => Navigator.pop(context, true)),
+                      ],
                     ],
                   ),
                 ),
@@ -308,6 +351,10 @@ class _FontTile extends StatelessWidget {
 class _LevelTile extends StatelessWidget {
   final Widget Function(Color color) iconBuilder;
   final String label;
+
+  /// Current value read out as text at the top of the tile (e.g. "20", "1.5",
+  /// "100%"), so the reader can see the exact setting, not just the fill band.
+  final String? valueText;
   final double value;
   final double min;
   final double max;
@@ -316,6 +363,7 @@ class _LevelTile extends StatelessWidget {
   const _LevelTile({
     required this.iconBuilder,
     required this.label,
+    this.valueText,
     required this.value,
     required this.min,
     required this.max,
@@ -323,10 +371,15 @@ class _LevelTile extends StatelessWidget {
   });
 
   static const _height = 120.0;
-  static const _width = 74.0;
+  // Narrower than the row slot it sits in (each tile is inside an Expanded),
+  // and centred there — a full-width tile per slot read as too wide/blocky.
+  static const _width = 58.0;
   // The icon sits in this bottom band; once the fill rises past it the icon
   // reads white (sitting on the accent), otherwise it stays muted.
   static const _iconBandHeight = 40.0;
+  // The value readout sits in this top band; once the fill rises high enough
+  // to reach it, its text flips to white the same way the icon does.
+  static const _valueBandHeight = 28.0;
 
   double get _fraction => ((value - min) / (max - min)).clamp(0.0, 1.0);
 
@@ -340,66 +393,137 @@ class _LevelTile extends StatelessWidget {
     final fillHeight = _height * _fraction;
     // White while the fill covers the icon band, muted while it's above it.
     final iconOnFill = fillHeight >= _iconBandHeight * 0.6;
+    // The value badge sits at the top, so the fill only reaches it near full.
+    final valueOnFill = fillHeight >= (_height - _valueBandHeight * 0.6);
 
-    return SizedBox(
-      width: _width,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) => _handle(d.localPosition),
-            onVerticalDragUpdate: (d) => _handle(d.localPosition),
-            // A border (plus the rounded corners) keeps the tile's outline
-            // visible in both themes — otherwise the empty part is invisible
-            // on the light sheet, where the card fill is white on white.
-            child: Container(
-              height: _height,
-              width: _width,
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                color: AppColors.card,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Stack(
-                children: [
-                  AnimatedPositioned(
-                    duration: const Duration(milliseconds: 120),
-                    curve: Curves.easeOut,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    height: fillHeight,
-                    child: ColoredBox(color: AppColors.primary),
-                  ),
-                  // Icon fixed at the bottom of the tile.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (d) => _handle(d.localPosition),
+          onVerticalDragUpdate: (d) => _handle(d.localPosition),
+          // A border (plus the rounded corners) keeps the tile's outline
+          // visible in both themes — otherwise the empty part is invisible
+          // on the light sheet, where the card fill is white on white.
+          child: Container(
+            height: _height,
+            width: _width,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Stack(
+              children: [
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 120),
+                  curve: Curves.easeOut,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: fillHeight,
+                  child: ColoredBox(color: AppColors.primary),
+                ),
+                // Value readout pinned at the top of the tile.
+                if (valueText != null)
                   Positioned(
                     left: 0,
                     right: 0,
-                    bottom: 0,
-                    height: _iconBandHeight,
-                    child: Center(child: iconBuilder(iconOnFill ? Colors.white : AppColors.grey2)),
+                    top: 0,
+                    height: _valueBandHeight,
+                    child: Center(
+                      child: Text(
+                        valueText!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: valueOnFill ? Colors.white : AppColors.grey1,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
                   ),
-                ],
+                // Icon fixed at the bottom of the tile.
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: _iconBandHeight,
+                  child: Center(child: iconBuilder(iconOnFill ? Colors.white : AppColors.grey2)),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Fixed two-line height so a one-line label ("Parlaklyk") reserves the
+        // same space as a two-line one ("Şrift ölçegi") — keeps every tile the
+        // same total height and aligned.
+        SizedBox(
+          height: 26,
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: AppColors.grey2, fontSize: 10.5, fontWeight: FontWeight.w500, height: 1.2),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The "view original PDF pages" row — same card shape as [PageTransitionRow]
+/// but a one-shot action rather than a row that opens a submenu: tapping it
+/// pops the whole settings sheet with `true`, which [ReaderScreen] reads to
+/// swap over to [PdfReaderScreen].
+class _OriginalPdfRow extends StatelessWidget {
+  final VoidCallback onTap;
+  const _OriginalPdfRow({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.card,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              HugeIcon(icon: HugeIcons.strokeRoundedFile02, color: AppColors.primary, size: 19),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ReaderStrings.pdfOriginalViewLabel,
+                      style: TextStyle(color: AppColors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      ReaderStrings.pdfOriginalViewHint,
+                      style: TextStyle(color: AppColors.grey2, fontSize: 11.5),
+                    ),
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right, color: AppColors.grey3, size: 20),
+            ],
           ),
-          const SizedBox(height: 8),
-          // Fixed two-line height so a one-line label ("Parlaklyk") reserves the
-          // same space as a two-line one ("Şrift ölçegi") — keeps every tile the
-          // same total height and aligned.
-          SizedBox(
-            height: 26,
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: AppColors.grey2, fontSize: 10.5, fontWeight: FontWeight.w500, height: 1.2),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

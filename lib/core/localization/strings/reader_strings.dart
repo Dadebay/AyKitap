@@ -85,12 +85,39 @@ class ReaderStrings {
   static String get fontLabel => t(tk: 'Şrift', ru: 'Шрифт', tr: 'Yazı tipi');
   static String get lineSpacingLabel => t(tk: 'Setir aralygy', ru: 'Межстрочный интервал', tr: 'Satır aralığı');
 
+  /// Switches a PDF opened in the reflowed (text) reader back to the
+  /// original fixed page images — an escape hatch for books whose source
+  /// PDF has a broken font/text-encoding that turns some sentences into
+  /// gibberish once extracted, even though the page itself renders fine.
+  static String get pdfOriginalViewLabel => t(
+        tk: 'Asyl PDF sahypalary',
+        ru: 'Исходные страницы PDF',
+        tr: 'Orijinal PDF sayfaları',
+      );
+  static String get pdfOriginalViewHint => t(
+        tk: 'Sözler üýtgeýän bolsa, sahypanyň resimini görkez',
+        ru: 'Если слова искажены, показать страницу как изображение',
+        tr: 'Kelimeler bozuk görünüyorsa sayfayı resim olarak göster',
+      );
+
+  /// Reverse of the above, offered from the fixed-page PDF reader once a
+  /// text-layer conversion for this book already exists in cache.
+  static String get pdfTextViewLabel => t(tk: 'Tekst görnüşi', ru: 'Текстовый вид', tr: 'Metin görünümü');
+  static String get pdfTextViewHint => t(
+        tk: 'Ýazgyny üýtgedip, ýerleşdirip okamak',
+        ru: 'Читать с переносом текста и настройками шрифта',
+        tr: 'Yeniden akan, yazı tipi ayarlanabilir görünüme dön',
+      );
+
   static String get themeWhite => t(tk: 'Ak', ru: 'Белый', tr: 'Beyaz');
   static String get themeSepia => t(tk: 'Sary', ru: 'Сепия', tr: 'Sarı');
   static String get themeDark => t(tk: 'Goňur', ru: 'Тёмный', tr: 'Koyu');
   static String get themeBlack => t(tk: 'Gara', ru: 'Чёрный', tr: 'Siyah');
 
   static String get brightnessLabel => t(tk: 'Parlaklyk', ru: 'Яркость', tr: 'Parlaklık');
+
+  /// Blue-light filter that warms the page to reduce eye strain (TZ §12.4).
+  static String get eyeCareLabel => t(tk: 'Göz goraýyş', ru: 'Защита глаз', tr: 'Göz koruması');
 
   // ── Page transition sheet (TZ §12.2) ─────────────────────────────────
   static String get pageTransitionTitle => t(tk: 'Sahypa çalyşmak', ru: 'Смена страниц', tr: 'Sayfa geçişi');
@@ -175,6 +202,12 @@ class ReaderStrings {
   static String get shareLabel => t(tk: 'Paýlaş', ru: 'Поделиться', tr: 'Paylaş');
   static String get highlightedMessage => t(tk: 'Bellendi', ru: 'Выделено', tr: 'İşaretlendi');
   static String get noteSavedMessage => t(tk: 'Not goşuldy', ru: 'Заметка добавлена', tr: 'Not eklendi');
+
+  /// Shown in the selection toolbar instead of "Not" when the tapped passage
+  /// is already highlighted — removes the highlight (and its note) rather
+  /// than adding a new one.
+  static String get removeHighlightLabel => t(tk: 'Poz', ru: 'Удалить', tr: 'Kaldır');
+  static String get highlightRemovedMessage => t(tk: 'Bellik aýryldy', ru: 'Выделение удалено', tr: 'İşaret kaldırıldı');
 
   // ── Add-note sheet (TZ §12.7) ────────────────────────────────────────
   static String get addNoteTitle => t(tk: 'Not goş', ru: 'Добавить заметку', tr: 'Not ekle');

@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:provider/provider.dart';
-import '../../core/models/reading_note.dart';
+import '../../core/models/user_note.dart';
 import '../../core/navigation/app_navigator.dart';
-import '../../core/services/notes_store.dart';
+import '../../core/network/api_exception.dart';
+import '../../core/services/user_notes_api_service.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/theme_controller.dart';
 import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/app_snackbar.dart';
 import '../../core/localization/strings/profile_strings.dart';
-import '../book_detail/book_detail_screen.dart';
+import '../book_detail/catalog_book_detail_screen.dart';
 import 'widgets/edit_note_sheet.dart';
 import 'widgets/note_card.dart';
 
-/// "Ähli notlary gör" — TZ 8.4 (highlights/alyntylar): edit, delete, and
-/// jump to the source book.
+/// "Ähli notlary gör" — every note/highlight the signed-in user has saved,
+/// straight from `GET /users/notes` ([UserNotesApiService]). Used to be one
+/// tab of a shared Notes/Bookmarks screen; the bookmarks half was removed
+/// (bookmarking still exists per-book inside the reader itself), so this is
+/// now the whole screen.
 class NotesScreen extends StatefulWidget {
   const NotesScreen({super.key});
 
@@ -21,34 +26,58 @@ class NotesScreen extends StatefulWidget {
 }
 
 class _NotesScreenState extends State<NotesScreen> {
-  final _store = NotesStore.instance;
+  List<UserNote>? _notes;
+  bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _store.load();
+    _load();
   }
 
-  void _goToBook(ReadingNote note) {
-    final book = note.book;
-    // Imported files have no catalogue entry to open — the card hides the
-    // "go to book" affordance for them, but guard here too.
-    if (book == null) return;
-    context.push(BookDetailScreen(book: book));
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final notes = await UserNotesApiService.getNotes();
+      if (!mounted) return;
+      setState(() {
+        _notes = notes;
+        _loading = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+        _loading = false;
+      });
+    }
   }
 
-  Future<void> _editNote(ReadingNote note) async {
+  void _goToBook(UserNote note) => context.push(CatalogBookDetailScreen(bookId: note.bookId));
+
+  Future<void> _editNote(UserNote note) async {
     final draft = await showModalBottomSheet<NoteDraft>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => EditNoteSheet(initialText: note.text, initialColor: note.colorValue),
+      builder: (_) => EditNoteSheet(initialText: note.note),
     );
     if (draft == null || draft.text.isEmpty) return;
-    await _store.updateNote(note.id, text: draft.text, colorValue: draft.colorValue);
+    try {
+      final updated = await UserNotesApiService.updateNote(note.id, note: draft.text);
+      if (!mounted) return;
+      setState(() => _notes = _notes?.map((n) => n.id == note.id ? updated : n).toList());
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      context.showAppSnackBar(e.message, isError: true);
+    }
   }
 
-  Future<void> _deleteNote(ReadingNote note) async {
+  Future<void> _deleteNote(UserNote note) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -98,35 +127,102 @@ class _NotesScreenState extends State<NotesScreen> {
         ],
       ),
     );
-    if (confirmed == true) await _store.remove(note.id);
+    if (confirmed != true) return;
+    // Optimistic: remove immediately, roll back and surface the error if the
+    // backend call fails.
+    final previous = _notes;
+    setState(() => _notes = _notes?.where((n) => n.id != note.id).toList());
+    try {
+      await UserNotesApiService.deleteNote(note.id);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _notes = previous);
+      context.showAppSnackBar(e.message, isError: true);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final notes = context.watch<NotesStore>().notes;
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: AppColors.bg,
+        scrolledUnderElevation: 0,
         centerTitle: true,
         leading: const AppBackButton(size: 20),
         title: Text(ProfileStrings.notesTitle, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
       ),
-      body: SafeArea(
-        top: false,
-        child: notes.isEmpty
-          ? Center(child: Text(ProfileStrings.noNotesYet, style: TextStyle(color: AppColors.grey2, fontSize: 15)))
-          : ListView.separated(
-              padding: const EdgeInsets.all(20),
-              itemCount: notes.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 14),
-              itemBuilder: (_, i) => NoteCard(
-                note: notes[i],
-                onEdit: () => _editNote(notes[i]),
-                onDelete: () => _deleteNote(notes[i]),
-                onGoToBook: () => _goToBook(notes[i]),
+      body: SafeArea(top: false, child: _buildBody()),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_loading) {
+      return Center(child: CircularProgressIndicator(color: AppColors.primary));
+    }
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+              const SizedBox(height: 12),
+              TextButton(onPressed: _load, child: Text(ProfileStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700))),
+            ],
+          ),
+        ),
+      );
+    }
+    final notes = _notes ?? const [];
+    return notes.isEmpty
+        ? _buildEmpty()
+        : ListView.separated(
+            padding: const EdgeInsets.all(20),
+            itemCount: notes.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 14),
+            itemBuilder: (_, i) => NoteCard(
+              note: notes[i],
+              onEdit: () => _editNote(notes[i]),
+              onDelete: () => _deleteNote(notes[i]),
+              onGoToBook: () => _goToBook(notes[i]),
+            ),
+          );
+  }
+
+  Widget _buildEmpty() {
+    final isDark = AppTheme.instance.isDark;
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 260),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: Image.asset(
+                  isDark ? 'assets/images/notes_empty_dark.png' : 'assets/images/notes_empty_light.png',
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
+            const SizedBox(height: 28),
+            Text(
+              ProfileStrings.noNotesYetTitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              ProfileStrings.noNotesYetSubtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.grey2, fontSize: 14, height: 1.5),
+            ),
+          ],
+        ),
       ),
     );
   }

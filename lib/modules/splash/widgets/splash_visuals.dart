@@ -95,6 +95,7 @@ class SplashWordmark extends StatelessWidget {
           SplashStrings.wordmark,
           style: const TextStyle(
             color: Colors.white,
+            fontFamily: 'Congenial',
             fontSize: 40,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.5,

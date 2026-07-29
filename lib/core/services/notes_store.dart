@@ -46,6 +46,7 @@ class NotesStore extends ChangeNotifier {
     int? bookIndex,
     int colorValue = 0xFFFFD54F,
     String? cfi,
+    int? remoteId,
   }) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
@@ -63,6 +64,7 @@ class NotesStore extends ChangeNotifier {
       createdAt: DateTime.now(),
       colorValue: colorValue,
       cfi: cfi,
+      remoteId: remoteId,
     );
     _notes = [note, ..._notes];
     await _persist();
