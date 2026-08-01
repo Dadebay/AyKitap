@@ -21,7 +21,8 @@ class DownloadedTab extends StatefulWidget {
   State<DownloadedTab> createState() => _DownloadedTabState();
 }
 
-class _DownloadedTabState extends State<DownloadedTab> with AutomaticKeepAliveClientMixin {
+class _DownloadedTabState extends State<DownloadedTab>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -36,7 +37,9 @@ class _DownloadedTabState extends State<DownloadedTab> with AutomaticKeepAliveCl
     super.build(context);
     final books = context.watch<DownloadedBooksStore>().books;
     if (books.isEmpty) {
-      return LibraryEmptyState(label: LibraryStrings.emptyDownloaded, sub: LibraryStrings.emptyDownloadedSub);
+      return LibraryEmptyState(
+          label: LibraryStrings.emptyDownloaded,
+          sub: LibraryStrings.emptyDownloadedSub);
     }
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: 20),
@@ -57,13 +60,21 @@ class ApiBooksTab extends StatefulWidget {
   final Future<List<LibraryBook>> Function() fetcher;
   final String emptyLabel;
   final bool showProgress;
-  const ApiBooksTab({super.key, required this.fetcher, required this.emptyLabel, this.showProgress = false});
+  final bool allowRemovingPurchasedBooks;
+  const ApiBooksTab({
+    super.key,
+    required this.fetcher,
+    required this.emptyLabel,
+    this.showProgress = false,
+    this.allowRemovingPurchasedBooks = false,
+  });
 
   @override
   State<ApiBooksTab> createState() => _ApiBooksTabState();
 }
 
-class _ApiBooksTabState extends State<ApiBooksTab> with AutomaticKeepAliveClientMixin {
+class _ApiBooksTabState extends State<ApiBooksTab>
+    with AutomaticKeepAliveClientMixin {
   List<LibraryBook>? _books;
   bool _loading = true;
   String? _error;
@@ -111,9 +122,16 @@ class _ApiBooksTabState extends State<ApiBooksTab> with AutomaticKeepAliveClient
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+              Text(_error!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.grey2, fontSize: 14)),
               const SizedBox(height: 12),
-              TextButton(onPressed: _load, child: Text(LibraryStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700))),
+              TextButton(
+                  onPressed: _load,
+                  child: Text(LibraryStrings.retry,
+                      style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700))),
             ],
           ),
         ),
@@ -130,7 +148,12 @@ class _ApiBooksTabState extends State<ApiBooksTab> with AutomaticKeepAliveClient
         padding: const EdgeInsets.only(bottom: 20),
         child: ShelfGrid(
           itemCount: books.length,
-          itemBuilder: (context, i) => LibraryBookCover(book: books[i], showProgress: widget.showProgress),
+          itemBuilder: (context, i) => LibraryBookCover(
+            book: books[i],
+            showProgress: widget.showProgress,
+            canRemoveFromPurchased: widget.allowRemovingPurchasedBooks,
+            onPurchasedBookRemoved: _load,
+          ),
         ),
       ),
     );

@@ -24,7 +24,8 @@ class FeedbackApiService {
       await DioClient.instance.post(ApiEndpoints.suggests, data: {
         'name': name,
         'author': author,
-        if (description != null && description.isNotEmpty) 'description': description,
+        if (description != null && description.isNotEmpty)
+          'description': description,
         'language': language,
       });
     } on DioException catch (e) {
@@ -38,7 +39,18 @@ class FeedbackApiService {
     try {
       final response = await DioClient.instance.get(ApiEndpoints.suggestsMy);
       final list = response.data['data'] as List;
-      return list.map((e) => BookSuggestion.fromJson(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => BookSuggestion.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// Deletes one of the signed-in user's own book requests.
+  static Future<void> deleteBookSuggestion(int id) async {
+    try {
+      await DioClient.instance.delete(ApiEndpoints.suggestById(id));
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -46,7 +58,8 @@ class FeedbackApiService {
 
   static Future<void> reportProblem({required String problem}) async {
     try {
-      await DioClient.instance.post(ApiEndpoints.problems, data: {'problem': problem});
+      await DioClient.instance
+          .post(ApiEndpoints.problems, data: {'problem': problem});
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

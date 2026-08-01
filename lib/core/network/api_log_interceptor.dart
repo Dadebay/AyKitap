@@ -28,12 +28,20 @@ const _ansiBold = '\x1B[1m';
 class ApiLogInterceptor extends Interceptor {
   const ApiLogInterceptor();
 
+  /// The catalogue response can contain many books with long descriptions;
+  /// logging its formatted body overwhelms the debug console. Keep logging
+  /// every other endpoint normally.
+  static bool _shouldSkipResponseBody(RequestOptions options) =>
+      options.path == '/books/all';
+
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     final buffer = StringBuffer()
-      ..writeln('${_AnsiColor.cyan.code}$_ansiBold→ ${options.method} ${options.uri}$_ansiReset');
+      ..writeln(
+          '${_AnsiColor.cyan.code}$_ansiBold→ ${options.method} ${options.uri}$_ansiReset');
     if (options.data != null) {
-      buffer.writeln('${_AnsiColor.cyan.code}  body: ${_prettyJson(options.data)}$_ansiReset');
+      buffer.writeln(
+          '${_AnsiColor.cyan.code}  body: ${_prettyJson(options.data)}$_ansiReset');
     }
     debugPrint(buffer.toString());
     handler.next(options);
@@ -41,10 +49,16 @@ class ApiLogInterceptor extends Interceptor {
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    final ok = (response.statusCode ?? 0) >= 200 && (response.statusCode ?? 0) < 300;
+    if (_shouldSkipResponseBody(response.requestOptions)) {
+      handler.next(response);
+      return;
+    }
+    final ok =
+        (response.statusCode ?? 0) >= 200 && (response.statusCode ?? 0) < 300;
     final color = ok ? _AnsiColor.green : _AnsiColor.yellow;
     final buffer = StringBuffer()
-      ..writeln('${color.code}$_ansiBold← ${response.statusCode} ${response.requestOptions.method} ${response.requestOptions.uri}$_ansiReset')
+      ..writeln(
+          '${color.code}$_ansiBold← ${response.statusCode} ${response.requestOptions.method} ${response.requestOptions.uri}$_ansiReset')
       ..writeln('${color.code}  ${_prettyJson(response.data)}$_ansiReset');
     debugPrint(buffer.toString());
     handler.next(response);
@@ -53,8 +67,10 @@ class ApiLogInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     final buffer = StringBuffer()
-      ..writeln('${_AnsiColor.red.code}$_ansiBold✕ ${err.requestOptions.method} ${err.requestOptions.uri}$_ansiReset')
-      ..writeln('${_AnsiColor.red.code}  ${err.response != null ? '${err.response!.statusCode} ${_prettyJson(err.response!.data)}' : err.message}$_ansiReset');
+      ..writeln(
+          '${_AnsiColor.red.code}$_ansiBold✕ ${err.requestOptions.method} ${err.requestOptions.uri}$_ansiReset')
+      ..writeln(
+          '${_AnsiColor.red.code}  ${err.response != null ? '${err.response!.statusCode} ${_prettyJson(err.response!.data)}' : err.message}$_ansiReset');
     debugPrint(buffer.toString());
     handler.next(err);
   }

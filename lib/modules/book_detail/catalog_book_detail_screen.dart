@@ -1,4 +1,3 @@
-import 'package:aykitap/core/theme/theme_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -11,9 +10,11 @@ import '../../core/services/book_api_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/icon_circle_button.dart';
+import '../../core/widgets/network_error_state.dart';
 import '../../core/localization/strings/book_detail_strings.dart';
 import '../../core/navigation/app_navigator.dart';
 import '../author/catalog_author_detail_screen.dart';
+import 'catalog_genre_books_screen.dart';
 import 'widgets/catalog_detail_header_art.dart';
 import 'widgets/detail_header_controls.dart';
 import 'widgets/genre_tag.dart';
@@ -27,7 +28,13 @@ import 'widgets/genre_tag.dart';
 /// internal storage path, not something this app has a way to fetch yet.
 class CatalogBookDetailScreen extends StatefulWidget {
   final int bookId;
-  const CatalogBookDetailScreen({super.key, required this.bookId});
+  final bool canRemoveFromPurchased;
+
+  const CatalogBookDetailScreen({
+    super.key,
+    required this.bookId,
+    this.canRemoveFromPurchased = false,
+  });
 
   @override
   State<CatalogBookDetailScreen> createState() => _CatalogBookDetailScreenState();
@@ -40,6 +47,7 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
   bool _descriptionExpanded = false;
   bool _isFavorite = false;
   bool _isFinished = false;
+  bool _removingFromPurchased = false;
 
   @override
   void initState() {
@@ -54,9 +62,21 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
     });
     try {
       final book = await BookApiService.getBookById(widget.bookId);
+      // `GET /books/:id` doesn't include a per-user favorite flag. The
+      // user's `wants_to` list is the backend source of truth for the heart
+      // state when this detail screen is opened again.
+      var isFavorite = false;
+      try {
+        final favoriteBooks = await BookApiService.listBooks(wantsTo: true);
+        isFavorite = favoriteBooks.any((favorite) => favorite.id == widget.bookId);
+      } on ApiException {
+        // The book detail remains useful if this secondary status lookup
+        // fails; leave the heart in its default, unfilled state.
+      }
       if (!mounted) return;
       setState(() {
         _book = book;
+        _isFavorite = isFavorite;
         _loading = false;
       });
     } on ApiException catch (e) {
@@ -118,6 +138,51 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
     context.push(CatalogAuthorDetailScreen(authorId: author.id));
   }
 
+  void _openGenre(BookDetailGenre genre) {
+    context.push(CatalogGenreBooksScreen(genreId: genre.id, genreName: genre.name));
+  }
+
+  Future<void> _removeFromPurchased(BookDetail book) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          BookDetailStrings.removeFromPurchased,
+          style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800),
+        ),
+        content: Text(
+          BookDetailStrings.removePurchasedConfirm(book.name),
+          style: TextStyle(color: AppColors.grey2, fontSize: 13.5, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(BookDetailStrings.cancel, style: TextStyle(color: AppColors.grey2)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(BookDetailStrings.remove, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _removingFromPurchased = true);
+    try {
+      await BookApiService.removeBoughtBook(book.id);
+      if (!mounted) return;
+      context.showAppSnackBar(BookDetailStrings.removedFromPurchased(book.name));
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _removingFromPurchased = false);
+      context.showAppSnackBar(e.message, isError: true);
+    }
+  }
+
   // The blurred cover sits pinned behind the scrolling sheet, which starts
   // a little shy of the header's bottom edge so it can be dragged up over
   // the cover.
@@ -133,27 +198,10 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
   }
 
   Widget _buildBody() {
-    final isDark = AppTheme.instance.isDark;
-
     if (_loading || _error != null) {
       return Stack(
         children: [
-          if (_loading)
-            Center(child: CircularProgressIndicator(color: AppColors.primary))
-          else
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
-                    const SizedBox(height: 12),
-                    TextButton(onPressed: _load, child: Text(BookDetailStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700))),
-                  ],
-                ),
-              ),
-            ),
+          if (_loading) Center(child: CircularProgressIndicator(color: AppColors.primary)) else NetworkErrorState(onRetry: _load),
           _buildBackButton(context),
         ],
       );
@@ -244,7 +292,7 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
                 const SizedBox(height: 10),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Wrap(spacing: 8, runSpacing: 8, children: book.genres.map((g) => GenreTag(label: g.name)).toList()),
+                  child: Wrap(spacing: 8, runSpacing: 8, children: book.genres.map((g) => GenreTag(label: g.name, onTap: () => _openGenre(g))).toList()),
                 ),
               ],
               if (book.description != null && book.description!.isNotEmpty) ...[
@@ -268,6 +316,25 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
                     child: Text(
                       _descriptionExpanded ? BookDetailStrings.showLess : BookDetailStrings.readFull,
                       style: TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+              if (widget.canRemoveFromPurchased) ...[
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: _removingFromPurchased ? null : () => _removeFromPurchased(book),
+                    icon: _removingFromPurchased
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.redAccent))
+                        : const HugeIcon(icon: HugeIcons.strokeRoundedDelete02, color: Colors.redAccent, size: 18),
+                    label: Text(BookDetailStrings.removeFromPurchased),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.redAccent,
+                      side: const BorderSide(color: Colors.redAccent),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                   ),
                 ),
