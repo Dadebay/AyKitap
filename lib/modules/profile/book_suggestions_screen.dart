@@ -6,6 +6,7 @@ import '../../core/services/feedback_api_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/app_snackbar.dart';
 import '../../core/localization/strings/profile_strings.dart';
 import 'book_request_sheet.dart';
 import 'widgets/book_suggestion_card.dart';
@@ -23,6 +24,7 @@ class BookSuggestionsScreen extends StatefulWidget {
 
 class _BookSuggestionsScreenState extends State<BookSuggestionsScreen> {
   List<BookSuggestion>? _suggestions;
+  final Set<int> _deletingIds = {};
   bool _loading = true;
   String? _error;
 
@@ -58,6 +60,57 @@ class _BookSuggestionsScreenState extends State<BookSuggestionsScreen> {
     if (sent == true && mounted) _load();
   }
 
+  Future<void> _deleteSuggestion(BookSuggestion suggestion) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          ProfileStrings.deleteBookRequest,
+          style: TextStyle(
+              color: AppColors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w800),
+        ),
+        content: Text(
+          ProfileStrings.deleteBookRequestConfirm(suggestion.name),
+          style: TextStyle(color: AppColors.grey2, fontSize: 13.5, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(ProfileStrings.cancel,
+                style: TextStyle(color: AppColors.grey2)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(ProfileStrings.delete,
+                style: const TextStyle(
+                    color: Colors.redAccent, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _deletingIds.add(suggestion.id));
+    try {
+      await FeedbackApiService.deleteBookSuggestion(suggestion.id);
+      if (!mounted) return;
+      setState(() {
+        _suggestions =
+            _suggestions?.where((item) => item.id != suggestion.id).toList();
+        _deletingIds.remove(suggestion.id);
+      });
+      context.showAppSnackBar(ProfileStrings.bookRequestDeleted);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _deletingIds.remove(suggestion.id));
+      context.showAppSnackBar(e.message, isError: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,7 +120,11 @@ class _BookSuggestionsScreenState extends State<BookSuggestionsScreen> {
         scrolledUnderElevation: 0,
         centerTitle: true,
         leading: const AppBackButton(size: 20),
-        title: Text(ProfileStrings.myBookRequestsTitle, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+        title: Text(ProfileStrings.myBookRequestsTitle,
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700)),
       ),
       body: SafeArea(top: false, child: _buildBody()),
       bottomNavigationBar: _NewRequestBar(
@@ -75,7 +132,8 @@ class _BookSuggestionsScreenState extends State<BookSuggestionsScreen> {
         // A gentle breathing glow only while there's nothing else on the
         // page competing for attention — once requests exist the badge-y
         // pulse would just be noise next to them.
-        pulse: !_loading && _error == null && (_suggestions ?? const []).isEmpty,
+        pulse:
+            !_loading && _error == null && (_suggestions ?? const []).isEmpty,
       ),
     );
   }
@@ -91,9 +149,16 @@ class _BookSuggestionsScreenState extends State<BookSuggestionsScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+              Text(_error!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.grey2, fontSize: 14)),
               const SizedBox(height: 12),
-              TextButton(onPressed: _load, child: Text(ProfileStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700))),
+              TextButton(
+                  onPressed: _load,
+                  child: Text(ProfileStrings.retry,
+                      style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700))),
             ],
           ),
         ),
@@ -113,13 +178,18 @@ class _BookSuggestionsScreenState extends State<BookSuggestionsScreen> {
                 child: AspectRatio(
                   aspectRatio: 1,
                   child: Image.asset(
-                    isDark ? 'assets/images/book_request_empty_dark.png' : 'assets/images/book_request_empty_light.png',
+                    isDark
+                        ? 'assets/images/book_request_empty_dark.png'
+                        : 'assets/images/book_request_empty_light.png',
                     fit: BoxFit.contain,
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-              Text(ProfileStrings.noSuggestionsYet, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 15, height: 1.5)),
+              Text(ProfileStrings.noSuggestionsYet,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: AppColors.grey2, fontSize: 15, height: 1.5)),
             ],
           ),
         ),
@@ -133,7 +203,11 @@ class _BookSuggestionsScreenState extends State<BookSuggestionsScreen> {
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
         itemCount: suggestions.length,
         separatorBuilder: (_, __) => const SizedBox(height: 14),
-        itemBuilder: (_, i) => BookSuggestionCard(suggestion: suggestions[i]),
+        itemBuilder: (_, i) => BookSuggestionCard(
+          suggestion: suggestions[i],
+          isDeleting: _deletingIds.contains(suggestions[i].id),
+          onDelete: () => _deleteSuggestion(suggestions[i]),
+        ),
       ),
     );
   }
@@ -154,7 +228,8 @@ class _NewRequestBar extends StatefulWidget {
   State<_NewRequestBar> createState() => _NewRequestBarState();
 }
 
-class _NewRequestBarState extends State<_NewRequestBar> with TickerProviderStateMixin {
+class _NewRequestBarState extends State<_NewRequestBar>
+    with TickerProviderStateMixin {
   late final AnimationController _entrance;
   late final AnimationController _press;
   late final AnimationController _glow;
@@ -162,9 +237,13 @@ class _NewRequestBarState extends State<_NewRequestBar> with TickerProviderState
   @override
   void initState() {
     super.initState();
-    _entrance = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
-    _press = AnimationController(vsync: this, duration: const Duration(milliseconds: 120), value: 1);
-    _glow = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))..repeat(reverse: true);
+    _entrance = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 500));
+    _press = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 120), value: 1);
+    _glow = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1400))
+      ..repeat(reverse: true);
     // A short beat after the page itself appears, not simultaneously — lets
     // the list/empty-state read first, then the bar slides in as its own beat.
     Future.delayed(const Duration(milliseconds: 150), () {
@@ -181,14 +260,18 @@ class _NewRequestBarState extends State<_NewRequestBar> with TickerProviderState
   }
 
   void _setPressed(bool pressed) {
-    _press.animateTo(pressed ? 0.97 : 1, duration: Duration(milliseconds: pressed ? 100 : 220), curve: pressed ? Curves.easeOut : Curves.elasticOut);
+    _press.animateTo(pressed ? 0.97 : 1,
+        duration: Duration(milliseconds: pressed ? 100 : 220),
+        curve: pressed ? Curves.easeOut : Curves.elasticOut);
   }
 
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
     return SlideTransition(
-      position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(CurvedAnimation(parent: _entrance, curve: Curves.easeOutCubic)),
+      position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+          .animate(
+              CurvedAnimation(parent: _entrance, curve: Curves.easeOutCubic)),
       child: AnimatedBuilder(
         animation: Listenable.merge([_press, _glow]),
         builder: (context, child) {
@@ -198,7 +281,11 @@ class _NewRequestBarState extends State<_NewRequestBar> with TickerProviderState
             decoration: BoxDecoration(
               color: AppColors.surface,
               boxShadow: [
-                BoxShadow(color: AppColors.primary.withValues(alpha: 0.12 + glowT * 0.14), blurRadius: 26 + glowT * 14, offset: const Offset(0, -8)),
+                BoxShadow(
+                    color: AppColors.primary
+                        .withValues(alpha: 0.12 + glowT * 0.14),
+                    blurRadius: 26 + glowT * 14,
+                    offset: const Offset(0, -8)),
               ],
             ),
             child: Transform.scale(
@@ -214,11 +301,13 @@ class _NewRequestBarState extends State<_NewRequestBar> with TickerProviderState
                   child: Ink(
                     height: 56,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [AppColors.primary, AppColors.primaryDark]),
+                      gradient: LinearGradient(
+                          colors: [AppColors.primary, AppColors.primaryDark]),
                       borderRadius: BorderRadius.circular(18),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.35 + glowT * 0.25),
+                          color: AppColors.primary
+                              .withValues(alpha: 0.35 + glowT * 0.25),
                           blurRadius: 16 + glowT * 12,
                           spreadRadius: glowT * 2,
                           offset: const Offset(0, 6),
@@ -229,9 +318,16 @@ class _NewRequestBarState extends State<_NewRequestBar> with TickerProviderState
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          HugeIcon(icon: HugeIcons.strokeRoundedAdd01, color: Colors.white, size: 20),
+                          HugeIcon(
+                              icon: HugeIcons.strokeRoundedAdd01,
+                              color: Colors.white,
+                              size: 20),
                           const SizedBox(width: 8),
-                          Text(ProfileStrings.newBookRequest, style: const TextStyle(color: Colors.white, fontSize: 15.5, fontWeight: FontWeight.w700)),
+                          Text(ProfileStrings.newBookRequest,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15.5,
+                                  fontWeight: FontWeight.w700)),
                         ],
                       ),
                     ),

@@ -106,7 +106,7 @@ class _SearchScreenState extends State<SearchScreen> {
             const SizedBox(height: 12),
             _buildChipsRow(),
             const SizedBox(height: 8),
-            Expanded(child: _buildGrid(books)),
+            // Expanded(child: _buildGrid(books)),
           ],
         ),
       ),

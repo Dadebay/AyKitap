@@ -29,6 +29,7 @@ class BookApiService {
     bool? bought,
     bool? wantsTo,
     int? authorId,
+    int? genreId,
     int page = 1,
     int size = 100,
   }) async {
@@ -40,6 +41,7 @@ class BookApiService {
         if (bought == true) 'bought': true,
         if (wantsTo == true) 'wants_to': true,
         if (authorId != null) 'author_id': authorId,
+        if (genreId != null) 'genre_id': genreId,
       });
       final items = response.data['data']['items'] as List;
       return items.map((e) => LibraryBook.fromJson(e as Map<String, dynamic>)).toList();
@@ -71,6 +73,18 @@ class BookApiService {
   static Future<void> unlikeBook(String bookId) async {
     try {
       await DioClient.instance.delete(ApiEndpoints.unlikeBook(bookId));
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// DELETE `/books/bought/:bookId`.
+  ///
+  /// This only removes the book from the user's purchased-library list; it
+  /// deliberately does not delete the catalogue book itself.
+  static Future<void> removeBoughtBook(int bookId) async {
+    try {
+      await DioClient.instance.delete(ApiEndpoints.removeBoughtBook(bookId));
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

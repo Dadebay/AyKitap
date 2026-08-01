@@ -25,6 +25,10 @@ class ApiEndpoints {
   /// caller must follow up with [me] to pick up the new balance.
   static const String promoCodes = '/users/promo-codes';
 
+  /// GET — the signed-in user's balance activity, including top-ups and
+  /// book purchases.
+  static const String balanceLogs = '/users/balance-logs';
+
   // ── Books ────────────────────────────────────────────────────────────
   /// GET — paginated real book catalogue, filtered by query params
   /// (`my_books`, `bought`, `wants_to`, `search`, `genre_id`, ...). Backs
@@ -44,6 +48,9 @@ class ApiEndpoints {
 
   /// DELETE — un-likes [bookId] for the signed-in user.
   static String unlikeBook(String bookId) => '/books/unlike/$bookId';
+
+  /// DELETE — removes a book from the signed-in user's purchased library.
+  static String removeBoughtBook(int bookId) => '/books/bought/$bookId';
 
   // ── Collections ──────────────────────────────────────────────────────
   /// GET — themed shelves ("Täze gelenler", ...) with their books, rendered
@@ -98,6 +105,9 @@ class ApiEndpoints {
 
   /// GET — the signed-in user's own book requests, with review status.
   static const String suggestsMy = '/suggests/my';
+
+  /// DELETE — removes one of the signed-in user's own book requests.
+  static String suggestById(int id) => '/suggests/$id';
 
   /// POST — a free-text bug/problem report.
   static const String problems = '/problems';

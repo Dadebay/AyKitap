@@ -13,7 +13,16 @@ import '../../book_detail/catalog_book_detail_screen.dart';
 class LibraryBookCover extends StatelessWidget {
   final LibraryBook book;
   final bool showProgress;
-  const LibraryBookCover({super.key, required this.book, this.showProgress = false});
+  final bool canRemoveFromPurchased;
+  final VoidCallback? onPurchasedBookRemoved;
+
+  const LibraryBookCover({
+    super.key,
+    required this.book,
+    this.showProgress = false,
+    this.canRemoveFromPurchased = false,
+    this.onPurchasedBookRemoved,
+  });
 
   /// The backend hasn't sent a non-null sample yet to confirm its scale —
   /// this treats anything already ≤ 1 as a 0–1 fraction and anything above
@@ -28,7 +37,15 @@ class LibraryBookCover extends StatelessWidget {
     final progress = showProgress ? _normalize(book.progress) : null;
     final image = book.image;
     return GestureDetector(
-      onTap: () => context.push(CatalogBookDetailScreen(bookId: book.id)),
+      onTap: () async {
+        final removed = await context.push<bool>(
+          CatalogBookDetailScreen(
+            bookId: book.id,
+            canRemoveFromPurchased: canRemoveFromPurchased,
+          ),
+        );
+        if (removed == true) onPurchasedBookRemoved?.call();
+      },
       child: AspectRatio(
         aspectRatio: 0.62,
         child: Stack(
@@ -38,7 +55,9 @@ class LibraryBookCover extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(3),
                 child: image != null && image.isNotEmpty
-                    ? NetworkCoverImage(url: ApiConfig.resolveImageUrl(image), placeholder: (_) => _CoverPlaceholder())
+                    ? NetworkCoverImage(
+                        url: ApiConfig.resolveImageUrl(image),
+                        placeholder: (_) => _CoverPlaceholder())
                     : _CoverPlaceholder(),
               ),
             ),
@@ -49,7 +68,10 @@ class LibraryBookCover extends StatelessWidget {
                 child: _CornerBadge(
                   child: Text(
                     '${(progress * 100).round()}%',
-                    style: const TextStyle(color: Colors.black87, fontSize: 8, fontWeight: FontWeight.w800),
+                    style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800),
                   ),
                 ),
               ),
@@ -65,7 +87,11 @@ class _CoverPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: AppColors.card,
-      child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedBook02, color: AppColors.grey3, size: 22)),
+      child: Center(
+          child: HugeIcon(
+              icon: HugeIcons.strokeRoundedBook02,
+              color: AppColors.grey3,
+              size: 22)),
     );
   }
 }
@@ -84,7 +110,12 @@ class _CornerBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         shape: BoxShape.circle,
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 4, offset: const Offset(0, 1))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 4,
+              offset: const Offset(0, 1))
+        ],
       ),
       child: child,
     );
