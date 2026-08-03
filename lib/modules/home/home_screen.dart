@@ -128,7 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildGenreShelfTile(Collection collection) {
     switch (collection.cardType) {
       case CollectionCardType.card2:
-        return SizedBox(width: 320, child: CatalogRankShelfCard(collection: collection));
+        return Container(padding: const EdgeInsets.only(bottom: 20), width: 320, child: CatalogRankShelfCard(collection: collection));
       case CollectionCardType.card3:
         return SizedBox(width: 320, child: CatalogSeriesCard(collection: collection));
       case CollectionCardType.card1:
@@ -152,7 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (collection.cardType) {
       case CollectionCardType.card2:
         return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
           child: CatalogRankShelfCard(collection: collection),
         );
       case CollectionCardType.card3:

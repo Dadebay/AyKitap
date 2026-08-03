@@ -1,10 +1,28 @@
 package com.aykitap.aykitap
 
+import android.content.Intent
+import android.database.Cursor
 import android.graphics.drawable.ColorDrawable
+import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
+import java.io.File
+import java.io.FileOutputStream
 
+/// Backs the "Open with" flow: a book file tapped in another app (Telegram,
+/// Files, mail, ...) arrives here as an ACTION_VIEW intent (see the
+/// intent-filter in AndroidManifest.xml). MethodChannel hands the resolved
+/// local file path to IncomingFileService on the Dart side, which imports it
+/// into OwnBooksStore and opens the matching reader — the same path a
+/// manually-picked file already takes.
 class MainActivity : FlutterActivity() {
+    private val channelName = "com.aykitap.aykitap/incoming_file"
+    private var channel: MethodChannel? = null
+    private var pendingPath: String? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // The app has a *manual* light/dark switch (AppTheme, stored by
         // Flutter's shared_preferences under "flutter.is_dark_theme") that is
@@ -18,5 +36,65 @@ class MainActivity : FlutterActivity() {
         val bg = if (isDark) 0xFF13131A.toInt() else 0xFFF6F6F9.toInt()
         window.setBackgroundDrawable(ColorDrawable(bg))
         super.onCreate(savedInstanceState)
+        pendingPath = resolveIncomingFile(intent)
+    }
+
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+        channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName).apply {
+            setMethodCallHandler { call, result ->
+                if (call.method == "getInitialFile") {
+                    result.success(pendingPath)
+                    pendingPath = null
+                } else {
+                    result.notImplemented()
+                }
+            }
+        }
+    }
+
+    // launchMode="singleTop" means a repeat "Open with" while the app is
+    // already running redelivers here instead of spawning a new instance.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val path = resolveIncomingFile(intent) ?: return
+        channel?.invokeMethod("onIncomingFile", path)
+    }
+
+    private fun resolveIncomingFile(intent: Intent?): String? {
+        if (intent == null || intent.action != Intent.ACTION_VIEW) return null
+        val uri = intent.data ?: return null
+        return try {
+            when (uri.scheme) {
+                "file" -> uri.path
+                "content" -> copyContentUriToCache(uri)
+                else -> null
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    // content:// URIs (what Telegram/Files/Gmail hand us) aren't usable as
+    // dart:io File paths and can vanish once the sending app's process dies,
+    // so the bytes are copied into our own cache right away.
+    private fun copyContentUriToCache(uri: Uri): String? {
+        val resolver = contentResolver
+        var displayName = "shared_${System.currentTimeMillis()}"
+        val cursor: Cursor? = resolver.query(uri, null, null, null, null)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val idx = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (idx >= 0) it.getString(idx)?.let { name -> displayName = name }
+            }
+        }
+        val incomingDir = File(cacheDir, "incoming").apply { mkdirs() }
+        val destFile = File(incomingDir, displayName)
+        val input = resolver.openInputStream(uri) ?: return null
+        input.use { stream ->
+            FileOutputStream(destFile).use { output -> stream.copyTo(output) }
+        }
+        return destFile.absolutePath
     }
 }

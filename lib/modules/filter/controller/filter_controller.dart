@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../core/data/mock/mock_data.dart';
 import '../../../core/localization/strings/filter_strings.dart';
+import '../../../core/models/book_language.dart';
+import '../../../core/network/api_exception.dart';
+import '../../../core/services/book_language_api_service.dart';
 import '../filter_result.dart';
 
 enum SortBy { name, publishNewOld, publishOldNew, uploadNewOld }
@@ -18,31 +20,54 @@ extension SortByLabel on SortBy {
         return FilterStrings.sortByUploadNewOld;
     }
   }
-}
 
-// Selection state keys off these enums rather than the display label text —
-// labels are locale-dependent (via FilterStrings), so keying a Set<String>
-// off them would silently drop selections when the language changes mid-session.
-enum BookLanguage { turkish, russian, english, turkmen, other }
-
-extension BookLanguageLabel on BookLanguage {
-  String get label {
+  /// `GET /books/all?sort_by=` — the backend takes `created_at`, `name` or
+  /// `year`, so each option here is really a (field, direction) pair rather
+  /// than a value of its own.
+  String get apiSortBy {
     switch (this) {
-      case BookLanguage.turkish:
-        return FilterStrings.langTurkish;
-      case BookLanguage.russian:
-        return FilterStrings.langRussian;
-      case BookLanguage.english:
-        return FilterStrings.langEnglish;
-      case BookLanguage.turkmen:
-        return FilterStrings.langTurkmen;
-      case BookLanguage.other:
-        return FilterStrings.langOther;
+      case SortBy.name:
+        return 'name';
+      case SortBy.publishNewOld:
+      case SortBy.publishOldNew:
+        return 'year';
+      case SortBy.uploadNewOld:
+        return 'created_at';
+    }
+  }
+
+  /// The direction half of the pair — `GET /books/all?sort_order=`.
+  String get apiSortOrder {
+    switch (this) {
+      case SortBy.name:
+      case SortBy.publishOldNew:
+        return 'ASC';
+      case SortBy.publishNewOld:
+      case SortBy.uploadNewOld:
+        return 'DESC';
     }
   }
 }
 
-enum BookFormatFilter { epub, pdf, mobi, cbzManga }
+/// What [SearchScreen] shows before anything is filtered (its "discover"
+/// grid) and therefore what the filter page opens on, so the sort section
+/// reflects the order actually on screen instead of claiming A→Z.
+///
+/// Newest-uploaded-first stands in for a random shuffle deliberately: the
+/// backend dev flagged that true randomization has no stable sort under it,
+/// so a page boundary can't be reproduced between requests and pagination
+/// breaks.
+const kDefaultSortBy = SortBy.uploadNewOld;
+
+// Selection state keys off this enum rather than the display label text —
+// labels are locale-dependent (via FilterStrings), so keying a Set<String>
+// off them would silently drop selections when the language changes mid-session.
+// (Book languages are the exception: those are real backend rows, so they're
+// keyed off their `id` — see [selectedLanguageIds].)
+// Only the three formats `GET /books/all?book_format=` accepts. MOBI used to
+// be offered here, but nothing on the backend can filter for it, so the chip
+// could only ever return an unfiltered list.
+enum BookFormatFilter { epub, pdf, cbz }
 
 extension BookFormatFilterLabel on BookFormatFilter {
   String get label {
@@ -51,12 +76,13 @@ extension BookFormatFilterLabel on BookFormatFilter {
         return FilterStrings.formatEpub;
       case BookFormatFilter.pdf:
         return FilterStrings.formatPdf;
-      case BookFormatFilter.mobi:
-        return FilterStrings.formatMobi;
-      case BookFormatFilter.cbzManga:
+      case BookFormatFilter.cbz:
         return FilterStrings.formatCbzManga;
     }
   }
+
+  /// What goes on the wire as `book_format`.
+  String get apiValue => name;
 }
 
 const kDefaultYearRange = RangeValues(1990, 2026);
@@ -65,31 +91,82 @@ const kDefaultYearRange = RangeValues(1990, 2026);
 /// language/format multi-select, year range, sort order, and which
 /// collapsible section is open — so the screen itself just renders it.
 class FilterController extends ChangeNotifier {
-  final quickChips = MockData.quickFilterChips;
-  final Set<String> activeQuickChips = {};
-  final Set<BookLanguage> selectedLanguages = {};
-  final Set<BookFormatFilter> selectedFormats = {};
-  RangeValues yearRange = kDefaultYearRange;
-  SortBy sortBy = SortBy.name;
+  /// The `initial*` arguments re-select whatever the caller ([SearchScreen])
+  /// already has applied, so reopening the filter shows the current state
+  /// instead of an empty form.
+  FilterController({
+    Set<int> initialLanguageIds = const {},
+    Set<BookFormatFilter> initialFormats = const {},
+    RangeValues? initialYearRange,
+    SortBy? initialSortBy,
+  })  : selectedLanguageIds = {...initialLanguageIds},
+        selectedFormats = {...initialFormats},
+        yearRange = initialYearRange ?? kDefaultYearRange,
+        sortBy = initialSortBy ?? kDefaultSortBy {
+    loadLanguages();
+  }
+
+  /// Book languages from `GET /book-languages`; null until the call
+  /// settles. The chips render off this rather than a hardcoded list, so a
+  /// language added on the backend shows up without an app release.
+  List<BookLanguage>? languages;
+  bool languagesFailed = false;
+
+  /// Selected [BookLanguage.id]s — what goes to `GET /books/all` as
+  /// `language_id`.
+  final Set<int> selectedLanguageIds;
+
+  /// Selected file formats — what goes to `GET /books/all` as `book_format`.
+  final Set<BookFormatFilter> selectedFormats;
+
+  /// "Çap senesi" window. Only counts as a filter once it differs from
+  /// [kDefaultYearRange] — see [hasYearFilter].
+  RangeValues yearRange;
+  SortBy sortBy;
+
+  bool get hasYearFilter => yearRange != kDefaultYearRange;
 
   // Which collapsible sections are open.
   final Set<String> expanded = {};
 
   bool get hasActiveFilters =>
-      activeQuickChips.isNotEmpty || selectedLanguages.isNotEmpty || selectedFormats.isNotEmpty || yearRange != kDefaultYearRange || sortBy != SortBy.name;
+      selectedLanguageIds.isNotEmpty ||
+      selectedFormats.isNotEmpty ||
+      hasYearFilter ||
+      sortBy != kDefaultSortBy;
 
-  void toggleQuickChip(String chip) {
-    activeQuickChips.contains(chip) ? activeQuickChips.remove(chip) : activeQuickChips.add(chip);
+  /// Summary line for the collapsed "Dil" section — the picked languages'
+  /// names, in the order the backend returned them.
+  String get selectedLanguagesLabel => (languages ?? const <BookLanguage>[])
+      .where((l) => selectedLanguageIds.contains(l.id))
+      .map((l) => l.label)
+      .join(', ');
+
+  Future<void> loadLanguages() async {
+    languagesFailed = false;
+    notifyListeners();
+    try {
+      languages = await BookLanguageApiService.getLanguages();
+    } on ApiException {
+      // Same best-effort stance as Search's genre row: a failed load shows a
+      // retry inside the section instead of blocking the whole filter page.
+      languages = const [];
+      languagesFailed = true;
+    }
     notifyListeners();
   }
 
   void toggleLanguage(BookLanguage lang) {
-    selectedLanguages.contains(lang) ? selectedLanguages.remove(lang) : selectedLanguages.add(lang);
+    selectedLanguageIds.contains(lang.id)
+        ? selectedLanguageIds.remove(lang.id)
+        : selectedLanguageIds.add(lang.id);
     notifyListeners();
   }
 
   void toggleFormat(BookFormatFilter format) {
-    selectedFormats.contains(format) ? selectedFormats.remove(format) : selectedFormats.add(format);
+    selectedFormats.contains(format)
+        ? selectedFormats.remove(format)
+        : selectedFormats.add(format);
     notifyListeners();
   }
 
@@ -109,17 +186,22 @@ class FilterController extends ChangeNotifier {
   }
 
   void clear() {
-    activeQuickChips.clear();
-    selectedLanguages.clear();
+    selectedLanguageIds.clear();
     selectedFormats.clear();
     yearRange = kDefaultYearRange;
-    sortBy = SortBy.name;
+    sortBy = kDefaultSortBy;
     notifyListeners();
   }
 
-  // Mock: the concrete filter values just seed a fresh book set.
-  FilterResult buildResult() {
-    final seed = activeQuickChips.length * 11 + selectedLanguages.length * 7 + selectedFormats.length * 5 + yearRange.start.round() % 50 + sortBy.index;
-    return FilterResult(active: hasActiveFilters, books: MockData.generateBooks(18, seed: seed));
-  }
+  /// Every selection here maps onto a real `GET /books/all` param —
+  /// `language_id`, `book_format`, `start_year`/`end_year` and
+  /// `sort_by`/`sort_order` — which [SearchScreen] re-runs its query with.
+  FilterResult buildResult() => FilterResult(
+        active: hasActiveFilters,
+        languageIds: {...selectedLanguageIds},
+        formats: {...selectedFormats},
+        startYear: hasYearFilter ? yearRange.start.round() : null,
+        endYear: hasYearFilter ? yearRange.end.round() : null,
+        sortBy: sortBy,
+      );
 }

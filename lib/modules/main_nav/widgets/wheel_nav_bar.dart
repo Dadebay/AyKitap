@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
@@ -8,6 +9,12 @@ import '../../../core/theme/theme_controller.dart';
 /// A turntable-style nav bar: icons sit on a visible dome (the "disk").
 /// Tapping an icon rotates the whole disk like a wheel so that icon rises
 /// to the top-centre; the icon leaving the centre curves around to the side.
+///
+/// The wheel can also be turned by hand: dragging horizontally anywhere over
+/// the bar spins it under the finger, and on release it settles onto the
+/// nearest slot — whichever icon ends up centred becomes the selected tab.
+/// The ring wraps, so spinning past either end carries on into the icons on
+/// the other side rather than stopping.
 class WheelNavBar extends StatefulWidget {
   final int selectedIndex;
   final ValueChanged<int> onTap;
@@ -70,6 +77,17 @@ class _WheelNavBarState extends State<WheelNavBar> with SingleTickerProviderStat
   static const _windowRad = 1.90;
   static const _fadeStart = 1.60;
 
+  // ── Drag ────────────────────────────────────────────────────────────────
+  // How far, horizontally, one slot travels at the top of the ring:
+  // d(cx)/d(index) is r·sin'(0)·stepRad = r·stepRad. Converting the finger's
+  // dx through this is what makes the icons track the finger 1:1 instead of
+  // at some arbitrary made-up rate.
+  static const _pxPerStep = _pathR * _stepRad;
+  // Past this speed a release counts as a flick: the wheel carries on to the
+  // next slot in the direction it was thrown even if the finger never
+  // dragged a full one.
+  static const _flingVelocity = 320.0; // px/s
+
   late final AnimationController _ctrl = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 520),
@@ -80,19 +98,35 @@ class _WheelNavBarState extends State<WheelNavBar> with SingleTickerProviderStat
     curve: Curves.easeOutBack,
   );
 
-  int _fromIndex = 0;
+  // Where the current settle animation started from. A double (not an index)
+  // because a hand-turned wheel is released at an arbitrary angle between
+  // two slots, and the settle has to run from exactly there.
+  double _fromFloat = 0;
+
+  // The wheel's position while a finger is turning it; null the rest of the
+  // time, when [_anim] drives the position instead.
+  double? _dragFloat;
+
+  // Nearest slot the last haptic detent fired for, so the tick happens once
+  // per slot crossed rather than on every drag frame.
+  int? _lastDetent;
 
   @override
   void initState() {
     super.initState();
-    _fromIndex = widget.selectedIndex;
+    _fromFloat = widget.selectedIndex.toDouble();
   }
 
   @override
   void didUpdateWidget(WheelNavBar old) {
     super.didUpdateWidget(old);
     if (old.selectedIndex != widget.selectedIndex) {
-      _fromIndex = old.selectedIndex;
+      // Re-aim from wherever the wheel actually is right now — mid-settle, or
+      // the angle a drag was just released at — rather than from the outgoing
+      // index. Without this a turn that lands on a new tab would unwind back
+      // to the old icon before animating forward again.
+      _fromFloat = _wrap(_dragFloat ?? _selFloatFor(old.selectedIndex));
+      _dragFloat = null;
       _ctrl.forward(from: 0);
     }
   }
@@ -109,6 +143,85 @@ class _WheelNavBarState extends State<WheelNavBar> with SingleTickerProviderStat
     if (x < 0) x += n;
     if (x > n / 2) x -= n;
     return x;
+  }
+
+  /// Folds a position back into `[0, n)`. Rendering already draws each icon's
+  /// wrap-around copies, so a wrapped value looks identical on screen — this
+  /// just stops the number itself drifting off after many turns, which would
+  /// eventually push every icon outside the visible angle window.
+  double _wrap(double v) {
+    final n = _icons.length;
+    var x = v % n;
+    if (x < 0) x += n;
+    return x;
+  }
+
+  /// The wheel's animated position when it's settling toward [selectedIndex].
+  double _selFloatFor(int selectedIndex) {
+    final delta = _circular(selectedIndex - _fromFloat, _icons.length);
+    return _fromFloat + delta * _anim.value;
+  }
+
+  void _onDragStart(DragStartDetails _) {
+    // Take over from exactly where the settle animation had got to, so
+    // grabbing a mid-flight wheel doesn't jump.
+    _ctrl.stop();
+    setState(() {
+      _dragFloat = _selFloatFor(widget.selectedIndex);
+      _lastDetent = _dragFloat!.round();
+    });
+  }
+
+  void _onDragUpdate(DragUpdateDetails details) {
+    final drag = _dragFloat;
+    if (drag == null) return;
+    // Dragging left turns the wheel forward — the icon to the right of centre
+    // rises into it — which is +1 slot per [_pxPerStep] of leftward travel.
+    final next = _wrap(drag - details.delta.dx / _pxPerStep);
+    final detent = next.round();
+    if (detent != _lastDetent) {
+      _lastDetent = detent;
+      HapticFeedback.selectionClick();
+    }
+    setState(() => _dragFloat = next);
+  }
+
+  void _onDragEnd(DragEndDetails details) {
+    final drag = _dragFloat;
+    if (drag == null) return;
+    final n = _icons.length;
+    final vx = details.velocity.pixelsPerSecond.dx;
+
+    // Nearest slot normally; a flick instead carries the wheel on in the
+    // direction it was thrown, so a short-but-fast swipe still changes tab
+    // rather than snapping back.
+    final slot = vx.abs() >= _flingVelocity ? (vx < 0 ? drag.ceil() : drag.floor()) : drag.round();
+    var target = slot % n;
+    if (target < 0) target += n;
+
+    setState(() {
+      // Settle from the released angle, not from the outgoing tab's slot.
+      _fromFloat = drag;
+      _dragFloat = null;
+      _lastDetent = null;
+    });
+    // Order matters: the parent's rebuild (and so [didUpdateWidget], which
+    // re-aims the settle at the new tab) lands in the same frame as this
+    // controller start, while [_anim] is still at 0 — so the wheel picks up
+    // from `drag` either way, whether or not the tab actually changed.
+    if (target != widget.selectedIndex) widget.onTap(target);
+    _ctrl.forward(from: 0);
+  }
+
+  void _onDragCancel() {
+    final drag = _dragFloat;
+    if (drag == null) return;
+    setState(() {
+      _fromFloat = drag;
+      _dragFloat = null;
+      _lastDetent = null;
+    });
+    _ctrl.forward(from: 0);
   }
 
   @override
@@ -140,47 +253,58 @@ class _WheelNavBarState extends State<WheelNavBar> with SingleTickerProviderStat
     return SizedBox(
       height: _barHeight + _domeHitOverhang + bottomPad,
       width: screenWidth,
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: _barHeight + _domeHitOverhang,
-          child: AnimatedBuilder(
-            animation: _anim,
-            builder: (context, _) {
-              // Fractional selected index — animates old → new.
-              final delta = _circular(
-                (widget.selectedIndex - _fromIndex).toDouble(),
-                n,
-              );
-              final selFloat = _fromIndex + delta * _anim.value;
+      // Translucent, deliberately: the drag recognizer needs to see pointers
+      // anywhere over the bar, but this box also overhangs body content (the
+      // Scaffold uses extendBody), and an opaque box would swallow taps meant
+      // for it. Translucent puts this in the gesture arena *and* keeps
+      // hit-testing what's behind — a still tap still goes to the body/icons,
+      // only an actual horizontal drag is claimed here.
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragStart: _onDragStart,
+        onHorizontalDragUpdate: _onDragUpdate,
+        onHorizontalDragEnd: _onDragEnd,
+        onHorizontalDragCancel: _onDragCancel,
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: _barHeight + _domeHitOverhang,
+            child: AnimatedBuilder(
+              animation: _anim,
+              builder: (context, _) {
+                // Fractional selected index — the finger's position while the
+                // wheel is being turned by hand, otherwise the old → new
+                // settle animation.
+                final selFloat = _dragFloat ?? _selFloatFor(widget.selectedIndex);
 
-              return Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  // ── The disk (dome), raised above the bar's top edge ──
-                  Positioned(
-                    top: boxTop,
-                    left: 0,
-                    right: 0,
-                    height: boxHeight,
-                    child: ClipRect(
-                      child: CustomPaint(
-                        size: Size(screenWidth, boxHeight),
-                        painter: _DiskPainter(
-                          centerX: centreX,
-                          centerY: _diskR + 2, // local to this raised box
-                          radius: _diskR,
-                          selFloat: selFloat,
-                          isDark: AppTheme.instance.isDark,
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // ── The disk (dome), raised above the bar's top edge ──
+                    Positioned(
+                      top: boxTop,
+                      left: 0,
+                      right: 0,
+                      height: boxHeight,
+                      child: ClipRect(
+                        child: CustomPaint(
+                          size: Size(screenWidth, boxHeight),
+                          painter: _DiskPainter(
+                            centerX: centreX,
+                            centerY: _diskR + 2, // local to this raised box
+                            radius: _diskR,
+                            selFloat: selFloat,
+                            isDark: AppTheme.instance.isDark,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  // ── The icons riding on the disk ───────────────────────
-                  ..._buildIcons(n, centreX, diskCenterY, selFloat),
-                ],
-              );
-            },
+                    // ── The icons riding on the disk ─────────────────────
+                    ..._buildIcons(n, centreX, diskCenterY, selFloat),
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),

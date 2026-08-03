@@ -17,6 +17,19 @@ import '../../../core/theme/app_colors.dart';
 ///   the plain page on a dark gutter.
 enum PdfColorMode { light, sepia, night }
 
+/// How pages are laid out and moved through.
+///
+/// * [paged] — one page per sideways swipe, like turning a book page. Pairs
+///   with [FitPolicy.BOTH]: the whole page has to be on screen, since there's
+///   nothing to scroll to if part of it falls below the fold.
+/// * [scroll] — every page stacked in one continuous top-to-bottom scroll.
+///   This is what makes a very tall page readable: paired with
+///   [FitPolicy.WIDTH] the page fills the screen's width and you scroll down
+///   through it, instead of the whole strip being shrunk to fit the screen's
+///   *height* and rendering as a narrow, unreadable column (which is exactly
+///   what a webtoon/manhwa PDF does in [paged] + [FitPolicy.BOTH]).
+enum PdfViewMode { paged, scroll }
+
 /// The PDF reader's settings panel — the counterpart of [ReaderSettingsSheet],
 /// built from the same pieces (grab handle, heading with a dismiss circle,
 /// section labels) so the two readers feel like one app. Every section is a
@@ -34,10 +47,12 @@ class PdfSettingsSheet extends StatelessWidget {
   final double brightness;
   final double eyeCare;
   final FitPolicy fitPolicy;
+  final PdfViewMode viewMode;
   final ValueChanged<PdfColorMode> onColorModeChanged;
   final ValueChanged<double> onBrightnessChanged;
   final ValueChanged<double> onEyeCareChanged;
   final ValueChanged<FitPolicy> onFitChanged;
+  final ValueChanged<PdfViewMode> onViewModeChanged;
 
   /// Set only when this PDF was previously reflowed into text (a cached
   /// conversion exists) and the reader chose to fall back to these fixed
@@ -50,10 +65,12 @@ class PdfSettingsSheet extends StatelessWidget {
     required this.brightness,
     required this.eyeCare,
     required this.fitPolicy,
+    required this.viewMode,
     required this.onColorModeChanged,
     required this.onBrightnessChanged,
     required this.onEyeCareChanged,
     required this.onFitChanged,
+    required this.onViewModeChanged,
     this.onSwitchToTextView,
   });
 
@@ -131,6 +148,36 @@ class PdfSettingsSheet extends StatelessWidget {
                   label: ReaderStrings.themeNight,
                   selected: colorMode == PdfColorMode.night,
                   onTap: () => onColorModeChanged(PdfColorMode.night),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 22),
+
+          // ── View mode ─────────────────────────────────────────────────
+          // Sits above the scale tiles because it's the coarser choice of
+          // the two, and picking it also moves the scale to the one that
+          // actually works with it (see PdfReaderScreen._setViewMode).
+          _SectionLabel(ReaderStrings.pdfViewModeLabel),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _FitTile(
+                  icon: HugeIcons.strokeRoundedScrollHorizontal,
+                  label: ReaderStrings.pdfViewModePaged,
+                  selected: viewMode == PdfViewMode.paged,
+                  onTap: () => onViewModeChanged(PdfViewMode.paged),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _FitTile(
+                  icon: HugeIcons.strokeRoundedScrollVertical,
+                  label: ReaderStrings.pdfViewModeScroll,
+                  selected: viewMode == PdfViewMode.scroll,
+                  onTap: () => onViewModeChanged(PdfViewMode.scroll),
                 ),
               ),
             ],

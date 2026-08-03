@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
@@ -12,6 +14,9 @@ class NetworkCoverImage extends StatelessWidget {
   final BoxFit fit;
   final double? width;
   final double? height;
+  /// Which part of the source survives a [BoxFit.cover] crop — worth moving
+  /// off center for portraits, where the face sits above the middle.
+  final Alignment alignment;
   const NetworkCoverImage({
     super.key,
     required this.url,
@@ -19,6 +24,7 @@ class NetworkCoverImage extends StatelessWidget {
     this.fit = BoxFit.cover,
     this.width,
     this.height,
+    this.alignment = Alignment.center,
   });
 
   @override
@@ -35,15 +41,34 @@ class NetworkCoverImage extends StatelessWidget {
     double? finite(double? v) => (v != null && v.isFinite) ? v : null;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final cacheWidth = finite(width) ?? finite(constraints.maxWidth);
-        final cacheHeight = finite(height) ?? finite(constraints.maxHeight);
+        final boxWidth = finite(width) ?? finite(constraints.maxWidth);
+        final boxHeight = finite(height) ?? finite(constraints.maxHeight);
+        // Only ever hand the decoder ONE dimension. `ResizeImage` (which is
+        // what memCacheWidth/Height build under the hood) resizes to exactly
+        // the sizes it is given, so passing both squashes the source's aspect
+        // ratio — a portrait photo in a square avatar box came out visibly
+        // stretched sideways, and no BoxFit could undo it because the
+        // distortion already happened at decode time. With one dimension the
+        // other scales proportionally; picking the larger side is what keeps
+        // BoxFit.cover from decoding below the size it actually paints at.
+        int px(double v) => (v * dpr).round();
+        int? cacheWidth;
+        int? cacheHeight;
+        if (boxWidth != null && boxHeight != null) {
+          cacheWidth = px(math.max(boxWidth, boxHeight));
+        } else if (boxWidth != null) {
+          cacheWidth = px(boxWidth);
+        } else if (boxHeight != null) {
+          cacheHeight = px(boxHeight);
+        }
         return CachedNetworkImage(
           imageUrl: url,
           fit: fit,
+          alignment: alignment,
           width: width,
           height: height,
-          memCacheWidth: cacheWidth != null ? (cacheWidth * dpr).round() : null,
-          memCacheHeight: cacheHeight != null ? (cacheHeight * dpr).round() : null,
+          memCacheWidth: cacheWidth,
+          memCacheHeight: cacheHeight,
           placeholder: (context, url) => placeholder(context),
           errorWidget: (context, url, error) => placeholder(context),
         );
