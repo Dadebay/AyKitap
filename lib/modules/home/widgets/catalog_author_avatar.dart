@@ -21,7 +21,11 @@ import '../../author/catalog_author_detail_screen.dart';
 /// chips.
 class CatalogAuthorAvatar extends StatefulWidget {
   final LibraryBookAuthor author;
-  const CatalogAuthorAvatar({super.key, required this.author});
+  // Fixed 120 for Home's horizontal row (each item needs its own intrinsic
+  // width there); pass `double.infinity` to fill a grid cell instead, as
+  // [SearchScreen]'s author-mode results grid does.
+  final double width;
+  const CatalogAuthorAvatar({super.key, required this.author, this.width = 120});
 
   @override
   State<CatalogAuthorAvatar> createState() => _CatalogAuthorAvatarState();
@@ -51,7 +55,7 @@ class _CatalogAuthorAvatarState extends State<CatalogAuthorAvatar> with SingleTi
       child: ScaleTransition(
         scale: _press,
         child: Container(
-          width: 120,
+          width: widget.width,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
           decoration: BoxDecoration(
             color: AppColors.surface,
@@ -72,7 +76,7 @@ class _CatalogAuthorAvatarState extends State<CatalogAuthorAvatar> with SingleTi
                   // gap blends in rather than punching a visible hole.
                   decoration: BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
                   child: ClipOval(
-                    child: image != null && image.isNotEmpty ? NetworkCoverImage(url: ApiConfig.resolveImageUrl(image), placeholder: (_) => _placeholder()) : _placeholder(),
+                    child: image != null && image.isNotEmpty ? NetworkCoverImage(fit: BoxFit.contain, url: ApiConfig.resolveImageUrl(image), placeholder: (_) => _placeholder()) : _placeholder(),
                   ),
                 ),
               ),

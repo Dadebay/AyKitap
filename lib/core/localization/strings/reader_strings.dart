@@ -32,6 +32,13 @@ class ReaderStrings {
   static String get pdfFitWidth => t(tk: 'Ini boýunça', ru: 'По ширине', tr: 'Genişliğe göre');
   static String get pdfFitPage => t(tk: 'Doly sahypa', ru: 'Вся страница', tr: 'Tam sayfa');
 
+  /// Whether pages turn sideways one at a time, or scroll continuously top
+  /// to bottom — the latter is what makes very tall pages (webtoon/manhwa
+  /// strips) readable instead of shrinking them to fit the screen height.
+  static String get pdfViewModeLabel => t(tk: 'Okaýyş görnüşi', ru: 'Режим просмотра', tr: 'Görünüm modu');
+  static String get pdfViewModePaged => t(tk: 'Sahypalap', ru: 'Постранично', tr: 'Sayfa sayfa');
+  static String get pdfViewModeScroll => t(tk: 'Dowamly aýlaw', ru: 'Прокруткой', tr: 'Kaydırmalı');
+
   // ── CBZ reader (comic/manga chapter, a zip of page images) ──────────────
   static String cbzOpenError(String error) => t(
         tk: 'CBZ açylmady: $error',

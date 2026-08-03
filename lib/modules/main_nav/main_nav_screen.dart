@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/services/incoming_file_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../core/localization/app_locale.dart';
@@ -62,6 +63,10 @@ class _MainNavScreenState extends State<MainNavScreen> with SingleTickerProvider
     _pageCtrl.value = 1; // start settled (no transition on first frame)
     AppTheme.instance.addListener(_onRebuildNeeded);
     AppLocale.instance.addListener(_onRebuildNeeded);
+    // Safe to start listening here: the app shell is up, so a cold-start
+    // "Open with" file (Telegram, Files, mail, ...) has a Navigator to
+    // push the reader into.
+    IncomingFileService.instance.init();
   }
 
   @override

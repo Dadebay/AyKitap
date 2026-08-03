@@ -33,7 +33,14 @@ class ExpandableFilterSection extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Row(
               children: [
-                Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.white, fontSize: 15, fontWeight: FontWeight.w600))),
+                Expanded(
+                    child: Text(title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: AppColors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600))),
                 Expanded(
                   child: Text(
                     summary,
@@ -47,7 +54,10 @@ class ExpandableFilterSection extends StatelessWidget {
                 AnimatedRotation(
                   turns: expanded ? 0.25 : 0,
                   duration: const Duration(milliseconds: 200),
-                  child: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: AppColors.grey3, size: 18),
+                  child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedArrowRight01,
+                      color: AppColors.grey3,
+                      size: 18),
                 ),
               ],
             ),
@@ -59,7 +69,8 @@ class ExpandableFilterSection extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: child,
           ),
-          crossFadeState: expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          crossFadeState:
+              expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
           duration: const Duration(milliseconds: 220),
           sizeCurve: Curves.easeOut,
         ),

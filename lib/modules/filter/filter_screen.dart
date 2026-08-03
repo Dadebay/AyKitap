@@ -13,12 +13,31 @@ export 'filter_result.dart' show FilterResult;
 /// Filtr Sahypasy — TZ section 6, Surat 4 style: quick chips, collapsible
 /// filter sections and a sticky "Netijeleri görkez" button.
 class FilterScreen extends StatelessWidget {
-  const FilterScreen({super.key});
+  /// The languages, formats, year window and sort already applied by the
+  /// caller, re-selected when the page opens so the filter shows the state
+  /// that's actually in effect.
+  final Set<int> initialLanguageIds;
+  final Set<BookFormatFilter> initialFormats;
+  final RangeValues? initialYearRange;
+  final SortBy? initialSortBy;
+
+  const FilterScreen({
+    super.key,
+    this.initialLanguageIds = const {},
+    this.initialFormats = const {},
+    this.initialYearRange,
+    this.initialSortBy,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => FilterController(),
+      create: (_) => FilterController(
+        initialLanguageIds: initialLanguageIds,
+        initialFormats: initialFormats,
+        initialYearRange: initialYearRange,
+        initialSortBy: initialSortBy,
+      ),
       child: const _FilterScreenBody(),
     );
   }
@@ -44,19 +63,6 @@ class _FilterScreenBody extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
               children: [
-                _sectionLabel(FilterStrings.quickFilters),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: c.quickChips
-                      .map((chip) => MultiChip(
-                            label: chip,
-                            selected: c.activeQuickChips.contains(chip),
-                            onTap: () => c.toggleQuickChip(chip),
-                          ))
-                      .toList(),
-                ),
                 const SizedBox(height: 20),
                 Container(
                   decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16)),
@@ -64,20 +70,10 @@ class _FilterScreenBody extends StatelessWidget {
                     children: [
                       ExpandableFilterSection(
                         title: FilterStrings.language,
-                        summary: c.selectedLanguages.isEmpty ? FilterStrings.any : c.selectedLanguages.map((l) => l.label).join(', '),
+                        summary: c.selectedLanguageIds.isEmpty ? FilterStrings.any : c.selectedLanguagesLabel,
                         expanded: c.expanded.contains('lang'),
                         onToggle: () => c.toggleExpanded('lang'),
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: BookLanguage.values
-                              .map((l) => MultiChip(
-                                    label: l.label,
-                                    selected: c.selectedLanguages.contains(l),
-                                    onTap: () => c.toggleLanguage(l),
-                                  ))
-                              .toList(),
-                        ),
+                        child: _buildLanguageOptions(c),
                       ),
                       _divider(),
                       ExpandableFilterSection(
@@ -168,6 +164,55 @@ class _FilterScreenBody extends StatelessWidget {
           _buildBottomBar(context, c),
         ],
       ),
+    );
+  }
+
+  // The "Dil" section's body — the chips come from `GET /book-languages`,
+  // so it also has to render the load's in-flight and failed states.
+  Widget _buildLanguageOptions(FilterController c) {
+    final languages = c.languages;
+    if (languages == null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+          ),
+        ),
+      );
+    }
+    if (languages.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                c.languagesFailed ? FilterStrings.langLoadFailed : FilterStrings.any,
+                style: TextStyle(color: AppColors.grey2, fontSize: 13.5),
+              ),
+            ),
+            if (c.languagesFailed)
+              TextButton(
+                onPressed: c.loadLanguages,
+                child: Text(FilterStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13.5)),
+              ),
+          ],
+        ),
+      );
+    }
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: languages
+          .map((l) => MultiChip(
+                label: l.label,
+                selected: c.selectedLanguageIds.contains(l.id),
+                onTap: () => c.toggleLanguage(l),
+              ))
+          .toList(),
     );
   }
 

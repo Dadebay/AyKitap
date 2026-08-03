@@ -1,27 +1,27 @@
-# Session Snapshot — 2026-08-01 11:37
+# Session Snapshot — 2026-08-03 13:27
 
 ## Files Changed
-- .claude/ARCHITECTURE_MAP.md
-- .claude/COMMON_MISTAKES.md
-- .claude/QUICK_START.md
-- .claude/hooks/notification-token-display.sh
-- .claude/hooks/post-write-token-diff.sh
-- .claude/hooks/pre-tool-bash-guard.sh
-- .claude/hooks/pre-tool-read-guard.sh
-- .claude/hooks/pre-tool-token-guard.sh
-- .claude/hooks/session-end-token-report.sh
-- .claude/hooks/stop-path-guard.sh
+- .Codex/completions/2026-08-01-balance-history-card-design.md
+- .Codex/completions/2026-08-01-balance-history.md
+- .Codex/completions/2026-08-01-delete-book-suggestion.md
+- .Codex/completions/2026-08-01-genre-books-navigation.md
+- .Codex/completions/2026-08-01-network-error-state.md
+- .Codex/completions/2026-08-01-persist-favorite-detail-state.md
+- .Codex/completions/2026-08-01-profile-avatar-precedence.md
+- .Codex/completions/2026-08-01-remove-bought-book.md
+- .Codex/completions/2026-08-01-suppress-catalog-response-log.md
+- .claude/sessions/.claude-md-validated-2026-08-01
 
 ## Recent Commits
+- f2cc98a Aug 1
 - f4b7460 Jul 29
 - ec9a01e Jul 19
 - c03a4b8 Reader android works
 - 78cd44c feat(reader): revamp reader UI, notes/highlights, real brightness, fonts
-- 482dd9f Before reader start
 
 ## Token Estimate
 ~763 tokens in auto-loaded files
 
 ## Last Turn
-Bunu Claude veya Codex'e verip website'in Home sayfasını aynı mantıkla kurmasını isteyebilirsin.
+Bir de debug build'de `ApiLogInterceptor` her isteği konsola basıyor: Kitap modunda bir türe bas, `GET /books/all` satır
 

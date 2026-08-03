@@ -86,6 +86,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
   double _eyeCare = 0.0;
   PdfColorMode _colorMode = PdfColorMode.light;
   FitPolicy _fitPolicy = FitPolicy.BOTH;
+  PdfViewMode _viewMode = PdfViewMode.paged;
 
   // Tap vs. scroll discrimination for the focus-mode toggle.
   Offset? _touchStart;
@@ -127,10 +128,15 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
     } else {
       _colorMode = AppTheme.instance.isDark ? PdfColorMode.night : PdfColorMode.light;
     }
-    // BOTH is the default: it always shows the whole page, which single-page
-    // horizontal swiping needs (there's no way to scroll to the rest of a page
-    // that WIDTH left below the fold). WIDTH is opt-in, for someone who'd
-    // rather fill the width and accept a taller page running off-screen.
+    // Paged (sideways, one page per swipe) is the default — it's how a normal
+    // book PDF reads. Scroll mode is what rescues very tall pages; see
+    // [PdfViewMode].
+    _viewMode = PdfViewMode.values[(prefs.getInt('reader_pdf_view_mode') ?? 0).clamp(0, PdfViewMode.values.length - 1)];
+    // BOTH is the default in paged mode: it always shows the whole page, which
+    // single-page horizontal swiping needs (there's no way to scroll to the
+    // rest of a page that WIDTH left below the fold). In scroll mode that
+    // constraint is gone and WIDTH is the useful one, which is why
+    // [_setViewMode] moves the fit across with the mode.
     _fitPolicy = (prefs.getBool('reader_pdf_fit_width') ?? false) ? FitPolicy.WIDTH : FitPolicy.BOTH;
     _applyBrightness();
     _reflowEpubPath = await PdfReflowService.instance.cachedReflowEpubPath(widget.filePath);
@@ -291,6 +297,25 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
     await prefs.setBool('reader_pdf_fit_width', fit == FitPolicy.WIDTH);
   }
 
+  Future<void> _setViewMode(PdfViewMode mode) async {
+    if (_viewMode == mode) return;
+    // Each mode only really works with one of the two fits (see
+    // [PdfViewMode]), so switching brings the fit along rather than leaving
+    // the reader in the broken pairing — scroll + whole-page would still
+    // shrink a tall page to nothing, and paged + fit-width would still cut
+    // one off below the fold. It's still a plain setting afterwards: the fit
+    // tiles stay live, so anyone who wants the other pairing can pick it.
+    final fit = mode == PdfViewMode.scroll ? FitPolicy.WIDTH : FitPolicy.BOTH;
+    setState(() {
+      _initialPage = _currentPage;
+      _viewMode = mode;
+      _fitPolicy = fit;
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('reader_pdf_view_mode', mode.index);
+    await prefs.setBool('reader_pdf_fit_width', fit == FitPolicy.WIDTH);
+  }
+
   // ── Sheets ─────────────────────────────────────────────────────────────────
   void _openSettings() {
     showModalBottomSheet(
@@ -305,6 +330,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
           brightness: _brightness,
           eyeCare: _eyeCare,
           fitPolicy: _fitPolicy,
+          viewMode: _viewMode,
           onColorModeChanged: (v) async {
             await _setColorMode(v);
             setSheetState(() {});
@@ -319,6 +345,10 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
           },
           onFitChanged: (v) async {
             await _setFit(v);
+            setSheetState(() {});
+          },
+          onViewModeChanged: (v) async {
+            await _setViewMode(v);
             setSheetState(() {});
           },
           onSwitchToTextView: _reflowEpubPath != null ? _switchToTextView : null,
@@ -397,16 +427,31 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                   // across that rebuild and across reopening the book. (Sepia
                   // isn't in the key: it's a Flutter overlay, not a render
                   // change, so switching to/from it mustn't reload the file.)
-                  key: ValueKey('pdf_${nightMode}_${_fitPolicy.name}_$_initialPage'),
+                  key: ValueKey('pdf_${nightMode}_${_fitPolicy.name}_${_viewMode.name}_$_initialPage'),
                   filePath: widget.filePath,
-                  // One page per swipe, like a real page turn — not a
-                  // continuous vertical scroll. Vertical mode showed the tail
-                  // of the current page, then a gap, then the top of the next
-                  // one bleeding into view, which is what read as "there's a
-                  // border/frame around the picture": it wasn't a border, it
-                  // was the *next page* peeking in because a manga page's
-                  // height doesn't divide the screen evenly.
-                  swipeHorizontal: true,
+                  // Paged: one page per sideways swipe, like a real page turn.
+                  // Vertical *paged* scrolling was the old default and read
+                  // badly — the tail of the current page, a gap, then the top
+                  // of the next one bleeding in, which looked like a border
+                  // round the picture (it wasn't: a page's height rarely
+                  // divides the screen evenly). Scroll mode below is different:
+                  // it drops the snapping entirely so pages run together as
+                  // one continuous strip, which is what a tall webtoon page
+                  // needs.
+                  swipeHorizontal: _viewMode == PdfViewMode.paged,
+                  // Only snap/fling to page boundaries when pages *are* the
+                  // unit of movement. In scroll mode they'd fight the free
+                  // vertical scroll that makes a tall page readable — and on
+                  // iOS pageFling is what picks a paging controller over
+                  // continuous scrolling, so it has to go there too.
+                  //
+                  // `autoSpacing` is deliberately left at its default: on
+                  // Android it only controls the gap between pages, but on
+                  // iOS this same flag is wired to PDFKit's `autoScales`, so
+                  // turning it off to close that gap would stop the page
+                  // fitting the screen at all there.
+                  pageSnap: _viewMode == PdfViewMode.paged,
+                  pageFling: _viewMode == PdfViewMode.paged,
                   // Night mode inverts the rendered page to light-on-dark — the
                   // "göz goraýyş" dark reading the user asked for. It's ideal
                   // for text PDFs (black-on-white becomes white-on-black) and

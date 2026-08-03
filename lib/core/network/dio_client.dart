@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import '../localization/app_locale.dart';
 import '../services/auth_session.dart';
 import 'api_config.dart';
 import 'api_log_interceptor.dart';
@@ -28,8 +29,15 @@ class DioClient {
     // Endpoints called before login (send-code, verify-login) simply have
     // no token yet, so this is a no-op for them rather than a branch every
     // service would otherwise need to repeat.
+    //
+    // `Accept-Language` rides along here for the same reason: the backend
+    // returns book titles, genres, and the rest in whichever of tk/ru/tr it
+    // is asked for, and it has to follow the in-app language switch rather
+    // than the device's. Read per request — not once at build time — so a
+    // language change takes effect on the very next call.
     dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
+        options.headers['Accept-Language'] = AppLocale.instance.current.name;
         final token = await AuthSession.getToken();
         if (token != null && token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';

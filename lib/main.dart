@@ -7,6 +7,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'core/localization/app_locale.dart';
 import 'core/localization/localization_delegates.dart';
+import 'core/navigation/root_navigator.dart';
 import 'core/services/account_service.dart';
 import 'core/services/analytics_service.dart';
 import 'core/services/bookmarks_store.dart';
@@ -84,6 +85,7 @@ class AykitapApp extends StatelessWidget {
     final isDark = context.watch<AppTheme>().isDark;
     context.watch<AppLocale>();
     return MaterialApp(
+      navigatorKey: rootNavigatorKey,
       title: 'Aýkitap',
       debugShowCheckedModeBanner: false,
       locale: AppLocale.instance.locale,

@@ -52,16 +52,34 @@ class ApiEndpoints {
   /// DELETE — removes a book from the signed-in user's purchased library.
   static String removeBoughtBook(int bookId) => '/books/bought/$bookId';
 
+  // ── Book languages ───────────────────────────────────────────────────
+  /// GET — the languages books can be written in, each with its name in all
+  /// three UI languages. Backs the Filtr sahypasy's "Dil" section; the
+  /// picked row's id goes back to [booksAll] as `language_id`.
+  static const String bookLanguages = '/book-languages';
+
   // ── Collections ──────────────────────────────────────────────────────
   /// GET — themed shelves ("Täze gelenler", ...) with their books, rendered
   /// as Home's stacked collection sections.
   static const String collectionsAll = '/collections/all';
+
+  // ── Genres ───────────────────────────────────────────────────────────
+  /// GET — genres, optionally filtered by `?parent_id=`. Backs Search's
+  /// genre chip row — tapping one opens `GET /books/all?genre_id=`.
+  static const String genresAll = '/genres/all';
 
   // ── Authors ──────────────────────────────────────────────────────────
   /// GET — one author's full detail (name, image, bio). Backs
   /// [CatalogAuthorDetailScreen], reached from a `type: "author"`
   /// collection's avatar row.
   static String authorById(int id) => '/authors/$id';
+
+  /// GET — searches authors by name (`?search=`), paginated, returning each
+  /// match's id/image/name/`book_count` directly. Backs Search's "Ýazar"
+  /// mode — dedicated author matching, unlike [booksAll]'s `authors=` param
+  /// (which matches against each book's author list and hands back books,
+  /// not authors).
+  static const String authorsSearch = '/authors/search';
 
   // ── Payments ─────────────────────────────────────────────────────────
   /// GET — the subscription tariffs (`month_count`/`price`/`actual_price`)

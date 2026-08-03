@@ -15,19 +15,17 @@ class FilterStrings {
   static String get clearFilter => t(tk: 'Filtri arassala', ru: 'Очистить фильтр', tr: 'Filtreyi temizle');
   static String get showResults => t(tk: 'Netijeleri görkez', ru: 'Показать результаты', tr: 'Sonuçları göster');
 
-  // Language filter options (the book's language — distinct from the app's
-  // own UI language picker in Settings).
-  static String get langTurkish => t(tk: 'Türk dili', ru: 'Турецкий язык', tr: 'Türkçe');
-  static String get langRussian => t(tk: 'Rus dili', ru: 'Русский язык', tr: 'Rusça');
-  static String get langEnglish => t(tk: 'Iňlis dili', ru: 'Английский язык', tr: 'İngilizce');
-  static String get langTurkmen => t(tk: 'Türkmen dili', ru: 'Туркменский язык', tr: 'Türkmence');
-  static String get langOther => t(tk: 'Beýleki', ru: 'Другой', tr: 'Diğer');
+  // Language section (the book's language — distinct from the app's own UI
+  // language picker in Settings). The options themselves come from
+  // `GET /book-languages`, already translated, so only these two are local.
+  static String get langLoadFailed => t(tk: 'Diller ýüklenmedi', ru: 'Не удалось загрузить языки', tr: 'Diller yüklenemedi');
+  static String get retry => t(tk: 'Gaýtadan synanyş', ru: 'Повторить', tr: 'Tekrar dene');
 
   // File format filter options — technical/format labels, same across
-  // languages.
+  // languages. Only the three `GET /books/all?book_format=` accepts; MOBI
+  // was dropped because no backend filter can serve it.
   static String get formatEpub => t(tk: 'EPUB', ru: 'EPUB', tr: 'EPUB');
   static String get formatPdf => t(tk: 'PDF', ru: 'PDF', tr: 'PDF');
-  static String get formatMobi => t(tk: 'MOBI', ru: 'MOBI', tr: 'MOBI');
   static String get formatCbzManga => t(tk: 'CBZ (Manga)', ru: 'CBZ (Манга)', tr: 'CBZ (Manga)');
 
   // Sort-by option labels.

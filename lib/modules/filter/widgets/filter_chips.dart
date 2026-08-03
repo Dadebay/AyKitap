@@ -6,7 +6,11 @@ class MultiChip extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  const MultiChip({super.key, required this.label, required this.selected, required this.onTap});
+  const MultiChip(
+      {super.key,
+      required this.label,
+      required this.selected,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -17,9 +21,14 @@ class MultiChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? AppColors.primary : AppColors.surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? AppColors.primary : AppColors.border),
+          border: Border.all(
+              color: selected ? AppColors.primary : AppColors.border),
         ),
-        child: Text(label, style: TextStyle(color: selected ? Colors.white : AppColors.grey1, fontSize: 13, fontWeight: FontWeight.w600)),
+        child: Text(label,
+            style: TextStyle(
+                color: selected ? Colors.white : AppColors.grey1,
+                fontSize: 13,
+                fontWeight: FontWeight.w600)),
       ),
     );
   }
@@ -30,7 +39,12 @@ class SortTile<T> extends StatelessWidget {
   final T value;
   final T group;
   final ValueChanged<T?> onChanged;
-  const SortTile({super.key, required this.label, required this.value, required this.group, required this.onChanged});
+  const SortTile(
+      {super.key,
+      required this.label,
+      required this.value,
+      required this.group,
+      required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -43,13 +57,20 @@ class SortTile<T> extends StatelessWidget {
         child: Row(
           children: [
             HugeIcon(
-              icon: selected ? HugeIcons.strokeRoundedCheckmarkCircle01 : HugeIcons.strokeRoundedCircle,
+              icon: selected
+                  ? HugeIcons.strokeRoundedCheckmarkCircle01
+                  : HugeIcons.strokeRoundedCircle,
               color: selected ? AppColors.primary : AppColors.grey3,
               size: 20,
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(label, style: TextStyle(color: selected ? AppColors.white : AppColors.grey2, fontSize: 14, fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
+              child: Text(label,
+                  style: TextStyle(
+                      color: selected ? AppColors.white : AppColors.grey2,
+                      fontSize: 14,
+                      fontWeight:
+                          selected ? FontWeight.w600 : FontWeight.w400)),
             ),
           ],
         ),
