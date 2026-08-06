@@ -10,9 +10,11 @@ import 'core/localization/localization_delegates.dart';
 import 'core/navigation/root_navigator.dart';
 import 'core/services/account_service.dart';
 import 'core/services/analytics_service.dart';
+import 'core/services/book_access_service.dart';
 import 'core/services/bookmarks_store.dart';
 import 'core/services/device_fingerprint.dart';
 import 'core/services/downloaded_books_store.dart';
+import 'core/services/downloaded_files_store.dart';
 import 'core/services/firebase_messaging_service.dart';
 import 'core/services/home_data_service.dart';
 import 'core/services/notes_store.dart';
@@ -66,6 +68,8 @@ void main() async {
         ChangeNotifierProvider<PurchasedBooksStore>.value(value: PurchasedBooksStore.instance),
         ChangeNotifierProvider<OwnBooksStore>.value(value: OwnBooksStore.instance),
         ChangeNotifierProvider<DownloadedBooksStore>.value(value: DownloadedBooksStore.instance),
+        ChangeNotifierProvider<DownloadedFilesStore>.value(value: DownloadedFilesStore.instance),
+        ChangeNotifierProvider<BookAccessService>.value(value: BookAccessService.instance),
         ChangeNotifierProvider<HomeDataService>.value(value: HomeDataService.instance),
       ],
       child: const AykitapApp(),

@@ -6,7 +6,10 @@ import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../core/services/app_prefs.dart';
+import '../../core/services/book_access_service.dart';
+import '../../core/services/downloaded_files_store.dart';
 import '../../core/services/home_data_service.dart';
+import '../../core/services/subscription_service.dart';
 import '../library/offline_library_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../main_nav/main_nav_screen.dart';
@@ -74,6 +77,15 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     // of only starting once that screen mounts. HomeScreen/BannerCarousel
     // just watch HomeDataService rather than fetching on their own.
     unawaited(HomeDataService.instance.load());
+
+    // The reading gate has to be able to answer offline, so its cached
+    // state (purchased ids, subscription expiry, downloaded files) is read
+    // from disk at boot rather than on the first book tapped. The purchased
+    // list is then re-synced from the backend when there's a session —
+    // best-effort, so this never delays the splash.
+    unawaited(BookAccessService.instance.load().then((_) => BookAccessService.instance.refreshPurchased()));
+    unawaited(SubscriptionService.instance.load());
+    unawaited(DownloadedFilesStore.instance.load());
 
     // Run the prefs read, the connectivity check, and a minimum splash
     // display time in parallel so the animation always gets to breathe,

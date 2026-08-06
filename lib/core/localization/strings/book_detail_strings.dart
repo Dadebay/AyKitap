@@ -115,6 +115,47 @@ class BookDetailStrings {
         tr: 'Bu kitabı okumak henüz mevcut değil',
       );
 
+  // Oku / Satyn al flow — CTA row, download progress, access gate.
+  static String get downloading =>
+      t(tk: 'Ýüklenýär…', ru: 'Загрузка…', tr: 'İndiriliyor…');
+  static String get downloadFailed => t(
+        tk: 'Kitap ýüklenmedi',
+        ru: 'Не удалось загрузить книгу',
+        tr: 'Kitap indirilemedi',
+      );
+  static String get noFileForBook => t(
+        tk: 'Bu kitabyň okalýan faýly ýok',
+        ru: 'У этой книги нет файла для чтения',
+        tr: 'Bu kitabın okunabilir dosyası yok',
+      );
+  static String get purchasedBadge =>
+      t(tk: 'Satyn alnan', ru: 'Куплено', tr: 'Satın alındı');
+  static String get subscriptionExpiredForBook => t(
+        tk: 'Abunalygyňyz gutardy — bu kitaby okamak üçin satyn alyň ýa-da abunalygy täzeläň',
+        ru: 'Подписка закончилась — купите эту книгу или продлите подписку',
+        tr: 'Aboneliğiniz bitti — bu kitabı okumak için satın alın ya da aboneliği yenileyin',
+      );
+  static String get loginRequired => t(
+        tk: 'Dowam etmek üçin hasabyňyza giriň',
+        ru: 'Войдите в аккаунт, чтобы продолжить',
+        tr: 'Devam etmek için hesabınıza giriş yapın',
+      );
+  static String get deleteDownload => t(
+        tk: 'Ýüklemäni poz',
+        ru: 'Удалить загрузку',
+        tr: 'İndirmeyi sil',
+      );
+  static String deleteDownloadConfirm(String title) => t(
+        tk: '“$title” telefonyňyzdan pozulsynmy? Kitap kitaphanaňyzda galýar.',
+        ru: 'Удалить «$title» с устройства? Книга останется в вашей библиотеке.',
+        tr: '“$title” telefonunuzdan silinsin mi? Kitap kitaplığınızda kalır.',
+      );
+  static String get downloadDeleted => t(
+        tk: 'Ýükleme pozuldy',
+        ru: 'Загрузка удалена',
+        tr: 'İndirme silindi',
+      );
+
   static String get removeFromPurchased => t(
         tk: 'Satyn alnanlardan aýyr',
         ru: 'Удалить из купленных',

@@ -76,6 +76,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                     fetcher: () => BookApiService.listBooks(bought: true),
                     emptyLabel: LibraryStrings.emptyPurchased,
                     allowRemovingPurchasedBooks: true,
+                    syncsPurchasedAccess: true,
                   ),
                   ApiBooksTab(
                     fetcher: () => BookApiService.listBooks(wantsTo: true),

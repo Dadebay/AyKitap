@@ -4,7 +4,6 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/theme_controller.dart';
 import '../../core/models/tariff.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/services/account_service.dart';
@@ -16,6 +15,7 @@ import '../../core/widgets/app_snackbar.dart';
 import '../../core/localization/strings/payment_strings.dart';
 import 'payment_webview_screen.dart';
 import 'widgets/bank_select_sheet.dart';
+import 'widgets/insufficient_balance_dialog.dart';
 import 'widgets/payment_method_sheet.dart';
 import 'widgets/plan_card.dart';
 import 'widgets/promo_code_sheet.dart';
@@ -116,68 +116,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     }
   }
 
-  /// Shown when [SubscriptionService.subscribe] can't debit the plan's price
-  /// from the balance — explains the shortfall with the themed empty-state
-  /// illustration and, on "Töle", hands off to [PaymentMethodSheet] so the
-  /// user can pick promo code vs. bank card rather than always landing on
-  /// the bank flow.
+  /// Shown when [SubscriptionService.subscribe] can't debit the plan's
+  /// price from the balance — the same dialog a single-book purchase uses
+  /// ([InsufficientBalanceDialog]), differing only in the follow-up: a plan
+  /// hands off to [PaymentMethodSheet] directly so the user can pick promo
+  /// code vs. bank card, rather than the book flow's [startBalanceTopUp].
   Future<void> _showInsufficientBalanceDialog() async {
-    final isDark = AppTheme.instance.isDark;
-    final pay = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 160,
-              height: 160,
-              child: Image.asset(
-                isDark ? 'assets/images/balance_empty_dark.png' : 'assets/images/balance_empty_light.png',
-                fit: BoxFit.contain,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              PaymentStrings.balanceNotEnough,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              PaymentStrings.subscriptionBalanceInsufficientNote,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.grey2, fontSize: 13.5, height: 1.5),
-            ),
-          ],
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actionsPadding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(PaymentStrings.payNow, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(PaymentStrings.close, style: TextStyle(color: AppColors.grey2, fontSize: 14, fontWeight: FontWeight.w600)),
-            ),
-          ),
-        ],
-      ),
+    final pay = await InsufficientBalanceDialog.show(
+      context,
+      note: PaymentStrings.subscriptionBalanceInsufficientNote,
     );
-    if (pay == true && mounted) await _choosePaymentMethod();
+    if (pay && mounted) await _choosePaymentMethod();
   }
 
   Future<void> _choosePaymentMethod() async {

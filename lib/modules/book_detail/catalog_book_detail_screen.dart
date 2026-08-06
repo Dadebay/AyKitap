@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -6,6 +7,7 @@ import '../../core/models/book_detail.dart';
 import '../../core/models/library_book.dart';
 import '../../core/network/api_config.dart';
 import '../../core/network/api_exception.dart';
+import '../../core/services/book_access_service.dart';
 import '../../core/services/book_api_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
@@ -14,7 +16,9 @@ import '../../core/widgets/network_error_state.dart';
 import '../../core/localization/strings/book_detail_strings.dart';
 import '../../core/navigation/app_navigator.dart';
 import '../author/catalog_author_detail_screen.dart';
+import 'book_open_flow.dart';
 import 'catalog_genre_books_screen.dart';
+import 'widgets/book_cta_row.dart';
 import 'widgets/catalog_detail_header_art.dart';
 import 'widgets/detail_header_controls.dart';
 import 'widgets/genre_tag.dart';
@@ -24,8 +28,11 @@ import 'widgets/genre_tag.dart';
 /// a banner's `book_id`.
 ///
 /// Shows everything the backend sends (cover, authors, genres, stats,
-/// description) but has no working "Oka" — `bookFiles[].file_key` is an
-/// internal storage path, not something this app has a way to fetch yet.
+/// description) plus the "Oku / Satyn al" row: `bookFiles[].file_key` is
+/// resolved into a presigned download link ([BookFileApiService]), the file
+/// is stored app-privately ([BookDownloadService]) and opened in the
+/// matching reader — all of it gated by [BookAccessService] and driven by
+/// [BookOpenFlow].
 class CatalogBookDetailScreen extends StatefulWidget {
   final int bookId;
   final bool canRemoveFromPurchased;
@@ -49,10 +56,68 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
   bool _isFinished = false;
   bool _removingFromPurchased = false;
 
+  /// Null until [_resolveAccess] has run once — the CTA row shows disabled
+  /// buttons rather than guessing.
+  BookAccess? _access;
+  double? _downloadProgress;
+  CancelToken? _downloadCancelToken;
+
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    // A download outliving this screen would report progress into a dead
+    // State and finish into a reader that can no longer be pushed.
+    _downloadCancelToken?.cancel();
+    super.dispose();
+  }
+
+  /// Re-reads the access verdict for the loaded book. Called after the
+  /// detail loads and after anything that can change it (login, purchase,
+  /// balance top-up).
+  Future<void> _resolveAccess() async {
+    final book = _book;
+    if (book == null) return;
+    final access = await BookAccessService.instance.resolve(book);
+    if (!mounted) return;
+    setState(() => _access = access);
+  }
+
+  BookOpenFlow _flow(BookDetail book) => BookOpenFlow(
+        context: context,
+        book: book,
+        onProgress: (progress) {
+          if (mounted) setState(() => _downloadProgress = progress);
+        },
+        onCancelToken: (token) => _downloadCancelToken = token,
+        onAccessChanged: _resolveAccess,
+      );
+
+  Future<void> _onRead() async {
+    final book = _book;
+    if (book == null) return;
+    await _flow(book).read();
+    await _resolveAccess();
+  }
+
+  Future<void> _onBuy() async {
+    final book = _book;
+    if (book == null) return;
+    final bought = await _flow(book).buy();
+    await _resolveAccess();
+    // Buying is nearly always followed by wanting to read it — carry
+    // straight on into the download instead of making the user tap "Oku".
+    if (bought && mounted) await _flow(book).read();
+  }
+
+  void _cancelDownload() {
+    _downloadCancelToken?.cancel();
+    _downloadCancelToken = null;
+    if (mounted) setState(() => _downloadProgress = null);
   }
 
   Future<void> _load() async {
@@ -79,6 +144,12 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
         _isFavorite = isFavorite;
         _loading = false;
       });
+      // Cheap and cache-first, so the CTA has a verdict almost immediately;
+      // the purchased list is re-synced in the background in case it
+      // changed on another device.
+      await _resolveAccess();
+      await BookAccessService.instance.refreshPurchased();
+      await _resolveAccess();
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -340,17 +411,24 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
                 ),
               ],
               const SizedBox(height: 28),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14)),
-                child: Row(
+              BookCtaRow(
+                access: _access,
+                priceManat: book.price,
+                downloadProgress: _downloadProgress,
+                onRead: _onRead,
+                onBuy: _onBuy,
+                onCancelDownload: _cancelDownload,
+              ),
+              if (book.bookFiles.isEmpty) ...[
+                const SizedBox(height: 14),
+                Row(
                   children: [
                     HugeIcon(icon: HugeIcons.strokeRoundedInformationCircle, color: AppColors.grey2, size: 18),
                     const SizedBox(width: 10),
-                    Expanded(child: Text(BookDetailStrings.readingNotAvailable, style: TextStyle(color: AppColors.grey2, fontSize: 12.5, height: 1.4))),
+                    Expanded(child: Text(BookDetailStrings.noFileForBook, style: TextStyle(color: AppColors.grey2, fontSize: 12.5, height: 1.4))),
                   ],
                 ),
-              ),
+              ],
             ],
           ),
         ),

@@ -212,9 +212,17 @@ class _SearchScreenState extends State<SearchScreen> {
   // Selecting/deselecting a genre chip should search right away — there's
   // no text to debounce, it's a single discrete tap — and combines with
   // whatever's currently in the text field rather than replacing it.
+  //
+  // A genre is a `GET /books/all` filter and nothing else, so tapping one
+  // while the Ýazar tab is showing is unambiguously "show me books in this
+  // genre": the toggle slides back to Kitap along with the tap instead of
+  // lighting up a chip that couldn't change a single author result.
   void _toggleGenre(Genre genre) {
     _debounce?.cancel();
-    setState(() => _selectedGenreId = _selectedGenreId == genre.id ? null : genre.id);
+    setState(() {
+      _selectedGenreId = _selectedGenreId == genre.id ? null : genre.id;
+      _searchMode = _SearchMode.book;
+    });
     if (_shouldShowResults) {
       _runSearch();
     } else {
@@ -683,16 +691,16 @@ class _SearchScreenState extends State<SearchScreen> {
           // place (combined with any text query) rather than navigating
           // away; tapping the selected one again clears it.
           //
-          // Book mode only: `GET /authors/search` takes nothing but `search`,
-          // so in Ýazar mode these chips could highlight but never change a
-          // single result — [_shouldShowResults] doesn't even fire a request
-          // for them there. A control that visibly responds to a tap while
-          // doing nothing is worse than no control, so it isn't shown.
-          if (_searchMode == _SearchMode.book)
-            for (final genre in _genres ?? const []) ...[
-              QuickChip(label: genre.name, selected: _selectedGenreId == genre.id, onTap: () => _toggleGenre(genre)),
-              const SizedBox(width: 8),
-            ],
+          // Shown in both modes. `GET /authors/search` takes nothing but
+          // `search`, so a genre can't narrow author results — but hiding
+          // the row in Ýazar mode made it jump in and out as the toggle
+          // moved, and left the user no way back to a genre from there.
+          // Instead the chips stay put and [_toggleGenre] switches the
+          // toggle back to Kitap, where the tap actually means something.
+          for (final genre in _genres ?? const []) ...[
+            QuickChip(label: genre.name, selected: _selectedGenreId == genre.id, onTap: () => _toggleGenre(genre)),
+            const SizedBox(width: 8),
+          ],
         ],
       ),
     );
