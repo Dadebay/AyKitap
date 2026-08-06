@@ -1,3 +1,5 @@
+import 'book_detail.dart';
+
 /// One author entry inside a [LibraryBook]'s `authors` list.
 class LibraryBookAuthor {
   final int id;
@@ -66,6 +68,21 @@ class LibraryBook {
             .map((e) => LibraryBookAuthor.fromJson(e as Map<String, dynamic>))
             .toList(),
         progress: (json['progress'] as num?)?.toDouble(),
+      );
+
+  /// The shelf-sized view of a full [BookDetail] — what a book downloaded
+  /// from its detail page is stored as in [DownloadedBooksStore], whose
+  /// list (Kitaplygym → "Ýüklenenler") is built from [LibraryBook]s.
+  factory LibraryBook.fromDetail(BookDetail detail) => LibraryBook(
+        id: detail.id,
+        name: detail.name,
+        description: detail.description,
+        image: detail.image,
+        age: detail.age,
+        year: detail.year,
+        pageCount: detail.pageCount,
+        price: detail.price,
+        authors: detail.authors,
       );
 
   /// Round-trips through [fromJson] — used to persist a book locally (e.g.

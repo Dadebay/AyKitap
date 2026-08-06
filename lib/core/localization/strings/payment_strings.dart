@@ -22,6 +22,13 @@ class PaymentStrings {
         ru: 'Вашего баланса недостаточно для покупки этой книги. Пополните баланс.',
         tr: 'Bakiyeniz bu kitabı almaya yetmiyor. Bakiyenizi yükleyin.',
       );
+  /// Exact shortfall for [InsufficientBalanceDialog] — how much more the
+  /// balance needs before this purchase goes through.
+  static String balanceShortfall(num amount) => t(
+        tk: 'Bu kitaby almak üçin ýene $amount manat gerek. Balansy dolduryň.',
+        ru: 'Для покупки этой книги не хватает $amount манат. Пополните баланс.',
+        tr: 'Bu kitabı almak için $amount manat daha gerekli. Bakiyenizi yükleyin.',
+      );
   static String get booksOnlyInApp => t(
         tk: 'Kitaplar diňe programmada okalýar — telefona ýüklenmeýär.',
         ru: 'Книги читаются только в приложении — на телефон не скачиваются.',

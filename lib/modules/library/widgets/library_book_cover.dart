@@ -3,6 +3,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../../core/models/library_book.dart';
 import '../../../core/navigation/app_navigator.dart';
 import '../../../core/network/api_config.dart';
+import '../../../core/services/book_access_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/network_cover_image.dart';
 import '../../book_detail/catalog_book_detail_screen.dart';
@@ -16,12 +17,28 @@ class LibraryBookCover extends StatelessWidget {
   final bool canRemoveFromPurchased;
   final VoidCallback? onPurchasedBookRemoved;
 
+  /// Draws a lock over the cover when the book can't currently be opened —
+  /// only meaningful on the downloaded shelf, where a file can outlive the
+  /// subscription that granted access to it ([BookAccessService.canRead]).
+  final bool showLockWhenNoAccess;
+
+  /// Long-press action, used by the downloaded shelf for "Ýüklemäni poz".
+  final VoidCallback? onLongPress;
+
+  /// Replaces the default "open the detail page" tap. The downloaded shelf
+  /// uses it to open the local file straight away, which is what makes that
+  /// shelf work with no connection.
+  final VoidCallback? onTap;
+
   const LibraryBookCover({
     super.key,
     required this.book,
     this.showProgress = false,
     this.canRemoveFromPurchased = false,
     this.onPurchasedBookRemoved,
+    this.showLockWhenNoAccess = false,
+    this.onLongPress,
+    this.onTap,
   });
 
   /// The backend hasn't sent a non-null sample yet to confirm its scale —
@@ -36,16 +53,19 @@ class LibraryBookCover extends StatelessWidget {
   Widget build(BuildContext context) {
     final progress = showProgress ? _normalize(book.progress) : null;
     final image = book.image;
+    final locked = showLockWhenNoAccess && !BookAccessService.instance.canRead(book.id);
     return GestureDetector(
-      onTap: () async {
-        final removed = await context.push<bool>(
-          CatalogBookDetailScreen(
-            bookId: book.id,
-            canRemoveFromPurchased: canRemoveFromPurchased,
-          ),
-        );
-        if (removed == true) onPurchasedBookRemoved?.call();
-      },
+      onLongPress: onLongPress,
+      onTap: onTap ??
+          () async {
+            final removed = await context.push<bool>(
+              CatalogBookDetailScreen(
+                bookId: book.id,
+                canRemoveFromPurchased: canRemoveFromPurchased,
+              ),
+            );
+            if (removed == true) onPurchasedBookRemoved?.call();
+          },
       child: AspectRatio(
         aspectRatio: 0.62,
         child: Stack(
@@ -61,6 +81,17 @@ class LibraryBookCover extends StatelessWidget {
                     : _CoverPlaceholder(),
               ),
             ),
+            if (locked)
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    alignment: Alignment.center,
+                    child: const HugeIcon(icon: HugeIcons.strokeRoundedSquareLock02, color: Colors.white, size: 22),
+                  ),
+                ),
+              ),
             if (progress != null)
               Positioned(
                 top: 4,

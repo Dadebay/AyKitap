@@ -52,6 +52,25 @@ class ApiEndpoints {
   /// DELETE — removes a book from the signed-in user's purchased library.
   static String removeBoughtBook(int bookId) => '/books/bought/$bookId';
 
+  /// POST — buys [bookId] for the signed-in user, paying from the balance.
+  /// UNCONFIRMED: the backend has only ever shown us the DELETE half of
+  /// this pair ([removeBoughtBook]); no Postman capture of a purchase call
+  /// exists yet, so the path is the mirror image of the one we do know.
+  /// [BookPurchaseApiService] is the single call site — when the real
+  /// contract lands, that service and this line are the only things that
+  /// change.
+  static String buyBook(int bookId) => '/books/bought/$bookId';
+
+  /// GET — a presigned download link for one book file. The `?filename=`
+  /// value is the `file_key` straight off `GET /books/:id`'s `bookFiles[]`
+  /// (`/private/....pdf`); Dio URL-encodes it as a query parameter.
+  ///
+  /// The returned URL points at the media host (port 9000, not the API's
+  /// 4000) and carries an `X-Amz-Expires=600` signature — it is valid for
+  /// ~10 minutes and must never be persisted. [BookDownloadService] fetches
+  /// a fresh one for every download.
+  static const String bookFile = '/books/file';
+
   // ── Book languages ───────────────────────────────────────────────────
   /// GET — the languages books can be written in, each with its name in all
   /// three UI languages. Backs the Filtr sahypasy's "Dil" section; the

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../core/services/account_service.dart';
+import '../../core/services/book_access_service.dart';
 import '../../core/services/auth_api_service.dart';
 import '../../core/services/auth_session.dart';
 import '../../core/localization/app_locale.dart';
@@ -90,6 +91,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     // Drop the cached /users/me record too, so the next
                     // account doesn't briefly see this one's balance.
                     AccountService.instance.clear();
+                    // ...and this one's purchased books, which otherwise
+                    // would unlock them for whoever logs in next.
+                    await BookAccessService.instance.clear();
                     if (!mounted) return;
                     Navigator.pop(context); // close the dialog
                     Navigator.pop(context, 'logout'); // leave the settings screen logged out
@@ -151,6 +155,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     // Drop the cached /users/me record too, so the next
                     // account doesn't briefly see this one's balance.
                     AccountService.instance.clear();
+                    // ...and this one's purchased books, which otherwise
+                    // would unlock them for whoever logs in next.
+                    await BookAccessService.instance.clear();
                     if (!mounted) return;
                     Navigator.pop(context); // close the dialog
                     Navigator.pop(context, 'logout'); // leave the settings screen logged out

@@ -2,23 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/models/book.dart';
+import '../../core/models/book_detail.dart';
 import '../../core/navigation/app_navigator.dart';
+import '../../core/network/api_config.dart';
+import '../../core/network/api_exception.dart';
 import '../../core/services/account_service.dart';
 import '../../core/services/analytics_service.dart';
+import '../../core/services/book_access_service.dart';
+import '../../core/services/book_purchase_api_service.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/network_cover_image.dart';
 import '../../core/localization/strings/payment_strings.dart';
-import '../profile/balance_screen.dart';
+import 'balance_top_up.dart';
+import 'widgets/insufficient_balance_dialog.dart';
 
-/// Kitap satyn alyş sahypasy — TZ §10.2. A single-book checkout: shows the
-/// cover, price and the balance ([AccountService.balanceManat] — the same
-/// number Profile/[BalanceScreen] show, topped up there via promo code or
-/// bank card), then debits it via [AccountService.debitBalance]. Pops `true`
-/// once the purchase succeeds so [BookDetailScreen] can flip its CTA from
-/// "Satyn al" to "Oka".
+/// Kitap satyn alyş sahypasy — TZ §10.2. A single-book checkout for a real
+/// catalogue book: shows the cover, the price and the balance
+/// ([AccountService.balanceManat], the same number Profile/[BalanceScreen]
+/// show), then puts the purchase through [BookPurchaseApiService].
+///
+/// The balance is server-owned, so this never subtracts from it itself when
+/// the backend confirmed the purchase — it re-reads `/users/me` and lets the
+/// backend's number win. The one exception is
+/// [PurchaseResult.endpointMissing] (no purchase route live yet), where the
+/// cached balance is decremented locally purely so the flow stays coherent
+/// until the real endpoint exists.
+///
+/// Pops `true` once the purchase succeeds, which is
+/// [CatalogBookDetailScreen]'s cue to refresh its CTA and go straight on to
+/// downloading the book.
 class BookPurchaseScreen extends StatefulWidget {
-  final Book book;
+  final BookDetail book;
   const BookPurchaseScreen({super.key, required this.book});
 
   @override
@@ -28,31 +43,65 @@ class BookPurchaseScreen extends StatefulWidget {
 class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
   bool _processing = false;
 
+  int get _price => widget.book.price ?? 0;
+
   Future<void> _confirm() async {
     if (_processing) return;
     final balance = AccountService.instance.balanceManat;
-    if (balance == null || balance < widget.book.priceManat) {
-      context.showAppSnackBar(PaymentStrings.balanceNotEnough, isError: true);
+    if (balance == null || balance < _price) {
+      await _offerTopUp(balance);
       return;
     }
+
     setState(() => _processing = true);
-    AccountService.instance.debitBalance(widget.book.priceManat);
+    try {
+      final result = await BookPurchaseApiService.buy(widget.book.id);
+      if (result == PurchaseResult.serverConfirmed) {
+        // The backend has already moved the money; this just picks up the
+        // new number rather than guessing at it.
+        await AccountService.instance.refresh();
+      } else {
+        AccountService.instance.debitBalance(_price);
+      }
+      await BookAccessService.instance.markPurchased(widget.book.id);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _processing = false);
+      context.showAppSnackBar(e.message, isError: true);
+      return;
+    }
+
     if (!mounted) return;
     setState(() => _processing = false);
     AnalyticsService.instance.logPurchase(
-      bookId: widget.book.id,
-      value: widget.book.priceManat.toDouble(),
+      bookId: '${widget.book.id}',
+      value: _price.toDouble(),
       currency: 'TMT',
     );
-    context.showAppSnackBar(PaymentStrings.purchasedSnackbar(widget.book.title));
+    context.showAppSnackBar(PaymentStrings.purchasedSnackbar(widget.book.name));
     context.pop(true);
+  }
+
+  /// Balance short: the shared dialog explains the shortfall and, on
+  /// "Töle", runs the normal money-in flow. Coming back with enough money
+  /// retries the purchase straight away instead of making the user find the
+  /// button again.
+  Future<void> _offerTopUp(int? balance) async {
+    final shortfall = balance == null ? null : _price - balance;
+    final pay = await InsufficientBalanceDialog.show(context, shortfallManat: shortfall);
+    if (!pay || !mounted) return;
+    await startBalanceTopUp(context);
+    if (!mounted) return;
+    final refreshed = AccountService.instance.balanceManat;
+    if (refreshed != null && refreshed >= _price) await _confirm();
   }
 
   @override
   Widget build(BuildContext context) {
     final book = widget.book;
     final balance = context.watch<AccountService>().balanceManat;
-    final enough = balance != null && balance >= book.priceManat;
+    final enough = balance != null && balance >= _price;
+    final image = book.image;
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -78,7 +127,9 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
                           height: 92,
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(10),
-                            child: Image.asset(book.coverImage, fit: BoxFit.cover),
+                            child: image != null && image.isNotEmpty
+                                ? NetworkCoverImage(url: ApiConfig.resolveImageUrl(image), placeholder: (_) => _CoverPlaceholder())
+                                : _CoverPlaceholder(),
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -86,11 +137,18 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(book.title, style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w800), maxLines: 2, overflow: TextOverflow.ellipsis),
-                              const SizedBox(height: 4),
-                              Text(book.author.name, style: TextStyle(color: AppColors.grey2, fontSize: 13)),
-                              const SizedBox(height: 8),
-                              Text(book.format.label, style: TextStyle(color: AppColors.grey3, fontSize: 12, fontWeight: FontWeight.w600)),
+                              Text(book.name, style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w800), maxLines: 2, overflow: TextOverflow.ellipsis),
+                              if (book.authors.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(book.authorNames, style: TextStyle(color: AppColors.grey2, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              ],
+                              if (book.bookFiles.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  book.bookFiles.map((f) => f.fileFormat.toUpperCase()).toSet().join(' · '),
+                                  style: TextStyle(color: AppColors.grey3, fontSize: 12, fontWeight: FontWeight.w600),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -104,7 +162,7 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
                     decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16)),
                     child: Column(
                       children: [
-                        _row(PaymentStrings.bookPrice, PaymentStrings.manat(book.priceManat)),
+                        _row(PaymentStrings.bookPrice, PaymentStrings.manat(_price)),
                         const SizedBox(height: 12),
                         _row(PaymentStrings.yourBalance, balance != null ? PaymentStrings.manat(balance) : '…', valueColor: enough ? AppColors.grey1 : Colors.redAccent),
                         Padding(
@@ -113,7 +171,7 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
                         ),
                         _row(
                           PaymentStrings.afterPurchase,
-                          enough ? PaymentStrings.manat(balance - book.priceManat) : PaymentStrings.notEnough,
+                          enough ? PaymentStrings.manat(balance - _price) : PaymentStrings.notEnough,
                           bold: true,
                           valueColor: enough ? AppColors.white : Colors.redAccent,
                         ),
@@ -124,7 +182,7 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        HugeIcon(icon: HugeIcons.strokeRoundedInformationCircle, color: Colors.redAccent, size: 16),
+                        const HugeIcon(icon: HugeIcons.strokeRoundedInformationCircle, color: Colors.redAccent, size: 16),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(PaymentStrings.balanceInsufficientNote, style: TextStyle(color: AppColors.grey2, fontSize: 13, height: 1.4)),
@@ -161,11 +219,11 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
                       ? null
                       : enough
                           ? _confirm
-                          : () => context.push(const BalanceScreen()),
+                          : () => _offerTopUp(balance),
                   child: _processing
                       ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.4))
                       : Text(
-                          enough ? PaymentStrings.confirmWithPrice(book.priceManat) : PaymentStrings.topUpBalance,
+                          enough ? PaymentStrings.confirmWithPrice(_price) : PaymentStrings.topUpBalance,
                           style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
                         ),
                 ),
@@ -184,6 +242,16 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
         Text(label, style: TextStyle(color: AppColors.grey2, fontSize: bold ? 14.5 : 14, fontWeight: bold ? FontWeight.w700 : FontWeight.w500)),
         Text(value, style: TextStyle(color: valueColor ?? AppColors.grey1, fontSize: bold ? 16 : 14, fontWeight: bold ? FontWeight.w800 : FontWeight.w600)),
       ],
+    );
+  }
+}
+
+class _CoverPlaceholder extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.surface,
+      child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedBook02, color: AppColors.grey3, size: 20)),
     );
   }
 }
