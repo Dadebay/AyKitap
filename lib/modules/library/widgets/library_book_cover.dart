@@ -41,17 +41,9 @@ class LibraryBookCover extends StatelessWidget {
     this.onTap,
   });
 
-  /// The backend hasn't sent a non-null sample yet to confirm its scale —
-  /// this treats anything already ≤ 1 as a 0–1 fraction and anything above
-  /// as a 0–100 percentage, so either shape reads correctly.
-  static double? _normalize(double? raw) {
-    if (raw == null) return null;
-    return raw > 1 ? (raw / 100).clamp(0, 1) : raw.clamp(0, 1);
-  }
-
   @override
   Widget build(BuildContext context) {
-    final progress = showProgress ? _normalize(book.progress) : null;
+    final progress = showProgress ? book.progressFraction : null;
     final image = book.image;
     final locked = showLockWhenNoAccess && !BookAccessService.instance.canRead(book.id);
     return GestureDetector(

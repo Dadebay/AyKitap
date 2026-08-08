@@ -14,6 +14,7 @@ import '../../core/services/book_access_service.dart';
 import '../../core/services/book_download_service.dart';
 import '../../core/services/downloaded_books_store.dart';
 import '../../core/services/downloaded_files_store.dart';
+import '../../core/services/last_read_book_store.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../auth/phone_login_screen.dart';
 import '../payment/balance_top_up.dart';
@@ -203,6 +204,11 @@ class BookOpenFlow {
     // Kitaplygym → "Ýüklenenler" is backed by DownloadedBooksStore, so this
     // is what makes the book show up on that shelf.
     await DownloadedBooksStore.instance.add(LibraryBook.fromDetail(book));
+    await LastReadBookStore.instance.recordOpened(
+      book: LibraryBook.fromDetail(book),
+      path: path,
+      format: format,
+    );
     if (!context.mounted) return;
     _openReader(path: path, format: format);
   }

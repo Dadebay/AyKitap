@@ -46,6 +46,7 @@ class BookDetail {
   final int? price;
   final int readCount;
   final int soldCount;
+  final double? progress;
   final List<BookDetailGenre> genres;
   final List<LibraryBookAuthor> authors;
   final List<BookFile> bookFiles;
@@ -61,6 +62,7 @@ class BookDetail {
     this.price,
     this.readCount = 0,
     this.soldCount = 0,
+    this.progress,
     this.genres = const [],
     this.authors = const [],
     this.bookFiles = const [],
@@ -79,8 +81,15 @@ class BookDetail {
         price: json['price'] as int?,
         readCount: json['read_count'] as int? ?? 0,
         soldCount: json['sold_count'] as int? ?? 0,
+        progress: _parseProgress(json['progress']),
         genres: (json['genres'] as List? ?? const []).map((e) => BookDetailGenre.fromJson(e as Map<String, dynamic>)).toList(),
         authors: (json['authors'] as List? ?? const []).map((e) => LibraryBookAuthor.fromJson(e as Map<String, dynamic>)).toList(),
         bookFiles: (json['bookFiles'] as List? ?? const []).map((e) => BookFile.fromJson(e as Map<String, dynamic>)).toList(),
       );
+
+  static double? _parseProgress(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
 }

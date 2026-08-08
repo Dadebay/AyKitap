@@ -17,6 +17,7 @@ import 'core/services/downloaded_books_store.dart';
 import 'core/services/downloaded_files_store.dart';
 import 'core/services/firebase_messaging_service.dart';
 import 'core/services/home_data_service.dart';
+import 'core/services/last_read_book_store.dart';
 import 'core/services/notes_store.dart';
 import 'core/services/own_books_store.dart';
 import 'core/services/purchased_books_store.dart';
@@ -71,6 +72,7 @@ void main() async {
         ChangeNotifierProvider<DownloadedFilesStore>.value(value: DownloadedFilesStore.instance),
         ChangeNotifierProvider<BookAccessService>.value(value: BookAccessService.instance),
         ChangeNotifierProvider<HomeDataService>.value(value: HomeDataService.instance),
+        ChangeNotifierProvider<LastReadBookStore>.value(value: LastReadBookStore.instance),
       ],
       child: const AykitapApp(),
     ),

@@ -28,11 +28,13 @@ const _ansiBold = '\x1B[1m';
 class ApiLogInterceptor extends Interceptor {
   const ApiLogInterceptor();
 
-  /// The catalogue response can contain many books with long descriptions;
-  /// logging its formatted body overwhelms the debug console. Keep logging
-  /// every other endpoint normally.
+  /// These catalogue-shaped responses can carry many books (each with a
+  /// description, cover, author list, ...) nested several collections deep;
+  /// logging their formatted body overwhelms the debug console and buries
+  /// every other request around it. Keep logging every other endpoint
+  /// normally.
   static bool _shouldSkipResponseBody(RequestOptions options) =>
-      options.path == '/books/all';
+      options.path == '/books/all' || options.path == '/collections/all';
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {

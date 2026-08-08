@@ -3,15 +3,14 @@ import '../models/auth_user.dart';
 import '../network/api_exception.dart';
 import 'auth_api_service.dart';
 
-/// Holds the signed-in user's own `GET /users/me` record — chiefly
-/// [balanceManat], the wallet every paid action in the app spends from
-/// (a subscription plan, or a single book).
+/// Holds the signed-in user's own `GET /users/me` record — [balanceManat]
+/// (the wallet every paid action spends from) and [user]'s `subscription`
+/// ([SubscriptionService] reads that half).
 ///
 /// The balance is server-owned: topping up (promo code / bank card) and
-/// spending both happen on the backend, so this never edits it locally —
-/// it re-reads it via [refresh] after anything that could have changed it.
-/// That's deliberately unlike [StreakService], whose own `balanceManat` is
-/// a purely on-device number from before this endpoint existed.
+/// spending (a book, a plan) both happen on the backend, so this never
+/// edits it locally — it re-reads it via [refresh] after anything that
+/// could have changed it.
 class AccountService extends ChangeNotifier {
   AccountService._();
   static final instance = AccountService._();
@@ -31,8 +30,14 @@ class AccountService extends ChangeNotifier {
   /// error is swallowed, since every caller treats this as a background sync.
   Future<void> refresh() async {
     if (_loading) return;
+    // No `notifyListeners()` here, before the `await` below — several
+    // screens call this straight from `initState` (directly, or via
+    // [SubscriptionService.load]), and notifying synchronously at that
+    // point can trip Provider's "setState() called during build" if
+    // another widget in the same build pass is already listening.
+    // `isLoading` isn't rendered anywhere, so nothing is lost by only
+    // notifying once this actually resolves.
     _loading = true;
-    notifyListeners();
     try {
       _user = await AuthApiService.getMe();
     } on ApiException {
@@ -41,17 +46,6 @@ class AccountService extends ChangeNotifier {
       _loading = false;
       notifyListeners();
     }
-  }
-
-  /// Locally decrements the cached balance by [amount] — for the purely
-  /// on-device "spends" that have no debit endpoint yet (e.g.
-  /// [SubscriptionService.subscribe]). A no-op with no user loaded or a
-  /// non-positive amount. The real number wins again on the next [refresh].
-  void debitBalance(int amount) {
-    final current = _user;
-    if (current == null || amount <= 0) return;
-    _user = AuthUser(id: current.id, phone: current.phone, username: current.username, image: current.image, balance: current.balance - amount);
-    notifyListeners();
   }
 
   /// Drops the cached record on logout so the next account doesn't briefly

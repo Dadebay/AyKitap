@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'package:dio/dio.dart';
 import '../models/book_detail.dart';
 import '../models/library_book.dart';
@@ -20,9 +21,10 @@ import '../network/dio_client.dart';
 class BookApiService {
   BookApiService._();
 
-  /// GET `/books/all` — [myBooks]/[bought]/[wantsTo] map to the backend's
-  /// `my_books`/`bought`/`wants_to` filters; only one is expected to be true
-  /// per call (each is a distinct [LibraryScreen] tab). [size] is generous
+  /// GET `/books/all` — [myBooks]/[bought]/[wantsTo]/[finished] map to the
+  /// backend's `my_books`/`bought`/`wants_to`/`finished` filters. The
+  /// completed-books shelf combines `my_books=true` with `finished=true`.
+  /// [size] is generous
   /// rather than paginated since these are all personal, naturally-small
   /// lists (what the signed-in user is reading/bought/liked), not the full
   /// catalogue.
@@ -38,6 +40,7 @@ class BookApiService {
     bool? myBooks,
     bool? bought,
     bool? wantsTo,
+    bool? finished,
     int? authorId,
     int? genreId,
     String? search,
@@ -77,6 +80,7 @@ class BookApiService {
         myBooks: myBooks,
         bought: bought,
         wantsTo: wantsTo,
+        finished: finished,
         authorId: authorId,
         genreId: genreId,
         search: search,
@@ -97,6 +101,7 @@ class BookApiService {
         if (myBooks == true) 'my_books': true,
         if (bought == true) 'bought': true,
         if (wantsTo == true) 'wants_to': true,
+        if (finished == true) 'finished': true,
         if (authorId != null) 'author_id': authorId,
         if (genreId != null) 'genre_id': genreId,
         if (search != null && search.isNotEmpty) 'search': search,
@@ -109,9 +114,17 @@ class BookApiService {
         if (sortOrder != null) 'sort_order': sortOrder,
       });
       final items = response.data['data']['items'] as List;
-      return items
+      final books = items
           .map((e) => LibraryBook.fromJson(e as Map<String, dynamic>))
           .toList();
+      // Temporary — debugging a report that unliking a book doesn't drop
+      // it from `wants_to=true`'s next fetch. `/books/all`'s response body
+      // is skipped by ApiLogInterceptor (too large to read), so this is
+      // the only visibility into what this call actually returned.
+      if (wantsTo == true) {
+        log('❤️ wants_to=true -> ${books.length} book(s): ${books.map((b) => b.id).toList()}');
+      }
+      return books;
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -128,6 +141,7 @@ class BookApiService {
     bool? myBooks,
     bool? bought,
     bool? wantsTo,
+    bool? finished,
     int? authorId,
     int? genreId,
     String? search,
@@ -142,7 +156,8 @@ class BookApiService {
     // An empty set means "don't constrain this param at all", which is one
     // request with the param omitted — not zero requests.
     final languages = languageIds.isEmpty ? <int?>[null] : languageIds.toList();
-    final formats = bookFormats.isEmpty ? <String?>[null] : bookFormats.toList();
+    final formats =
+        bookFormats.isEmpty ? <String?>[null] : bookFormats.toList();
     final responses = await Future.wait([
       for (final language in languages)
         for (final format in formats)
@@ -150,6 +165,7 @@ class BookApiService {
             myBooks: myBooks,
             bought: bought,
             wantsTo: wantsTo,
+            finished: finished,
             authorId: authorId,
             genreId: genreId,
             search: search,
@@ -194,7 +210,8 @@ class BookApiService {
     final descending = (sortOrder ?? 'DESC').toUpperCase() == 'DESC';
     int flip(int c) => descending ? -c : c;
     if (sortBy == 'name') {
-      merged.sort((a, b) => flip(a.name.toLowerCase().compareTo(b.name.toLowerCase())));
+      merged.sort(
+          (a, b) => flip(a.name.toLowerCase().compareTo(b.name.toLowerCase())));
     } else if (sortBy == 'year') {
       merged.sort((a, b) {
         // Books with no year go last either way rather than clumping at
@@ -213,6 +230,19 @@ class BookApiService {
     try {
       final response = await DioClient.instance.get(ApiEndpoints.bookById(id));
       return BookDetail.fromJson(response.data['data'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// POST `/books/:bookId/progress` — syncs reading progress (0..100)
+  /// server-side. [CatalogBookDetailScreen]'s "mark as finished" flag
+  /// sends 100, same fire-and-forget best-effort shape as [likeBook].
+  static Future<void> updateProgress(int bookId,
+      {required int progress}) async {
+    try {
+      await DioClient.instance.post(ApiEndpoints.bookProgress(bookId),
+          data: {'progress': progress});
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

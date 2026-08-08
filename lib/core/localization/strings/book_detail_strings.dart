@@ -88,6 +88,11 @@ class BookDetailStrings {
       t(tk: 'satyn alyndy', ru: 'куплено', tr: 'satın alındı');
   static String get statPages => t(tk: 'sahypa', ru: 'страниц', tr: 'sayfa');
 
+  // Shown under the title/author block, not in the read/purchased/pages
+  // stat row above — a 4th stat there overflows on narrow screens.
+  static String publishedYearLabel(int year) =>
+      t(tk: 'Neşir ýyly: $year', ru: 'Год издания: $year', tr: 'Basım yılı: $year');
+
   static String get showLess =>
       t(tk: 'Az görkez', ru: 'Свернуть', tr: 'Daha az göster');
   static String get readFull =>
@@ -96,7 +101,7 @@ class BookDetailStrings {
   static String get read => t(tk: 'Oka', ru: 'Читать', tr: 'Oku');
   static String get price => t(tk: 'Baha', ru: 'Цена', tr: 'Fiyat');
   static String priceValue(int manat) =>
-      t(tk: '$manat manat', ru: '$manat манат', tr: '$manat manat');
+      '$manat TMT';
   static String get buy => t(tk: 'Satyn al', ru: 'Купить', tr: 'Satın al');
 
   // catalog_book_detail_screen.dart — the real `GET /books/:id` detail page.
@@ -154,6 +159,16 @@ class BookDetailStrings {
         tk: 'Ýükleme pozuldy',
         ru: 'Загрузка удалена',
         tr: 'İndirme silindi',
+      );
+  static String get saveToFiles => t(
+        tk: 'Faýllara ýaz',
+        ru: 'Сохранить в Файлы',
+        tr: 'Dosyalara kaydet',
+      );
+  static String saveToFilesError(Object error) => t(
+        tk: 'Faýl paýlaşylmady: $error',
+        ru: 'Не удалось поделиться файлом: $error',
+        tr: 'Dosya paylaşılamadı: $error',
       );
 
   static String get removeFromPurchased => t(

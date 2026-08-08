@@ -31,9 +31,9 @@ class OnboardingStrings {
   // ── Page 3 ───────────────────────────────────────────────────────────
   static String get page3Title => t(tk: 'Her gün okaň,\nçempion boluň', ru: 'Читайте каждый день,\nстаньте чемпионом', tr: 'Her gün okuyun,\nşampiyon olun');
   static String get page3Subtitle => t(
-        tk: 'Günde 10 min okasaňyz 🔥 alarsyňyz.\n30 günlük streak = 10 manat bonus!',
-        ru: 'Читайте по 10 минут в день и получите 🔥.\n30-дневная серия = бонус 10 манат!',
-        tr: 'Günde 10 dakika okursanız 🔥 kazanırsınız.\n30 günlük seri = 10 manat bonus!',
+        tk: 'Günde 10 min okasaňyz 🔥 alarsyňyz.\n30 günlük streak = 10 TMT bonus!',
+        ru: 'Читайте по 10 минут в день и получите 🔥.\n30-дневная серия = бонус 10 TMT!',
+        tr: 'Günde 10 dakika okursanız 🔥 kazanırsınız.\n30 günlük seri = 10 TMT bonus!',
       );
   static String get page3Badge => t(tk: '🔥', ru: '🔥', tr: '🔥');
   static String get page3BadgeLabel => t(tk: 'Streak', ru: 'Серия', tr: 'Seri');

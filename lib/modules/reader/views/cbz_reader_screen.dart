@@ -11,6 +11,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/localization/strings/reader_strings.dart';
 import '../../../core/services/bookmarks_store.dart';
 import '../../../core/services/cbz_page_cache.dart';
+import '../../../core/services/last_read_book_store.dart';
+import '../../../core/services/reading_progress_reporter.dart';
 import '../../../core/services/streak_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
@@ -164,7 +166,7 @@ class CbzReaderScreen extends StatefulWidget {
   State<CbzReaderScreen> createState() => _CbzReaderScreenState();
 }
 
-class _CbzReaderScreenState extends State<CbzReaderScreen> {
+class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingObserver {
   // Created synchronously (no `late`) so an early back-press — before the
   // async prefs/extraction work below ever runs — can't dispose() a
   // controller that was never initialized. It starts at page 0 and is
@@ -189,7 +191,8 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
 
   Timer? _saveTimer;
   Timer? _streakPingTimer;
-  static const _streakPingInterval = Duration(seconds: 30);
+  static const _streakPingInterval = Duration(seconds: 60);
+  final Stopwatch _streakStopwatch = Stopwatch();
 
   int get _bookId => widget.bookId ?? stableBookKey(widget.filePath);
   int get _totalPages => _pagePaths.length;
@@ -199,9 +202,48 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _bootstrap();
+    WidgetsBinding.instance.addObserver(this);
+    _startStreakPing();
+  }
+
+  void _startStreakPing() {
+    _streakPingTimer?.cancel();
+    _streakStopwatch
+      ..reset()
+      ..start();
     _streakPingTimer = Timer.periodic(_streakPingInterval, (_) {
       StreakService.instance.recordActiveSeconds(_streakPingInterval.inSeconds);
+      _streakStopwatch.reset();
     });
+  }
+
+  /// See [ReaderProvider]'s doc comment on the equivalent method — sends
+  /// whatever active-reading time has elapsed since the last periodic tick
+  /// instead of letting it vanish when the timer is cancelled.
+  void _flushStreakResidual() {
+    _streakPingTimer?.cancel();
+    final residual = _streakStopwatch.elapsed.inSeconds;
+    _streakStopwatch
+      ..stop()
+      ..reset();
+    if (residual > 0) StreakService.instance.flushResidual(seconds: residual);
+  }
+
+  /// See [ReaderProvider]'s doc comment on the equivalent override — only
+  /// `paused` (genuinely backgrounded) and `resumed` toggle the ping;
+  /// `inactive`'s brief, non-backgrounding interruptions are left alone.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        _flushStreakResidual();
+      case AppLifecycleState.resumed:
+        _startStreakPing();
+      case AppLifecycleState.inactive:
+        break;
+    }
   }
 
   Future<void> _bootstrap() async {
@@ -278,9 +320,10 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     _saveTimer?.cancel();
-    _streakPingTimer?.cancel();
+    _flushStreakResidual();
     _releaseBrightness();
     _saveProgress();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [SystemUiOverlay.top]);
@@ -332,8 +375,20 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
   Future<void> _saveProgress() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('book_${_bookId}_cbz_page', _currentPage);
+    await LastReadBookStore.instance.updatePage(
+      bookId: _bookId,
+      page: _currentPage,
+    );
     if (_totalPages > 0) {
-      await prefs.setDouble('book_${_bookId}_progress', (_currentPage + 1) / _totalPages);
+      final fraction = (_currentPage + 1) / _totalPages;
+      await prefs.setDouble('book_${_bookId}_progress', fraction);
+      // `widget.bookId`, not `_bookId`: the latter falls back to a hashed
+      // file path for a user's own imported book, which has no catalogue row
+      // to report against.
+      final catalogueId = widget.bookId;
+      if (catalogueId != null) {
+        ReadingProgressReporter.instance.report(bookId: catalogueId, fraction: fraction);
+      }
     }
   }
 
