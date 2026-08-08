@@ -39,20 +39,15 @@ class _StreakScreenState extends State<StreakScreen> {
   void initState() {
     super.initState();
     StreakService.instance.load();
-  }
-
-  DateTime get _selectedMonth {
-    final now = DateTime.now();
-    // DateTime normalizes month 0 to December of the previous year, so this
-    // is safe in January too.
-    return _showLastMonth ? DateTime(now.year, now.month - 1) : DateTime(now.year, now.month);
+    StreakService.instance.loadHistory();
   }
 
   @override
   Widget build(BuildContext context) {
     final streak = context.watch<StreakService>();
-    final monthPages = streak.pagesInMonth(_selectedMonth);
-    final monthMinutes = streak.minutesInMonth(_selectedMonth);
+    final month = _showLastMonth ? streak.lastMonth : streak.thisMonth;
+    final monthPages = month?.pages ?? 0;
+    final monthMinutes = month?.minutes ?? 0;
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -199,7 +194,7 @@ class _StreakScreenState extends State<StreakScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    StreakStrings.streakInfo,
+                    StreakStrings.streakInfo(streak.goalMinMinutes, streak.rewardRules),
                     style: TextStyle(
                         color: AppColors.grey2, fontSize: 13, height: 1.4),
                   ),
@@ -214,7 +209,16 @@ class _StreakScreenState extends State<StreakScreen> {
                   fontSize: 15,
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
-          if (streak.history.isEmpty)
+          if (streak.history.isEmpty && streak.historyLoading)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 28),
+              decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(16)),
+              child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+            )
+          else if (streak.history.isEmpty)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 28),
@@ -249,7 +253,7 @@ class _StreakScreenState extends State<StreakScreen> {
                           width: 36,
                           height: 36,
                           decoration: BoxDecoration(
-                            color: (day.metGoal
+                            color: (day.goalMet
                                     ? AppColors.primary
                                     : AppColors.grey3)
                                 .withValues(alpha: 0.15),
@@ -257,10 +261,10 @@ class _StreakScreenState extends State<StreakScreen> {
                           ),
                           child: Center(
                             child: HugeIcon(
-                              icon: day.metGoal
+                              icon: day.goalMet
                                   ? HugeIcons.strokeRoundedFire
                                   : HugeIcons.strokeRoundedBookOpen01,
-                              color: day.metGoal
+                              color: day.goalMet
                                   ? AppColors.primary
                                   : AppColors.grey2,
                               size: 17,
@@ -288,6 +292,23 @@ class _StreakScreenState extends State<StreakScreen> {
                 }).toList(),
               ),
             ),
+          if (streak.historyHasMore && streak.history.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: OutlinedButton(
+                onPressed: streak.historyLoading ? null : () => StreakService.instance.loadMoreHistory(),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: AppColors.border),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: streak.historyLoading
+                    ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.grey2))
+                    : Text(StreakStrings.loadMore, style: TextStyle(color: AppColors.grey1, fontSize: 13.5, fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
         ],
         ),
       ),

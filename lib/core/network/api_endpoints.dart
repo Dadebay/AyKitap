@@ -43,6 +43,12 @@ class ApiEndpoints {
   /// [collectionsAll], or a banner's `book_id`.
   static String bookById(int id) => '/books/$id';
 
+  /// POST `{"progress": 0..100}` — syncs the signed-in user's reading
+  /// progress for [bookId] server-side. [CatalogBookDetailScreen]'s "mark
+  /// as finished" flag button sends `100`; nothing else calls this yet
+  /// (the readers still track progress purely on-device via prefs).
+  static String bookProgress(int bookId) => '/books/$bookId/progress';
+
   /// POST — likes [bookId] for the signed-in user.
   static String likeBook(String bookId) => '/books/$bookId/like';
 
@@ -53,13 +59,13 @@ class ApiEndpoints {
   static String removeBoughtBook(int bookId) => '/books/bought/$bookId';
 
   /// POST — buys [bookId] for the signed-in user, paying from the balance.
-  /// UNCONFIRMED: the backend has only ever shown us the DELETE half of
-  /// this pair ([removeBoughtBook]); no Postman capture of a purchase call
-  /// exists yet, so the path is the mirror image of the one we do know.
-  /// [BookPurchaseApiService] is the single call site — when the real
-  /// contract lands, that service and this line are the only things that
-  /// change.
-  static String buyBook(int bookId) => '/books/bought/$bookId';
+  /// 201 on success, its `data` a presigned download link for the purchased
+  /// file (same `{url, size, name, lastModified}` shape as [bookFile]) — a
+  /// bonus the purchase flow doesn't currently use, but is there if a later
+  /// change wants to skip the follow-up [bookFile] call right after buying.
+  /// 400 with `{"message": "You do not have enough balance", ...}` when the
+  /// balance falls short.
+  static String buyBook(int bookId) => '/users/buy-book/$bookId';
 
   /// GET — a presigned download link for one book file. The `?filename=`
   /// value is the `file_key` straight off `GET /books/:id`'s `bookFiles[]`
@@ -105,17 +111,33 @@ class ApiEndpoints {
   /// [SubscriptionScreen] lists as plans.
   static const String tariffs = '/payments/tariffs';
 
+  /// POST — buys tariff [tariffId] for the signed-in user, paying from the
+  /// balance. Same shape as [buyBook]: 201 on success (money moved
+  /// server-side), 400 `{"message": "You do not have enough balance", ...}`
+  /// when it doesn't cover the price. What this actually *grants* — the
+  /// active-until date — isn't in this response or `/users/me` yet, so
+  /// [SubscriptionService] still tracks that on-device.
+  static String buySubscription(int tariffId) => '/users/buy-subscription/$tariffId';
+
   /// GET — banks offered for card payment, shown in the bank-selection
   /// sheet before checkout.
   static const String banks = '/payments/banks';
 
-  /// POST — starts a bank-card checkout, returning the bank's online
-  /// payment page URL. UNCONFIRMED: no Postman screenshot for this call
-  /// exists yet (unlike every other endpoint in this file) — path/body
-  /// guessed from this API's own naming plus this app's Ter-market sibling
-  /// project's equivalent `initiate/` call. Confirm the real contract
-  /// (path, body shape, response field) before relying on this.
-  static const String subscribeInitiate = '/payments/subscribe';
+  /// POST `{amount, bank_id}` — creates a balance top-up order. 201's
+  /// `data.invoiceUrl` is the bank's online payment page
+  /// ([PaymentWebViewScreen] opens it in-app); the balance itself only
+  /// moves once the bank confirms the payment server-side, so the caller
+  /// re-reads `/users/me` after the webview closes rather than trusting
+  /// anything client-side. This is the *only* bank-card money-in path —
+  /// there is no separate "pay for this subscription/book via bank"
+  /// endpoint; [buySubscription]/[BookPurchaseApiService.buy] both spend
+  /// from whatever balance this has put there.
+  static const String paymentOrders = '/payments/orders';
+
+  /// GET — the signed-in user's own bank-card top-up orders, newest first
+  /// (each with its bank and amount) — [BalanceScreen]'s "card payments"
+  /// section.
+  static const String paymentsMy = '/payments/my';
 
   // ── Banners ──────────────────────────────────────────────────────────
   /// GET — the active promo banners for Home's [BannerCarousel], public
@@ -148,4 +170,23 @@ class ApiEndpoints {
 
   /// POST — a free-text bug/problem report.
   static const String problems = '/problems';
+
+  // ── Streaks ──────────────────────────────────────────────────────────
+  /// POST — reports reading activity (`seconds`/`pages` deltas since the
+  /// last successful report) toward today's streak goal. Call every 60s
+  /// during active reading, plus once on pause/background/close with the
+  /// residual seconds. The server credits whatever it receives to the
+  /// Ashgabat calendar day *at the moment it's received* — no back-dating,
+  /// so a report that had to be buffered offline should be flushed as soon
+  /// as the connection returns rather than held any longer.
+  static const String streakReport = '/streaks/report';
+
+  /// GET — everything the Streak screen needs in one call: today/week/month
+  /// totals, streak counts, and the reward rules (so their text isn't
+  /// hard-coded on-device).
+  static const String streakMe = '/streaks/me';
+
+  /// GET — paginated daily reading history (`?page=&limit=`), newest day
+  /// first.
+  static const String streakHistory = '/streaks/history';
 }

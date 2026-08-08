@@ -1,66 +1,67 @@
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../network/api_exception.dart';
 import 'account_service.dart';
+import 'payment_api_service.dart';
 
-/// Local stand-in for server-tracked subscription state (TZ §13.1 / §10.2).
 /// A subscriber reads every book for free — no per-book purchase needed —
 /// which is what [BookDetailScreen] and [PurchasedBooksStore] key off of.
-/// Buying a plan debits [AccountService.balanceManat] — the same balance
-/// shown on Profile/[BalanceScreen] — so a purchase only ever succeeds when
-/// the user's *actual displayed* balance covers the price; there's no
-/// separate on-device number the check could pass against instead.
 ///
-/// The plan itself (price, length) comes from a real `Tariff`
-/// ([PaymentApiService.getTariffs]) — this just tracks which one is active
-/// and until when, entirely on-device since there's no real purchase/
-/// checkout endpoint yet.
+/// Thin facade over [AccountService]'s `/users/me` `subscription` field
+/// (`tariff_id`/`activated_at`/`expired_at` — set by `POST
+/// /users/buy-subscription/:id`, [PaymentApiService.buySubscription], which
+/// returns the same shape): no state of its own, just forwards
+/// [AccountService]'s notifications so the existing
+/// `context.watch<SubscriptionService>()` call sites (and
+/// [BookAccessService], which has no [BuildContext] to watch AccountService
+/// from directly) don't need to change now that the backend tracks this
+/// itself instead of the app computing an expiry on-device.
 class SubscriptionService extends ChangeNotifier {
-  SubscriptionService._();
+  SubscriptionService._() {
+    AccountService.instance.addListener(notifyListeners);
+  }
   static final instance = SubscriptionService._();
 
-  static const _kExpiresAt = 'subscription_expires_at_v1';
-  static const _kPlanMonths = 'subscription_plan_months_v1';
-
-  DateTime? _expiresAt;
-  int? _planMonthCount;
-  bool _loaded = false;
-
-  bool get isActive => _expiresAt != null && _expiresAt!.isAfter(DateTime.now());
-  int? get activePlanMonthCount => isActive ? _planMonthCount : null;
-  DateTime? get expiresAt => isActive ? _expiresAt : null;
-
-  Future<void> load() async {
-    if (_loaded) return;
-    final prefs = await SharedPreferences.getInstance();
-    final rawExpiry = prefs.getString(_kExpiresAt);
-    _expiresAt = rawExpiry != null ? DateTime.tryParse(rawExpiry) : null;
-    _planMonthCount = prefs.getInt(_kPlanMonths);
-    _loaded = true;
-    notifyListeners();
+  bool get isActive {
+    final expiredAt = AccountService.instance.user?.subscription?.expiredAt;
+    return expiredAt != null && expiredAt.isAfter(DateTime.now());
   }
 
-  /// Debits [priceManat] from [AccountService.balanceManat] and activates a
-  /// [monthCount]-month subscription (30 days per month). Renewing while
-  /// already active extends from the current expiry rather than from now.
-  /// Returns false (leaving both the balance and the subscription untouched)
-  /// if that balance doesn't cover the price — the caller then shows the
-  /// insufficient-balance dialog instead of silently activating.
-  Future<bool> subscribe({required int monthCount, required int priceManat}) async {
-    await load();
+  DateTime? get expiresAt {
+    final expiredAt = AccountService.instance.user?.subscription?.expiredAt;
+    return isActive ? expiredAt : null;
+  }
+
+  /// Ensures [AccountService] has loaded at least once — cheap to call from
+  /// every screen that needs subscription status.
+  Future<void> load() async {
+    if (AccountService.instance.user == null) await AccountService.instance.refresh();
+  }
+
+  /// Pays for [tariffId] (`POST /users/buy-subscription/:id`, [priceManat]
+  /// manat) and refreshes [AccountService] to pick up the `expired_at` the
+  /// backend just set — no local date math, since the server tracks this
+  /// itself.
+  ///
+  /// Returns false (leaving the subscription untouched) when the balance
+  /// doesn't cover the price — checked client-side first to skip a
+  /// guaranteed-to-fail request, and again via the backend's own 400 if
+  /// the cached balance was stale — so the caller can show the
+  /// insufficient-balance dialog either way. Any other failure (no
+  /// connection, 500, ...) throws [ApiException] instead, since offering
+  /// "top up your balance" for a problem that isn't about the balance
+  /// would be misleading.
+  Future<bool> subscribe({required int tariffId, required int priceManat}) async {
     if (priceManat > 0) {
       final balance = AccountService.instance.balanceManat;
       if (balance == null || balance < priceManat) return false;
-      AccountService.instance.debitBalance(priceManat);
     }
-
-    final base = isActive ? _expiresAt! : DateTime.now();
-    _expiresAt = base.add(Duration(days: monthCount * 30));
-    _planMonthCount = monthCount;
-    notifyListeners();
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kExpiresAt, _expiresAt!.toIso8601String());
-    await prefs.setInt(_kPlanMonths, monthCount);
+    try {
+      await PaymentApiService.buySubscription(tariffId);
+    } on ApiException catch (e) {
+      if (e.statusCode == 400) return false;
+      rethrow;
+    }
+    await AccountService.instance.refresh();
     return true;
   }
 }

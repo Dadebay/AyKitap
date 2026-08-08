@@ -24,12 +24,31 @@ class CatalogAuthorDetailScreen extends StatefulWidget {
   State<CatalogAuthorDetailScreen> createState() => _CatalogAuthorDetailScreenState();
 }
 
+enum _AuthorBooksSort { name, date }
+
 class _CatalogAuthorDetailScreenState extends State<CatalogAuthorDetailScreen> {
   AuthorDetail? _author;
   List<LibraryBook>? _books;
   bool _loading = true;
   String? _error;
   bool _bioExpanded = false;
+  // Client-side only — the author's books are already fetched in full
+  // (see `_load`'s `size: 100` default), so re-sorting locally avoids a
+  // round-trip the `/books/all` `sort_by`/`sort_order` params would need.
+  _AuthorBooksSort? _sort;
+
+  List<LibraryBook> _sortedBooks(List<LibraryBook> books) {
+    if (_sort == null) return books;
+    final sorted = List<LibraryBook>.from(books);
+    switch (_sort!) {
+      case _AuthorBooksSort.name:
+        sorted.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      case _AuthorBooksSort.date:
+        // Newest first; books without a year sink to the bottom.
+        sorted.sort((a, b) => (b.year ?? -1).compareTo(a.year ?? -1));
+    }
+    return sorted;
+  }
 
   @override
   void initState() {
@@ -113,6 +132,7 @@ class _CatalogAuthorDetailScreenState extends State<CatalogAuthorDetailScreen> {
     final image = author.image;
     final imageUrl = image != null && image.isNotEmpty ? ApiConfig.resolveImageUrl(image) : null;
     final books = _books ?? const [];
+    final sortedBooks = _sortedBooks(books);
     return ListView(
       padding: EdgeInsets.zero,
       children: [
@@ -154,22 +174,26 @@ class _CatalogAuthorDetailScreenState extends State<CatalogAuthorDetailScreen> {
               if (_books != null) ...[
                 const SizedBox(height: 24),
                 if (books.isNotEmpty) ...[
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(AuthorStrings.allBooks, style: TextStyle(color: AppColors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(AuthorStrings.allBooks, style: TextStyle(color: AppColors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                      ),
+                      _buildSortButton(),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: books.length,
+                    itemCount: sortedBooks.length,
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 3,
                       mainAxisSpacing: 20,
                       crossAxisSpacing: 12,
                       childAspectRatio: 0.50,
                     ),
-                    itemBuilder: (context, i) => CatalogBookCard(book: books[i], width: double.infinity, coverHeight: 170, margin: EdgeInsets.zero),
+                    itemBuilder: (context, i) => CatalogBookCard(book: sortedBooks[i], width: double.infinity, coverHeight: 170, margin: EdgeInsets.zero),
                   ),
                 ] else
                   _buildNoBooks(),
@@ -178,6 +202,46 @@ class _CatalogAuthorDetailScreenState extends State<CatalogAuthorDetailScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSortButton() {
+    return PopupMenuButton<_AuthorBooksSort>(
+      // Picking the already-active sort turns it back off (server order)
+      // instead of being a no-op.
+      onSelected: (value) => setState(() => _sort = _sort == value ? null : value),
+      color: AppColors.card,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      itemBuilder: (context) => [
+        _sortMenuItem(_AuthorBooksSort.name, AuthorStrings.sortAZ, HugeIcons.strokeRoundedSortingAZ01),
+        _sortMenuItem(_AuthorBooksSort.date, AuthorStrings.sortByDate, HugeIcons.strokeRoundedCalendar03),
+      ],
+      child: Container(
+        width: 34,
+        height: 34,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(color: AppColors.card, shape: BoxShape.circle),
+        child: HugeIcon(
+          icon: HugeIcons.strokeRoundedSortingAZ01,
+          color: _sort != null ? AppColors.primary : AppColors.grey1,
+          size: 18,
+        ),
+      ),
+    );
+  }
+
+  PopupMenuItem<_AuthorBooksSort> _sortMenuItem(_AuthorBooksSort value, String label, List<List<dynamic>> icon) {
+    final selected = _sort == value;
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          HugeIcon(icon: icon, color: selected ? AppColors.primary : AppColors.grey1, size: 16),
+          const SizedBox(width: 8),
+          Text(label, style: TextStyle(color: selected ? AppColors.primary : AppColors.white, fontWeight: selected ? FontWeight.w700 : FontWeight.w500)),
+        ],
+      ),
     );
   }
 

@@ -1,3 +1,22 @@
+/// The `data.user.subscription` object `/users/me` carries once the user
+/// has ever bought a plan — set by `POST /users/buy-subscription/:id`
+/// ([PaymentApiService.buySubscription]), which returns the same shape.
+/// Null on the user itself (not an empty object) when no subscription has
+/// ever been bought.
+class AuthSubscription {
+  final int tariffId;
+  final DateTime activatedAt;
+  final DateTime expiredAt;
+
+  const AuthSubscription({required this.tariffId, required this.activatedAt, required this.expiredAt});
+
+  factory AuthSubscription.fromJson(Map<String, dynamic> json) => AuthSubscription(
+        tariffId: json['tariff_id'] as int,
+        activatedAt: DateTime.parse(json['activated_at'] as String),
+        expiredAt: DateTime.parse(json['expired_at'] as String),
+      );
+}
+
 /// The `data.user` object returned by `/users/verify-login` (TZ 2.1/2.3).
 /// A brand-new account comes back with [username] and [image] both null —
 /// that's how the caller tells "just registered" apart from "logging back
@@ -8,6 +27,7 @@ class AuthUser {
   final String? username;
   final String? image;
   final int balance;
+  final AuthSubscription? subscription;
 
   const AuthUser({
     required this.id,
@@ -15,6 +35,7 @@ class AuthUser {
     this.username,
     this.image,
     required this.balance,
+    this.subscription,
   });
 
   factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
@@ -23,5 +44,6 @@ class AuthUser {
         username: json['username'] as String?,
         image: json['image'] as String?,
         balance: json['balance'] as int? ?? 0,
+        subscription: json['subscription'] != null ? AuthSubscription.fromJson(json['subscription'] as Map<String, dynamic>) : null,
       );
 }

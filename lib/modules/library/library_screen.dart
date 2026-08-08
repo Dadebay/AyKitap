@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/services/book_api_service.dart';
 import '../../core/localization/strings/library_strings.dart';
+import '../../core/services/book_api_service.dart';
+import '../../core/services/favorites_sync_service.dart';
+import '../../core/services/finished_books_sync_service.dart';
+import '../../core/theme/app_colors.dart';
 import 'widgets/library_tabs.dart';
 import 'widgets/own_books_tab.dart';
 
-/// Kitaplagrym Sahypasy — TZ section 7. 5 tabs on a "shelf" style page.
+/// Kitaplagrym Sahypasy — TZ section 7. 6 tabs on a "shelf" style page.
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
 
@@ -16,10 +18,11 @@ class LibraryScreen extends StatefulWidget {
 class _LibraryScreenState extends State<LibraryScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController =
-      TabController(length: 5, vsync: this);
+      TabController(length: 6, vsync: this);
 
   static List<String> get _tabs => [
         LibraryStrings.tabReading,
+        LibraryStrings.tabFinished,
         LibraryStrings.tabDownloaded,
         LibraryStrings.tabPurchased,
         LibraryStrings.tabFavorites,
@@ -64,10 +67,29 @@ class _LibraryScreenState extends State<LibraryScreen>
               child: TabBarView(
                 controller: _tabController,
                 children: [
+                  // "Started but not done" — `my_books=true` returns every
+                  // book the user has opened, finished ones included, and
+                  // those belong on the next tab instead. Filtered here
+                  // rather than server-side because there's no
+                  // `finished=false` filter, only `finished=true`.
                   ApiBooksTab(
-                    fetcher: () => BookApiService.listBooks(myBooks: true),
+                    fetcher: () async => (await BookApiService.listBooks(myBooks: true))
+                        .where((b) => !b.isFinished)
+                        .toList(),
                     emptyLabel: LibraryStrings.emptyReading,
                     showProgress: true,
+                    // Finishing a book moves it off this shelf onto
+                    // "Bitirdiklerim", so both tabs watch the same signal.
+                    refreshOn: FinishedBooksSyncService.instance,
+                  ),
+                  ApiBooksTab(
+                    fetcher: () => BookApiService.listBooks(
+                      myBooks: true,
+                      finished: true,
+                    ),
+                    emptyLabel: LibraryStrings.emptyFinished,
+                    showProgress: true,
+                    refreshOn: FinishedBooksSyncService.instance,
                   ),
                   // No `/books/all` filter for this — see
                   // DownloadedBooksStore's doc comment.
@@ -81,6 +103,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                   ApiBooksTab(
                     fetcher: () => BookApiService.listBooks(wantsTo: true),
                     emptyLabel: LibraryStrings.emptyFavorites,
+                    refreshOn: FavoritesSyncService.instance,
                   ),
                   const OwnBooksTab(),
                 ],

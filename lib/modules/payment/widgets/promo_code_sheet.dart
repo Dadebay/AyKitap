@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/strings/payment_strings.dart';
+import '../../../core/theme/app_colors.dart';
 
 /// Promo-code entry, reused by [SubscriptionScreen]'s checkout and
 /// [startBalanceTopUp]. Just collects the text and pops it (never null
@@ -38,7 +39,7 @@ class _PromoCodeSheetState extends State<PromoCodeSheet> {
 
   void _submit() {
     if (!_isValid) return;
-    Navigator.pop(context, _controller.text.trim());
+    Navigator.pop(context, _controller.text.trim().toUpperCase());
   }
 
   @override
@@ -70,6 +71,14 @@ class _PromoCodeSheetState extends State<PromoCodeSheet> {
                 focusNode: _focusNode,
                 autofocus: true,
                 textCapitalization: TextCapitalization.characters,
+                inputFormatters: [
+                  TextInputFormatter.withFunction((oldValue, newValue) =>
+                      newValue.copyWith(
+                        text: newValue.text.toUpperCase(),
+                        selection: newValue.selection,
+                        composing: TextRange.empty,
+                      )),
+                ],
                 onChanged: (_) => setState(() {}),
                 onSubmitted: (_) => _submit(),
                 style: TextStyle(color: AppColors.white, fontSize: 14),

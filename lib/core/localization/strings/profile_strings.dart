@@ -217,6 +217,18 @@ class ProfileStrings {
       t(tk: 'Balans dolduryldy', ru: 'Баланс пополнен', tr: 'Bakiye yüklendi');
   static String get balanceOtherActivity =>
       t(tk: 'Balans hereketi', ru: 'Операция по балансу', tr: 'Bakiye işlemi');
+  static String get cardPaymentsTitle =>
+      t(tk: 'Kart arkaly tölegler', ru: 'Платежи картой', tr: 'Kartla ödemeler');
+  static String get cardPaymentsEmpty => t(
+        tk: 'Kart arkaly töleg ýok',
+        ru: 'Платежей картой пока нет',
+        tr: 'Henüz kartla ödeme yok',
+      );
+  static String get cardPaymentsEmptySubtitle => t(
+        tk: 'Kart bilen eden tölegleriňiz şu ýerde görkeziler.',
+        ru: 'Здесь будут показаны ваши платежи картой.',
+        tr: 'Kartla yaptığınız ödemeler burada gösterilecek.',
+      );
 
   static String get settingsEntryTitle =>
       t(tk: 'Sazlamalar', ru: 'Настройки', tr: 'Ayarlar');

@@ -87,7 +87,7 @@ class CatalogRankShelfCard extends StatelessWidget {
                         side: BorderSide(color: AppColors.border),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      onPressed: () => context.push(CatalogCollectionBooksScreen(title: collection.name, books: books)),
+                      onPressed: () => context.push(CatalogCollectionBooksScreen(title: collection.name, books: books, ranked: true)),
                       child: Text(HomeStrings.seeMore, style: TextStyle(color: AppColors.grey1, fontSize: 13.5, fontWeight: FontWeight.w700)),
                     ),
                   ),

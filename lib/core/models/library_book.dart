@@ -55,6 +55,22 @@ class LibraryBook {
 
   String get authorNames => authors.map((a) => a.name).join(', ');
 
+  /// [progress] as a 0–1 fraction regardless of which scale the backend
+  /// used. `POST /books/:id/progress` takes 0–100 and that's what
+  /// [ReadingProgressReporter] sends, but older rows (and some list
+  /// endpoints) still come back as a 0–1 fraction, so anything already ≤ 1
+  /// is read as a fraction and anything above as a percentage.
+  double? get progressFraction {
+    final raw = progress;
+    if (raw == null) return null;
+    return (raw > 1 ? raw / 100 : raw).clamp(0.0, 1.0);
+  }
+
+  /// Read to the end — what separates Kitaplygym's "Bitirdiklerim" shelf
+  /// from "Okuduklarym". Compared just under 1.0 because a fractional
+  /// last-page ratio (`(page + 1) / total`) can land a hair short of it.
+  bool get isFinished => (progressFraction ?? 0) >= 0.999;
+
   factory LibraryBook.fromJson(Map<String, dynamic> json) => LibraryBook(
         id: json['id'] as int,
         name: json['name'] as String? ?? '',
@@ -67,8 +83,17 @@ class LibraryBook {
         authors: (json['authors'] as List? ?? const [])
             .map((e) => LibraryBookAuthor.fromJson(e as Map<String, dynamic>))
             .toList(),
-        progress: (json['progress'] as num?)?.toDouble(),
+        // `/books/all?my_books=true&finished=true` currently returns this
+        // value as a string (for example, "100"), while other book lists
+        // can return a JSON number. Accept both response shapes.
+        progress: _parseProgress(json['progress']),
       );
+
+  static double? _parseProgress(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
 
   /// The shelf-sized view of a full [BookDetail] — what a book downloaded
   /// from its detail page is stored as in [DownloadedBooksStore], whose

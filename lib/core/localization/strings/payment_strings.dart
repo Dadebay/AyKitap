@@ -4,6 +4,9 @@ import '../strings_base.dart';
 class PaymentStrings {
   PaymentStrings._();
 
+  // payment_webview_screen.dart
+  static String get paymentPageTitle => t(tk: 'Töleg', ru: 'Оплата', tr: 'Ödeme');
+
   // book_purchase_screen.dart
   static String get purchaseTitle => t(tk: 'Satyn alyş', ru: 'Покупка', tr: 'Satın alma');
   static String purchasedSnackbar(String title) => t(
@@ -16,7 +19,8 @@ class PaymentStrings {
   static String get yourBalance => t(tk: 'Balansyňyz', ru: 'Ваш баланс', tr: 'Bakiyeniz');
   static String get afterPurchase => t(tk: 'Satyn alandan soň', ru: 'После покупки', tr: 'Satın aldıktan sonra');
   static String get notEnough => t(tk: 'Ýeterlik däl', ru: 'Недостаточно', tr: 'Yetersiz');
-  static String manat(num amount) => t(tk: '$amount manat', ru: '$amount манат', tr: '$amount manat');
+  /// Currency code is deliberately the same in every language and screen.
+  static String manat(num amount) => '$amount TMT';
   static String get balanceInsufficientNote => t(
         tk: 'Balansyňyz bu kitaby almaga ýetmeýär. Balansy dolduryň.',
         ru: 'Вашего баланса недостаточно для покупки этой книги. Пополните баланс.',
@@ -25,9 +29,9 @@ class PaymentStrings {
   /// Exact shortfall for [InsufficientBalanceDialog] — how much more the
   /// balance needs before this purchase goes through.
   static String balanceShortfall(num amount) => t(
-        tk: 'Bu kitaby almak üçin ýene $amount manat gerek. Balansy dolduryň.',
-        ru: 'Для покупки этой книги не хватает $amount манат. Пополните баланс.',
-        tr: 'Bu kitabı almak için $amount manat daha gerekli. Bakiyenizi yükleyin.',
+        tk: 'Bu kitaby almak üçin ýene $amount TMT gerek. Balansy dolduryň.',
+        ru: 'Для покупки этой книги не хватает $amount TMT. Пополните баланс.',
+        tr: 'Bu kitabı almak için $amount TMT daha gerekli. Bakiyenizi yükleyin.',
       );
   static String get booksOnlyInApp => t(
         tk: 'Kitaplar diňe programmada okalýar — telefona ýüklenmeýär.',
@@ -35,9 +39,9 @@ class PaymentStrings {
         tr: 'Kitaplar yalnızca uygulama içinde okunur — telefona indirilmez.',
       );
   static String confirmWithPrice(num amount) => t(
-        tk: 'Tassykla — $amount manat',
-        ru: 'Подтвердить — $amount манат',
-        tr: 'Onayla — $amount manat',
+        tk: 'Tassykla — $amount TMT',
+        ru: 'Подтвердить — $amount TMT',
+        tr: 'Onayla — $amount TMT',
       );
   static String get topUpBalance => t(tk: 'Balans doldur', ru: 'Пополнить баланс', tr: 'Bakiye yükle');
   static String get payNow => t(tk: 'Töle', ru: 'Оплатить', tr: 'Öde');
@@ -75,9 +79,9 @@ class PaymentStrings {
         tr: '$planName planı seçildi (mock)',
       );
   static String subscribeWithPrice(num amount) => t(
-        tk: '$amount manat — Abuna bol',
-        ru: '$amount манат — Оформить подписку',
-        tr: '$amount manat — Abone ol',
+        tk: '$amount TMT — Abuna bol',
+        ru: '$amount TMT — Оформить подписку',
+        tr: '$amount TMT — Abone ol',
       );
   static String get mostPopular => t(tk: 'Iň meşhur', ru: 'Самый популярный', tr: 'En popüler');
   static String subscriptionActivated(String planName) => t(
@@ -85,6 +89,9 @@ class PaymentStrings {
         ru: 'Подписка «$planName» активирована',
         tr: '$planName aboneliği etkinleştirildi',
       );
+  // widgets/subscription_success_dialog.dart
+  static String get subscriptionSuccessTitle => t(tk: 'Gutlaýarys!', ru: 'Поздравляем!', tr: 'Tebrikler!');
+  static String get subscriptionSuccessCta => t(tk: 'Okap başlaýyn', ru: 'Начать читать', tr: 'Okumaya başla');
   static String get activeSubscription => t(tk: 'Işjeň abunalyk', ru: 'Активная подписка', tr: 'Aktif abonelik');
   static String activeUntil(String date) => t(tk: '$date çenli güýjünde', ru: 'Действует до $date', tr: '$date tarihine kadar geçerli');
   static String get renew => t(tk: 'Uzalt', ru: 'Продлить', tr: 'Yenile');
@@ -98,11 +105,6 @@ class PaymentStrings {
   static String get payWithCard => t(tk: 'Bank kartasy bilen töle', ru: 'Оплатить банковской картой', tr: 'Banka kartıyla öde');
   static String get selectBankTitle => t(tk: 'Bank saýlaň', ru: 'Выберите банк', tr: 'Banka seçin');
   static String get banksLoadError => t(tk: 'Banklar ýüklenmedi', ru: 'Не удалось загрузить банки', tr: 'Bankalar yüklenemedi');
-  static String get paymentUrlError => t(
-        tk: 'Töleg salgysyny alyp bolmady',
-        ru: 'Не удалось получить ссылку для оплаты',
-        tr: 'Ödeme bağlantısı alınamadı',
-      );
 
   // widgets/payment_method_sheet.dart
   static String get choosePaymentMethodTitle => t(tk: 'Töleg usulyny saýlaň', ru: 'Выберите способ оплаты', tr: 'Ödeme yöntemini seçin');
@@ -110,14 +112,9 @@ class PaymentStrings {
 
   // balance_top_up.dart / widgets/top_up_amount_sheet.dart
   static String get topUpTitle => t(tk: 'Balansy doldur', ru: 'Пополнить баланс', tr: 'Bakiye yükle');
-  static String get topUpAmountTitle => t(tk: 'Näçe manat dolduraly?', ru: 'На какую сумму пополнить?', tr: 'Ne kadar yükleyelim?');
+  static String get topUpAmountTitle => t(tk: 'Näçe TMT dolduraly?', ru: 'На какую сумму TMT пополнить?', tr: 'Ne kadar TMT yükleyelim?');
   static String get topUpAmountHint => t(tk: 'Möçberi giriziň', ru: 'Введите сумму', tr: 'Tutarı girin');
   static String get topUpContinue => t(tk: 'Dowam et', ru: 'Продолжить', tr: 'Devam et');
-  static String get topUpNotAvailable => t(
-        tk: 'Balans doldurmak entek elýeterli däl',
-        ru: 'Пополнение баланса пока недоступно',
-        tr: 'Bakiye yükleme henüz kullanılamıyor',
-      );
 
   // widgets/promo_code_sheet.dart
   static String get promoCodeTitle => t(tk: 'Promokod giriziň', ru: 'Введите промокод', tr: 'Promosyon kodu girin');

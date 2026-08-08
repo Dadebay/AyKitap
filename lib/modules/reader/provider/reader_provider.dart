@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:sakura_epub/sakura_epub.dart';
@@ -10,7 +9,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/models/bookmark.dart';
 import '../../../core/models/reading_note.dart';
 import '../../../core/services/bookmarks_store.dart';
+import '../../../core/services/last_read_book_store.dart';
 import '../../../core/services/notes_store.dart';
+import '../../../core/services/reading_progress_reporter.dart';
 import '../../../core/services/streak_service.dart';
 import '../../../core/theme/highlight_colors.dart';
 import '../../../core/theme/theme_controller.dart';
@@ -30,7 +31,7 @@ enum ReaderFontFamily { sanFrancisco, arial, notoSerif, openSans }
 /// closest a paginated turn gets to the feel of scrolling to the next page.
 enum ReaderPageTransition { slide, curl, overlay, scroll, shift, none }
 
-class ReaderProvider extends ChangeNotifier {
+class ReaderProvider extends ChangeNotifier with WidgetsBindingObserver {
   // ── Epub controller (low-level WebView bridge) ──────────────────────────
   final EpubController epubController = EpubController();
 
@@ -263,9 +264,13 @@ class ReaderProvider extends ChangeNotifier {
   String? _savedLocationsJson;
   String? get savedLocationsJson => _savedLocationsJson;
 
-  // ── Streak ping (TZ §9.1: "Her 30 sek-de server-e ping iberilýär") ────────
+  // ── Streak ping (streak-apis.md: report every 60s while actively reading,
+  // plus once on pause/background/close with the residual seconds since the
+  // last tick) ──────────────────────────────────────────────────────────
   Timer? _streakPingTimer;
-  static const _streakPingInterval = Duration(seconds: 30);
+  static const _streakPingInterval = Duration(seconds: 60);
+  final Stopwatch _streakStopwatch = Stopwatch();
+  bool _lifecycleObserverAdded = false;
 
   // ─────────────────────────────────────────────────────────────────────────
   // Init
@@ -323,10 +328,58 @@ class ReaderProvider extends ChangeNotifier {
 
     notifyListeners();
 
+    if (!_lifecycleObserverAdded) {
+      _lifecycleObserverAdded = true;
+      WidgetsBinding.instance.addObserver(this);
+    }
+    _startStreakPing();
+  }
+
+  void _startStreakPing() {
     _streakPingTimer?.cancel();
+    _streakStopwatch
+      ..reset()
+      ..start();
     _streakPingTimer = Timer.periodic(_streakPingInterval, (_) {
       StreakService.instance.recordActiveSeconds(_streakPingInterval.inSeconds);
+      _streakStopwatch.reset();
     });
+  }
+
+  /// Sends whatever active-reading time has elapsed since the last periodic
+  /// tick (0 if the timer never fired yet) — called from [saveAndClose]/
+  /// [dispose] (reader closed) and [didChangeAppLifecycleState] (app
+  /// backgrounded) so a reading burst shorter than [_streakPingInterval]
+  /// still counts instead of being silently dropped when the timer stops.
+  void _flushStreakResidual() {
+    _streakPingTimer?.cancel();
+    final residual = _streakStopwatch.elapsed.inSeconds;
+    // Reset (not just stop) so a second flush call — [saveAndClose] is
+    // normally followed by this same Provider's own [dispose] — reads 0
+    // instead of re-sending the same already-flushed residual.
+    _streakStopwatch
+      ..stop()
+      ..reset();
+    if (residual > 0) StreakService.instance.flushResidual(seconds: residual);
+  }
+
+  /// `inactive` is skipped deliberately — it also fires for brief, non-
+  /// backgrounding interruptions (a permission dialog, Control Center, an
+  /// incoming call banner) that resolve back to `resumed` almost
+  /// immediately, and pausing/resuming the ping for those would just be
+  /// noise. Only `paused` (genuinely backgrounded) and `resumed` toggle it.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        _flushStreakResidual();
+      case AppLifecycleState.resumed:
+        _startStreakPing();
+      case AppLifecycleState.inactive:
+        break;
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -853,9 +906,16 @@ class ReaderProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setDouble('book_${_bookId}_progress', _progress);
       await prefs.setInt('book_${_bookId}_page', _currentPage);
+      await LastReadBookStore.instance.updatePage(
+        bookId: _bookId!,
+        page: _currentPage,
+      );
       if (_currentCfi.isNotEmpty) {
         await prefs.setString('book_${_bookId}_cfi', _currentCfi);
       }
+      // Same debounce as the local save, so the server sees the position the
+      // user actually settled on rather than every intermediate relocation.
+      ReadingProgressReporter.instance.report(bookId: _bookId!, fraction: _progress);
       log('💾 Progress saved: ${(_progress * 100).toStringAsFixed(1)}%');
     } catch (e) {
       log('❌ Save progress error: $e');
@@ -867,7 +927,7 @@ class ReaderProvider extends ChangeNotifier {
 
   Future<void> saveAndClose() async {
     _saveTimer?.cancel();
-    _streakPingTimer?.cancel();
+    _flushStreakResidual();
     _loadTimeoutTimer?.cancel();
     // Hand the screen brightness back to the system on the way out.
     await _releaseBrightness();
@@ -876,6 +936,10 @@ class ReaderProvider extends ChangeNotifier {
   }
 
   void _reset() {
+    // Clear the report throttle too: reopening this book should re-sync its
+    // position on the first save rather than being de-duped against what a
+    // previous session already sent.
+    if (_bookId != null) ReadingProgressReporter.instance.forget(_bookId!);
     _currentPage = 0;
     _totalPages = 0;
     _lastLoggedPage = null;
@@ -892,7 +956,11 @@ class ReaderProvider extends ChangeNotifier {
   @override
   void dispose() {
     _saveTimer?.cancel();
-    _streakPingTimer?.cancel();
+    _flushStreakResidual();
+    if (_lifecycleObserverAdded) {
+      _lifecycleObserverAdded = false;
+      WidgetsBinding.instance.removeObserver(this);
+    }
     _loadTimeoutTimer?.cancel();
     // Safety net: covers exit paths that don't route through saveAndClose.
     _releaseBrightness();

@@ -1,14 +1,19 @@
+import 'package:flutter/cupertino.dart' show CupertinoSlidingSegmentedControl;
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../core/localization/strings/payment_strings.dart';
+import '../../core/localization/strings/profile_strings.dart';
 import '../../core/models/balance_log.dart';
+import '../../core/models/payment_order.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/services/account_service.dart';
 import '../../core/services/balance_log_api_service.dart';
+import '../../core/services/payment_api_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../core/widgets/app_back_button.dart';
-import '../../core/localization/strings/profile_strings.dart';
 import '../payment/balance_top_up.dart';
 import 'widgets/balance_card.dart';
 
@@ -24,13 +29,19 @@ class BalanceScreen extends StatefulWidget {
 }
 
 class _BalanceScreenState extends State<BalanceScreen> {
+  _BalanceTab _selectedTab = _BalanceTab.history;
   List<BalanceLog>? _logs;
   String? _error;
+  // Best-effort, separate from [_logs]/[_error] — a failure here shouldn't
+  // block the (more important) balance history above it, so this section
+  // just quietly stays empty rather than showing its own error state.
+  List<PaymentOrder>? _orders;
 
   @override
   void initState() {
     super.initState();
     _loadLogs();
+    _loadOrders();
   }
 
   Future<void> _loadLogs() async {
@@ -45,9 +56,22 @@ class _BalanceScreenState extends State<BalanceScreen> {
     }
   }
 
+  Future<void> _loadOrders() async {
+    try {
+      final orders = await PaymentApiService.getMyOrders();
+      if (!mounted) return;
+      setState(() => _orders = orders);
+    } on ApiException {
+      // See the field's doc comment — silently leave the section empty.
+      if (mounted) setState(() => _orders = const []);
+    }
+  }
+
   Future<void> _openTopUp() async {
     await startBalanceTopUp(context);
-    if (mounted) _loadLogs();
+    if (!mounted) return;
+    _loadLogs();
+    _loadOrders();
   }
 
   @override
@@ -72,19 +96,110 @@ class _BalanceScreenState extends State<BalanceScreen> {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [
             BalanceCard(balanceManat: balance, onTopUp: _openTopUp),
-            const SizedBox(height: 28),
-            Text(
-              ProfileStrings.balanceHistoryTitle,
-              style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800),
-            ),
+            const SizedBox(height: 20),
+            _buildHistoryTabToggle(),
             const SizedBox(height: 16),
-            _buildHistory(),
+            _selectedTab == _BalanceTab.history
+                ? _buildHistory()
+                : _buildCardPayments(),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHistoryTabToggle() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final segmentWidth = (constraints.maxWidth - 12) / 2;
+        return CupertinoSlidingSegmentedControl<_BalanceTab>(
+          groupValue: _selectedTab,
+          backgroundColor: AppColors.card,
+          thumbColor: AppColors.primary,
+          padding: const EdgeInsets.all(3),
+          onValueChanged: (tab) {
+            if (tab != null && tab != _selectedTab) {
+              setState(() => _selectedTab = tab);
+            }
+          },
+          children: {
+            _BalanceTab.history: _tabLabel(
+              ProfileStrings.balanceHistoryTitle,
+              _BalanceTab.history,
+              segmentWidth,
+            ),
+            _BalanceTab.cardPayments: _tabLabel(
+              ProfileStrings.cardPaymentsTitle,
+              _BalanceTab.cardPayments,
+              segmentWidth,
+            ),
+          },
+        );
+      },
+    );
+  }
+
+  Widget _tabLabel(String label, _BalanceTab tab, double width) {
+    final selected = _selectedTab == tab;
+    return SizedBox(
+      width: width,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? Colors.white : AppColors.grey2,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCardPayments() {
+    if (_orders == null) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 32),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_orders!.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.credit_card_off_rounded, color: AppColors.grey2, size: 36),
+            const SizedBox(height: 12),
+            Text(
+              ProfileStrings.cardPaymentsEmpty,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              ProfileStrings.cardPaymentsEmptySubtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.grey2, fontSize: 13),
+            ),
+          ],
+        ),
+      );
+    }
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _orders!.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (_, index) => _PaymentOrderTile(order: _orders![index]),
     );
   }
 
@@ -164,6 +279,8 @@ class _BalanceScreenState extends State<BalanceScreen> {
     );
   }
 }
+
+enum _BalanceTab { history, cardPayments }
 
 class _BalanceLogTile extends StatelessWidget {
   const _BalanceLogTile({required this.log});
@@ -271,7 +388,7 @@ class _BalanceLogTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '$amountPrefix$displayedAmount ₼',
+                  '$amountPrefix${PaymentStrings.manat(displayedAmount)}',
                   style: TextStyle(
                       color: color, fontSize: 14, fontWeight: FontWeight.w800),
                 ),
@@ -304,6 +421,53 @@ class _BalanceLogTile extends StatelessWidget {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentOrderTile extends StatelessWidget {
+  const _PaymentOrderTile({required this.order});
+
+  final PaymentOrder order;
+
+  @override
+  Widget build(BuildContext context) {
+    final logo = order.bank.logoAsset;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12)),
+            child: logo != null
+                ? Image.asset(logo, fit: BoxFit.cover)
+                : Center(child: HugeIcon(icon: HugeIcons.strokeRoundedBank, color: AppColors.grey2, size: 20)),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(order.bank.name, style: TextStyle(color: AppColors.white, fontSize: 14.5, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 3),
+                Text(
+                  DateFormat.yMMMd().add_Hm().format(order.createdAt),
+                  style: TextStyle(color: AppColors.grey2, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+          Text(PaymentStrings.manat(order.amount), style: TextStyle(color: AppColors.white, fontSize: 15, fontWeight: FontWeight.w800)),
         ],
       ),
     );

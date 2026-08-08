@@ -33,6 +33,6 @@ class NotificationsStrings {
   static String get discountTime => t(tk: 'Düýn', ru: 'Вчера', tr: 'Dün');
 
   static String get paymentTitle => t(tk: 'Töleg tassyklandy', ru: 'Платёж подтверждён', tr: 'Ödeme onaylandı');
-  static String get paymentBody => t(tk: 'Balansyňyza 45 manat goşuldy.', ru: 'На ваш баланс добавлено 45 манат.', tr: 'Bakiyenize 45 manat eklendi.');
+  static String get paymentBody => t(tk: 'Balansyňyza 45 TMT goşuldy.', ru: 'На ваш баланс добавлено 45 TMT.', tr: 'Bakiyenize 45 TMT eklendi.');
   static String get paymentTime => t(tk: '3 gün ozal', ru: '3 дня назад', tr: '3 gün önce');
 }

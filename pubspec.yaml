@@ -65,6 +65,12 @@ dependencies:
 
   #==================== WEBVIEW (needed by epub stub) ====================#
   webview_flutter: ^4.5.0
+  # Direct dependency (not just transitive via webview_flutter) so
+  # PaymentWebViewScreen can reach AndroidWebViewController.setUseWideViewPort
+  # — the platform-interface controller defaults that to false, unlike plain
+  # android.webkit.WebView, which is why bank pages render zoomed-in/desktop-
+  # width until this is set explicitly.
+  webview_flutter_android: ^4.10.0
 
   #==================== ANALYTICS ====================#
   firebase_core: ^4.12.1

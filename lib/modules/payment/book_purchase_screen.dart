@@ -22,12 +22,9 @@ import 'widgets/insufficient_balance_dialog.dart';
 /// ([AccountService.balanceManat], the same number Profile/[BalanceScreen]
 /// show), then puts the purchase through [BookPurchaseApiService].
 ///
-/// The balance is server-owned, so this never subtracts from it itself when
-/// the backend confirmed the purchase — it re-reads `/users/me` and lets the
-/// backend's number win. The one exception is
-/// [PurchaseResult.endpointMissing] (no purchase route live yet), where the
-/// cached balance is decremented locally purely so the flow stays coherent
-/// until the real endpoint exists.
+/// The balance is server-owned, so this never subtracts from it itself —
+/// once the backend confirms the purchase, it re-reads `/users/me` and lets
+/// the backend's number win.
 ///
 /// Pops `true` once the purchase succeeds, which is
 /// [CatalogBookDetailScreen]'s cue to refresh its CTA and go straight on to
@@ -55,14 +52,10 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
 
     setState(() => _processing = true);
     try {
-      final result = await BookPurchaseApiService.buy(widget.book.id);
-      if (result == PurchaseResult.serverConfirmed) {
-        // The backend has already moved the money; this just picks up the
-        // new number rather than guessing at it.
-        await AccountService.instance.refresh();
-      } else {
-        AccountService.instance.debitBalance(_price);
-      }
+      await BookPurchaseApiService.buy(widget.book.id);
+      // The backend has already moved the money; this just picks up the new
+      // number rather than guessing at it.
+      await AccountService.instance.refresh();
       await BookAccessService.instance.markPurchased(widget.book.id);
     } on ApiException catch (e) {
       if (!mounted) return;

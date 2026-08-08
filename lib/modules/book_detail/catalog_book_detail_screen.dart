@@ -3,18 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../core/localization/strings/book_detail_strings.dart';
 import '../../core/models/book_detail.dart';
 import '../../core/models/library_book.dart';
+import '../../core/navigation/app_navigator.dart';
 import '../../core/network/api_config.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/services/book_access_service.dart';
 import '../../core/services/book_api_service.dart';
+import '../../core/services/favorites_sync_service.dart';
+import '../../core/services/finished_books_sync_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/icon_circle_button.dart';
 import '../../core/widgets/network_error_state.dart';
-import '../../core/localization/strings/book_detail_strings.dart';
-import '../../core/navigation/app_navigator.dart';
 import '../author/catalog_author_detail_screen.dart';
 import 'book_open_flow.dart';
 import 'catalog_genre_books_screen.dart';
@@ -44,7 +46,8 @@ class CatalogBookDetailScreen extends StatefulWidget {
   });
 
   @override
-  State<CatalogBookDetailScreen> createState() => _CatalogBookDetailScreenState();
+  State<CatalogBookDetailScreen> createState() =>
+      _CatalogBookDetailScreenState();
 }
 
 class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
@@ -133,7 +136,8 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
       var isFavorite = false;
       try {
         final favoriteBooks = await BookApiService.listBooks(wantsTo: true);
-        isFavorite = favoriteBooks.any((favorite) => favorite.id == widget.bookId);
+        isFavorite =
+            favoriteBooks.any((favorite) => favorite.id == widget.bookId);
       } on ApiException {
         // The book detail remains useful if this secondary status lookup
         // fails; leave the heart in its default, unfilled state.
@@ -142,6 +146,7 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
       setState(() {
         _book = book;
         _isFavorite = isFavorite;
+        _isFinished = (book.progress ?? 0) >= 100;
         _loading = false;
       });
       // Cheap and cache-first, so the CTA has a verdict almost immediately;
@@ -159,9 +164,19 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
     }
   }
 
+  // Only the "mark as finished" direction syncs — un-marking has no
+  // well-defined progress to report back (the user's real reading
+  // position isn't tracked here), so that half just stays a local toggle.
   void _toggleFinished() {
     setState(() => _isFinished = !_isFinished);
-    context.showAppSnackBar(_isFinished ? BookDetailStrings.finishedAdded : BookDetailStrings.finishedRemoved);
+    context.showAppSnackBar(_isFinished
+        ? BookDetailStrings.finishedAdded
+        : BookDetailStrings.finishedRemoved);
+    if (_isFinished) {
+      BookApiService.updateProgress(widget.bookId, progress: 100)
+          .then((_) => FinishedBooksSyncService.instance.notifyChanged())
+          .catchError((_) {});
+    }
   }
 
   // Optimistic: the local toggle is the UI's source of truth, the like/unlike
@@ -170,10 +185,22 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
   // persists. See BookApiService's doc comment.
   void _toggleFavorite() {
     setState(() => _isFavorite = !_isFavorite);
-    context.showAppSnackBar(_isFavorite ? BookDetailStrings.favoriteAdded : BookDetailStrings.favoriteRemoved);
+    context.showAppSnackBar(_isFavorite
+        ? BookDetailStrings.favoriteAdded
+        : BookDetailStrings.favoriteRemoved);
     final bookId = widget.bookId.toString();
-    final future = _isFavorite ? BookApiService.likeBook(bookId) : BookApiService.unlikeBook(bookId);
-    future.catchError((_) {});
+    final future = _isFavorite
+        ? BookApiService.likeBook(bookId)
+        : BookApiService.unlikeBook(bookId);
+    // Only notifies once the like/unlike has actually landed server-side —
+    // firing it immediately (before this even started) let LibraryScreen's
+    // favorites tab re-fetch `wants_to=true` before the DELETE had taken
+    // effect, so it came back still containing the book that was just
+    // unliked and then never refreshed again. Silent on failure: nothing
+    // changed server-side, so there's nothing for the list to pick up.
+    future
+        .then((_) => FavoritesSyncService.instance.notifyChanged())
+        .catchError((_) {});
   }
 
   static String _fmtCount(int n) {
@@ -195,7 +222,8 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
       // page is very likely cached on disk already, so this is usually
       // instant rather than a fresh download.
       try {
-        final file = await DefaultCacheManager().getSingleFile(ApiConfig.resolveImageUrl(image));
+        final file = await DefaultCacheManager()
+            .getSingleFile(ApiConfig.resolveImageUrl(image));
         await Share.shareXFiles([XFile(file.path)], text: text);
         return;
       } catch (_) {
@@ -210,7 +238,8 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
   }
 
   void _openGenre(BookDetailGenre genre) {
-    context.push(CatalogGenreBooksScreen(genreId: genre.id, genreName: genre.name));
+    context.push(
+        CatalogGenreBooksScreen(genreId: genre.id, genreName: genre.name));
   }
 
   Future<void> _removeFromPurchased(BookDetail book) async {
@@ -221,7 +250,10 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           BookDetailStrings.removeFromPurchased,
-          style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800),
+          style: TextStyle(
+              color: AppColors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w800),
         ),
         content: Text(
           BookDetailStrings.removePurchasedConfirm(book.name),
@@ -230,11 +262,14 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(BookDetailStrings.cancel, style: TextStyle(color: AppColors.grey2)),
+            child: Text(BookDetailStrings.cancel,
+                style: TextStyle(color: AppColors.grey2)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(BookDetailStrings.remove, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700)),
+            child: Text(BookDetailStrings.remove,
+                style: const TextStyle(
+                    color: Colors.redAccent, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -245,7 +280,8 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
     try {
       await BookApiService.removeBoughtBook(book.id);
       if (!mounted) return;
-      context.showAppSnackBar(BookDetailStrings.removedFromPurchased(book.name));
+      context
+          .showAppSnackBar(BookDetailStrings.removedFromPurchased(book.name));
       Navigator.pop(context, true);
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -272,17 +308,27 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
     if (_loading || _error != null) {
       return Stack(
         children: [
-          if (_loading) Center(child: CircularProgressIndicator(color: AppColors.primary)) else NetworkErrorState(onRetry: _load),
+          if (_loading)
+            Center(child: CircularProgressIndicator(color: AppColors.primary))
+          else
+            NetworkErrorState(onRetry: _load),
           _buildBackButton(context),
         ],
       );
     }
     final book = _book!;
     final image = book.image;
-    final imageUrl = image != null && image.isNotEmpty ? ApiConfig.resolveImageUrl(image) : null;
+    final imageUrl = image != null && image.isNotEmpty
+        ? ApiConfig.resolveImageUrl(image)
+        : null;
     return Stack(
       children: [
-        Positioned(top: 0, left: 0, right: 0, height: _headerHeight, child: CatalogDetailHeaderArt(imageUrl: imageUrl)),
+        Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: _headerHeight,
+            child: CatalogDetailHeaderArt(imageUrl: imageUrl)),
         ListView(
           padding: EdgeInsets.zero,
           children: [
@@ -304,7 +350,8 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
 
   Widget _buildBackButton(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 8, left: 12),
+      padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top + 8, left: 12),
       child: IconCircleButton(
         icon: HugeIcons.strokeRoundedArrowLeft01,
         onTap: () => Navigator.pop(context),
@@ -318,18 +365,35 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
 
   Widget _buildContentSheet(BookDetail book) {
     return ClipRRect(
-      borderRadius: const BorderRadius.only(topLeft: Radius.circular(38), topRight: Radius.circular(38)),
+      borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(38), topRight: Radius.circular(38)),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: const BorderRadius.only(topLeft: Radius.circular(38), topRight: Radius.circular(38)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 20, offset: const Offset(0, -6))],
+          borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(38), topRight: Radius.circular(38)),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 20,
+                offset: const Offset(0, -6))
+          ],
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
           child: Column(
             children: [
-              Text(book.name, textAlign: TextAlign.center, style: TextStyle(color: AppColors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+              Text(book.name,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: AppColors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800)),
+              if (book.year != null) ...[
+                const SizedBox(height: 4),
+                Text(BookDetailStrings.publishedYearLabel(book.year!),
+                    style: TextStyle(color: AppColors.grey2, fontSize: 12.5)),
+              ],
               if (book.authors.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 GestureDetector(
@@ -337,9 +401,16 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(book.authorNames, style: TextStyle(color: AppColors.primary, fontSize: 14, fontWeight: FontWeight.w700)),
+                      Text(book.authorNames,
+                          style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700)),
                       const SizedBox(width: 3),
-                      HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: AppColors.primary, size: 14),
+                      HugeIcon(
+                          icon: HugeIcons.strokeRoundedArrowRight01,
+                          color: AppColors.primary,
+                          size: 14),
                     ],
                   ),
                 ),
@@ -348,45 +419,77 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _MetaStat(value: _fmtCount(book.readCount), label: BookDetailStrings.statRead),
+                  _MetaStat(
+                      value: _fmtCount(book.readCount),
+                      label: BookDetailStrings.statRead),
                   const _MetaDivider(),
-                  _MetaStat(value: _fmtCount(book.soldCount), label: BookDetailStrings.statPurchased),
-                  if (book.pageCount != null) ...[const _MetaDivider(), _MetaStat(value: '${book.pageCount}', label: BookDetailStrings.statPages)],
+                  _MetaStat(
+                      value: _fmtCount(book.soldCount),
+                      label: BookDetailStrings.statPurchased),
+                  if (book.pageCount != null) ...[
+                    const _MetaDivider(),
+                    _MetaStat(
+                        value: '${book.pageCount}',
+                        label: BookDetailStrings.statPages)
+                  ],
                 ],
               ),
               if (book.genres.isNotEmpty) ...[
                 const SizedBox(height: 24),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Text(BookDetailStrings.genres, style: TextStyle(color: AppColors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                  child: Text(BookDetailStrings.genres,
+                      style: TextStyle(
+                          color: AppColors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700)),
                 ),
                 const SizedBox(height: 10),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Wrap(spacing: 8, runSpacing: 8, children: book.genres.map((g) => GenreTag(label: g.name, onTap: () => _openGenre(g))).toList()),
+                  child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: book.genres
+                          .map((g) => GenreTag(
+                              label: g.name, onTap: () => _openGenre(g)))
+                          .toList()),
                 ),
               ],
               if (book.description != null && book.description!.isNotEmpty) ...[
                 const SizedBox(height: 24),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Text(BookDetailStrings.aboutBook, style: TextStyle(color: AppColors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                  child: Text(BookDetailStrings.aboutBook,
+                      style: TextStyle(
+                          color: AppColors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700)),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   book.description!,
                   maxLines: _descriptionExpanded ? null : 5,
-                  overflow: _descriptionExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-                  style: TextStyle(color: AppColors.grey1, fontSize: 13.5, height: 1.5),
+                  overflow: _descriptionExpanded
+                      ? TextOverflow.visible
+                      : TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: AppColors.grey1, fontSize: 13.5, height: 1.5),
                 ),
                 const SizedBox(height: 6),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: GestureDetector(
-                    onTap: () => setState(() => _descriptionExpanded = !_descriptionExpanded),
+                    onTap: () => setState(
+                        () => _descriptionExpanded = !_descriptionExpanded),
                     child: Text(
-                      _descriptionExpanded ? BookDetailStrings.showLess : BookDetailStrings.readFull,
-                      style: TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w700),
+                      _descriptionExpanded
+                          ? BookDetailStrings.showLess
+                          : BookDetailStrings.readFull,
+                      style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
@@ -397,15 +500,25 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
                   width: double.infinity,
                   height: 48,
                   child: OutlinedButton.icon(
-                    onPressed: _removingFromPurchased ? null : () => _removeFromPurchased(book),
+                    onPressed: _removingFromPurchased
+                        ? null
+                        : () => _removeFromPurchased(book),
                     icon: _removingFromPurchased
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.redAccent))
-                        : const HugeIcon(icon: HugeIcons.strokeRoundedDelete02, color: Colors.redAccent, size: 18),
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.redAccent))
+                        : const HugeIcon(
+                            icon: HugeIcons.strokeRoundedDelete02,
+                            color: Colors.redAccent,
+                            size: 18),
                     label: Text(BookDetailStrings.removeFromPurchased),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.redAccent,
                       side: const BorderSide(color: Colors.redAccent),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
                     ),
                   ),
                 ),
@@ -423,9 +536,17 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    HugeIcon(icon: HugeIcons.strokeRoundedInformationCircle, color: AppColors.grey2, size: 18),
+                    HugeIcon(
+                        icon: HugeIcons.strokeRoundedInformationCircle,
+                        color: AppColors.grey2,
+                        size: 18),
                     const SizedBox(width: 10),
-                    Expanded(child: Text(BookDetailStrings.noFileForBook, style: TextStyle(color: AppColors.grey2, fontSize: 12.5, height: 1.4))),
+                    Expanded(
+                        child: Text(BookDetailStrings.noFileForBook,
+                            style: TextStyle(
+                                color: AppColors.grey2,
+                                fontSize: 12.5,
+                                height: 1.4))),
                   ],
                 ),
               ],
@@ -446,7 +567,11 @@ class _MetaStat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(value, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800)),
+        Text(value,
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w800)),
         const SizedBox(height: 2),
         Text(label, style: TextStyle(color: AppColors.grey2, fontSize: 12)),
       ],
@@ -459,6 +584,10 @@ class _MetaDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 30, margin: const EdgeInsets.symmetric(horizontal: 20), color: AppColors.border);
+    return Container(
+        width: 1,
+        height: 30,
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        color: AppColors.border);
   }
 }

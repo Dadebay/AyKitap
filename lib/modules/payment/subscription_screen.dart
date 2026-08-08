@@ -19,17 +19,18 @@ import 'widgets/insufficient_balance_dialog.dart';
 import 'widgets/payment_method_sheet.dart';
 import 'widgets/plan_card.dart';
 import 'widgets/promo_code_sheet.dart';
+import 'widgets/subscription_success_dialog.dart';
 
 /// Töleg Ulgamy — TZ section 13.1 (abunalyk planlary). Plans come from
 /// `GET /payments/tariffs` ([PaymentApiService.getTariffs]). Tapping the
-/// bottom button debits the plan's price straight from the balance
-/// ([SubscriptionService.subscribe] → [AccountService.debitBalance]) — no
-/// "how do you want to pay" step in between. If the balance is short, a
+/// bottom button pays for the plan straight from the balance
+/// ([SubscriptionService.subscribe] → `POST /users/buy-subscription/:id`) —
+/// no "how do you want to pay" step in between. If the balance is short, a
 /// dialog explains the shortfall and, on "Töle", falls back to
-/// [PaymentMethodSheet] (promo code or the real bank-card checkout —
-/// [BankSelectSheet] + [PaymentWebViewScreen]) to actually get the money in.
-/// Once active, [BookDetailScreen] shows "Oka" for every book instead of
-/// gating each one behind [BookPurchaseScreen].
+/// [PaymentMethodSheet] (promo code, or a bank-card top-up for exactly the
+/// plan's price — [BankSelectSheet] + [PaymentWebViewScreen] — that then
+/// retries the purchase). Once active, [BookDetailScreen] shows "Oka" for
+/// every book instead of gating each one behind [BookPurchaseScreen].
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
 
@@ -105,12 +106,20 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     final tariff = tariffs[_selected];
 
     setState(() => _processing = true);
-    final ok = await SubscriptionService.instance.subscribe(monthCount: tariff.monthCount, priceManat: tariff.price);
+    bool ok;
+    try {
+      ok = await SubscriptionService.instance.subscribe(tariffId: tariff.id, priceManat: tariff.price);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _processing = false);
+      context.showAppSnackBar(e.message, isError: true);
+      return;
+    }
     if (!mounted) return;
     setState(() => _processing = false);
 
     if (ok) {
-      context.showAppSnackBar(PaymentStrings.subscriptionActivated(_labelFor(tariff)));
+      await SubscriptionSuccessDialog.show(context, _labelFor(tariff));
     } else {
       await _showInsufficientBalanceDialog();
     }
@@ -164,6 +173,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     await _startCheckout();
   }
 
+  /// Tops up the balance by exactly the selected plan's price and, once the
+  /// webview closes, re-reads the balance and retries [_startCheckout] —
+  /// same "top up, then retry" shape as [BookPurchaseScreen]'s insufficient-
+  /// balance path. There's no "pay for this subscription via bank" endpoint
+  /// of its own; [ApiEndpoints.paymentOrders] is the only bank-card money-in
+  /// route, so a subscription bought this way is still two steps under the
+  /// hood (top up, then [SubscriptionService.subscribe] spends from it).
   Future<void> _payWithBank() async {
     final tariffs = _tariffs;
     if (_processing || tariffs == null || tariffs.isEmpty) return;
@@ -173,19 +189,21 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     setState(() => _processing = true);
     final tariff = tariffs[_selected];
     try {
-      final url = await PaymentApiService.initiateSubscriptionPayment(tariffId: tariff.id, bankId: bank.id);
+      final url = await PaymentApiService.createTopUpOrder(amount: tariff.price, bankId: bank.id);
       if (!mounted) return;
       setState(() => _processing = false);
-      if (url == null || url.isEmpty) {
-        context.showAppSnackBar(PaymentStrings.paymentUrlError, isError: true);
-        return;
-      }
       await Navigator.of(context).push(MaterialPageRoute(builder: (_) => PaymentWebViewScreen(url: url)));
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() => _processing = false);
       context.showAppSnackBar(e.message, isError: true);
+      return;
     }
+    if (!mounted) return;
+    await AccountService.instance.refresh();
+    if (!mounted) return;
+    final balance = AccountService.instance.balanceManat;
+    if (balance != null && balance >= tariff.price) await _startCheckout();
   }
 
   @override

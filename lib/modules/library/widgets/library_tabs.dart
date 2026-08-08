@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
-import '../../../core/models/library_book.dart';
-import '../../../core/network/api_exception.dart';
-import '../../../core/services/book_api_service.dart';
-import '../../../core/navigation/app_navigator.dart';
-import '../../../core/services/book_access_service.dart';
-import '../../../core/services/downloaded_books_store.dart';
-import '../../../core/services/downloaded_files_store.dart';
-import '../../../core/theme/app_colors.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/localization/strings/book_detail_strings.dart';
 import '../../../core/localization/strings/library_strings.dart';
+import '../../../core/models/library_book.dart';
+import '../../../core/navigation/app_navigator.dart';
+import '../../../core/network/api_exception.dart';
+import '../../../core/services/book_access_service.dart';
+import '../../../core/services/book_api_service.dart';
+import '../../../core/services/downloaded_books_store.dart';
+import '../../../core/services/downloaded_files_store.dart';
+import '../../../core/services/last_read_book_store.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../book_detail/book_open_flow.dart';
 import '../../book_detail/catalog_book_detail_screen.dart';
@@ -63,7 +66,7 @@ class _DownloadedTabState extends State<DownloadedTab>
           // cover carries a lock and opening it hits the normal gate.
           showLockWhenNoAccess: true,
           onTap: () => _openDownloaded(books[i]),
-          onLongPress: () => _confirmDeleteDownload(books[i]),
+          onLongPress: () => _showDownloadActions(books[i]),
         ),
       ),
     );
@@ -83,6 +86,12 @@ class _DownloadedTabState extends State<DownloadedTab>
       return;
     }
     if (!mounted) return;
+    await LastReadBookStore.instance.recordOpened(
+      book: book,
+      path: entry.path,
+      format: entry.format,
+    );
+    if (!mounted) return;
     openCatalogBookFile(
       context,
       path: entry.path,
@@ -91,6 +100,63 @@ class _DownloadedTabState extends State<DownloadedTab>
       title: book.name,
       pageCount: book.pageCount,
     );
+  }
+
+  /// Long-press menu for a downloaded cover — purchased books are the
+  /// user's to keep, so alongside freeing space ([_confirmDeleteDownload])
+  /// they can hand the on-disk file to the OS share sheet and pick "Save to
+  /// Files" (iOS) or a Downloads-capable target (Android) themselves. The
+  /// app-private copy this shelf runs on stays untouched either way.
+  Future<void> _showDownloadActions(LibraryBook book) async {
+    final action = await showModalBottomSheet<_DownloadAction>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: HugeIcon(icon: HugeIcons.strokeRoundedShare08, color: AppColors.white),
+              title: Text(BookDetailStrings.saveToFiles, style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w700)),
+              onTap: () => Navigator.pop(context, _DownloadAction.saveToFiles),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+              title: Text(BookDetailStrings.deleteDownload, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700)),
+              onTap: () => Navigator.pop(context, _DownloadAction.delete),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || action == null) return;
+    switch (action) {
+      case _DownloadAction.saveToFiles:
+        await _saveToFiles(book);
+        break;
+      case _DownloadAction.delete:
+        await _confirmDeleteDownload(book);
+        break;
+    }
+  }
+
+  /// Hands the already-downloaded file to the OS share sheet so the user
+  /// can save their own copy wherever they like (iOS Files / iCloud Drive,
+  /// Android Downloads or Drive) — the app's private copy is untouched.
+  Future<void> _saveToFiles(LibraryBook book) async {
+    await DownloadedFilesStore.instance.load();
+    final entry = DownloadedFilesStore.instance.best(book.id);
+    if (entry == null) return;
+    try {
+      await Share.shareXFiles(
+        [XFile(entry.path)],
+        fileNameOverrides: [entry.path.split('/').last],
+      );
+    } catch (e) {
+      if (mounted) context.showAppSnackBar(BookDetailStrings.saveToFilesError(e));
+    }
   }
 
   /// Frees the device storage without touching the user's library: the file
@@ -127,6 +193,8 @@ class _DownloadedTabState extends State<DownloadedTab>
   }
 }
 
+enum _DownloadAction { saveToFiles, delete }
+
 /// A [LibraryScreen] tab backed by `GET /books/all` — [fetcher] is one of
 /// [BookApiService.listBooks]'s `my_books`/`bought`/`wants_to` filters,
 /// wired up per tab in [LibraryScreen]. Kept alive across tab switches
@@ -143,6 +211,13 @@ class ApiBooksTab extends StatefulWidget {
   /// rather than costing a second identical request.
   final bool syncsPurchasedAccess;
 
+  /// Re-fetches whenever this notifies — e.g. the favorites tab passing
+  /// [FavoritesSyncService.instance] so a like/unlike toggled from a book
+  /// detail page elsewhere shows up here without a manual pull-to-refresh.
+  /// This tab otherwise only reloads on that pull or its own retry button
+  /// (`AutomaticKeepAliveClientMixin` keeps it alive across tab switches).
+  final Listenable? refreshOn;
+
   const ApiBooksTab({
     super.key,
     required this.fetcher,
@@ -150,6 +225,7 @@ class ApiBooksTab extends StatefulWidget {
     this.showProgress = false,
     this.allowRemovingPurchasedBooks = false,
     this.syncsPurchasedAccess = false,
+    this.refreshOn,
   });
 
   @override
@@ -169,6 +245,13 @@ class _ApiBooksTabState extends State<ApiBooksTab>
   void initState() {
     super.initState();
     _load();
+    widget.refreshOn?.addListener(_load);
+  }
+
+  @override
+  void dispose() {
+    widget.refreshOn?.removeListener(_load);
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -234,7 +317,14 @@ class _ApiBooksTabState extends State<ApiBooksTab>
         padding: const EdgeInsets.only(bottom: 20),
         child: ShelfGrid(
           itemCount: books.length,
+          // Keyed by book id — without it, removing an item (unfavoriting,
+          // removing a purchase) shifts every following cover into the
+          // slot the removed one used to hold, and Flutter's default
+          // position-based reconciliation can keep that slot's element
+          // (and pending gesture/image state) around across the shrink
+          // instead of cleanly rebuilding it for the book now there.
           itemBuilder: (context, i) => LibraryBookCover(
+            key: ValueKey(books[i].id),
             book: books[i],
             showProgress: widget.showProgress,
             canRemoveFromPurchased: widget.allowRemovingPurchasedBooks,
