@@ -47,6 +47,18 @@ class LibraryStrings {
       tr: 'Çevrimdışı okumak için kitap indirin');
   static String get retry =>
       t(tk: 'Gaýtadan synanyş', ru: 'Повторить', tr: 'Tekrar dene');
+  static String get loginRequiredTitle => t(
+      tk: 'Kitaphanaňyzy görmek üçin hasabyňyza giriň',
+      ru: 'Войдите в аккаунт, чтобы увидеть свою библиотеку',
+      tr: 'Kitaplığınızı görmek için giriş yapın');
+  static String get loginRequiredSub => t(
+      tk: 'Kitap goşmak we okamak üçin ilki giriş etmeli',
+      ru: 'Чтобы добавлять и читать книги, сначала войдите в аккаунт',
+      tr: 'Kitap eklemek ve okumak için önce giriş yapmalısınız');
+  static String get offlineBookUnavailable => t(
+      tk: 'Bu kitap enjamyňyza ýüklenmändir',
+      ru: 'Эта книга не загружена на устройство',
+      tr: 'Bu kitap cihazınıza indirilmemiş');
 
   // Own-books tab.
   static String fileAddError(Object e) => t(
@@ -84,6 +96,8 @@ class LibraryStrings {
       tk: 'Baglanyşygy barla',
       ru: 'Проверить соединение',
       tr: 'Bağlantıyı kontrol et');
+  static String get goToLibrary => t(
+      tk: 'Kitaphanama git', ru: 'Перейти в библиотеку', tr: 'Kitaplığıma git');
   static String get noOfflineBooksTitle => t(
       tk: 'Oflaýn kitap ýok',
       ru: 'Нет офлайн-книг',

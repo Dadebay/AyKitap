@@ -12,18 +12,29 @@ import '../reader/views/reader_tab_screen.dart';
 import 'widgets/wheel_nav_bar.dart';
 
 class MainNavScreen extends StatefulWidget {
-  const MainNavScreen({super.key});
+  /// The tab to display when entering the app shell. The default remains
+  /// Home, while the offline screen can take the reader straight to Library.
+  final int initialIndex;
+  final int libraryInitialTabIndex;
+
+  const MainNavScreen({
+    super.key,
+    this.initialIndex = 2,
+    this.libraryInitialTabIndex = 0,
+  })  : assert(initialIndex >= 0 && initialIndex < 5),
+        assert(libraryInitialTabIndex >= 0 && libraryInitialTabIndex < 6);
 
   @override
   State<MainNavScreen> createState() => _MainNavScreenState();
 }
 
-class _MainNavScreenState extends State<MainNavScreen> with SingleTickerProviderStateMixin {
+class _MainNavScreenState extends State<MainNavScreen>
+    with SingleTickerProviderStateMixin {
   // Tab order: Profile, Kitaplyk, Ana sayfa (centre — opens by default),
   // Çytalka (reader), Poisk. Must stay in lockstep with _icons in
   // WheelNavBar, which draws the wheel in this same order.
-  int _selectedIndex = 2;
-  int _prevIndex = 2;
+  late int _selectedIndex;
+  late int _prevIndex;
   // +1 → the new page slides in from the right (wheel spins forward);
   // -1 → in from the left. Kept in sync with the wheel's rotation direction.
   int _slideDir = 1;
@@ -40,7 +51,7 @@ class _MainNavScreenState extends State<MainNavScreen> with SingleTickerProvider
 
   List<Widget> _buildPages() => [
         ProfileScreen(),
-        LibraryScreen(),
+        LibraryScreen(initialTabIndex: widget.libraryInitialTabIndex),
         HomeScreen(),
         ReaderTabScreen(),
         SearchScreen(),
@@ -60,6 +71,8 @@ class _MainNavScreenState extends State<MainNavScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
+    _selectedIndex = widget.initialIndex;
+    _prevIndex = widget.initialIndex;
     _pageCtrl.value = 1; // start settled (no transition on first frame)
     AppTheme.instance.addListener(_onRebuildNeeded);
     AppLocale.instance.addListener(_onRebuildNeeded);
@@ -128,7 +141,8 @@ class _MainNavScreenState extends State<MainNavScreen> with SingleTickerProvider
           children: List.generate(_pages.length, (i) {
             double dx;
             if (i == _selectedIndex) {
-              dx = _slideDir * (1 - t); // incoming: from the _slideDir side to 0
+              dx =
+                  _slideDir * (1 - t); // incoming: from the _slideDir side to 0
             } else if (i == _prevIndex && t < 1.0) {
               dx = -_slideDir * t; // outgoing: 0 → off the opposite side
             } else {

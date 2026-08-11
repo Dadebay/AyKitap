@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../core/services/account_service.dart';
 import '../../core/services/book_access_service.dart';
+import '../../core/services/subscription_service.dart';
 import '../../core/services/auth_api_service.dart';
 import '../../core/services/auth_session.dart';
 import '../../core/localization/app_locale.dart';
@@ -27,7 +28,8 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  AppLanguage _languageFor(AppLanguageCode code) => kSettingsLanguages.firstWhere((l) => l.code == code);
+  AppLanguage _languageFor(AppLanguageCode code) =>
+      kSettingsLanguages.firstWhere((l) => l.code == code);
 
   // Best-effort: the local session (see [AuthSession]) is what "logged in"
   // actually means to the rest of the app, so a failed/offline logout call
@@ -44,7 +46,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => LanguageSheet(languages: kSettingsLanguages, selected: current),
+      builder: (_) =>
+          LanguageSheet(languages: kSettingsLanguages, selected: current),
     );
     if (result != null) await AppLocale.instance.setLanguage(result.code);
   }
@@ -62,13 +65,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
         icon: Container(
           width: 56,
           height: 56,
-          decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.15), shape: BoxShape.circle),
-          child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedLogout01, color: AppColors.primary, size: 26)),
+          decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.15),
+              shape: BoxShape.circle),
+          child: Center(
+              child: HugeIcon(
+                  icon: HugeIcons.strokeRoundedLogout01,
+                  color: AppColors.primary,
+                  size: 26)),
         ),
         title: Text(
           SettingsStrings.logoutTitle,
           textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800),
+          style: TextStyle(
+              color: AppColors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w800),
         ),
         content: Text(
           SettingsStrings.logoutBody,
@@ -84,7 +96,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                      elevation: 0),
                   onPressed: () async {
                     await _notifyBackendLogout();
                     await AuthSession.clearToken();
@@ -94,11 +110,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     // ...and this one's purchased books, which otherwise
                     // would unlock them for whoever logs in next.
                     await BookAccessService.instance.clear();
+                    await SubscriptionService.instance.clear();
                     if (!mounted) return;
                     Navigator.pop(context); // close the dialog
-                    Navigator.pop(context, 'logout'); // leave the settings screen logged out
+                    Navigator.pop(context,
+                        'logout'); // leave the settings screen logged out
                   },
-                  child: Text(SettingsStrings.logoutConfirm, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+                  child: Text(SettingsStrings.logoutConfirm,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
                 ),
               ),
               const SizedBox(height: 8),
@@ -107,7 +129,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 height: 44,
                 child: TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text(SettingsStrings.cancel, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+                  child: Text(SettingsStrings.cancel,
+                      style: TextStyle(color: AppColors.grey2, fontSize: 14)),
                 ),
               ),
             ],
@@ -126,13 +149,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
         icon: Container(
           width: 52,
           height: 52,
-          decoration: BoxDecoration(color: Colors.redAccent.withValues(alpha: 0.15), shape: BoxShape.circle),
-          child: const Center(child: HugeIcon(icon: HugeIcons.strokeRoundedDelete02, color: Colors.redAccent, size: 24)),
+          decoration: BoxDecoration(
+              color: Colors.redAccent.withValues(alpha: 0.15),
+              shape: BoxShape.circle),
+          child: const Center(
+              child: HugeIcon(
+                  icon: HugeIcons.strokeRoundedDelete02,
+                  color: Colors.redAccent,
+                  size: 24)),
         ),
         title: Text(
           SettingsStrings.deleteAccountTitle,
           textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800),
+          style: TextStyle(
+              color: AppColors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w800),
         ),
         content: Text(
           SettingsStrings.deleteAccountBody,
@@ -148,7 +180,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                      elevation: 0),
                   onPressed: () async {
                     await _notifyBackendLogout();
                     await AuthSession.clearToken();
@@ -158,11 +194,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     // ...and this one's purchased books, which otherwise
                     // would unlock them for whoever logs in next.
                     await BookAccessService.instance.clear();
+                    await SubscriptionService.instance.clear();
                     if (!mounted) return;
                     Navigator.pop(context); // close the dialog
-                    Navigator.pop(context, 'logout'); // leave the settings screen logged out
+                    Navigator.pop(context,
+                        'logout'); // leave the settings screen logged out
                   },
-                  child: Text(SettingsStrings.delete, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+                  child: Text(SettingsStrings.delete,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
                 ),
               ),
               const SizedBox(height: 8),
@@ -171,7 +213,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 height: 44,
                 child: TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text(SettingsStrings.cancel, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+                  child: Text(SettingsStrings.cancel,
+                      style: TextStyle(color: AppColors.grey2, fontSize: 14)),
                 ),
               ),
             ],
@@ -191,49 +234,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: AppColors.bg,
         leading: const AppBackButton(size: 20),
         centerTitle: true,
-        title: Text(SettingsStrings.title, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+        title: Text(SettingsStrings.title,
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700)),
       ),
       body: SafeArea(
         top: false,
         child: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          SettingsGroup(children: [
-            SwitchTile(
-              icon: darkTheme ? HugeIcons.strokeRoundedMoon02 : HugeIcons.strokeRoundedSun03,
-              iconColor: darkTheme ? const Color(0xFF8B7BF0) : const Color(0xFFFFB020),
-              label: SettingsStrings.theme,
-              value: darkTheme ? SettingsStrings.themeDark : SettingsStrings.themeLight,
-              switchValue: darkTheme,
-              onChanged: (v) => AppTheme.instance.setDark(v),
-            ),
-            NavTile(
-              icon: HugeIcons.strokeRoundedGlobal,
-              label: SettingsStrings.language,
-              value: language.label,
-              leadingValue: flagFor(language, size: 22),
-              onTap: _pickLanguage,
-            ),
-          ]),
-          const SizedBox(height: 16),
-          SettingsGroup(children: [
-            NavTile(icon: HugeIcons.strokeRoundedCustomerService01, label: SettingsStrings.contactUs, value: '', onTap: () => ContactUsSheet.show(context)),
-          ]),
-          if (widget.isLoggedIn) ...[
+          padding: const EdgeInsets.all(20),
+          children: [
+            SettingsGroup(children: [
+              SwitchTile(
+                icon: darkTheme
+                    ? HugeIcons.strokeRoundedMoon02
+                    : HugeIcons.strokeRoundedSun03,
+                iconColor: darkTheme
+                    ? const Color(0xFF8B7BF0)
+                    : const Color(0xFFFFB020),
+                label: SettingsStrings.theme,
+                value: darkTheme
+                    ? SettingsStrings.themeDark
+                    : SettingsStrings.themeLight,
+                switchValue: darkTheme,
+                onChanged: (v) => AppTheme.instance.setDark(v),
+              ),
+              NavTile(
+                icon: HugeIcons.strokeRoundedGlobal,
+                label: SettingsStrings.language,
+                value: language.label,
+                leadingValue: flagFor(language, size: 22),
+                onTap: _pickLanguage,
+              ),
+            ]),
             const SizedBox(height: 16),
             SettingsGroup(children: [
               NavTile(
-                icon: HugeIcons.strokeRoundedLogout01,
-                label: SettingsStrings.logout,
-                danger: true,
-                onTap: _confirmLogout,
-              ),
-              NavTile(icon: HugeIcons.strokeRoundedDelete02, label: SettingsStrings.deleteAccount, danger: true, onTap: _confirmDeleteAccount),
+                  icon: HugeIcons.strokeRoundedCustomerService01,
+                  label: SettingsStrings.contactUs,
+                  value: '',
+                  onTap: () => ContactUsSheet.show(context)),
             ]),
+            if (widget.isLoggedIn) ...[
+              const SizedBox(height: 16),
+              SettingsGroup(children: [
+                NavTile(
+                  icon: HugeIcons.strokeRoundedLogout01,
+                  label: SettingsStrings.logout,
+                  danger: true,
+                  onTap: _confirmLogout,
+                ),
+                NavTile(
+                    icon: HugeIcons.strokeRoundedDelete02,
+                    label: SettingsStrings.deleteAccount,
+                    danger: true,
+                    onTap: _confirmDeleteAccount),
+              ]),
+            ],
+            const SizedBox(height: 24),
+            Center(
+                child: Text(SettingsStrings.appVersion,
+                    style: TextStyle(color: AppColors.grey3, fontSize: 12))),
           ],
-          const SizedBox(height: 24),
-          Center(child: Text(SettingsStrings.appVersion, style: TextStyle(color: AppColors.grey3, fontSize: 12))),
-        ],
         ),
       ),
     );

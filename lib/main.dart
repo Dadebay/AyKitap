@@ -21,6 +21,7 @@ import 'core/services/last_read_book_store.dart';
 import 'core/services/notes_store.dart';
 import 'core/services/own_books_store.dart';
 import 'core/services/purchased_books_store.dart';
+import 'core/services/reading_books_store.dart';
 import 'core/services/streak_service.dart';
 import 'core/services/subscription_service.dart';
 import 'core/theme/theme_controller.dart';
@@ -67,6 +68,7 @@ void main() async {
         ChangeNotifierProvider<NotesStore>.value(value: NotesStore.instance),
         ChangeNotifierProvider<BookmarksStore>.value(value: BookmarksStore.instance),
         ChangeNotifierProvider<PurchasedBooksStore>.value(value: PurchasedBooksStore.instance),
+        ChangeNotifierProvider<ReadingBooksStore>.value(value: ReadingBooksStore.instance),
         ChangeNotifierProvider<OwnBooksStore>.value(value: OwnBooksStore.instance),
         ChangeNotifierProvider<DownloadedBooksStore>.value(value: DownloadedBooksStore.instance),
         ChangeNotifierProvider<DownloadedFilesStore>.value(value: DownloadedFilesStore.instance),

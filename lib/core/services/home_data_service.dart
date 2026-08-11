@@ -42,6 +42,16 @@ class HomeDataService extends ChangeNotifier {
   int _generation = 0;
 
   bool get isLoaded => collections != null && banners != null;
+  bool get isLoading => _loading;
+
+  /// Both endpoints settled but neither produced anything to render. This is
+  /// normally a lost connection (errors intentionally become empty lists),
+  /// and lets Home offer a clear retry affordance instead of looking broken.
+  bool get hasNoContent =>
+      collections != null &&
+      banners != null &&
+      collections!.isEmpty &&
+      banners!.isEmpty;
 
   /// Idempotent: a fetch already in flight or already settled is a no-op,
   /// so both the splash screen's kick-off and Home's own fallback call (in

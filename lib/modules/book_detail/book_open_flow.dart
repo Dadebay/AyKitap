@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/localization/strings/book_detail_strings.dart';
 import '../../core/models/book_detail.dart';
@@ -15,6 +16,7 @@ import '../../core/services/book_download_service.dart';
 import '../../core/services/downloaded_books_store.dart';
 import '../../core/services/downloaded_files_store.dart';
 import '../../core/services/last_read_book_store.dart';
+import '../../core/services/reading_books_store.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../auth/phone_login_screen.dart';
 import '../payment/balance_top_up.dart';
@@ -63,12 +65,13 @@ class BookOpenFlow {
   /// or purchase the verdict is re-resolved, and a backend that keeps
   /// answering "needsPurchase" must not turn that into an endless loop of
   /// checkout screens.
-  Future<void> read({int retries = 2}) async {
+  Future<void> read({int retries = 2, bool offerPurchasedExport = false}) async {
     final access = await BookAccessService.instance.resolve(book);
     if (!context.mounted) return;
 
     switch (access) {
       case BookAccess.purchased:
+        await _downloadAndOpen(offerPurchasedExport: offerPurchasedExport);
       case BookAccess.subscription:
         await _downloadAndOpen();
 
@@ -156,7 +159,7 @@ class BookOpenFlow {
 
   /// Owned or subscribed: get the file onto the device (skipping the
   /// network entirely if it's already there) and push the reader.
-  Future<void> _downloadAndOpen() async {
+  Future<void> _downloadAndOpen({bool offerPurchasedExport = false}) async {
     final store = DownloadedFilesStore.instance;
     await store.load();
 
@@ -203,14 +206,47 @@ class BookOpenFlow {
 
     // Kitaplygym → "Ýüklenenler" is backed by DownloadedBooksStore, so this
     // is what makes the book show up on that shelf.
-    await DownloadedBooksStore.instance.add(LibraryBook.fromDetail(book));
+    final shelfBook = LibraryBook.fromDetail(book);
+    await DownloadedBooksStore.instance.add(shelfBook);
+    await ReadingBooksStore.instance.recordOpened(shelfBook);
     await LastReadBookStore.instance.recordOpened(
-      book: LibraryBook.fromDetail(book),
+      book: shelfBook,
       path: path,
       format: format,
     );
     if (!context.mounted) return;
+    if (offerPurchasedExport) await _offerPurchasedExport(path);
+    if (!context.mounted) return;
     _openReader(path: path, format: format);
+  }
+
+  /// The app-private copy is always kept for offline reading. A newly bought
+  /// book can additionally be handed to the operating system's Files picker,
+  /// where the reader chooses the final folder (Files, Downloads, Drive...).
+  Future<void> _offerPurchasedExport(String path) async {
+    final saveOutsideApp = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(BookDetailStrings.savePurchasedTitle),
+        content: Text(BookDetailStrings.savePurchasedBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(BookDetailStrings.keepInApp),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(BookDetailStrings.chooseSaveLocation),
+          ),
+        ],
+      ),
+    );
+    if (saveOutsideApp != true || !context.mounted) return;
+    try {
+      await Share.shareXFiles([XFile(path)], fileNameOverrides: [path.split('/').last]);
+    } catch (error) {
+      if (context.mounted) context.showAppSnackBar(BookDetailStrings.saveToFilesError(error));
+    }
   }
 
   /// The best format this book is available in — same priority the local

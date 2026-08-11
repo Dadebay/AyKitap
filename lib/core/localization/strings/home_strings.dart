@@ -22,4 +22,20 @@ class HomeStrings {
         ru: 'Не удалось открыть ссылку',
         tr: 'Bağlantı açılamadı',
       );
+
+  static String get reloadTitle => t(
+        tk: 'Mazmun ýüklenmedi',
+        ru: 'Не удалось загрузить содержимое',
+        tr: 'İçerik yüklenemedi',
+      );
+  static String get reloadBody => t(
+        tk: 'Internet baglanyşygyňyzy barlap, täzeden synanyşyň.',
+        ru: 'Проверьте подключение к интернету и попробуйте ещё раз.',
+        tr: 'İnternet bağlantınızı kontrol edip yeniden deneyin.',
+      );
+  static String get reload => t(
+        tk: 'Täzeden synanyş',
+        ru: 'Повторить',
+        tr: 'Yenile',
+      );
 }

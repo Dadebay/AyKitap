@@ -81,6 +81,11 @@
 	<true/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Skips App Store Connect's per-build "does this use encryption?"
+	     prompt — the app only uses standard HTTPS/TLS (via Dio), which
+	     Apple exempts from export compliance review. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Profil suratyňyzy saýlamak üçin surat kitaphanaňyza giriş gerek.</string>
 	<key>UIApplicationSceneManifest</key>

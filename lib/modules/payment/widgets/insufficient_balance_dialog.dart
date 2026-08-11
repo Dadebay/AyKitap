@@ -48,7 +48,7 @@ class InsufficientBalanceDialog extends StatelessWidget {
             width: 160,
             height: 160,
             child: Image.asset(
-              isDark ? 'assets/images/balance_empty_dark.png' : 'assets/images/balance_empty_light.png',
+              isDark ? 'assets/images/balance_empty_dark.webp' : 'assets/images/balance_empty_light.webp',
               fit: BoxFit.contain,
             ),
           ),

@@ -49,24 +49,35 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
     if (!mounted) return;
     setState(() => _checking = false);
     if (isOnline) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainNavScreen()));
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (_) => const MainNavScreen()));
     } else {
       context.showAppSnackBar(LibraryStrings.noInternetSnackbar, isError: true);
     }
   }
 
   void _openBook(OwnBook book) {
-    AnalyticsService.instance.logBookOpened(id: book.id, format: book.format.name);
+    AnalyticsService.instance
+        .logBookOpened(id: book.id, format: book.format.name);
     switch (book.format) {
       case OwnBookFormat.pdf:
-        openPdfBook(context, filePath: book.filePath, title: book.title, bookId: stableBookKey(book.id));
+        openPdfBook(context,
+            filePath: book.filePath,
+            title: book.title,
+            bookId: stableBookKey(book.id));
       case OwnBookFormat.cbz:
-        context.push(CbzReaderScreen(filePath: book.filePath, title: book.title, bookId: stableBookKey(book.id)));
+        context.push(CbzReaderScreen(
+            filePath: book.filePath,
+            title: book.title,
+            bookId: stableBookKey(book.id)));
       case OwnBookFormat.epub:
         context.push(
           ChangeNotifierProvider(
             create: (_) => ReaderProvider(),
-            child: ReaderScreen(bookPath: book.filePath, bookId: stableBookKey(book.id), bookTitle: book.title),
+            child: ReaderScreen(
+                bookPath: book.filePath,
+                bookId: stableBookKey(book.id),
+                bookTitle: book.title),
           ),
         );
     }
@@ -79,68 +90,124 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
       backgroundColor: AppColors.bg,
       body: SafeArea(
         child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(color: AppColors.grey3.withValues(alpha: 0.15), shape: BoxShape.circle),
-                        child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedWifiDisconnected01, color: AppColors.grey2, size: 22)),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(LibraryStrings.noInternetTitle, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800)),
-                            const SizedBox(height: 2),
-                            Text(LibraryStrings.noInternetSubtitle, style: TextStyle(color: AppColors.grey2, fontSize: 12.5)),
-                          ],
-                        ),
-                      ),
-                    ],
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                        color: AppColors.grey3.withValues(alpha: 0.15),
+                        shape: BoxShape.circle),
+                    child: Center(
+                        child: HugeIcon(
+                            icon: HugeIcons.strokeRoundedWifiDisconnected01,
+                            color: AppColors.grey2,
+                            size: 22)),
                   ),
-                ),
-                Expanded(
-                  child: books.isEmpty
-                      ? _buildEmpty()
-                      : GridView.builder(
-                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            mainAxisSpacing: 18,
-                            crossAxisSpacing: 14,
-                            childAspectRatio: 0.62,
-                          ),
-                          itemCount: books.length,
-                          itemBuilder: (context, i) => OwnBookSpineCover(
-                            book: books[i],
-                            onTap: () => _openBook(books[i]),
-                            borderRadius: 8,
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                            wrapAspectRatio: false,
-                          ),
-                        ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-                  child: SizedBox(
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(LibraryStrings.noInternetTitle,
+                            style: TextStyle(
+                                color: AppColors.white,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 2),
+                        Text(LibraryStrings.noInternetSubtitle,
+                            style: TextStyle(
+                                color: AppColors.grey2, fontSize: 12.5)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: books.isEmpty
+                  ? _buildEmpty()
+                  : GridView.builder(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        mainAxisSpacing: 18,
+                        crossAxisSpacing: 14,
+                        childAspectRatio: 0.62,
+                      ),
+                      itemCount: books.length,
+                      itemBuilder: (context, i) => OwnBookSpineCover(
+                        book: books[i],
+                        onTap: () => _openBook(books[i]),
+                        borderRadius: 8,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 10),
+                        wrapAspectRatio: false,
+                      ),
+                    ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+              child: Column(
+                children: [
+                  SizedBox(
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                          elevation: 0),
                       onPressed: _checking ? null : _checkConnection,
                       child: _checking
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                          : Text(LibraryStrings.checkConnection, style: const TextStyle(color: Colors.white, fontSize: 15.5, fontWeight: FontWeight.w700)),
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2.5))
+                          : Text(LibraryStrings.checkConnection,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15.5,
+                                  fontWeight: FontWeight.w700)),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: AppColors.grey3),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                      ),
+                      onPressed: () => Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) =>
+                                const MainNavScreen(
+                                  initialIndex: 1,
+                                  libraryInitialTabIndex: 2,
+                                )),
+                      ),
+                      child: Text(LibraryStrings.goToLibrary,
+                          style: TextStyle(
+                              color: AppColors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ],
+              ),
             ),
+          ],
+        ),
       ),
     );
   }
@@ -155,15 +222,23 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
             SizedBox(
               width: 220,
               height: 220,
-              child: Lottie.asset('assets/animations/no_internet_connection.json', repeat: true, fit: BoxFit.contain),
+              child: Lottie.asset(
+                  'assets/animations/no_internet_connection.json',
+                  repeat: true,
+                  fit: BoxFit.contain),
             ),
             const SizedBox(height: 14),
-            Text(LibraryStrings.noOfflineBooksTitle, style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+            Text(LibraryStrings.noOfflineBooksTitle,
+                style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             Text(
               LibraryStrings.noOfflineBooksBody,
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.grey2, fontSize: 13, height: 1.4),
+              style:
+                  TextStyle(color: AppColors.grey2, fontSize: 13, height: 1.4),
             ),
           ],
         ),

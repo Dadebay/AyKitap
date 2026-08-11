@@ -120,9 +120,7 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
                           height: 92,
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(10),
-                            child: image != null && image.isNotEmpty
-                                ? NetworkCoverImage(url: ApiConfig.resolveImageUrl(image), placeholder: (_) => _CoverPlaceholder())
-                                : _CoverPlaceholder(),
+                            child: image != null && image.isNotEmpty ? NetworkCoverImage(url: ApiConfig.resolveImageUrl(image), placeholder: (_) => _CoverPlaceholder()) : _CoverPlaceholder(),
                           ),
                         ),
                         const SizedBox(width: 14),

@@ -11,8 +11,10 @@ import '../../core/network/api_config.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/services/book_access_service.dart';
 import '../../core/services/book_api_service.dart';
+import '../../core/services/downloaded_files_store.dart';
 import '../../core/services/favorites_sync_service.dart';
 import '../../core/services/finished_books_sync_service.dart';
+import '../../core/services/last_read_book_store.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/icon_circle_button.dart';
@@ -39,10 +41,16 @@ class CatalogBookDetailScreen extends StatefulWidget {
   final int bookId;
   final bool canRemoveFromPurchased;
 
+  /// Present only for a locally cached "Okuduklarım" book. If the detail
+  /// request cannot reach the backend, this allows a downloaded file to open
+  /// instead of leaving the reader on an unusable error page.
+  final LibraryBook? offlineBook;
+
   const CatalogBookDetailScreen({
     super.key,
     required this.bookId,
     this.canRemoveFromPurchased = false,
+    this.offlineBook,
   });
 
   @override
@@ -114,7 +122,9 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
     await _resolveAccess();
     // Buying is nearly always followed by wanting to read it — carry
     // straight on into the download instead of making the user tap "Oku".
-    if (bought && mounted) await _flow(book).read();
+    if (bought && mounted) {
+      await _flow(book).read(offerPurchasedExport: true);
+    }
   }
 
   void _cancelDownload() {
@@ -156,12 +166,38 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
       await BookAccessService.instance.refreshPurchased();
       await _resolveAccess();
     } on ApiException catch (e) {
+      final offlineBook = widget.offlineBook;
+      if (offlineBook != null && await _openOfflineCopy(offlineBook)) return;
       if (!mounted) return;
       setState(() {
         _error = e.message;
         _loading = false;
       });
     }
+  }
+
+  Future<bool> _openOfflineCopy(LibraryBook book) async {
+    await DownloadedFilesStore.instance.load();
+    await BookAccessService.instance.load();
+    final entry = DownloadedFilesStore.instance.best(book.id);
+    if (entry == null || !BookAccessService.instance.canRead(book.id)) {
+      return false;
+    }
+    await LastReadBookStore.instance.recordOpened(
+      book: book,
+      path: entry.path,
+      format: entry.format,
+    );
+    if (!mounted) return false;
+    openCatalogBookFile(
+      context,
+      path: entry.path,
+      format: entry.format,
+      bookId: book.id,
+      title: book.name,
+      pageCount: book.pageCount,
+    );
+    return true;
   }
 
   // Only the "mark as finished" direction syncs — un-marking has no
