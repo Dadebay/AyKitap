@@ -4,16 +4,22 @@
 /// Null on the user itself (not an empty object) when no subscription has
 /// ever been bought.
 class AuthSubscription {
-  final int tariffId;
-  final DateTime activatedAt;
-  final DateTime expiredAt;
+  /// Every field here has shown up null in the wild on subscriptions granted
+  /// some other way (e.g. a streak reward) rather than
+  /// [PaymentApiService.buySubscription] — none of them are trustworthy
+  /// enough to parse as required. [expiredAt] null reads as "no known
+  /// expiry", which [SubscriptionService.isActive]'s `expiredAt != null &&
+  /// ...` already treats as inactive rather than a crash.
+  final int? tariffId;
+  final DateTime? activatedAt;
+  final DateTime? expiredAt;
 
   const AuthSubscription({required this.tariffId, required this.activatedAt, required this.expiredAt});
 
   factory AuthSubscription.fromJson(Map<String, dynamic> json) => AuthSubscription(
-        tariffId: json['tariff_id'] as int,
-        activatedAt: DateTime.parse(json['activated_at'] as String),
-        expiredAt: DateTime.parse(json['expired_at'] as String),
+        tariffId: json['tariff_id'] as int?,
+        activatedAt: DateTime.tryParse(json['activated_at'] as String? ?? ''),
+        expiredAt: DateTime.tryParse(json['expired_at'] as String? ?? ''),
       );
 }
 

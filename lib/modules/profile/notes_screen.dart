@@ -204,7 +204,7 @@ class _NotesScreenState extends State<NotesScreen> {
               child: AspectRatio(
                 aspectRatio: 1,
                 child: Image.asset(
-                  isDark ? 'assets/images/notes_empty_dark.png' : 'assets/images/notes_empty_light.png',
+                  isDark ? 'assets/images/notes_empty_dark.webp' : 'assets/images/notes_empty_light.webp',
                   fit: BoxFit.contain,
                 ),
               ),

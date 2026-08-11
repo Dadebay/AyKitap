@@ -25,8 +25,8 @@ class NetworkErrorState extends StatelessWidget {
                 constraints: const BoxConstraints(maxWidth: 260),
                 child: Image.asset(
                   isDark
-                      ? 'assets/images/no_connection_dark.png'
-                      : 'assets/images/no_connection_light.png',
+                      ? 'assets/images/no_connection_dark.webp'
+                      : 'assets/images/no_connection_light.webp',
                   fit: BoxFit.contain,
                 ),
               ),

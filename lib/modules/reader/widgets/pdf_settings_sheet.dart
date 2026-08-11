@@ -3,6 +3,7 @@ import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../core/localization/strings/reader_strings.dart';
 import '../../../core/theme/app_colors.dart';
+import 'reader_fit_tile.dart';
 
 /// How the PDF page is coloured on screen. Unlike reflowable EPUB text, a PDF
 /// page is a fixed picture, so each mode reaches the page differently:
@@ -81,7 +82,8 @@ class PdfSettingsSheet extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + MediaQuery.of(context).padding.bottom),
+      padding: EdgeInsets.fromLTRB(
+          20, 12, 20, 24 + MediaQuery.of(context).padding.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,7 +92,9 @@ class PdfSettingsSheet extends StatelessWidget {
             child: Container(
               width: 40,
               height: 4,
-              decoration: BoxDecoration(color: AppColors.grey3, borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(
+                  color: AppColors.grey3,
+                  borderRadius: BorderRadius.circular(2)),
             ),
           ),
           const SizedBox(height: 16),
@@ -99,7 +103,10 @@ class PdfSettingsSheet extends StatelessWidget {
             children: [
               Text(
                 ReaderStrings.settingsTitle,
-                style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800),
+                style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800),
               ),
               const Spacer(),
               GestureDetector(
@@ -108,8 +115,12 @@ class PdfSettingsSheet extends StatelessWidget {
                 child: Container(
                   width: 30,
                   height: 30,
-                  decoration: BoxDecoration(color: AppColors.card, shape: BoxShape.circle),
-                  child: HugeIcon(icon: HugeIcons.strokeRoundedArrowDown01, color: AppColors.grey2, size: 18),
+                  decoration: BoxDecoration(
+                      color: AppColors.card, shape: BoxShape.circle),
+                  child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedArrowDown01,
+                      color: AppColors.grey2,
+                      size: 18),
                 ),
               ),
             ],
@@ -164,7 +175,7 @@ class PdfSettingsSheet extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _FitTile(
+                child: ReaderFitTile(
                   icon: HugeIcons.strokeRoundedScrollHorizontal,
                   label: ReaderStrings.pdfViewModePaged,
                   selected: viewMode == PdfViewMode.paged,
@@ -173,7 +184,7 @@ class PdfSettingsSheet extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _FitTile(
+                child: ReaderFitTile(
                   icon: HugeIcons.strokeRoundedScrollVertical,
                   label: ReaderStrings.pdfViewModeScroll,
                   selected: viewMode == PdfViewMode.scroll,
@@ -191,7 +202,7 @@ class PdfSettingsSheet extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _FitTile(
+                child: ReaderFitTile(
                   icon: HugeIcons.strokeRoundedArrowLeftRight,
                   label: ReaderStrings.pdfFitWidth,
                   selected: fitPolicy == FitPolicy.WIDTH,
@@ -200,7 +211,7 @@ class PdfSettingsSheet extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _FitTile(
+                child: ReaderFitTile(
                   icon: HugeIcons.strokeRoundedFitToScreen,
                   label: ReaderStrings.pdfFitPage,
                   selected: fitPolicy == FitPolicy.BOTH,
@@ -282,7 +293,10 @@ class _TextViewRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              HugeIcon(icon: HugeIcons.strokeRoundedBookOpen01, color: AppColors.primary, size: 19),
+              HugeIcon(
+                  icon: HugeIcons.strokeRoundedBookOpen01,
+                  color: AppColors.primary,
+                  size: 19),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -290,7 +304,10 @@ class _TextViewRow extends StatelessWidget {
                   children: [
                     Text(
                       ReaderStrings.pdfTextViewLabel,
-                      style: TextStyle(color: AppColors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          color: AppColors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -353,7 +370,11 @@ class _SliderRow extends StatelessWidget {
                 thumbColor: AppColors.primary,
                 overlayColor: AppColors.primary.withValues(alpha: 0.13),
               ),
-              child: Slider(value: value.clamp(min, 1.0), min: min, max: 1.0, onChanged: onChanged),
+              child: Slider(
+                  value: value.clamp(min, 1.0),
+                  min: min,
+                  max: 1.0,
+                  onChanged: onChanged),
             ),
           ),
           HugeIcon(icon: trailingIcon, color: AppColors.grey1, size: 21),
@@ -369,7 +390,11 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(text, style: TextStyle(color: AppColors.grey2, fontSize: 12.5, fontWeight: FontWeight.w600));
+    return Text(text,
+        style: TextStyle(
+            color: AppColors.grey2,
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600));
   }
 }
 
@@ -392,7 +417,8 @@ class _ColorModeSwatch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final onColor = color.computeLuminance() < 0.4 ? Colors.white : Colors.black87;
+    final onColor =
+        color.computeLuminance() < 0.4 ? Colors.white : Colors.black87;
     return Semantics(
       label: label,
       selected: selected,
@@ -425,7 +451,10 @@ class _ColorModeSwatch extends StatelessWidget {
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: onColor, fontSize: 10.5, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                    color: onColor,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -437,46 +466,3 @@ class _ColorModeSwatch extends StatelessWidget {
 
 /// One page-scale option, styled like the EPUB font tiles: filled accent when
 /// selected, outlined when idle.
-class _FitTile extends StatelessWidget {
-  final List<List<dynamic>> icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _FitTile({required this.icon, required this.label, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        height: 62,
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.card,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: selected ? AppColors.primary : AppColors.border),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            HugeIcon(icon: icon, color: selected ? Colors.white : AppColors.grey2, size: 20),
-            const SizedBox(height: 5),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: selected ? Colors.white : AppColors.grey2,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

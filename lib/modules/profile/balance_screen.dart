@@ -1,77 +1,46 @@
 import 'package:flutter/cupertino.dart' show CupertinoSlidingSegmentedControl;
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../../core/localization/strings/payment_strings.dart';
 import '../../core/localization/strings/profile_strings.dart';
-import '../../core/models/balance_log.dart';
-import '../../core/models/payment_order.dart';
-import '../../core/network/api_exception.dart';
 import '../../core/services/account_service.dart';
-import '../../core/services/balance_log_api_service.dart';
-import '../../core/services/payment_api_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../payment/balance_top_up.dart';
+import 'provider/balance_controller.dart';
 import 'widgets/balance_card.dart';
+import 'widgets/balance_history_tiles.dart';
 
 /// "Balansym" — the full balance page reached from the profile's balance
 /// entry row. Leads with the same [BalanceCard] (amount + "Doldur") the
 /// profile screen used to show inline, then the user's top-up and purchase
 /// history below.
-class BalanceScreen extends StatefulWidget {
+class BalanceScreen extends StatelessWidget {
   const BalanceScreen({super.key});
 
   @override
-  State<BalanceScreen> createState() => _BalanceScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => BalanceController()..load(),
+      child: const _BalanceView(),
+    );
+  }
 }
 
-class _BalanceScreenState extends State<BalanceScreen> {
-  _BalanceTab _selectedTab = _BalanceTab.history;
-  List<BalanceLog>? _logs;
-  String? _error;
-  // Best-effort, separate from [_logs]/[_error] — a failure here shouldn't
-  // block the (more important) balance history above it, so this section
-  // just quietly stays empty rather than showing its own error state.
-  List<PaymentOrder>? _orders;
+class _BalanceView extends StatefulWidget {
+  const _BalanceView();
 
   @override
-  void initState() {
-    super.initState();
-    _loadLogs();
-    _loadOrders();
-  }
+  State<_BalanceView> createState() => _BalanceViewState();
+}
 
-  Future<void> _loadLogs() async {
-    setState(() => _error = null);
-    try {
-      final logs = await BalanceLogApiService.listLogs();
-      if (!mounted) return;
-      setState(() => _logs = logs);
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      setState(() => _error = e.message);
-    }
-  }
-
-  Future<void> _loadOrders() async {
-    try {
-      final orders = await PaymentApiService.getMyOrders();
-      if (!mounted) return;
-      setState(() => _orders = orders);
-    } on ApiException {
-      // See the field's doc comment — silently leave the section empty.
-      if (mounted) setState(() => _orders = const []);
-    }
-  }
+class _BalanceViewState extends State<_BalanceView> {
+  _BalanceTab _selectedTab = _BalanceTab.history;
 
   Future<void> _openTopUp() async {
     await startBalanceTopUp(context);
     if (!mounted) return;
-    _loadLogs();
-    _loadOrders();
+    context.read<BalanceController>().load();
   }
 
   @override
@@ -161,19 +130,21 @@ class _BalanceScreenState extends State<BalanceScreen> {
   }
 
   Widget _buildCardPayments() {
-    if (_orders == null) {
+    final orders = context.watch<BalanceController>().orders;
+    if (orders == null) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 32),
         child: Center(child: CircularProgressIndicator()),
       );
     }
-    if (_orders!.isEmpty) {
+    if (orders.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.credit_card_off_rounded, color: AppColors.grey2, size: 36),
+            Icon(Icons.credit_card_off_rounded,
+                color: AppColors.grey2, size: 36),
             const SizedBox(height: 12),
             Text(
               ProfileStrings.cardPaymentsEmpty,
@@ -197,25 +168,26 @@ class _BalanceScreenState extends State<BalanceScreen> {
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: _orders!.length,
+      itemCount: orders.length,
       separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (_, index) => _PaymentOrderTile(order: _orders![index]),
+      itemBuilder: (_, index) => PaymentOrderTile(order: orders[index]),
     );
   }
 
   Widget _buildHistory() {
-    if (_logs == null && _error == null) {
+    final controller = context.watch<BalanceController>();
+    if (controller.logs == null && controller.error == null) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 32),
         child: Center(child: CircularProgressIndicator()),
       );
     }
-    if (_error != null) {
+    if (controller.error != null) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 32),
         child: Center(
           child: TextButton(
-            onPressed: _loadLogs,
+            onPressed: controller.loadLogs,
             child: Text(ProfileStrings.retry,
                 style: TextStyle(
                     color: AppColors.primary, fontWeight: FontWeight.w700)),
@@ -223,10 +195,10 @@ class _BalanceScreenState extends State<BalanceScreen> {
         ),
       );
     }
-    final logs = _logs!;
+    final logs = controller.logs!;
     if (logs.isEmpty) return _buildHistoryEmpty();
     return RefreshIndicator(
-      onRefresh: _loadLogs,
+      onRefresh: controller.loadLogs,
       color: AppColors.primary,
       backgroundColor: AppColors.surface,
       child: ListView.separated(
@@ -234,7 +206,7 @@ class _BalanceScreenState extends State<BalanceScreen> {
         physics: const NeverScrollableScrollPhysics(),
         itemCount: logs.length,
         separatorBuilder: (context, index) => const SizedBox(height: 10),
-        itemBuilder: (_, index) => _BalanceLogTile(log: logs[index]),
+        itemBuilder: (_, index) => BalanceLogTile(log: logs[index]),
       ),
     );
   }
@@ -252,8 +224,8 @@ class _BalanceScreenState extends State<BalanceScreen> {
               aspectRatio: 1,
               child: Image.asset(
                 isDark
-                    ? 'assets/images/balance_empty_dark.png'
-                    : 'assets/images/balance_empty_light.png',
+                    ? 'assets/images/balance_empty_dark.webp'
+                    : 'assets/images/balance_empty_light.webp',
                 fit: BoxFit.contain,
               ),
             ),
@@ -281,195 +253,3 @@ class _BalanceScreenState extends State<BalanceScreen> {
 }
 
 enum _BalanceTab { history, cardPayments }
-
-class _BalanceLogTile extends StatelessWidget {
-  const _BalanceLogTile({required this.log});
-
-  final BalanceLog log;
-
-  @override
-  Widget build(BuildContext context) {
-    final isPurchase = log.isBookPurchase;
-    final color =
-        isPurchase ? const Color(0xFFE65C5C) : const Color(0xFF3FBE6C);
-    final title = isPurchase
-        ? (log.bookName?.isNotEmpty == true
-            ? log.bookName!
-            : ProfileStrings.balanceBookPurchase)
-        : log.event.toUpperCase().contains('DEPOSIT') ||
-                log.event.toUpperCase().contains('PROMO')
-            ? ProfileStrings.balanceTopUp
-            : ProfileStrings.balanceOtherActivity;
-    final subtitle = isPurchase
-        ? ProfileStrings.balanceBookPurchase
-        : log.event.replaceAll('_', ' ');
-    final displayedAmount = log.amount.abs();
-    final amountPrefix = log.isCredit ? '+' : '-';
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.card, color.withValues(alpha: 0.075)],
-        ),
-        border: Border.all(color: color.withValues(alpha: 0.22)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.10),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: color.withValues(alpha: 0.18)),
-                ),
-                child: Icon(
-                  isPurchase ? Icons.menu_book_rounded : Icons.savings_rounded,
-                  color: color,
-                  size: 23,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: color,
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '$amountPrefix${PaymentStrings.manat(displayedAmount)}',
-                  style: TextStyle(
-                      color: color, fontSize: 14, fontWeight: FontWeight.w800),
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 13),
-            child: Divider(
-                height: 1, color: AppColors.border.withValues(alpha: 0.75)),
-          ),
-          Row(
-            children: [
-              Icon(Icons.schedule_rounded, size: 15, color: AppColors.grey2),
-              const SizedBox(width: 6),
-              Text(
-                DateFormat.yMMMd().add_Hm().format(log.createdAt),
-                style: TextStyle(
-                    color: AppColors.grey2,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600),
-              ),
-              const Spacer(),
-              Icon(
-                log.isCredit
-                    ? Icons.arrow_downward_rounded
-                    : Icons.arrow_upward_rounded,
-                size: 15,
-                color: color,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PaymentOrderTile extends StatelessWidget {
-  const _PaymentOrderTile({required this.order});
-
-  final PaymentOrder order;
-
-  @override
-  Widget build(BuildContext context) {
-    final logo = order.bank.logoAsset;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12)),
-            child: logo != null
-                ? Image.asset(logo, fit: BoxFit.cover)
-                : Center(child: HugeIcon(icon: HugeIcons.strokeRoundedBank, color: AppColors.grey2, size: 20)),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(order.bank.name, style: TextStyle(color: AppColors.white, fontSize: 14.5, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 3),
-                Text(
-                  DateFormat.yMMMd().add_Hm().format(order.createdAt),
-                  style: TextStyle(color: AppColors.grey2, fontSize: 12, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-          ),
-          Text(PaymentStrings.manat(order.amount), style: TextStyle(color: AppColors.white, fontSize: 15, fontWeight: FontWeight.w800)),
-        ],
-      ),
-    );
-  }
-}

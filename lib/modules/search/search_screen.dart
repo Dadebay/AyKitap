@@ -472,7 +472,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 child: AspectRatio(
                   aspectRatio: 1,
                   child: Image.asset(
-                    isDark ? 'assets/images/search_empty_dark.png' : 'assets/images/search_empty_light.png',
+                    isDark ? 'assets/images/search_empty_dark.webp' : 'assets/images/search_empty_light.webp',
                     fit: BoxFit.contain,
                   ),
                 ),

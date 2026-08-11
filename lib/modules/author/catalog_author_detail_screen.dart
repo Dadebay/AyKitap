@@ -255,7 +255,7 @@ class _CatalogAuthorDetailScreenState extends State<CatalogAuthorDetailScreen> {
           child: AspectRatio(
             aspectRatio: 1,
             child: Image.asset(
-              isDark ? 'assets/images/author_no_books_dark.png' : 'assets/images/author_no_books_light.png',
+              isDark ? 'assets/images/author_no_books_dark.webp' : 'assets/images/author_no_books_light.webp',
               fit: BoxFit.contain,
             ),
           ),

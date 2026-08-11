@@ -163,8 +163,22 @@ class BookDetailStrings {
   static String get saveToFiles => t(
         tk: 'Faýllara ýaz',
         ru: 'Сохранить в Файлы',
-        tr: 'Dosyalara kaydet',
+      tr: 'Dosyalara kaydet',
       );
+  static String get savePurchasedTitle => t(
+      tk: 'Kitaby nirede saklamaly?',
+      ru: 'Где сохранить книгу?',
+      tr: 'Kitap nereye kaydedilsin?');
+  static String get savePurchasedBody => t(
+      tk: 'Kitaby oflaýn okamak üçin programmaňyzda saklaýarys. Şeýle hem öz faýl ýeriňize ýazyp bilersiňiz.',
+      ru: 'Книга уже сохранена в приложении для офлайн-чтения. Также можно сохранить копию в выбранном месте.',
+      tr: 'Kitap çevrimdışı okuma için uygulamada saklanır. İsterseniz seçtiğiniz konuma bir kopyasını da kaydedebilirsiniz.');
+  static String get keepInApp => t(
+      tk: 'Diňe programmada sakla',
+      ru: 'Только в приложении',
+      tr: 'Yalnızca uygulamada tut');
+  static String get chooseSaveLocation => t(
+      tk: 'Ýer saýla', ru: 'Выбрать место', tr: 'Konum seç');
   static String saveToFilesError(Object error) => t(
         tk: 'Faýl paýlaşylmady: $error',
         ru: 'Не удалось поделиться файлом: $error',

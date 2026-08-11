@@ -1,3 +1,4 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
@@ -12,6 +13,7 @@ import '../../../core/services/book_api_service.dart';
 import '../../../core/services/downloaded_books_store.dart';
 import '../../../core/services/downloaded_files_store.dart';
 import '../../../core/services/last_read_book_store.dart';
+import '../../../core/services/subscription_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../book_detail/book_open_flow.dart';
@@ -50,6 +52,9 @@ class _DownloadedTabState extends State<DownloadedTab>
     // files can be deleted from under the shelf.
     context.watch<BookAccessService>();
     context.watch<DownloadedFilesStore>();
+    // Subscription state is restored from disk independently at boot, so
+    // rebuild the locks once that offline cache becomes available.
+    context.watch<SubscriptionService>();
     if (books.isEmpty) {
       return LibraryEmptyState(
           label: LibraryStrings.emptyDownloaded,
@@ -218,6 +223,14 @@ class ApiBooksTab extends StatefulWidget {
   /// (`AutomaticKeepAliveClientMixin` keeps it alive across tab switches).
   final Listenable? refreshOn;
 
+  /// Local shadow used when the reading shelf's backend request cannot run.
+  final Future<List<LibraryBook>> Function()? offlineFetcher;
+  final Future<void> Function(List<LibraryBook> books)? cacheLoadedBooks;
+
+  /// A cached reading-shelf book must bypass `GET /books/:id` in airplane
+  /// mode and open the downloaded file directly.
+  final bool openLocalWhenOffline;
+
   const ApiBooksTab({
     super.key,
     required this.fetcher,
@@ -226,6 +239,9 @@ class ApiBooksTab extends StatefulWidget {
     this.allowRemovingPurchasedBooks = false,
     this.syncsPurchasedAccess = false,
     this.refreshOn,
+    this.offlineFetcher,
+    this.cacheLoadedBooks,
+    this.openLocalWhenOffline = false,
   });
 
   @override
@@ -238,14 +254,34 @@ class _ApiBooksTabState extends State<ApiBooksTab>
   bool _loading = true;
   String? _error;
 
+  /// Set when the fetch came back 401 — a signed-out visitor gets
+  /// [LibraryLoginRequiredState] instead of the raw server error text.
+  bool _needsLogin = false;
+
   @override
   bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
+    _loadOfflineShadow();
     _load();
     widget.refreshOn?.addListener(_load);
+  }
+
+  /// Paint the saved reading shelf immediately, then let the backend refresh
+  /// it in the background. Without this, an airplane-mode reader waits for a
+  /// network timeout before seeing books that are already on the device.
+  Future<void> _loadOfflineShadow() async {
+    final fetcher = widget.offlineFetcher;
+    if (fetcher == null) return;
+    final books = await fetcher();
+    if (!mounted || books.isEmpty) return;
+    setState(() {
+      _books = books;
+      _loading = false;
+      _error = null;
+    });
   }
 
   @override
@@ -258,6 +294,7 @@ class _ApiBooksTabState extends State<ApiBooksTab>
     setState(() {
       _loading = true;
       _error = null;
+      _needsLogin = false;
     });
     try {
       final books = await widget.fetcher();
@@ -265,17 +302,60 @@ class _ApiBooksTabState extends State<ApiBooksTab>
         await BookAccessService.instance.replacePurchased(books.map((b) => b.id));
       }
       if (!mounted) return;
+      await widget.cacheLoadedBooks?.call(books);
+      if (!mounted) return;
       setState(() {
         _books = books;
         _loading = false;
       });
     } on ApiException catch (e) {
+      final offlineBooks = await widget.offlineFetcher?.call();
       if (!mounted) return;
+      final hasOfflineBooks = offlineBooks != null && offlineBooks.isNotEmpty;
       setState(() {
-        _error = e.message;
+        _books = offlineBooks;
+        _needsLogin = e.statusCode == 401 && !hasOfflineBooks;
+        _error = !hasOfflineBooks && !_needsLogin ? e.message : null;
         _loading = false;
       });
     }
+  }
+
+  Future<void> _openBook(LibraryBook book) async {
+    final results = await Connectivity().checkConnectivity();
+    final isOffline =
+        results.every((result) => result == ConnectivityResult.none);
+    if (!isOffline) {
+      if (!mounted) return;
+      await context.push<bool>(
+          CatalogBookDetailScreen(bookId: book.id, offlineBook: book));
+      return;
+    }
+
+    await DownloadedFilesStore.instance.load();
+    await BookAccessService.instance.load();
+    final entry = DownloadedFilesStore.instance.best(book.id);
+    if (entry == null || !BookAccessService.instance.canRead(book.id)) {
+      if (mounted) {
+        context.showAppSnackBar(LibraryStrings.offlineBookUnavailable,
+            isError: true);
+      }
+      return;
+    }
+    await LastReadBookStore.instance.recordOpened(
+      book: book,
+      path: entry.path,
+      format: entry.format,
+    );
+    if (!mounted) return;
+    openCatalogBookFile(
+      context,
+      path: entry.path,
+      format: entry.format,
+      bookId: book.id,
+      title: book.name,
+      pageCount: book.pageCount,
+    );
   }
 
   @override
@@ -283,6 +363,9 @@ class _ApiBooksTabState extends State<ApiBooksTab>
     super.build(context);
     if (_loading) {
       return Center(child: CircularProgressIndicator(color: AppColors.primary));
+    }
+    if (_needsLogin) {
+      return LibraryLoginRequiredState(onLoggedIn: _load);
     }
     if (_error != null) {
       return Center(
@@ -329,6 +412,9 @@ class _ApiBooksTabState extends State<ApiBooksTab>
             showProgress: widget.showProgress,
             canRemoveFromPurchased: widget.allowRemovingPurchasedBooks,
             onPurchasedBookRemoved: _load,
+            onTap: widget.openLocalWhenOffline
+                ? () => _openBook(books[i])
+                : null,
           ),
         ),
       ),

@@ -3,13 +3,19 @@ import '../../core/localization/strings/library_strings.dart';
 import '../../core/services/book_api_service.dart';
 import '../../core/services/favorites_sync_service.dart';
 import '../../core/services/finished_books_sync_service.dart';
+import '../../core/services/reading_books_store.dart';
 import '../../core/theme/app_colors.dart';
 import 'widgets/library_tabs.dart';
 import 'widgets/own_books_tab.dart';
 
 /// Kitaplagrym Sahypasy — TZ section 7. 6 tabs on a "shelf" style page.
 class LibraryScreen extends StatefulWidget {
-  const LibraryScreen({super.key});
+  /// The shelf to show on first entry. The offline shortcut starts on the
+  /// local Downloaded shelf, while normal navigation keeps the reading shelf.
+  final int initialTabIndex;
+
+  const LibraryScreen({super.key, this.initialTabIndex = 0})
+      : assert(initialTabIndex >= 0 && initialTabIndex < 6);
 
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
@@ -17,8 +23,8 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen>
     with SingleTickerProviderStateMixin {
-  late final TabController _tabController =
-      TabController(length: 6, vsync: this);
+  late final TabController _tabController = TabController(
+      length: 6, vsync: this, initialIndex: widget.initialTabIndex);
 
   static List<String> get _tabs => [
         LibraryStrings.tabReading,
@@ -81,6 +87,12 @@ class _LibraryScreenState extends State<LibraryScreen>
                     // Finishing a book moves it off this shelf onto
                     // "Bitirdiklerim", so both tabs watch the same signal.
                     refreshOn: FinishedBooksSyncService.instance,
+                    offlineFetcher: () async {
+                      await ReadingBooksStore.instance.load();
+                      return ReadingBooksStore.instance.books;
+                    },
+                    cacheLoadedBooks: ReadingBooksStore.instance.mergeFromBackend,
+                    openLocalWhenOffline: true,
                   ),
                   ApiBooksTab(
                     fetcher: () => BookApiService.listBooks(

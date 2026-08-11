@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../core/localization/strings/reader_strings.dart';
 import '../../../core/theme/app_colors.dart';
+import 'reader_fit_tile.dart';
 
 /// The CBZ reader's settings panel — [PdfSettingsSheet]'s sibling, same
 /// layout and same three sections (gutter colour, page scale, brightness), but
@@ -37,7 +38,8 @@ class CbzSettingsSheet extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + MediaQuery.of(context).padding.bottom),
+      padding: EdgeInsets.fromLTRB(
+          20, 12, 20, 24 + MediaQuery.of(context).padding.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,7 +48,9 @@ class CbzSettingsSheet extends StatelessWidget {
             child: Container(
               width: 40,
               height: 4,
-              decoration: BoxDecoration(color: AppColors.grey3, borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(
+                  color: AppColors.grey3,
+                  borderRadius: BorderRadius.circular(2)),
             ),
           ),
           const SizedBox(height: 16),
@@ -55,7 +59,10 @@ class CbzSettingsSheet extends StatelessWidget {
             children: [
               Text(
                 ReaderStrings.settingsTitle,
-                style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800),
+                style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800),
               ),
               const Spacer(),
               GestureDetector(
@@ -64,8 +71,12 @@ class CbzSettingsSheet extends StatelessWidget {
                 child: Container(
                   width: 30,
                   height: 30,
-                  decoration: BoxDecoration(color: AppColors.card, shape: BoxShape.circle),
-                  child: HugeIcon(icon: HugeIcons.strokeRoundedArrowDown01, color: AppColors.grey2, size: 18),
+                  decoration: BoxDecoration(
+                      color: AppColors.card, shape: BoxShape.circle),
+                  child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedArrowDown01,
+                      color: AppColors.grey2,
+                      size: 18),
                 ),
               ),
             ],
@@ -105,7 +116,7 @@ class CbzSettingsSheet extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _FitTile(
+                child: ReaderFitTile(
                   icon: HugeIcons.strokeRoundedFitToScreen,
                   label: ReaderStrings.cbzFitContain,
                   selected: fit == BoxFit.contain,
@@ -114,7 +125,7 @@ class CbzSettingsSheet extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _FitTile(
+                child: ReaderFitTile(
                   icon: HugeIcons.strokeRoundedMaximize01,
                   label: ReaderStrings.cbzFitCover,
                   selected: fit == BoxFit.cover,
@@ -197,7 +208,11 @@ class _SliderRow extends StatelessWidget {
                 thumbColor: AppColors.primary,
                 overlayColor: AppColors.primary.withValues(alpha: 0.13),
               ),
-              child: Slider(value: value.clamp(min, 1.0), min: min, max: 1.0, onChanged: onChanged),
+              child: Slider(
+                  value: value.clamp(min, 1.0),
+                  min: min,
+                  max: 1.0,
+                  onChanged: onChanged),
             ),
           ),
           HugeIcon(icon: trailingIcon, color: AppColors.grey1, size: 21),
@@ -213,7 +228,11 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(text, style: TextStyle(color: AppColors.grey2, fontSize: 12.5, fontWeight: FontWeight.w600));
+    return Text(text,
+        style: TextStyle(
+            color: AppColors.grey2,
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600));
   }
 }
 
@@ -232,7 +251,8 @@ class _GutterSwatch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final onColor = color.computeLuminance() < 0.4 ? Colors.white : Colors.black87;
+    final onColor =
+        color.computeLuminance() < 0.4 ? Colors.white : Colors.black87;
     return Semantics(
       label: label,
       selected: selected,
@@ -265,54 +285,13 @@ class _GutterSwatch extends StatelessWidget {
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: onColor, fontSize: 10.5, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                    color: onColor,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w500),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FitTile extends StatelessWidget {
-  final List<List<dynamic>> icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _FitTile({required this.icon, required this.label, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        height: 62,
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.card,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: selected ? AppColors.primary : AppColors.border),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            HugeIcon(icon: icon, color: selected ? Colors.white : AppColors.grey2, size: 20),
-            const SizedBox(height: 5),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: selected ? Colors.white : AppColors.grey2,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
         ),
       ),
     );

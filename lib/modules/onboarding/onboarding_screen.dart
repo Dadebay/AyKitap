@@ -24,7 +24,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         OnboardPageData(
           gradient: const [Color(0xFF1A1035), Color(0xFF13131A)],
           accentColor: AppColors.primary,
-          image: 'assets/images/onboarding/onboarding_1.png',
+          image: 'assets/images/onboarding/onboarding_1.webp',
           title: OnboardingStrings.page1Title,
           subtitle: OnboardingStrings.page1Subtitle,
           badge: OnboardingStrings.page1Badge,
@@ -33,7 +33,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         OnboardPageData(
           gradient: const [Color(0xFF0D2035), Color(0xFF13131A)],
           accentColor: const Color(0xFF3B82F6),
-          image: 'assets/images/onboarding/onboarding_2.png',
+          image: 'assets/images/onboarding/onboarding_2.webp',
           title: OnboardingStrings.page2Title,
           subtitle: OnboardingStrings.page2Subtitle,
           badge: OnboardingStrings.page2Badge,
@@ -42,7 +42,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         OnboardPageData(
           gradient: const [Color(0xFF1A2810), Color(0xFF13131A)],
           accentColor: const Color(0xFF22C55E),
-          image: 'assets/images/onboarding/onboarding_3.png',
+          image: 'assets/images/onboarding/onboarding_3.webp',
           title: OnboardingStrings.page3Title,
           subtitle: OnboardingStrings.page3Subtitle,
           badge: OnboardingStrings.page3Badge,

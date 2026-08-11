@@ -43,7 +43,7 @@ class _ShelfRow extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset('assets/images/shelf_wood.png', fit: BoxFit.fill),
+          Image.asset('assets/images/shelf_wood.webp', fit: BoxFit.fill),
           Padding(
             padding: const EdgeInsets.fromLTRB(28, 0, 28, 10),
             child: Row(
