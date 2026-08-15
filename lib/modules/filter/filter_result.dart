@@ -7,6 +7,12 @@ import 'controller/filter_controller.dart' show BookFormatFilter, SortBy, kDefau
 class FilterResult {
   final bool active;
 
+  /// Selected [Genre.id] — sent as `genre_id`. Single-select, same as
+  /// Search's own genre chip row (the backend only takes one), and this is
+  /// exactly that same selection: picking a genre here or on the chip row
+  /// updates the one piece of state both places show.
+  final int? genreId;
+
   /// Selected [BookLanguage.id]s — sent as `language_id`.
   final Set<int> languageIds;
 
@@ -28,6 +34,7 @@ class FilterResult {
 
   const FilterResult({
     required this.active,
+    this.genreId,
     this.languageIds = const {},
     this.formats = const {},
     this.startYear,

@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../localization/app_locale.dart';
 import '../services/auth_session.dart';
+import '../services/session_expiry_handler.dart';
 import 'api_config.dart';
 import 'api_log_interceptor.dart';
 
@@ -43,6 +46,39 @@ class DioClient {
           options.headers['Authorization'] = 'Bearer $token';
         }
         handler.next(options);
+      },
+      // A 401 here means the backend no longer honors this device's
+      // token ("Session expired or revoked", or any other authenticated
+      // call rejected the same way) — every other authenticated request
+      // would otherwise keep failing the same way with no way for the user
+      // to tell why. Fire-and-forget: the error still propagates as
+      // [ApiException] to whichever call site was awaiting it, same as
+      // before — this only adds the session-recovery side effect.
+      onError: (err, handler) async {
+        if (err.response?.statusCode == 401) {
+          unawaited(SessionExpiryHandler.instance.handleUnauthorized());
+        }
+        // `ApiConfig.baseUrl` is a domain that doesn't resolve on every
+        // network (see its doc comment) — on a connection failure, retry
+        // once against the IP-based [ApiConfig.fallbackBaseUrl] instead of
+        // failing outright. Guarded by `_retriedFallbackHost` so a failure
+        // from the fallback itself doesn't loop.
+        final options = err.requestOptions;
+        final isConnectionFailure = err.type == DioExceptionType.connectionError ||
+            err.type == DioExceptionType.connectionTimeout;
+        if (isConnectionFailure && options.extra['_retriedFallbackHost'] != true) {
+          options.extra['_retriedFallbackHost'] = true;
+          options.baseUrl = ApiConfig.fallbackBaseUrl;
+          try {
+            final response = await dio.fetch(options);
+            handler.resolve(response);
+            return;
+          } on DioException catch (retryErr) {
+            handler.next(retryErr);
+            return;
+          }
+        }
+        handler.next(err);
       },
     ));
 

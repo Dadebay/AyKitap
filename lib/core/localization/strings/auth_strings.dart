@@ -17,7 +17,7 @@ class AuthStrings {
 
   static String get sendCodeButton => t(tk: 'SMS kod ibermek', ru: 'Отправить SMS-код', tr: 'SMS kodu gönder');
   static String get genericError => t(
-        tk: 'Näbelli säwlik ýüze çykdy. Gaýtadan synanyşyň.',
+        tk: 'Näbelli ýalñyşlyk ýüze çykdy. Gaýtadan synanyşyň.',
         ru: 'Произошла неизвестная ошибка. Попробуйте снова.',
         tr: 'Bilinmeyen bir hata oluştu. Tekrar deneyin.',
       );

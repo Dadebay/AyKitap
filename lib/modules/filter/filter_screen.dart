@@ -13,9 +13,10 @@ export 'filter_result.dart' show FilterResult;
 /// Filtr Sahypasy — TZ section 6, Surat 4 style: quick chips, collapsible
 /// filter sections and a sticky "Netijeleri görkez" button.
 class FilterScreen extends StatelessWidget {
-  /// The languages, formats, year window and sort already applied by the
-  /// caller, re-selected when the page opens so the filter shows the state
-  /// that's actually in effect.
+  /// The genre, languages, formats, year window and sort already applied by
+  /// the caller, re-selected when the page opens so the filter shows the
+  /// state that's actually in effect.
+  final int? initialGenreId;
   final Set<int> initialLanguageIds;
   final Set<BookFormatFilter> initialFormats;
   final RangeValues? initialYearRange;
@@ -23,6 +24,7 @@ class FilterScreen extends StatelessWidget {
 
   const FilterScreen({
     super.key,
+    this.initialGenreId,
     this.initialLanguageIds = const {},
     this.initialFormats = const {},
     this.initialYearRange,
@@ -33,6 +35,7 @@ class FilterScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => FilterController(
+        initialGenreId: initialGenreId,
         initialLanguageIds: initialLanguageIds,
         initialFormats: initialFormats,
         initialYearRange: initialYearRange,
@@ -74,6 +77,14 @@ class _FilterScreenBody extends StatelessWidget {
                         expanded: c.expanded.contains('lang'),
                         onToggle: () => c.toggleExpanded('lang'),
                         child: _buildLanguageOptions(c),
+                      ),
+                      _divider(),
+                      ExpandableFilterSection(
+                        title: FilterStrings.genre,
+                        summary: c.selectedGenreId == null ? FilterStrings.any : (c.selectedGenreLabel ?? FilterStrings.any),
+                        expanded: c.expanded.contains('genre'),
+                        onToggle: () => c.toggleExpanded('genre'),
+                        child: _buildGenreOptions(c),
                       ),
                       _divider(),
                       ExpandableFilterSection(
@@ -211,6 +222,56 @@ class _FilterScreenBody extends StatelessWidget {
                 label: l.label,
                 selected: c.selectedLanguageIds.contains(l.id),
                 onTap: () => c.toggleLanguage(l),
+              ))
+          .toList(),
+    );
+  }
+
+  // The "Žanr" section's body — same shape as "Dil", one chip row sourced
+  // from `GET /genres/all`. Single-select: picking one here is the same
+  // [FilterController.selectedGenreId] Search's own chip row highlights.
+  Widget _buildGenreOptions(FilterController c) {
+    final genres = c.genres;
+    if (genres == null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+          ),
+        ),
+      );
+    }
+    if (genres.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                c.genresFailed ? FilterStrings.genreLoadFailed : FilterStrings.any,
+                style: TextStyle(color: AppColors.grey2, fontSize: 13.5),
+              ),
+            ),
+            if (c.genresFailed)
+              TextButton(
+                onPressed: c.loadGenres,
+                child: Text(FilterStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13.5)),
+              ),
+          ],
+        ),
+      );
+    }
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: genres
+          .map((g) => MultiChip(
+                label: g.name,
+                selected: c.selectedGenreId == g.id,
+                onTap: () => c.toggleGenre(g),
               ))
           .toList(),
     );

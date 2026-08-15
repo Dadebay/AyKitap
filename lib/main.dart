@@ -10,7 +10,9 @@ import 'core/localization/localization_delegates.dart';
 import 'core/navigation/root_navigator.dart';
 import 'core/services/account_service.dart';
 import 'core/services/analytics_service.dart';
+import 'core/services/app_activity_service.dart';
 import 'core/services/book_access_service.dart';
+import 'core/services/book_download_service.dart';
 import 'core/services/bookmarks_store.dart';
 import 'core/services/device_fingerprint.dart';
 import 'core/services/downloaded_books_store.dart';
@@ -57,6 +59,10 @@ void main() async {
   // Fire-and-forget: resolve and cache the device fingerprint now so it's
   // ready by the time the user reaches login, with no added latency there.
   unawaited(DeviceFingerprint.get());
+  // Foreground-time tracking for the admin dashboard's "most active users".
+  // Started here rather than from a screen because it has to span the whole
+  // process, not one route — it costs a single 60s timer and one int.
+  AppActivityService.instance.init();
   runApp(
     MultiProvider(
       providers: [
@@ -73,6 +79,7 @@ void main() async {
         ChangeNotifierProvider<DownloadedBooksStore>.value(value: DownloadedBooksStore.instance),
         ChangeNotifierProvider<DownloadedFilesStore>.value(value: DownloadedFilesStore.instance),
         ChangeNotifierProvider<BookAccessService>.value(value: BookAccessService.instance),
+        ChangeNotifierProvider<BookDownloadService>.value(value: BookDownloadService.instance),
         ChangeNotifierProvider<HomeDataService>.value(value: HomeDataService.instance),
         ChangeNotifierProvider<LastReadBookStore>.value(value: LastReadBookStore.instance),
       ],
@@ -107,7 +114,17 @@ class AykitapApp extends StatelessWidget {
         appBarTheme: const AppBarTheme(elevation: 0, centerTitle: true, scrolledUnderElevation: 0),
       ),
       builder: (context, child) {
-        return GlobalSafeAreaWrapper(child: child ?? const SizedBox.shrink());
+        // Sits above the Navigator, so it sees touches on every screen
+        // including pushed routes. Translucent and listener-only: it never
+        // takes part in hit testing, so nothing below it behaves
+        // differently. This is what lets [AppActivityService] tell "being
+        // read" from "left open on the nightstand".
+        return Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: (_) => AppActivityService.instance.noteInteraction(),
+          onPointerMove: (_) => AppActivityService.instance.noteInteraction(),
+          child: GlobalSafeAreaWrapper(child: child ?? const SizedBox.shrink()),
+        );
       },
       home: const SplashScreen(),
     );

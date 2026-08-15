@@ -10,15 +10,17 @@ import '../catalog_collection_books_screen.dart';
 
 /// The `card_type: "card_3"` visual for one [Collection] — same big
 /// image-card-with-frosted-title-panel shape as the mock catalogue's
-/// `SeriesCard`. The cover is the first book's image since a real
-/// collection has no dedicated cover of its own.
+/// `SeriesCard`. The cover is [Collection.image] — the collection's own
+/// uploaded cover — falling back to the first book's own cover only when
+/// the collection has none set.
 class CatalogSeriesCard extends StatelessWidget {
   final Collection collection;
   const CatalogSeriesCard({super.key, required this.collection});
 
   @override
   Widget build(BuildContext context) {
-    final coverImage = collection.books.isNotEmpty ? collection.books.first.image : null;
+    final ownImage = collection.image;
+    final coverImage = (ownImage != null && ownImage.isNotEmpty) ? ownImage : (collection.books.isNotEmpty ? collection.books.first.image : null);
     return GestureDetector(
       onTap: () => context.push(CatalogCollectionBooksScreen(title: collection.name, books: collection.books)),
       child: ClipRRect(

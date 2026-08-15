@@ -298,7 +298,7 @@ class _StreakScreenState extends State<StreakScreen> {
               width: double.infinity,
               height: 44,
               child: OutlinedButton(
-                onPressed: streak.historyLoading ? null : () => StreakService.instance.loadMoreHistory(),
+                onPressed: streak.historyLoading ? null : streak.loadMoreHistory,
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: AppColors.border),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

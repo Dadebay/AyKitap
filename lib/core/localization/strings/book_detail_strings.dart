@@ -88,11 +88,6 @@ class BookDetailStrings {
       t(tk: 'satyn alyndy', ru: 'куплено', tr: 'satın alındı');
   static String get statPages => t(tk: 'sahypa', ru: 'страниц', tr: 'sayfa');
 
-  // Shown under the title/author block, not in the read/purchased/pages
-  // stat row above — a 4th stat there overflows on narrow screens.
-  static String publishedYearLabel(int year) =>
-      t(tk: 'Neşir ýyly: $year', ru: 'Год издания: $year', tr: 'Basım yılı: $year');
-
   static String get showLess =>
       t(tk: 'Az görkez', ru: 'Свернуть', tr: 'Daha az göster');
   static String get readFull =>

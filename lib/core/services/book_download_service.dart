@@ -17,7 +17,18 @@ import 'downloaded_files_store.dart';
 /// `LSSupportsOpeningDocumentsInPlace` exposes Documents to) and out of
 /// iCloud backup, which is the "hidden place on the phone" this flow is
 /// supposed to use. On Android both are app-private either way.
-class BookDownloadService {
+///
+/// A [ChangeNotifier] rather than a plain service: [CatalogBookDetailScreen]
+/// used to track its own progress/[CancelToken] as private State, which
+/// died the moment the screen did — leaving mid-download (back button,
+/// switching tabs) used to cancel the download outright, and even once that
+/// no longer happened, re-opening the same book got a *fresh* screen with
+/// no idea a download was already running, so it just showed the plain
+/// "Oku" button again as if nothing was in flight. Tracking progress here
+/// instead — keyed by [BookDetail.id], watched via `context.watch` — means
+/// any screen open for a book (including one (re)created after the
+/// download already started) reads the one real, still-running download.
+class BookDownloadService extends ChangeNotifier {
   BookDownloadService._();
   static final instance = BookDownloadService._();
 
@@ -31,41 +42,90 @@ class BookDownloadService {
     receiveTimeout: const Duration(minutes: 5),
   ));
 
+  // A book downloads at most one file at a time through this flow (the CTA
+  // auto-picks the one best format — see BookOpenFlow._pickFile), so
+  // bookId alone is a stable key for all three of these.
+  final Map<int, Future<String>> _inFlight = {};
+  final Map<int, double?> _progress = {};
+  final Map<int, CancelToken> _cancelTokens = {};
+
+  /// 0–1 while [bookId] is downloading, null otherwise.
+  double? progressOf(int bookId) => _progress[bookId];
+
+  /// Stops [bookId]'s in-flight download, if any — a no-op otherwise.
+  /// Every screen watching [progressOf] sees it drop back to null once the
+  /// cancellation unwinds.
+  void cancel(int bookId) => _cancelTokens[bookId]?.cancel();
+
   /// Returns the on-disk path of [file] for [bookId], downloading it first
   /// if it isn't already there.
   ///
   /// A file that's already on disk short-circuits before any network call,
   /// so a second "Oku" (or any open in airplane mode) never touches the
-  /// network. Throws [ApiException] when the link or the download fails.
+  /// network. A second call while one's already running for the same
+  /// [bookId] shares that same download rather than racing it with a
+  /// second one over the same destination path — the scenario a book
+  /// detail screen (re)opened mid-download used to hit. Throws
+  /// [ApiException] when the link or the download fails.
   Future<String> ensureDownloaded({
     required int bookId,
     required BookFile file,
-    void Function(int received, int total)? onProgress,
-    CancelToken? cancelToken,
-  }) async {
-    final store = DownloadedFilesStore.instance;
-    await store.load();
+  }) {
+    final existing = _inFlight[bookId];
+    if (existing != null) return existing;
+    final future = _ensureDownloaded(bookId: bookId, file: file);
+    _inFlight[bookId] = future;
+    return future;
+  }
 
-    final existing = store.find(bookId, file.fileFormat);
-    if (existing != null && await File(existing.path).exists()) return existing.path;
+  Future<String> _ensureDownloaded({required int bookId, required BookFile file}) async {
+    try {
+      final store = DownloadedFilesStore.instance;
+      await store.load();
 
-    final dir = await _bookDir(bookId);
-    final destPath = '${dir.path}/${_safeFileName(file)}';
-    // A leftover file with no store entry (killed mid-rename, prefs
-    // cleared) is still a complete download — `.part` is what a partial
-    // one looks like, and that never gets this name.
-    if (!await File(destPath).exists()) {
-      await _download(file: file, destPath: destPath, onProgress: onProgress, cancelToken: cancelToken);
+      final existing = store.find(bookId, file.fileFormat);
+      if (existing != null && await File(existing.path).exists()) return existing.path;
+
+      final dir = await _bookDir(bookId);
+      final destPath = '${dir.path}/${_safeFileName(file)}';
+      // A leftover file with no store entry (killed mid-rename, prefs
+      // cleared) is still a complete download — `.part` is what a partial
+      // one looks like, and that never gets this name.
+      if (!await File(destPath).exists()) {
+        final cancelToken = CancelToken();
+        _cancelTokens[bookId] = cancelToken;
+        _progress[bookId] = 0;
+        notifyListeners();
+        try {
+          await _download(
+            file: file,
+            destPath: destPath,
+            cancelToken: cancelToken,
+            onProgress: (received, total) {
+              if (total > 0) {
+                _progress[bookId] = received / total;
+                notifyListeners();
+              }
+            },
+          );
+        } finally {
+          _cancelTokens.remove(bookId);
+        }
+      }
+
+      await store.add(DownloadedFileEntry(
+        bookId: bookId,
+        format: file.fileFormat.toLowerCase(),
+        path: destPath,
+        sizeBytes: await File(destPath).length(),
+        downloadedAt: DateTime.now(),
+      ));
+      return destPath;
+    } finally {
+      _inFlight.remove(bookId);
+      _progress.remove(bookId);
+      notifyListeners();
     }
-
-    await store.add(DownloadedFileEntry(
-      bookId: bookId,
-      format: file.fileFormat.toLowerCase(),
-      path: destPath,
-      sizeBytes: await File(destPath).length(),
-      downloadedAt: DateTime.now(),
-    ));
-    return destPath;
   }
 
   /// Fetches a fresh presigned link and streams it to `<dest>.part`, then

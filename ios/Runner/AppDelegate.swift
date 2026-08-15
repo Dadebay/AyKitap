@@ -12,6 +12,13 @@ import UIKit
   // before the Flutter engine (and this channel) exists yet.
   static var pendingIncomingFilePath: String?
 
+  // Same contract as above, for the `aykitap://book/<id>` deep link (see
+  // MainActivity.kt for the Android counterpart). Dart-side name is
+  // DeepLinkService.
+  static let deepLinkChannelName = "com.aykitap.aykitap/deep_link"
+  static var deepLinkChannel: FlutterMethodChannel?
+  static var pendingDeepLink: String?
+
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -34,6 +41,20 @@ import UIKit
       }
     }
     AppDelegate.incomingFileChannel = channel
+
+    let deepLinkChannel = FlutterMethodChannel(
+      name: AppDelegate.deepLinkChannelName,
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    )
+    deepLinkChannel.setMethodCallHandler { call, result in
+      if call.method == "getInitialLink" {
+        result(AppDelegate.pendingDeepLink)
+        AppDelegate.pendingDeepLink = nil
+      } else {
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    AppDelegate.deepLinkChannel = deepLinkChannel
   }
 
   /// Copies a book file handed to us via "Open with" into our own sandbox

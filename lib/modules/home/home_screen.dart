@@ -74,7 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
               hasScrollBody: false,
               child: _HomeReloadState(
                 loading: homeData.isLoading,
-                onReload: HomeDataService.instance.reload,
+                onReload: homeData.reload,
               ),
             )
           else

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
 import '../../../core/models/library_book.dart';
 import '../../../core/navigation/app_navigator.dart';
 import '../../../core/network/api_config.dart';
 import '../../../core/services/book_access_service.dart';
+import '../../../core/services/subscription_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/network_cover_image.dart';
 import '../../book_detail/catalog_book_detail_screen.dart';
@@ -45,7 +47,16 @@ class LibraryBookCover extends StatelessWidget {
   Widget build(BuildContext context) {
     final progress = showProgress ? book.progressFraction : null;
     final image = book.image;
-    final locked = showLockWhenNoAccess && !BookAccessService.instance.canRead(book.id);
+    // Watched, not read off the singletons: [BookAccessService.canRead] is a
+    // function of *both* notifiers — the purchased set here, and
+    // `SubscriptionService.isActive` inside it — so a completed purchase or
+    // an expiring subscription has to repaint this badge. Reading
+    // `.instance` directly (as this did) never subscribed to either, so the
+    // padlock kept showing the verdict from whenever the shelf last happened
+    // to rebuild for some unrelated reason.
+    final access = context.watch<BookAccessService>();
+    context.watch<SubscriptionService>();
+    final locked = showLockWhenNoAccess && !access.canRead(book.id);
     return GestureDetector(
       onLongPress: onLongPress,
       onTap: onTap ??

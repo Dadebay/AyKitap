@@ -6,7 +6,7 @@ class LibraryStrings {
 
   // Library screen — title & tabs.
   static String get libraryTitle =>
-      t(tk: 'Kitaplygym', ru: 'Моя библиотека', tr: 'Kitaplığım');
+      t(tk: 'Kitap Tekjäm', ru: 'Моя библиотека', tr: 'Kitaplığım');
   static String get tabReading =>
       t(tk: 'Okaýanlarym', ru: 'Читаю', tr: 'Okuduklarım');
   static String get tabFinished =>

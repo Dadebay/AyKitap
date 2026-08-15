@@ -39,13 +39,6 @@ class BookOpenFlow {
   final BuildContext context;
   final BookDetail book;
 
-  /// Download progress as 0–1, or null when nothing is downloading. Drives
-  /// the percentage on the CTA button.
-  final void Function(double? progress)? onProgress;
-
-  /// Handed back when a download starts so the caller can cancel it.
-  final void Function(CancelToken? token)? onCancelToken;
-
   /// Fired after anything that could change the access verdict (a login, a
   /// completed purchase) so the CTA row can re-resolve.
   final VoidCallback? onAccessChanged;
@@ -53,8 +46,6 @@ class BookOpenFlow {
   const BookOpenFlow({
     required this.context,
     required this.book,
-    this.onProgress,
-    this.onCancelToken,
     this.onAccessChanged,
   });
 
@@ -176,18 +167,13 @@ class BookOpenFlow {
         if (context.mounted) context.showAppSnackBar(BookDetailStrings.noFileForBook, isError: true);
         return;
       }
-      final cancelToken = CancelToken();
-      onCancelToken?.call(cancelToken);
-      onProgress?.call(0);
+      // Progress/cancellation are tracked in [BookDownloadService] itself
+      // (keyed by book id, watched via Provider) rather than threaded back
+      // through here — so a screen showing this book sees the same live
+      // download whether it started the request or was (re)opened after
+      // one already had.
       try {
-        path = await BookDownloadService.instance.ensureDownloaded(
-          bookId: book.id,
-          file: file,
-          cancelToken: cancelToken,
-          onProgress: (received, total) {
-            if (total > 0) onProgress?.call(received / total);
-          },
-        );
+        path = await BookDownloadService.instance.ensureDownloaded(bookId: book.id, file: file);
         format = file.fileFormat.toLowerCase();
       } on DioException catch (e) {
         // A cancel is the user's own doing — no error to report.
@@ -198,9 +184,6 @@ class BookOpenFlow {
       } on ApiException catch (e) {
         if (context.mounted) context.showAppSnackBar(e.message, isError: true);
         return;
-      } finally {
-        onProgress?.call(null);
-        onCancelToken?.call(null);
       }
     }
 

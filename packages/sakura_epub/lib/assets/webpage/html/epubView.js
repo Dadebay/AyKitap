@@ -24,6 +24,53 @@ function _injectFontCSS(contents, fontFamily, fontBase64, fontMimeType) {
   contents.document.head.appendChild(style);
 }
 
+// Calibre (and most FB2/EPUB converters) emit the cover as a percentage-sized
+// SVG wrapper rather than a plain <img>:
+//
+//   <div><svg width="100%" height="100%" viewBox="0 0 737 1186">
+//          <image width="737" height="1186" xlink:href="cover.jpg"/></svg></div>
+//
+// In paginated mode epub.js lays the section's <body> out as a flex row (its
+// column layout), which leaves that plain <div> — a flex item with no
+// intrinsic size — measuring 0x0. The <svg>'s width/height:100% then resolve
+// against zero, so the whole cover collapses and the page renders blank even
+// though the image itself loaded fine. Giving the wrapper chain a real size
+// makes the percentages resolve again.
+function _fixFullPageSvgImages(contents) {
+  try {
+    var doc = contents.document;
+    var svgs = doc.querySelectorAll('svg');
+    for (var i = 0; i < svgs.length; i++) {
+      var svg = svgs[i];
+      // Only full-page image covers. An inline diagram sized in px has an
+      // intrinsic size already and lays out correctly, so leave it alone.
+      if (!svg.querySelector('image')) continue;
+      var w = svg.getAttribute('width') || '';
+      var h = svg.getAttribute('height') || '';
+      if (w.indexOf('%') === -1 && h.indexOf('%') === -1) continue;
+
+      // Inline !important outranks the stylesheet rules epub.js's
+      // adjustImages() installs, whose max-width/max-height would otherwise
+      // cap the cover back down to ~95% of the column box.
+      svg.style.setProperty('width', '100%', 'important');
+      svg.style.setProperty('height', '100%', 'important');
+      svg.style.setProperty('max-width', 'none', 'important');
+      svg.style.setProperty('max-height', 'none', 'important');
+
+      // Walk up to <body> — it's the collapsed ancestors (the flex items)
+      // that zeroed the svg out, so each one needs the page box too.
+      var el = svg.parentElement;
+      while (el && el !== doc.body) {
+        el.style.setProperty('width', '100%', 'important');
+        el.style.setProperty('height', '100%', 'important');
+        el = el.parentElement;
+      }
+    }
+  } catch (e) {
+    console.error('Error sizing full-page SVG image:', e);
+  }
+}
+
 function setFontFamily(fontFamily, fontBase64, fontMimeType) {
   _currentFontFamily = fontFamily;
   _currentFontBase64 = fontBase64 || null;
@@ -145,6 +192,7 @@ function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScr
     if (_currentFontFamily) {
       _injectFontCSS(contents, _currentFontFamily, _currentFontBase64, _currentFontMimeType);
     }
+    _fixFullPageSvgImages(contents);
   });
 
   // Initial display - skip if we have XPath (we'll display after conversion)
