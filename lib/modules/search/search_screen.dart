@@ -33,6 +33,15 @@ class _SearchScreenState extends State<SearchScreen> {
   final _controller = TextEditingController();
   Timer? _debounce;
 
+  // Books per `GET /books/all` page — both the discover grid and book-mode
+  // search results page through this. A page shorter than this is taken to
+  // mean the backend has nothing left (see `_discoverHasMore`/
+  // `_searchHasMore`), which is only approximate for the multi-language/
+  // multi-format fan-out (BookApiService._listBooksFanOut merges several
+  // per-request pages, so a merged page's length isn't directly comparable)
+  // — an acceptable rough edge given how rarely that combination is picked.
+  static const _pageSize = 30;
+
   // Debounced live query — only set once ≥2 chars have been typed.
   String _query = '';
   // Result of the full filter page, if it was applied.
@@ -86,6 +95,11 @@ class _SearchScreenState extends State<SearchScreen> {
   List<AuthorSearchResult>? _authorResults;
   bool _searching = false;
   String? _searchError;
+  // Book-mode result pagination — author mode isn't paged (`GET
+  // /authors/search` returns its whole 30 in one go today).
+  int _searchPage = 1;
+  bool _searchHasMore = true;
+  bool _searchLoadingMore = false;
   // Guards against a slower, older request's response landing after a
   // faster, newer one — only the response whose id still matches this is
   // applied, so a stale result never clobbers what the user is now seeing.
@@ -95,11 +109,22 @@ class _SearchScreenState extends State<SearchScreen> {
   // a default "discover" grid rather than an empty screen. The backend dev
   // asked that this not be a real random order: true randomization has no
   // stable sort underneath it, so the same page boundary can't be
-  // reproduced across requests and pagination breaks. `created_at DESC`
-  // (recently added books) stands in for it instead.
+  // reproduced across requests and pagination breaks. [_discoverSort]'s
+  // day-of-the-week rotation stands in for it instead — see there.
   List<LibraryBook>? _discoverBooks;
   bool _discoverLoading = false;
   String? _discoverError;
+  int _discoverPage = 1;
+  bool _discoverHasMore = true;
+  bool _discoverLoadingMore = false;
+  // Pinned at page 1 (see [_discoverSort]) and reused by every load-more of
+  // the same run — re-deriving it on each page instead would let the sort
+  // actually change mid-scroll on the rare request that straddles midnight.
+  (String, String) _discoverActiveSort = ('created_at', 'DESC');
+  // Same stale-response guard as [_searchRequestId] — a sort change (a
+  // fresh page-1 load) can otherwise land after an in-flight load-more's
+  // response and have that older page's books appended on top of it.
+  int _discoverRequestId = 0;
 
   @override
   void initState() {
@@ -108,26 +133,81 @@ class _SearchScreenState extends State<SearchScreen> {
     _loadDiscoverBooks();
   }
 
-  Future<void> _loadDiscoverBooks() async {
-    setState(() {
-      _discoverLoading = true;
-      _discoverError = null;
-    });
+  // One (sort_by, sort_order) pair per weekday — the team's fix for the
+  // discover grid looking too static without ever breaking pagination (see
+  // [_discoverBooks]'s comment): true per-request random has no stable
+  // order underneath it, so instead the *default* order changes once a day,
+  // cycling through every sort the filter page itself offers plus their
+  // reverses. Stable all day (so `page`/`size` still lines up request to
+  // request), different from the day before — "looks random" over repeat
+  // visits without the backend ever being asked for one.
+  static const _discoverDailySorts = [
+    ('name', 'ASC'), // Monday — ady boýunça (A→Z)
+    ('year', 'DESC'), // Tuesday — çap senesi, täzeden
+    ('created_at', 'ASC'), // Wednesday — ýüklenen wagty, köneden
+    ('name', 'DESC'), // Thursday — ady boýunça (Z→A)
+    ('year', 'ASC'), // Friday — çap senesi, köneden
+    ('created_at', 'DESC'), // Saturday — ýüklenen wagty, täzeden (the old fixed default)
+    ('year', 'DESC'), // Sunday — çap senesi, täzeden
+  ];
+
+  /// Only takes over while the filter page's own sort is still untouched —
+  /// picking a real sort there (even re-picking today's rotation's own
+  /// value) keeps meaning exactly what it says instead of drifting to a
+  /// different order tomorrow underneath the user.
+  (String, String) get _discoverSort {
+    if (_filterSort != kDefaultSortBy) {
+      return (_filterSort.apiSortBy, _filterSort.apiSortOrder);
+    }
+    final weekday = DateTime.now().weekday; // 1 (Mon) .. 7 (Sun)
+    return _discoverDailySorts[(weekday - 1) % _discoverDailySorts.length];
+  }
+
+  // [loadMore] fetches the next page and appends it; the default (a fresh
+  // call, or the sort changing) replaces the grid from page 1.
+  Future<void> _loadDiscoverBooks({bool loadMore = false}) async {
+    if (loadMore) {
+      if (_discoverLoadingMore || !_discoverHasMore) return;
+    }
+    final requestId = ++_discoverRequestId;
+    if (loadMore) {
+      setState(() => _discoverLoadingMore = true);
+    } else {
+      _discoverActiveSort = _discoverSort;
+      setState(() {
+        _discoverLoading = true;
+        _discoverError = null;
+        _discoverPage = 1;
+        _discoverHasMore = true;
+        // See [_searchLoadingMore]'s reset in [_runSearch] — same stale
+        // in-flight-load-more concern.
+        _discoverLoadingMore = false;
+      });
+    }
+    final page = loadMore ? _discoverPage + 1 : 1;
     try {
       final books = await BookApiService.listBooks(
-        sortBy: _filterSort.apiSortBy,
-        sortOrder: _filterSort.apiSortOrder,
-        size: 30,
+        sortBy: _discoverActiveSort.$1,
+        sortOrder: _discoverActiveSort.$2,
+        page: page,
+        size: _pageSize,
       );
-      if (!mounted) return;
+      if (!mounted || requestId != _discoverRequestId) return;
       setState(() {
-        _discoverBooks = books;
+        _discoverBooks = loadMore ? [...?_discoverBooks, ...books] : books;
+        _discoverPage = page;
+        _discoverHasMore = books.length >= _pageSize;
         _discoverLoading = false;
+        _discoverLoadingMore = false;
       });
     } on ApiException catch (e) {
-      if (!mounted) return;
+      if (!mounted || requestId != _discoverRequestId) return;
       setState(() {
-        _discoverError = e.message;
+        if (loadMore) {
+          _discoverLoadingMore = false;
+        } else {
+          _discoverError = e.message;
+        }
         _discoverLoading = false;
       });
     }
@@ -258,15 +338,34 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  Future<void> _runSearch() async {
+  // [loadMore] fetches the next page of book results and appends it — only
+  // meaningful in Book mode; author mode still returns its whole page in
+  // one go, so [loadMore] is a no-op there. Any other call (a fresh query,
+  // a genre/filter/sort change, switching modes) replaces from page 1.
+  Future<void> _runSearch({bool loadMore = false}) async {
+    if (loadMore && _searchMode == _SearchMode.author) return;
+    if (loadMore) {
+      if (_searchLoadingMore || !_searchHasMore) return;
+    }
     final requestId = ++_searchRequestId;
     setState(() {
-      _searching = true;
-      _searchError = null;
-      // A new query rebuilds the grid from its top, so the folded-away
-      // header has to come back with it — no scroll notification would fire
-      // to bring it back on its own.
-      _headerCollapsed = false;
+      if (loadMore) {
+        _searchLoadingMore = true;
+      } else {
+        _searching = true;
+        _searchError = null;
+        _searchPage = 1;
+        _searchHasMore = true;
+        // A stale load-more (superseded by this fresh request before it
+        // resolved) would otherwise leave the footer spinning forever — its
+        // own response gets discarded by the requestId check below, so
+        // nothing else clears this.
+        _searchLoadingMore = false;
+        // A new query rebuilds the grid from its top, so the folded-away
+        // header has to come back with it — no scroll notification would
+        // fire to bring it back on its own.
+        _headerCollapsed = false;
+      }
     });
     try {
       if (_searchMode == _SearchMode.author) {
@@ -281,6 +380,7 @@ class _SearchScreenState extends State<SearchScreen> {
         });
         return;
       }
+      final page = loadMore ? _searchPage + 1 : 1;
       final results = await BookApiService.listBooks(
         search: _hasQuery ? _query : null,
         genreId: _selectedGenreId,
@@ -290,17 +390,25 @@ class _SearchScreenState extends State<SearchScreen> {
         endYear: _filterEndYear,
         sortBy: _filterSort.apiSortBy,
         sortOrder: _filterSort.apiSortOrder,
-        size: 30,
+        page: page,
+        size: _pageSize,
       );
       if (!mounted || requestId != _searchRequestId) return;
       setState(() {
-        _searchResults = results;
+        _searchResults = loadMore ? [...?_searchResults, ...results] : results;
+        _searchPage = page;
+        _searchHasMore = results.length >= _pageSize;
         _searching = false;
+        _searchLoadingMore = false;
       });
     } on ApiException catch (e) {
       if (!mounted || requestId != _searchRequestId) return;
       setState(() {
-        _searchError = e.message;
+        if (loadMore) {
+          _searchLoadingMore = false;
+        } else {
+          _searchError = e.message;
+        }
         _searching = false;
       });
     }
@@ -324,6 +432,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _openFilter() async {
     final res = await context.push<FilterResult>(FilterScreen(
+      initialGenreId: _selectedGenreId,
       initialLanguageIds: _filterLanguageIds,
       initialFormats: _filterFormats,
       initialYearRange: _filterYearRange,
@@ -334,6 +443,13 @@ class _SearchScreenState extends State<SearchScreen> {
     final sortChanged = res.sortBy != _filterSort;
     setState(() {
       _filterActive = res.active;
+      // Same selection the chip row shows/sets — picking a genre inside the
+      // filter page just updates it from the other side.
+      _selectedGenreId = res.genreId;
+      // A genre is a Book-mode filter (see [_toggleGenre]) — picking one on
+      // the filter page while Ýazar is showing means the same thing a chip
+      // tap would.
+      if (_selectedGenreId != null) _searchMode = _SearchMode.book;
       _filterLanguageIds = res.languageIds;
       _filterFormats = res.formats;
       _filterStartYear = res.startYear;
@@ -373,6 +489,17 @@ class _SearchScreenState extends State<SearchScreen> {
     final collapsed = notification.metrics.pixels > 12;
     if (collapsed != _headerCollapsed) {
       setState(() => _headerCollapsed = collapsed);
+    }
+    // Fetch the next page a screen or so before the actual bottom, so it's
+    // already there by the time the user reaches it rather than after.
+    // Whichever grid is on screen loads more; the load calls themselves
+    // no-op when one's already in flight or there's nothing left.
+    if (notification.metrics.maxScrollExtent - notification.metrics.pixels < 600) {
+      if (_shouldShowResults) {
+        _runSearch(loadMore: true);
+      } else {
+        _loadDiscoverBooks(loadMore: true);
+      }
     }
     return false;
   }
@@ -499,18 +626,52 @@ class _SearchScreenState extends State<SearchScreen> {
         itemBuilder: (_, i) => AuthorResultCard(author: authorResults[i]),
       );
     }
-    return GridView.builder(
+    // CatalogBookCard already navigates to CatalogBookDetailScreen on tap
+    // (like every other real-book grid in the app) — no extra wrapper here.
+    return _bookGrid(
+      books: results,
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 60),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        mainAxisSpacing: 20,
-        crossAxisSpacing: 12,
-        childAspectRatio: 0.5,
-      ),
-      itemCount: results.length,
-      // CatalogBookCard already navigates to CatalogBookDetailScreen on tap
-      // (like every other real-book grid in the app) — no extra wrapper here.
-      itemBuilder: (_, i) => CatalogBookCard(book: results[i], width: double.infinity, coverHeight: 170, margin: EdgeInsets.zero),
+      loadingMore: _searchLoadingMore,
+    );
+  }
+
+  // Shared by both the search-results grid and the discover grid — three
+  // columns of covers, plus a spinner row at the bottom while the next page
+  // (see [_onResultsScroll]) is in flight. A [CustomScrollView] rather than
+  // a plain [GridView.builder] so that spinner can sit as its own sliver
+  // below the grid instead of needing an off-by-one extra grid cell for it.
+  Widget _bookGrid({required List<LibraryBook> books, required EdgeInsets padding, required bool loadingMore}) {
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: padding,
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              mainAxisSpacing: 20,
+              crossAxisSpacing: 12,
+              childAspectRatio: 0.5,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (_, i) => CatalogBookCard(book: books[i], width: double.infinity, coverHeight: 170, margin: EdgeInsets.zero),
+              childCount: books.length,
+            ),
+          ),
+        ),
+        if (loadingMore)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: Center(
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -542,16 +703,10 @@ class _SearchScreenState extends State<SearchScreen> {
     }
     final books = _discoverBooks ?? const [];
     if (books.isEmpty) return const SizedBox.shrink();
-    return GridView.builder(
+    return _bookGrid(
+      books: books,
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        mainAxisSpacing: 20,
-        crossAxisSpacing: 12,
-        childAspectRatio: 0.5,
-      ),
-      itemCount: books.length,
-      itemBuilder: (_, i) => CatalogBookCard(book: books[i], width: double.infinity, coverHeight: 170, margin: EdgeInsets.zero),
+      loadingMore: _discoverLoadingMore,
     );
   }
 

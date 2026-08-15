@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="Aýkitap"
         android:name="${applicationName}"
@@ -39,6 +40,15 @@
                 <data android:scheme="file" android:mimeType="application/epub+zip"/>
                 <data android:scheme="file" android:mimeType="application/vnd.comicbook+zip"/>
                 <data android:scheme="file" android:mimeType="application/x-cbz"/>
+            </intent-filter>
+            <!-- aykitap://book/<id> deep link — lets the website (or any
+                 other app) send a user straight to a book's detail screen.
+                 Handled in Dart by DeepLinkService. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="aykitap"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

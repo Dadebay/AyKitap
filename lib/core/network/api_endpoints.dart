@@ -29,6 +29,20 @@ class ApiEndpoints {
   /// book purchases.
   static const String balanceLogs = '/users/balance-logs';
 
+  /// POST — foreground seconds spent anywhere in the app (`{"seconds": 60}`,
+  /// 1..7200), which the admin dashboard's "most active users" widget is
+  /// built from. Distinct from [streakReport], which counts *reading* time
+  /// only.
+  ///
+  /// The server accumulates whatever it receives into the Ashgabat calendar
+  /// day it arrives on, with no de-duplication — so a report whose response
+  /// never came back must not be repeated (it may well have landed). Two
+  /// server-side guards the client has to know about: reports closer
+  /// together than 15s still answer 200 but are *not* counted, and a day's
+  /// total is capped at 86400s. See [AppActivityService], which is built
+  /// around both.
+  static const String appActivity = '/users/app-activity';
+
   // ── Books ────────────────────────────────────────────────────────────
   /// GET — paginated real book catalogue, filtered by query params
   /// (`my_books`, `bought`, `wants_to`, `search`, `genre_id`, ...). Backs

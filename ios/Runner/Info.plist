@@ -79,6 +79,20 @@
 	</array>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<!-- aykitap://book/<id> deep link — lets the website send a user
+	     straight to a book's detail screen. Handled in Dart by
+	     DeepLinkService. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.aykitap.aykitap</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>aykitap</string>
+			</array>
+		</dict>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<!-- Skips App Store Connect's per-build "does this use encryption?"

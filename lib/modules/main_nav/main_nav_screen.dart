@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/services/deep_link_service.dart';
 import '../../core/services/incoming_file_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_controller.dart';
@@ -33,6 +34,7 @@ class _MainNavScreenState extends State<MainNavScreen>
   // Tab order: Profile, Kitaplyk, Ana sayfa (centre — opens by default),
   // Çytalka (reader), Poisk. Must stay in lockstep with _icons in
   // WheelNavBar, which draws the wheel in this same order.
+  static const _readerTabIndex = 3;
   late int _selectedIndex;
   late int _prevIndex;
   // +1 → the new page slides in from the right (wheel spins forward);
@@ -80,6 +82,8 @@ class _MainNavScreenState extends State<MainNavScreen>
     // "Open with" file (Telegram, Files, mail, ...) has a Navigator to
     // push the reader into.
     IncomingFileService.instance.init();
+    // Same reasoning for a cold-start aykitap://book/<id> deep link.
+    DeepLinkService.instance.init();
   }
 
   @override
@@ -102,13 +106,32 @@ class _MainNavScreenState extends State<MainNavScreen>
 
   void _onTap(int index) {
     if (index == _selectedIndex) return;
+    if (index == _readerTabIndex) {
+      _onReaderTap();
+      return;
+    }
     HapticFeedback.lightImpact();
+    _switchTo(index);
+  }
+
+  void _switchTo(int index) {
     setState(() {
       _prevIndex = _selectedIndex;
       _slideDir = _circularDir(_selectedIndex, index, _pages.length);
       _selectedIndex = index;
     });
     _pageCtrl.forward(from: 0);
+  }
+
+  // The wheel's centre "play" tap resumes straight into the last book at the
+  // page it was left on — no intermediate "continue reading" card. Only
+  // falls through to the reader tab (its empty state) when there's nothing
+  // to resume.
+  Future<void> _onReaderTap() async {
+    HapticFeedback.lightImpact();
+    final opened = await openLastReadBook(context);
+    if (opened || !mounted) return;
+    _switchTo(_readerTabIndex);
   }
 
   @override

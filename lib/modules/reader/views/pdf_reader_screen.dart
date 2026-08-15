@@ -1,24 +1,21 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:lottie/lottie.dart';
-import 'package:provider/provider.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/localization/strings/reader_strings.dart';
 import '../../../core/services/bookmarks_store.dart';
 import '../../../core/services/last_read_book_store.dart';
-import '../../../core/services/pdf_reflow_service.dart';
 import '../../../core/services/reading_progress_reporter.dart';
 import '../../../core/services/streak_service.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/theme_controller.dart';
 import '../../../core/utils/stable_hash.dart';
 import '../../../core/widgets/app_snackbar.dart';
-import '../provider/reader_provider.dart';
 import '../utils/eye_care.dart';
 import '../utils/pdf_book_opener.dart';
 import '../widgets/pdf_bookmarks_sheet.dart';
@@ -26,7 +23,6 @@ import '../widgets/pdf_bottom_bar.dart';
 import '../widgets/pdf_go_to_page_sheet.dart';
 import '../widgets/pdf_settings_sheet.dart';
 import '../widgets/reader_top_bar.dart';
-import 'reader_view.dart';
 
 /// Full-screen PDF reader, styled to match the EPUB [ReaderScreen] as closely
 /// as a fixed-layout format allows.
@@ -76,12 +72,6 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
   String? _error;
 
   bool _showControls = true;
-  // A non-null value means this book has a cached reflow (text) conversion
-  // sitting unused because the reader forced fixed page images — see the
-  // "view original PDF pages" option in ReaderSettingsSheet. Offering the
-  // reverse switch here only when this exists means the option shows up
-  // exactly for a book the reader themselves stepped out of reflow mode.
-  String? _reflowEpubPath;
   double _brightness = 1.0;
   // Blue-light "eye care" wash, shared across every reader via the
   // `reader_eye_care` pref (see ReaderProvider). 0.0 = off.
@@ -159,8 +149,9 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
     _eyeCare = prefs.getDouble('reader_eye_care') ?? 0.0;
     // New three-way mode; fall back to the old dark-gutter bool for anyone
     // upgrading (their dark gutter maps to night, otherwise light). With
-    // neither ever saved (first PDF ever opened), default to the app's own
-    // light/dark setting rather than always opening on a white page.
+    // neither ever saved (first PDF ever opened, or a fresh install), default
+    // to night rather than the app theme — night is the app-wide reading
+    // default regardless of the shell's own light/dark setting.
     final savedMode = prefs.getInt('reader_pdf_color_mode');
     final legacyDarkGutter = prefs.getBool('reader_pdf_dark_gutter');
     if (savedMode != null) {
@@ -168,41 +159,38 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
     } else if (legacyDarkGutter != null) {
       _colorMode = legacyDarkGutter ? PdfColorMode.night : PdfColorMode.light;
     } else {
-      _colorMode = AppTheme.instance.isDark ? PdfColorMode.night : PdfColorMode.light;
+      _colorMode = PdfColorMode.night;
     }
-    // Paged (sideways, one page per swipe) is the default — it's how a normal
-    // book PDF reads. Scroll mode is what rescues very tall pages; see
-    // [PdfViewMode].
-    _viewMode = PdfViewMode.values[(prefs.getInt('reader_pdf_view_mode') ?? 0).clamp(0, PdfViewMode.values.length - 1)];
-    // BOTH is the default in paged mode: it always shows the whole page, which
-    // single-page horizontal swiping needs (there's no way to scroll to the
-    // rest of a page that WIDTH left below the fold). In scroll mode that
-    // constraint is gone and WIDTH is the useful one, which is why
-    // [_setViewMode] moves the fit across with the mode.
-    _fitPolicy = (prefs.getBool('reader_pdf_fit_width') ?? false) ? FitPolicy.WIDTH : FitPolicy.BOTH;
+    // Continuous scroll is the default — see [PdfViewMode]. Paged (sideways,
+    // one page per swipe) is opt-in for anyone who prefers reading it like a
+    // normal book.
+    _viewMode = PdfViewMode.values[(prefs.getInt('reader_pdf_view_mode') ?? PdfViewMode.scroll.index).clamp(0, PdfViewMode.values.length - 1)];
+    // WIDTH is the default, matching the default scroll mode — see
+    // [_setViewMode] for why the two travel together. BOTH is what paged mode
+    // needs (there's no way to scroll to the rest of a page WIDTH left below
+    // the fold), so it only kicks in once the user actually picks paged.
+    _fitPolicy = (prefs.getBool('reader_pdf_fit_width') ?? (_viewMode == PdfViewMode.scroll)) ? FitPolicy.WIDTH : FitPolicy.BOTH;
     _applyBrightness();
-    _reflowEpubPath = await PdfReflowService.instance.cachedReflowEpubPath(widget.filePath);
     if (mounted) setState(() {});
   }
 
+  /// Records the preference and hands straight back to [PdfOpeningScreen],
+  /// which owns the conversion.
+  ///
+  /// It deliberately does *not* convert here and push the text reader
+  /// itself: the conversion runs pdfrx's PDFium across the whole document,
+  /// and starting that while this screen's own [PDFView] still holds the
+  /// same file open in flutter_pdfview's PDFium crashed the app outright on
+  /// a large book. Replacing this route first means the PDF view is torn
+  /// down before any of that begins.
   Future<void> _switchToTextView() async {
-    final epubPath = _reflowEpubPath;
-    if (epubPath == null) return;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(preferFixedPrefKey(_bookId));
+    await prefs.setBool(preferFixedPrefKey(_bookId), false);
     await _saveProgress();
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => ReaderProvider(),
-          child: ReaderScreen(
-            bookPath: epubPath,
-            bookId: _bookId,
-            bookTitle: widget.title,
-            originalPdfPath: widget.filePath,
-          ),
-        ),
+        builder: (_) => PdfOpeningScreen(filePath: widget.filePath, title: widget.title, bookId: _bookId),
       ),
     );
   }
@@ -406,7 +394,12 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
             await _setViewMode(v);
             setSheetState(() {});
           },
-          onSwitchToTextView: _reflowEpubPath != null ? _switchToTextView : null,
+          // Always offered: whether this PDF *can* reflow isn't known until
+          // it's actually converted, and that conversion no longer happens
+          // on open — [PdfOpeningScreen] does it on demand after this route
+          // is replaced, and reports back if the book turns out to be
+          // image-only.
+          onSwitchToTextView: _switchToTextView,
         ),
       ),
     );
@@ -499,14 +492,36 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
                   // vertical scroll that makes a tall page readable — and on
                   // iOS pageFling is what picks a paging controller over
                   // continuous scrolling, so it has to go there too.
-                  //
-                  // `autoSpacing` is deliberately left at its default: on
-                  // Android it only controls the gap between pages, but on
-                  // iOS this same flag is wired to PDFKit's `autoScales`, so
-                  // turning it off to close that gap would stop the page
-                  // fitting the screen at all there.
                   pageSnap: _viewMode == PdfViewMode.paged,
                   pageFling: _viewMode == PdfViewMode.paged,
+                  // ── Closing the gap between pages in scroll mode ────────
+                  // It takes two different settings, because the one flag
+                  // upstream offers means two unrelated things per platform:
+                  //
+                  //  - Android — `autoSpacing` is AndroidPdfViewer's real
+                  //    spacing control: it pads every page out to a full
+                  //    screen of its own, and that padding *is* the gap.
+                  //    Switching it off (with `pageSpacing` at 0) leaves the
+                  //    pages running together as one strip.
+                  //  - iOS — the same flag is assigned to PDFKit's
+                  //    `autoScales` ("fit the page to the screen"), so
+                  //    turning it off there wouldn't touch the gap, only
+                  //    break the fit. Its gap lives in `pageBreakMargins`,
+                  //    which our vendored copy reaches via `pageSpacing`.
+                  //
+                  // Only in scroll mode: paged mode wants each page on its
+                  // own screen, which is exactly what autoSpacing gives it.
+                  autoSpacing: !(Platform.isAndroid && _viewMode == PdfViewMode.scroll),
+                  pageSpacing: 0,
+                  // Scale each page to the view on its own. Without it,
+                  // AndroidPdfViewer scales every page relative to the
+                  // *largest* one in the document — so a book carrying
+                  // oversized inserts (promo/store pages appended at a
+                  // different page size) renders its own, smaller pages
+                  // shrunken with bands down either side. Upstream declares
+                  // this parameter but never forwards it, which is one of
+                  // the two reasons the plugin is vendored (see pubspec).
+                  fitEachPage: true,
                   // Night mode inverts the rendered page to light-on-dark — the
                   // "göz goraýyş" dark reading the user asked for. It's ideal
                   // for text PDFs (black-on-white becomes white-on-black) and

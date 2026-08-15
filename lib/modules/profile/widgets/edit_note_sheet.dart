@@ -37,7 +37,20 @@ class EditNoteSheet extends StatefulWidget {
 }
 
 class _EditNoteSheetState extends State<EditNoteSheet> {
-  late final _controller = TextEditingController(text: widget.initialText);
+  // A plain `TextEditingController(text:)` leaves the cursor at the *end*
+  // of the prefilled text, and `autofocus: true` below then scrolls the
+  // field to keep it in view — for the reader's "quote + two blank lines to
+  // type in" prefill, that scrolls straight past the quote itself, so the
+  // field opens showing a random-looking fragment near the end instead of
+  // the passage the reader actually selected. Starting the cursor (and so
+  // the visible scroll position) at offset 0 shows the quote from its start
+  // like the selection it came from, exactly as expected.
+  late final _controller = TextEditingController.fromValue(
+    TextEditingValue(
+      text: widget.initialText,
+      selection: const TextSelection.collapsed(offset: 0),
+    ),
+  );
   late int _color = widget.initialColor;
 
   @override

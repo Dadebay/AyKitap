@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../core/localization/strings/filter_strings.dart';
 import '../../../core/models/book_language.dart';
+import '../../../core/models/genre.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/services/book_language_api_service.dart';
+import '../../../core/services/genre_api_service.dart';
 import '../filter_result.dart';
 
 enum SortBy { name, publishNewOld, publishOldNew, uploadNewOld }
@@ -95,16 +97,29 @@ class FilterController extends ChangeNotifier {
   /// already has applied, so reopening the filter shows the current state
   /// instead of an empty form.
   FilterController({
+    int? initialGenreId,
     Set<int> initialLanguageIds = const {},
     Set<BookFormatFilter> initialFormats = const {},
     RangeValues? initialYearRange,
     SortBy? initialSortBy,
-  })  : selectedLanguageIds = {...initialLanguageIds},
+  })  : selectedGenreId = initialGenreId,
+        selectedLanguageIds = {...initialLanguageIds},
         selectedFormats = {...initialFormats},
         yearRange = initialYearRange ?? kDefaultYearRange,
         sortBy = initialSortBy ?? kDefaultSortBy {
+    loadGenres();
     loadLanguages();
   }
+
+  /// Top-level genres from `GET /genres/all` — the same list Search's own
+  /// chip row shows, so picking one here or there is one selection either
+  /// way. Null until the call settles.
+  List<Genre>? genres;
+  bool genresFailed = false;
+
+  /// Single-select, same as the chip row: the backend's `genre_id` only
+  /// ever takes one value.
+  int? selectedGenreId;
 
   /// Book languages from `GET /book-languages`; null until the call
   /// settles. The chips render off this rather than a hardcoded list, so a
@@ -142,6 +157,28 @@ class FilterController extends ChangeNotifier {
       .map((l) => l.label)
       .join(', ');
 
+  /// Summary line for the collapsed "Žanr" section.
+  String? get selectedGenreLabel {
+    for (final g in genres ?? const <Genre>[]) {
+      if (g.id == selectedGenreId) return g.name;
+    }
+    return null;
+  }
+
+  Future<void> loadGenres() async {
+    genresFailed = false;
+    notifyListeners();
+    try {
+      genres = await GenreApiService.getGenres();
+    } on ApiException {
+      // Same best-effort stance as the language load: a failed fetch shows
+      // a retry inside the section instead of blocking the whole page.
+      genres = const [];
+      genresFailed = true;
+    }
+    notifyListeners();
+  }
+
   Future<void> loadLanguages() async {
     languagesFailed = false;
     notifyListeners();
@@ -153,6 +190,13 @@ class FilterController extends ChangeNotifier {
       languages = const [];
       languagesFailed = true;
     }
+    notifyListeners();
+  }
+
+  /// Single-select, same toggle behaviour as Search's own genre chip row:
+  /// tapping the already-selected genre clears it instead of no-opping.
+  void toggleGenre(Genre genre) {
+    selectedGenreId = selectedGenreId == genre.id ? null : genre.id;
     notifyListeners();
   }
 
@@ -186,6 +230,7 @@ class FilterController extends ChangeNotifier {
   }
 
   void clear() {
+    selectedGenreId = null;
     selectedLanguageIds.clear();
     selectedFormats.clear();
     yearRange = kDefaultYearRange;
@@ -194,10 +239,11 @@ class FilterController extends ChangeNotifier {
   }
 
   /// Every selection here maps onto a real `GET /books/all` param —
-  /// `language_id`, `book_format`, `start_year`/`end_year` and
+  /// `genre_id`, `language_id`, `book_format`, `start_year`/`end_year` and
   /// `sort_by`/`sort_order` — which [SearchScreen] re-runs its query with.
   FilterResult buildResult() => FilterResult(
         active: hasActiveFilters,
+        genreId: selectedGenreId,
         languageIds: {...selectedLanguageIds},
         formats: {...selectedFormats},
         startYear: hasYearFilter ? yearRange.start.round() : null,

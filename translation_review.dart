@@ -40,7 +40,7 @@ final translations = <TranslationEntry>[
   TranslationEntry(
     file: 'auth_strings.dart',
     key: 'genericError',
-    tk: 'Näbelli säwlik ýüze çykdy. Gaýtadan synanyşyň.',
+    tk: 'Näbelli ýalñyşlyk ýüze çykdy. Gaýtadan synanyşyň.',
     ru: 'Произошла неизвестная ошибка. Попробуйте снова.',
     tr: 'Bilinmeyen bir hata oluştu. Tekrar deneyin.',
   ),
@@ -728,7 +728,8 @@ final translations = <TranslationEntry>[
   TranslationEntry(file: 'reader_strings.dart', key: 'searchPrompt', tk: 'Gözlemek üçin ýazyň', ru: 'Введите запрос для поиска', tr: 'Aramak için yazın'),
   TranslationEntry(file: 'reader_strings.dart', key: 'searchSearching', tk: 'Gözlenýär...', ru: 'Идёт поиск...', tr: 'Aranıyor...'),
   TranslationEntry(file: 'reader_strings.dart', key: 'searchTooShort', tk: 'Iň azyndan 2 harp ýazyň', ru: 'Введите минимум 2 символа', tr: 'En az 2 harf yazın'),
-  TranslationEntry(file: 'reader_strings.dart', key: 'searchNoResultsFor', tk: '«\$query» boýunça netije tapylmady', ru: 'По запросу «\$query» ничего не найдено', tr: '«\$query» için sonuç bulunamadı'),
+  TranslationEntry(
+      file: 'reader_strings.dart', key: 'searchNoResultsFor', tk: '«\$query» boýunça netije tapylmady', ru: 'По запросу «\$query» ничего не найдено', tr: '«\$query» için sonuç bulunamadı'),
   TranslationEntry(file: 'reader_strings.dart', key: 'searchResultCount', tk: '\$n netije', ru: '\$n \${_ruResultNoun(n)}', tr: '\$n sonuç'),
   TranslationEntry(file: 'reader_strings.dart', key: 'searchCapped', tk: 'Ilkinji \$n netije görkezilýär', ru: 'Показаны первые \$n результатов', tr: 'İlk \$n sonuç gösteriliyor'),
   TranslationEntry(file: 'reader_strings.dart', key: 'currentlyReadingBadge', tk: 'Okalýar', ru: 'Читаю', tr: 'Okunuyor'),

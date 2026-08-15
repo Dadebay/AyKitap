@@ -21,6 +21,14 @@ class Collection {
   final CollectionCardType cardType;
   final String name;
   final String? subTitle;
+
+  /// The collection's own banner/cover image (a raw `/public/...` path, same
+  /// as [LibraryBook.image] — resolve with `ApiConfig.resolveImageUrl`).
+  /// Null for plenty of rows (a `card1` row has no use for one), in which
+  /// case [CatalogRankShelfCard]/[CatalogSeriesCard] fall back to the first
+  /// book's own cover rather than showing nothing.
+  final String? image;
+
   final List<LibraryBook> books;
 
   /// The backend's Home ordering slot — mostly just a sort key, but when
@@ -40,6 +48,7 @@ class Collection {
     required this.cardType,
     required this.name,
     this.subTitle,
+    this.image,
     this.books = const [],
     this.queuePosition = 0,
     this.authors,
@@ -53,6 +62,7 @@ class Collection {
       cardType: _cardTypeFrom(json['card_type'] as String?),
       name: json['name'] as String? ?? '',
       subTitle: json['sub_title'] as String?,
+      image: json['image'] as String?,
       queuePosition: json['queue_position'] as int? ?? 0,
       // An author-type collection's `books` array is never rendered (the
       // avatar row uses `authors` instead) — skip parsing it rather than

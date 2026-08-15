@@ -57,7 +57,17 @@ class _NotesScreenState extends State<NotesScreen> {
     }
   }
 
-  void _goToBook(UserNote note) => context.push(CatalogBookDetailScreen(bookId: note.bookId));
+  // This screen stays alive underneath the book detail page (it's a normal
+  // push, not a replace), so nothing recreates it — and with it, nothing
+  // reruns `initState`'s `_load()` — on the way back. A note added or
+  // edited from inside the book (or its reader) would otherwise stay
+  // invisible here until the list happened to reload some other way.
+  // Reloading right after the push returns is the one moment this screen
+  // reliably knows "the user might have just changed something".
+  Future<void> _goToBook(UserNote note) async {
+    await context.push(CatalogBookDetailScreen(bookId: note.bookId));
+    if (mounted) _load();
+  }
 
   Future<void> _editNote(UserNote note) async {
     final draft = await showModalBottomSheet<NoteDraft>(

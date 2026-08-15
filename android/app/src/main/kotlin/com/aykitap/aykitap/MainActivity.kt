@@ -18,10 +18,17 @@ import java.io.FileOutputStream
 /// local file path to IncomingFileService on the Dart side, which imports it
 /// into OwnBooksStore and opens the matching reader — the same path a
 /// manually-picked file already takes.
+///
+/// Also backs the `aykitap://book/<id>` deep link (same ACTION_VIEW intent,
+/// distinguished by scheme): the raw URI is handed to DeepLinkService on the
+/// Dart side, which parses it and pushes the matching book detail screen.
 class MainActivity : FlutterActivity() {
-    private val channelName = "com.aykitap.aykitap/incoming_file"
-    private var channel: MethodChannel? = null
+    private val fileChannelName = "com.aykitap.aykitap/incoming_file"
+    private val deepLinkChannelName = "com.aykitap.aykitap/deep_link"
+    private var fileChannel: MethodChannel? = null
+    private var deepLinkChannel: MethodChannel? = null
     private var pendingPath: String? = null
+    private var pendingLink: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // The app has a *manual* light/dark switch (AppTheme, stored by
@@ -37,11 +44,12 @@ class MainActivity : FlutterActivity() {
         window.setBackgroundDrawable(ColorDrawable(bg))
         super.onCreate(savedInstanceState)
         pendingPath = resolveIncomingFile(intent)
+        pendingLink = resolveDeepLink(intent)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName).apply {
+        fileChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, fileChannelName).apply {
             setMethodCallHandler { call, result ->
                 if (call.method == "getInitialFile") {
                     result.success(pendingPath)
@@ -51,15 +59,26 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
+        deepLinkChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, deepLinkChannelName).apply {
+            setMethodCallHandler { call, result ->
+                if (call.method == "getInitialLink") {
+                    result.success(pendingLink)
+                    pendingLink = null
+                } else {
+                    result.notImplemented()
+                }
+            }
+        }
     }
 
-    // launchMode="singleTop" means a repeat "Open with" while the app is
-    // already running redelivers here instead of spawning a new instance.
+    // launchMode="singleTop" means a repeat "Open with"/deep link while the
+    // app is already running redelivers here instead of spawning a new
+    // instance.
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        val path = resolveIncomingFile(intent) ?: return
-        channel?.invokeMethod("onIncomingFile", path)
+        resolveIncomingFile(intent)?.let { fileChannel?.invokeMethod("onIncomingFile", it) }
+        resolveDeepLink(intent)?.let { deepLinkChannel?.invokeMethod("onDeepLink", it) }
     }
 
     private fun resolveIncomingFile(intent: Intent?): String? {
@@ -74,6 +93,12 @@ class MainActivity : FlutterActivity() {
         } catch (e: Exception) {
             null
         }
+    }
+
+    private fun resolveDeepLink(intent: Intent?): String? {
+        if (intent == null || intent.action != Intent.ACTION_VIEW) return null
+        val uri = intent.data ?: return null
+        return if (uri.scheme == "aykitap") uri.toString() else null
     }
 
     // content:// URIs (what Telegram/Files/Gmail hand us) aren't usable as

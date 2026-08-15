@@ -26,7 +26,7 @@ class ApiException implements Exception {
       case DioExceptionType.connectionError:
         return const ApiException('Internete birikip bolmady. Baglanyşygyňyzy barlaň.');
       default:
-        return ApiException('Näbelli säwlik ýüze çykdy.', statusCode: e.response?.statusCode);
+        return ApiException('Näbelli ýalñyşlyk ýüze çykdy.', statusCode: e.response?.statusCode);
     }
   }
 

@@ -122,13 +122,21 @@ class ReaderStrings {
         tr: 'Kelimeler bozuk görünüyorsa sayfayı resim olarak göster',
       );
 
-  /// Reverse of the above, offered from the fixed-page PDF reader once a
-  /// text-layer conversion for this book already exists in cache.
+  /// Reverse of the above, offered from the fixed-page PDF reader — which is
+  /// where every PDF now opens by default.
   static String get pdfTextViewLabel => t(tk: 'Tekst görnüşi', ru: 'Текстовый вид', tr: 'Metin görünümü');
   static String get pdfTextViewHint => t(
         tk: 'Ýazgyny üýtgedip, ýerleşdirip okamak',
         ru: 'Читать с переносом текста и настройками шрифта',
         tr: 'Yeniden akan, yazı tipi ayarlanabilir görünüme dön',
+      );
+
+  /// Shown when that conversion turns out to be impossible — a scanned or
+  /// image-only PDF has no text layer to reflow.
+  static String get pdfTextViewUnavailable => t(
+        tk: 'Bu kitapda tekst ýok — diňe sahypa suratlary',
+        ru: 'В этой книге нет текстового слоя — только изображения страниц',
+        tr: 'Bu kitapta metin katmanı yok — yalnızca sayfa görüntüleri',
       );
 
   static String get themeWhite => t(tk: 'Ak', ru: 'Белый', tr: 'Beyaz');
@@ -224,6 +232,11 @@ class ReaderStrings {
   static String get shareLabel => t(tk: 'Paýlaş', ru: 'Поделиться', tr: 'Paylaş');
   static String get highlightedMessage => t(tk: 'Bellendi', ru: 'Выделено', tr: 'İşaretlendi');
   static String get noteSavedMessage => t(tk: 'Not goşuldy', ru: 'Заметка добавлена', tr: 'Not eklendi');
+  static String get noteSaveFailedMessage => t(
+        tk: 'Not saklanmady — internet baglanyşygyňyzy barlaň',
+        ru: 'Не удалось сохранить заметку — проверьте подключение к интернету',
+        tr: 'Not kaydedilemedi — internet bağlantınızı kontrol edin',
+      );
 
   /// Shown in the selection toolbar instead of "Not" when the tapped passage
   /// is already highlighted — removes the highlight (and its note) rather

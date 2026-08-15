@@ -133,7 +133,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    context.watch<StreakService>();
     final balance = context.watch<AccountService>().balanceManat;
     final subscription = context.watch<SubscriptionService>();
     return Scaffold(
@@ -205,11 +204,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildStreakSection(BuildContext context) {
+    // Watched here rather than off the singleton (with a bare
+    // `context.watch<StreakService>()` up in build standing in for it): this
+    // is the only thing on the screen that reads the streak, so keeping the
+    // subscription next to the values it feeds means neither can be moved
+    // or removed without the other.
+    final streak = context.watch<StreakService>();
     return ProfileEntryCard(
       leading: const SizedBox(width: 40, height: 40, child: StreakFlame(size: 32)),
-      title: ProfileStrings.streakDays(StreakService.instance.currentStreak),
-      subtitle: ProfileStrings.bestStreak(StreakService.instance.bestStreak),
-      extra: StreakWeekRow(weekRead: StreakService.instance.weekRead, circleSize: 34),
+      title: ProfileStrings.streakDays(streak.currentStreak),
+      subtitle: ProfileStrings.bestStreak(streak.bestStreak),
+      extra: StreakWeekRow(weekRead: streak.weekRead, circleSize: 34),
       onTap: () => context.push(const StreakScreen()),
     );
   }

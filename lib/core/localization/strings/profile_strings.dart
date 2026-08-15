@@ -58,7 +58,7 @@ class ProfileStrings {
 
   // report_problem_sheet.dart
   static String get reportProblemTitle => t(
-        tk: 'Kynçylyk barada habar ber',
+        tk: 'Ýalnyşlyk barada habar ber',
         ru: 'Сообщить о проблеме',
         tr: 'Sorun bildir',
       );
@@ -78,7 +78,7 @@ class ProfileStrings {
         tr: 'Bildiriminiz gönderildi, teşekkürler!',
       );
   static String get reportProblemEntryTitle => t(
-        tk: 'Kynçylyk barada habar ber',
+        tk: 'Ýalnyşlyk barada habar ber',
         ru: 'Сообщить о проблеме',
         tr: 'Sorun bildir',
       );
@@ -233,7 +233,7 @@ class ProfileStrings {
   static String get settingsEntryTitle =>
       t(tk: 'Sazlamalar', ru: 'Настройки', tr: 'Ayarlar');
   static String get viewAllNotes =>
-      t(tk: 'Notlar', ru: 'Заметки', tr: 'Notlar');
+      t(tk: 'Bellikler', ru: 'Заметки', tr: 'Notlar');
   static String get sendBookRequest => t(
         tk: 'Kitap haýyşy iber',
         ru: 'Отправить запрос книги',

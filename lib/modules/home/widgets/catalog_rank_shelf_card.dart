@@ -12,8 +12,9 @@ import '../catalog_collection_books_screen.dart';
 /// The `card_type: "card_2"` visual for one [Collection] — same
 /// "banner + top-ranked books + see more" shape as the mock catalogue's
 /// `RankShelfCard`, adapted for network images/real books. The banner is
-/// the top book's own cover since a real collection has no dedicated
-/// banner image of its own.
+/// [Collection.image] — the collection's own banner, uploaded for exactly
+/// this card — falling back to the top book's cover only for the rare
+/// collection with none set.
 class CatalogRankShelfCard extends StatelessWidget {
   final Collection collection;
   const CatalogRankShelfCard({super.key, required this.collection});
@@ -22,7 +23,8 @@ class CatalogRankShelfCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final books = collection.books;
     final top = books.take(4).toList();
-    final bannerImage = books.isNotEmpty ? books.first.image : null;
+    final ownImage = collection.image;
+    final bannerImage = (ownImage != null && ownImage.isNotEmpty) ? ownImage : (books.isNotEmpty ? books.first.image : null);
     return Container(
       decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(20)),
       child: Column(

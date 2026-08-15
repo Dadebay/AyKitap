@@ -124,7 +124,29 @@ class SubscriptionService extends ChangeNotifier {
       if (e.statusCode == 400) return false;
       rethrow;
     }
-    await AccountService.instance.refresh();
+    await _refreshUntilActive();
     return true;
+  }
+
+  /// `buy-subscription` returning 200 doesn't always mean `/users/me`
+  /// already reflects it — seen in the wild as a purchase that reports
+  /// success while the app still shows no access for a few seconds, until
+  /// an unrelated later refresh happens to pick up the new `expired_at`.
+  /// Poll a handful of times (a few seconds total) instead of trusting the
+  /// first refresh, so [isActive] is already true by the time the success
+  /// dialog appears and the caller returns to the book.
+  Future<void> _refreshUntilActive() async {
+    const retryDelays = [
+      Duration(milliseconds: 600),
+      Duration(seconds: 1),
+      Duration(seconds: 2),
+      Duration(seconds: 3),
+    ];
+    await AccountService.instance.refresh();
+    for (final delay in retryDelays) {
+      if (isActive) return;
+      await Future.delayed(delay);
+      await AccountService.instance.refresh();
+    }
   }
 }

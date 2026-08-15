@@ -18,7 +18,9 @@ import '../widgets/search_sheet.dart';
 import '../widgets/selection_toolbar.dart';
 import 'pdf_reader_screen.dart';
 import '../utils/eye_care.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/services/notes_store.dart';
+import '../../../core/services/user_notes_api_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/highlight_colors.dart';
 import '../../../core/widgets/app_snackbar.dart';
@@ -46,13 +48,13 @@ class ReaderScreen extends StatefulWidget {
   /// user's own imported files, which no catalogue book can regenerate.
   final String? bookRef;
 
-  /// The real `/books/:id` catalogue id, present only when this book was
-  /// opened from the real backend catalogue (not yet possible anywhere in
-  /// the app today — `CatalogBookDetailScreen` has no working "Oku" yet, so
-  /// this is always null in practice until that's wired up). When set,
-  /// notes captured here are also persisted via `POST /users/notes` (see
-  /// [_addNote]) instead of staying purely local like the user's own
-  /// imported files.
+  /// The real `/books/:id` catalogue id, present when this book was opened
+  /// from the real backend catalogue (`BookOpenFlow`/`openCatalogBookFile`
+  /// pass it through). When set, notes captured here are also persisted via
+  /// `POST /users/notes` (see [_addNote]) instead of staying purely local
+  /// like the user's own imported files — that backend copy is what makes
+  /// them show up in the profile's "Notlar" list ([NotesScreen]), which
+  /// reads only from there.
   final int? realBookId;
 
   /// Set only when [bookPath] is a synthetic EPUB generated from a PDF by
@@ -485,6 +487,31 @@ class _ReaderScreenState extends State<ReaderScreen> {
       ),
     );
     if (draft == null || draft.text.isEmpty) return;
+
+    // A catalogue book (realBookId set) syncs this note to the backend's
+    // own `GET /users/notes` list — the only place a note is shown outside
+    // this book's own highlights, so one that fails to sync would look
+    // saved here (highlight painted, snackbar shown) but never actually
+    // appear there. Require the sync to succeed before painting/persisting
+    // anything locally rather than save a note the profile can never
+    // display. Imported files have no realBookId and no backend list to
+    // join, so they stay local-only, same as always.
+    int? remoteId;
+    final realBookId = widget.realBookId;
+    if (realBookId != null) {
+      try {
+        final created = await UserNotesApiService.createNote(
+          bookId: realBookId,
+          note: draft.text,
+          snippet: text,
+        );
+        remoteId = created.id;
+      } on ApiException {
+        if (context.mounted) _showSnack(context, ReaderStrings.noteSaveFailedMessage, isError: true);
+        return;
+      }
+    }
+
     final si = _bookSeedIndex;
     if (cfi != null && cfi.isNotEmpty) {
       provider.epubController.addHighlight(cfi: cfi, color: Color(draft.colorValue), opacity: HighlightColors.highlightOpacity);
@@ -497,6 +524,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
       bookTitle: widget.bookTitle,
       colorValue: draft.colorValue,
       cfi: cfi,
+      remoteId: remoteId,
     );
     if (context.mounted) _showSnack(context, ReaderStrings.noteSavedMessage);
   }
@@ -513,6 +541,18 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final cfi = note.cfi;
     if (cfi != null && cfi.isNotEmpty) {
       provider.epubController.removeHighlight(cfi: cfi);
+    }
+    final remoteId = note.remoteId;
+    if (remoteId != null) {
+      try {
+        await UserNotesApiService.deleteNote(remoteId);
+      } on ApiException {
+        // Best-effort: removing a highlight is the user explicitly undoing
+        // it, and blocking that on a flaky connection would leave them
+        // stuck with one they can't get rid of. Worst case the backend
+        // keeps a note the profile's "Notlar" list still shows — still
+        // deletable from there directly.
+      }
     }
     await NotesStore.instance.remove(note.id);
     if (context.mounted) _showSnack(context, ReaderStrings.highlightRemovedMessage);
@@ -585,8 +625,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
     return Colors.white;
   }
 
-  void _showSnack(BuildContext context, String msg) {
-    context.showAppSnackBar(msg);
+  void _showSnack(BuildContext context, String msg, {bool isError = false}) {
+    context.showAppSnackBar(msg, isError: isError);
   }
 }
 

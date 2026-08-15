@@ -1,7 +1,7 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/localization/strings/book_detail_strings.dart';
 import '../../core/models/book_detail.dart';
@@ -11,6 +11,7 @@ import '../../core/network/api_config.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/services/book_access_service.dart';
 import '../../core/services/book_api_service.dart';
+import '../../core/services/book_download_service.dart';
 import '../../core/services/downloaded_files_store.dart';
 import '../../core/services/favorites_sync_service.dart';
 import '../../core/services/finished_books_sync_service.dart';
@@ -70,21 +71,11 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
   /// Null until [_resolveAccess] has run once — the CTA row shows disabled
   /// buttons rather than guessing.
   BookAccess? _access;
-  double? _downloadProgress;
-  CancelToken? _downloadCancelToken;
 
   @override
   void initState() {
     super.initState();
     _load();
-  }
-
-  @override
-  void dispose() {
-    // A download outliving this screen would report progress into a dead
-    // State and finish into a reader that can no longer be pushed.
-    _downloadCancelToken?.cancel();
-    super.dispose();
   }
 
   /// Re-reads the access verdict for the loaded book. Called after the
@@ -101,10 +92,6 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
   BookOpenFlow _flow(BookDetail book) => BookOpenFlow(
         context: context,
         book: book,
-        onProgress: (progress) {
-          if (mounted) setState(() => _downloadProgress = progress);
-        },
-        onCancelToken: (token) => _downloadCancelToken = token,
         onAccessChanged: _resolveAccess,
       );
 
@@ -128,9 +115,8 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
   }
 
   void _cancelDownload() {
-    _downloadCancelToken?.cancel();
-    _downloadCancelToken = null;
-    if (mounted) setState(() => _downloadProgress = null);
+    final book = _book;
+    if (book != null) BookDownloadService.instance.cancel(book.id);
   }
 
   Future<void> _load() async {
@@ -425,11 +411,6 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
                       color: AppColors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.w800)),
-              if (book.year != null) ...[
-                const SizedBox(height: 4),
-                Text(BookDetailStrings.publishedYearLabel(book.year!),
-                    style: TextStyle(color: AppColors.grey2, fontSize: 12.5)),
-              ],
               if (book.authors.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 GestureDetector(
@@ -470,6 +451,33 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
                   ],
                 ],
               ),
+              if (book.bookFiles.isNotEmpty ||
+                  book.age != null ||
+                  book.year != null) ...[
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    if (book.bookFiles.isNotEmpty)
+                      _InfoPill(
+                        icon: HugeIcons.strokeRoundedFile02,
+                        label: book.bookFiles.first.fileFormat.toUpperCase(),
+                      ),
+                    if (book.age != null)
+                      _InfoPill(
+                        icon: HugeIcons.strokeRoundedShield01,
+                        label: '${book.age}+',
+                      ),
+                    if (book.year != null)
+                      _InfoPill(
+                        icon: HugeIcons.strokeRoundedCalendar03,
+                        label: '${book.year}',
+                      ),
+                  ],
+                ),
+              ],
               if (book.genres.isNotEmpty) ...[
                 const SizedBox(height: 24),
                 Align(
@@ -563,7 +571,12 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
               BookCtaRow(
                 access: _access,
                 priceManat: book.price,
-                downloadProgress: _downloadProgress,
+                // Watched at the point of use, so the subscription can't
+                // drift away from the value it feeds: this is what makes a
+                // download that's already running when this screen (re)opens
+                // — not just one this screen itself started — show its live
+                // progress instead of a plain "Oku" button.
+                downloadProgress: context.watch<BookDownloadService>().progressOf(book.id),
                 onRead: _onRead,
                 onBuy: _onBuy,
                 onCancelDownload: _cancelDownload,
@@ -625,5 +638,35 @@ class _MetaDivider extends StatelessWidget {
         height: 30,
         margin: const EdgeInsets.symmetric(horizontal: 20),
         color: AppColors.border);
+  }
+}
+
+class _InfoPill extends StatelessWidget {
+  final List<List<dynamic>> icon;
+  final String label;
+  const _InfoPill({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.bg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          HugeIcon(icon: icon, color: AppColors.grey2, size: 14),
+          const SizedBox(width: 6),
+          Text(label,
+              style: TextStyle(
+                  color: AppColors.grey1,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
   }
 }
