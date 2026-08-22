@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../core/localization/strings/reader_strings.dart';
+import '../../../core/localization/strings/reader_bookmark_strings.dart';
+import '../../../core/localization/strings/reader_notes_strings.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/services/notes_store.dart';
 import '../../../core/services/user_notes_api_service.dart';
@@ -44,15 +45,15 @@ Future<void> showAddPageNoteSheet(
   // animation at that point).
   if (totalPages <= 0) return;
 
-  final pageLabel = ReaderStrings.pageOfPages(page, totalPages);
+  final pageLabel = ReaderBookmarkStrings.pageOfPages(page, totalPages);
   final draft = await showModalBottomSheet<NoteDraft>(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     builder: (_) => EditNoteSheet(
       initialText: '$pageLabel\n\n',
-      title: ReaderStrings.addNoteTitle,
-      subtitle: ReaderStrings.addPageNoteSubtitle,
+      title: ReaderNotesStrings.addNoteTitle,
+      subtitle: ReaderNotesStrings.addPageNoteSubtitle,
     ),
   );
   if (draft == null || draft.text.isEmpty) return;
@@ -72,7 +73,8 @@ Future<void> showAddPageNoteSheet(
       remoteId = created.id;
     } on ApiException {
       if (context.mounted) {
-        context.showAppSnackBar(ReaderStrings.noteSaveFailedMessage, isError: true);
+        context.showAppSnackBar(ReaderNotesStrings.noteSaveFailedMessage,
+            isError: true);
       }
       return;
     }
@@ -90,5 +92,6 @@ Future<void> showAddPageNoteSheet(
     colorValue: draft.colorValue,
     remoteId: remoteId,
   );
-  if (context.mounted) context.showAppSnackBar(ReaderStrings.noteSavedMessage);
+  if (context.mounted)
+    context.showAppSnackBar(ReaderNotesStrings.noteSavedMessage);
 }

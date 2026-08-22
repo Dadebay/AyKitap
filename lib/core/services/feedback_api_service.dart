@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import '../models/book_suggestion.dart';
-import '../network/api_endpoints.dart';
+import '../network/feedback_endpoints.dart';
 import '../network/api_exception.dart';
 import '../network/dio_client.dart';
 
@@ -21,7 +21,7 @@ class FeedbackApiService {
     required String language,
   }) async {
     try {
-      await DioClient.instance.post(ApiEndpoints.suggests, data: {
+      await DioClient.instance.post(FeedbackEndpoints.suggests, data: {
         'name': name,
         'author': author,
         if (description != null && description.isNotEmpty)
@@ -37,7 +37,8 @@ class FeedbackApiService {
   /// [status] (`new`/`accepted`/`rejected`/...) per request.
   static Future<List<BookSuggestion>> getMySuggestions() async {
     try {
-      final response = await DioClient.instance.get(ApiEndpoints.suggestsMy);
+      final response =
+          await DioClient.instance.get(FeedbackEndpoints.suggestsMy);
       final list = response.data['data'] as List;
       return list
           .map((e) => BookSuggestion.fromJson(e as Map<String, dynamic>))
@@ -50,7 +51,7 @@ class FeedbackApiService {
   /// Deletes one of the signed-in user's own book requests.
   static Future<void> deleteBookSuggestion(int id) async {
     try {
-      await DioClient.instance.delete(ApiEndpoints.suggestById(id));
+      await DioClient.instance.delete(FeedbackEndpoints.suggestById(id));
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -59,7 +60,7 @@ class FeedbackApiService {
   static Future<void> reportProblem({required String problem}) async {
     try {
       await DioClient.instance
-          .post(ApiEndpoints.problems, data: {'problem': problem});
+          .post(FeedbackEndpoints.problems, data: {'problem': problem});
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

@@ -21,7 +21,8 @@ class SampleBookStore {
     final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
     _epubAssets = manifest
         .listAssets()
-        .where((k) => k.startsWith('assets/books/') && k.toLowerCase().endsWith('.epub'))
+        .where((k) =>
+            k.startsWith('assets/books/') && k.toLowerCase().endsWith('.epub'))
         .toList()
       ..sort();
     return _epubAssets!;
@@ -45,7 +46,9 @@ class SampleBookStore {
     final dest = File('${cacheDir.path}/$fileName');
     if (!await dest.exists()) {
       final data = await rootBundle.load(assetKey);
-      await dest.writeAsBytes(data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes), flush: true);
+      await dest.writeAsBytes(
+          data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+          flush: true);
     }
     return dest.path;
   }

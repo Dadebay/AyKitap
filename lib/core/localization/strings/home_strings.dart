@@ -4,15 +4,18 @@ import '../strings_base.dart';
 class HomeStrings {
   HomeStrings._();
 
-  static String get welcomePrefix => t(tk: 'Hoş geldiñ, ', ru: 'Добро пожаловать, ', tr: 'Hoş geldin, ');
+  static String get welcomePrefix =>
+      t(tk: 'Hoş geldiñ, ', ru: 'Добро пожаловать, ', tr: 'Hoş geldin, ');
 
   // Placeholder shown in the header while the real name is still loading
   // asynchronously from the session.
-  static String get defaultReaderName => t(tk: 'Okyjy', ru: 'Читатель', tr: 'Okuyucu');
+  static String get defaultReaderName =>
+      t(tk: 'Okyjy', ru: 'Читатель', tr: 'Okuyucu');
 
   // Reused across every collection section row — same exact "see all"
   // label everywhere it appears.
-  static String get seeAll => t(tk: 'Ählisini gör', ru: 'Смотреть все', tr: 'Tümünü gör');
+  static String get seeAll =>
+      t(tk: 'Ählisini gör', ru: 'Смотреть все', tr: 'Tümünü gör');
 
   // The `card_type: "card_2"` collection card's "see more" button.
   static String get seeMore => t(tk: 'Has köp', ru: 'Больше', tr: 'Daha fazla');

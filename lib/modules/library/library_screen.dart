@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../core/localization/strings/library_strings.dart';
-import '../../core/services/book_api_service.dart';
+import '../../core/services/book_list_api_service.dart';
 import '../../core/services/favorites_sync_service.dart';
 import '../../core/services/finished_books_sync_service.dart';
 import '../../core/services/reading_books_store.dart';
 import '../../core/theme/app_colors.dart';
-import 'widgets/library_tabs.dart';
+import 'widgets/api_books_tab.dart';
+import 'widgets/downloaded_tab.dart';
 import 'widgets/own_books_tab.dart';
 import 'widgets/shelf_delete.dart';
 
@@ -80,9 +81,10 @@ class _LibraryScreenState extends State<LibraryScreen>
                   // rather than server-side because there's no
                   // `finished=false` filter, only `finished=true`.
                   ApiBooksTab(
-                    fetcher: () async => (await BookApiService.listBooks(myBooks: true))
-                        .where((b) => !b.isFinished)
-                        .toList(),
+                    fetcher: () async =>
+                        (await BookListApiService.listBooks(myBooks: true))
+                            .where((b) => !b.isFinished)
+                            .toList(),
                     emptyLabel: LibraryStrings.emptyReading,
                     showProgress: true,
                     // Finishing a book moves it off this shelf onto
@@ -92,12 +94,13 @@ class _LibraryScreenState extends State<LibraryScreen>
                       await ReadingBooksStore.instance.load();
                       return ReadingBooksStore.instance.books;
                     },
-                    cacheLoadedBooks: ReadingBooksStore.instance.mergeFromBackend,
+                    cacheLoadedBooks:
+                        ReadingBooksStore.instance.mergeFromBackend,
                     openLocalWhenOffline: true,
                     removal: ShelfRemoval.reading,
                   ),
                   ApiBooksTab(
-                    fetcher: () => BookApiService.listBooks(
+                    fetcher: () => BookListApiService.listBooks(
                       myBooks: true,
                       finished: true,
                     ),
@@ -110,14 +113,14 @@ class _LibraryScreenState extends State<LibraryScreen>
                   // DownloadedBooksStore's doc comment.
                   const DownloadedTab(),
                   ApiBooksTab(
-                    fetcher: () => BookApiService.listBooks(bought: true),
+                    fetcher: () => BookListApiService.listBooks(bought: true),
                     emptyLabel: LibraryStrings.emptyPurchased,
                     allowRemovingPurchasedBooks: true,
                     syncsPurchasedAccess: true,
                     removal: ShelfRemoval.purchased,
                   ),
                   ApiBooksTab(
-                    fetcher: () => BookApiService.listBooks(wantsTo: true),
+                    fetcher: () => BookListApiService.listBooks(wantsTo: true),
                     emptyLabel: LibraryStrings.emptyFavorites,
                     refreshOn: FavoritesSyncService.instance,
                     removal: ShelfRemoval.favorite,

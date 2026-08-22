@@ -1,7 +1,5 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
-import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/models/own_book.dart';
@@ -17,6 +15,9 @@ import '../reader/utils/pdf_book_opener.dart';
 import '../reader/views/cbz_reader_screen.dart';
 import '../reader/views/reader_view.dart';
 import '../../core/localization/strings/library_strings.dart';
+import 'widgets/offline_library_actions.dart';
+import 'widgets/offline_library_empty_state.dart';
+import 'widgets/offline_library_header.dart';
 
 /// TZ 12.6: shown right after the splash screen instead of the normal app
 /// when there's no network — the only content that can actually be opened
@@ -91,45 +92,10 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
-              child: Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                        color: AppColors.grey3.withValues(alpha: 0.15),
-                        shape: BoxShape.circle),
-                    child: Center(
-                        child: HugeIcon(
-                            icon: HugeIcons.strokeRoundedWifiDisconnected01,
-                            color: AppColors.grey2,
-                            size: 22)),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(LibraryStrings.noInternetTitle,
-                            style: TextStyle(
-                                color: AppColors.white,
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800)),
-                        const SizedBox(height: 2),
-                        Text(LibraryStrings.noInternetSubtitle,
-                            style: TextStyle(
-                                color: AppColors.grey2, fontSize: 12.5)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            const OfflineLibraryHeader(),
             Expanded(
               child: books.isEmpty
-                  ? _buildEmpty()
+                  ? const OfflineLibraryEmptyState()
                   : GridView.builder(
                       padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
                       gridDelegate:
@@ -150,96 +116,8 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
                       ),
                     ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-              child: Column(
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16)),
-                          elevation: 0),
-                      onPressed: _checking ? null : _checkConnection,
-                      child: _checking
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2.5))
-                          : Text(LibraryStrings.checkConnection,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15.5,
-                                  fontWeight: FontWeight.w700)),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: AppColors.grey3),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                      ),
-                      onPressed: () => Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) =>
-                                const MainNavScreen(
-                                  initialIndex: 1,
-                                  libraryInitialTabIndex: 2,
-                                )),
-                      ),
-                      child: Text(LibraryStrings.goToLibrary,
-                          style: TextStyle(
-                              color: AppColors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmpty() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 220,
-              height: 220,
-              child: Lottie.asset(
-                  'assets/animations/no_internet_connection.json',
-                  repeat: true,
-                  fit: BoxFit.contain),
-            ),
-            const SizedBox(height: 14),
-            Text(LibraryStrings.noOfflineBooksTitle,
-                style: TextStyle(
-                    color: AppColors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            Text(
-              LibraryStrings.noOfflineBooksBody,
-              textAlign: TextAlign.center,
-              style:
-                  TextStyle(color: AppColors.grey2, fontSize: 13, height: 1.4),
-            ),
+            OfflineLibraryActions(
+                checking: _checking, onCheckConnection: _checkConnection),
           ],
         ),
       ),

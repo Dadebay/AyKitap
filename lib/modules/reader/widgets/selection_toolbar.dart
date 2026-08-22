@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import '../../../core/localization/strings/reader_strings.dart';
+import '../../../core/localization/strings/reader_notes_strings.dart';
 import '../../../core/theme/app_colors.dart';
 
 /// The text-selection menu (TZ §12.7): shows the selected passage and the
@@ -56,7 +56,10 @@ class SelectionToolbar extends StatelessWidget {
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: AppColors.border),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 16)],
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25), blurRadius: 16)
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -68,13 +71,17 @@ class SelectionToolbar extends StatelessWidget {
                 Expanded(
                   child: Text(
                     '"${selectedText.length > 80 ? '${selectedText.substring(0, 80)}…' : selectedText}"',
-                    style: TextStyle(color: AppColors.grey2, fontSize: 12, height: 1.4),
+                    style: TextStyle(
+                        color: AppColors.grey2, fontSize: 12, height: 1.4),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 IconButton(
-                  icon: HugeIcon(icon: HugeIcons.strokeRoundedCancel01, color: AppColors.grey3, size: 18),
+                  icon: HugeIcon(
+                      icon: HugeIcons.strokeRoundedCancel01,
+                      color: AppColors.grey3,
+                      size: 18),
                   onPressed: onClose,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -87,13 +94,22 @@ class SelectionToolbar extends StatelessWidget {
                 if (isExistingHighlight)
                   _Action(
                     icon: HugeIcons.strokeRoundedDelete02,
-                    label: ReaderStrings.removeHighlightLabel,
+                    label: ReaderNotesStrings.removeHighlightLabel,
                     onTap: onRemoveHighlight,
                   )
                 else if (canAnnotate)
-                  _Action(icon: HugeIcons.strokeRoundedNoteAdd, label: ReaderStrings.noteLabel, onTap: onAddNote),
-                _Action(icon: HugeIcons.strokeRoundedCopy01, label: ReaderStrings.copyLabel, onTap: onCopy),
-                _Action(icon: HugeIcons.strokeRoundedShare08, label: ReaderStrings.shareLabel, onTap: onShare),
+                  _Action(
+                      icon: HugeIcons.strokeRoundedNoteAdd,
+                      label: ReaderNotesStrings.noteLabel,
+                      onTap: onAddNote),
+                _Action(
+                    icon: HugeIcons.strokeRoundedCopy01,
+                    label: ReaderNotesStrings.copyLabel,
+                    onTap: onCopy),
+                _Action(
+                    icon: HugeIcons.strokeRoundedShare08,
+                    label: ReaderNotesStrings.shareLabel,
+                    onTap: onShare),
               ],
             ),
           ],

@@ -105,11 +105,13 @@ class PdfOpeningScreenState extends State<PdfOpeningScreen> {
     // Fixed (the actual PDF pages) unless the reader has explicitly asked
     // for the reflowed text view before — no auto-reflow on a first open,
     // so a downloaded PDF always opens looking like the file it is.
-    final preferFixed = prefs.getBool(preferFixedPrefKey(widget.bookId)) ?? true;
+    final preferFixed =
+        prefs.getBool(preferFixedPrefKey(widget.bookId)) ?? true;
     String? epubPath;
     if (!preferFixed) {
       try {
-        epubPath = await PdfReflowService.instance.reflowEpubPathFor(filePath: widget.filePath, title: widget.title);
+        epubPath = await PdfReflowService.instance
+            .reflowEpubPathFor(filePath: widget.filePath, title: widget.title);
       } catch (_) {
         epubPath = null;
       }
@@ -121,7 +123,8 @@ class PdfOpeningScreenState extends State<PdfOpeningScreen> {
       if (epubPath == null) {
         await prefs.setBool(preferFixedPrefKey(widget.bookId), true);
         if (!mounted) return;
-        context.showAppSnackBar(ReaderStrings.pdfTextViewUnavailable, isError: true);
+        context.showAppSnackBar(ReaderStrings.pdfTextViewUnavailable,
+            isError: true);
       }
     }
     // Landing on the fixed pages: find out whether they're page *images* (a
@@ -131,7 +134,8 @@ class PdfOpeningScreenState extends State<PdfOpeningScreen> {
     // extra on reopen.
     var imageOnly = false;
     if (epubPath == null) {
-      imageOnly = await PdfReflowService.instance.isImageOnlyPdf(filePath: widget.filePath);
+      imageOnly = await PdfReflowService.instance
+          .isImageOnlyPdf(filePath: widget.filePath);
     }
     if (!mounted) return;
     _proceed(epubPath, imageOnly: imageOnly);
@@ -156,7 +160,8 @@ class PdfOpeningScreenState extends State<PdfOpeningScreen> {
             realBookId: widget.realBookId,
             imageOnly: imageOnly,
           );
-    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => replacement));
+    Navigator.of(context)
+        .pushReplacement(MaterialPageRoute(builder: (_) => replacement));
   }
 
   @override
@@ -167,7 +172,8 @@ class PdfOpeningScreenState extends State<PdfOpeningScreen> {
         child: SizedBox(
           width: 220,
           height: 220,
-          child: Lottie.asset('assets/animations/book_reading_boy.json', repeat: true, fit: BoxFit.contain),
+          child: Lottie.asset('assets/animations/book_reading_boy.json',
+              repeat: true, fit: BoxFit.contain),
         ),
       ),
     );

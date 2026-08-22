@@ -24,7 +24,8 @@ class ReadingBooksStore extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getStringList(_kKey) ?? const [];
     _books = raw
-        .map((item) => LibraryBook.fromJson(jsonDecode(item) as Map<String, dynamic>))
+        .map((item) =>
+            LibraryBook.fromJson(jsonDecode(item) as Map<String, dynamic>))
         .where((book) => !book.isFinished)
         .toList();
     _loaded = true;
@@ -68,6 +69,7 @@ class ReadingBooksStore extends ChangeNotifier {
 
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_kKey, _books.map((book) => jsonEncode(book.toJson())).toList());
+    await prefs.setStringList(
+        _kKey, _books.map((book) => jsonEncode(book.toJson())).toList());
   }
 }

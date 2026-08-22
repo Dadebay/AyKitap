@@ -45,7 +45,8 @@ class _PromoCodeSheetState extends State<PromoCodeSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         decoration: BoxDecoration(
@@ -57,27 +58,38 @@ class _PromoCodeSheetState extends State<PromoCodeSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-              child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.grey3, borderRadius: BorderRadius.circular(2))),
+              child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: AppColors.grey3,
+                      borderRadius: BorderRadius.circular(2))),
             ),
             const SizedBox(height: 18),
-            Text(PaymentStrings.promoCodeTitle, style: TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+            Text(PaymentStrings.promoCodeTitle,
+                style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800)),
             const SizedBox(height: 16),
             Container(
               height: 50,
               padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14)),
+              decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(14)),
               child: TextField(
                 controller: _controller,
                 focusNode: _focusNode,
                 autofocus: true,
                 textCapitalization: TextCapitalization.characters,
                 inputFormatters: [
-                  TextInputFormatter.withFunction((oldValue, newValue) =>
-                      newValue.copyWith(
-                        text: newValue.text.toUpperCase(),
-                        selection: newValue.selection,
-                        composing: TextRange.empty,
-                      )),
+                  TextInputFormatter.withFunction(
+                      (oldValue, newValue) => newValue.copyWith(
+                            text: newValue.text.toUpperCase(),
+                            selection: newValue.selection,
+                            composing: TextRange.empty,
+                          )),
                 ],
                 onChanged: (_) => setState(() {}),
                 onSubmitted: (_) => _submit(),
@@ -96,17 +108,26 @@ class _PromoCodeSheetState extends State<PromoCodeSheet> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.4),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  disabledBackgroundColor:
+                      AppColors.primary.withValues(alpha: 0.4),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
                   elevation: 0,
                 ),
                 onPressed: _isValid ? _submit : null,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    HugeIcon(icon: HugeIcons.strokeRoundedDiscountTag01, color: Colors.white, size: 18),
+                    HugeIcon(
+                        icon: HugeIcons.strokeRoundedDiscountTag01,
+                        color: Colors.white,
+                        size: 18),
                     const SizedBox(width: 8),
-                    Text(PaymentStrings.promoCodeApply, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                    Text(PaymentStrings.promoCodeApply,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700)),
                   ],
                 ),
               ),

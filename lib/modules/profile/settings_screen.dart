@@ -13,6 +13,7 @@ import '../../core/localization/strings/settings_strings.dart';
 import '../../core/widgets/app_back_button.dart';
 import 'widgets/contact_us_sheet.dart';
 import 'widgets/language_sheet.dart';
+import 'widgets/settings_confirm_dialog.dart';
 import 'widgets/settings_tiles.dart';
 
 /// Sazlamalar — TZ 8.6.
@@ -52,175 +53,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (result != null) await AppLocale.instance.setLanguage(result.code);
   }
 
-  // Same shape as [_confirmDeleteAccount] — a centred icon, title, body, and
-  // a stacked primary/cancel action pair — just with the logout icon and the
-  // app's own accent colour instead of the destructive red, since leaving a
-  // session isn't a destructive action the way deleting the account is.
+  // Both dialogs below end in the exact same place: neither actually calls
+  // a distinct "delete account" API today, they just clear the local
+  // session — see [showSettingsConfirmDialog]'s call sites. Preserved as-is
+  // rather than changed, since fixing that is a behaviour change outside
+  // this refactor's scope.
+  Future<void> _clearSessionAndClose() async {
+    await _notifyBackendLogout();
+    await AuthSession.clearToken();
+    // Drop the cached /users/me record too, so the next account doesn't
+    // briefly see this one's balance.
+    AccountService.instance.clear();
+    // ...and this one's purchased books, which otherwise would unlock them
+    // for whoever logs in next.
+    await BookAccessService.instance.clear();
+    await SubscriptionService.instance.clear();
+    if (!mounted) return;
+    Navigator.pop(context); // close the dialog
+    Navigator.pop(context, 'logout'); // leave the settings screen logged out
+  }
+
   void _confirmLogout() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        icon: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.15),
-              shape: BoxShape.circle),
-          child: Center(
-              child: HugeIcon(
-                  icon: HugeIcons.strokeRoundedLogout01,
-                  color: AppColors.primary,
-                  size: 26)),
-        ),
-        title: Text(
-          SettingsStrings.logoutTitle,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-              color: AppColors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.w800),
-        ),
-        content: Text(
-          SettingsStrings.logoutBody,
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.grey2, fontSize: 13.5, height: 1.5),
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actionsPadding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-        actions: [
-          Column(
-            children: [
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                      elevation: 0),
-                  onPressed: () async {
-                    await _notifyBackendLogout();
-                    await AuthSession.clearToken();
-                    // Drop the cached /users/me record too, so the next
-                    // account doesn't briefly see this one's balance.
-                    AccountService.instance.clear();
-                    // ...and this one's purchased books, which otherwise
-                    // would unlock them for whoever logs in next.
-                    await BookAccessService.instance.clear();
-                    await SubscriptionService.instance.clear();
-                    if (!mounted) return;
-                    Navigator.pop(context); // close the dialog
-                    Navigator.pop(context,
-                        'logout'); // leave the settings screen logged out
-                  },
-                  child: Text(SettingsStrings.logoutConfirm,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700)),
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                height: 44,
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(SettingsStrings.cancel,
-                      style: TextStyle(color: AppColors.grey2, fontSize: 14)),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+    showSettingsConfirmDialog(
+      context,
+      icon: HugeIcon(
+          icon: HugeIcons.strokeRoundedLogout01,
+          color: AppColors.primary,
+          size: 26),
+      iconSize: 56,
+      iconColor: AppColors.primary,
+      title: SettingsStrings.logoutTitle,
+      body: SettingsStrings.logoutBody,
+      confirmLabel: SettingsStrings.logoutConfirm,
+      confirmColor: AppColors.primary,
+      onConfirm: _clearSessionAndClose,
     );
   }
 
   void _confirmDeleteAccount() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        icon: Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(
-              color: Colors.redAccent.withValues(alpha: 0.15),
-              shape: BoxShape.circle),
-          child: const Center(
-              child: HugeIcon(
-                  icon: HugeIcons.strokeRoundedDelete02,
-                  color: Colors.redAccent,
-                  size: 24)),
-        ),
-        title: Text(
-          SettingsStrings.deleteAccountTitle,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-              color: AppColors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.w800),
-        ),
-        content: Text(
-          SettingsStrings.deleteAccountBody,
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.grey2, fontSize: 13.5, height: 1.5),
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actionsPadding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-        actions: [
-          Column(
-            children: [
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                      elevation: 0),
-                  onPressed: () async {
-                    await _notifyBackendLogout();
-                    await AuthSession.clearToken();
-                    // Drop the cached /users/me record too, so the next
-                    // account doesn't briefly see this one's balance.
-                    AccountService.instance.clear();
-                    // ...and this one's purchased books, which otherwise
-                    // would unlock them for whoever logs in next.
-                    await BookAccessService.instance.clear();
-                    await SubscriptionService.instance.clear();
-                    if (!mounted) return;
-                    Navigator.pop(context); // close the dialog
-                    Navigator.pop(context,
-                        'logout'); // leave the settings screen logged out
-                  },
-                  child: Text(SettingsStrings.delete,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700)),
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                height: 44,
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(SettingsStrings.cancel,
-                      style: TextStyle(color: AppColors.grey2, fontSize: 14)),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+    showSettingsConfirmDialog(
+      context,
+      icon: const HugeIcon(
+          icon: HugeIcons.strokeRoundedDelete02,
+          color: Colors.redAccent,
+          size: 24),
+      iconSize: 52,
+      iconColor: Colors.redAccent,
+      title: SettingsStrings.deleteAccountTitle,
+      body: SettingsStrings.deleteAccountBody,
+      confirmLabel: SettingsStrings.delete,
+      confirmColor: Colors.redAccent,
+      onConfirm: _clearSessionAndClose,
     );
   }
 

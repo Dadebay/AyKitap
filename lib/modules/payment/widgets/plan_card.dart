@@ -39,19 +39,33 @@ class PlanCard extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: selected ? AppColors.primary.withValues(alpha: 0.1) : AppColors.card,
+            color: selected
+                ? AppColors.primary.withValues(alpha: 0.1)
+                : AppColors.card,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: selected ? AppColors.primary : AppColors.border, width: selected ? 2 : 1),
-            boxShadow: selected ? [BoxShadow(color: AppColors.primary.withValues(alpha: 0.25), blurRadius: 16, offset: const Offset(0, 6))] : const [],
+            border: Border.all(
+                color: selected ? AppColors.primary : AppColors.border,
+                width: selected ? 2 : 1),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.25),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6))
+                  ]
+                : const [],
           ),
           child: Row(
             children: [
               AnimatedSwitcher(
                 duration: _duration,
-                transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+                transitionBuilder: (child, anim) =>
+                    ScaleTransition(scale: anim, child: child),
                 child: HugeIcon(
                   key: ValueKey(selected),
-                  icon: selected ? HugeIcons.strokeRoundedCheckmarkCircle01 : HugeIcons.strokeRoundedCircle,
+                  icon: selected
+                      ? HugeIcons.strokeRoundedCheckmarkCircle01
+                      : HugeIcons.strokeRoundedCircle,
                   color: selected ? AppColors.primary : AppColors.grey3,
                   size: 22,
                 ),
@@ -73,9 +87,16 @@ class PlanCard extends StatelessWidget {
                     if (best) ...[
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(6)),
-                        child: Text(PaymentStrings.mostPopular, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(6)),
+                        child: Text(PaymentStrings.mostPopular,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700)),
                       ),
                     ],
                   ],
@@ -101,9 +122,16 @@ class PlanCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: Colors.redAccent.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(6)),
-                          child: Text('-${tariff.discountPercent}%', style: const TextStyle(color: Colors.redAccent, fontSize: 10.5, fontWeight: FontWeight.w800)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                              color: Colors.redAccent.withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(6)),
+                          child: Text('-${tariff.discountPercent}%',
+                              style: const TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w800)),
                         ),
                       ],
                     ),

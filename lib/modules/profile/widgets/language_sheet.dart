@@ -13,9 +13,12 @@ class AppLanguage {
 }
 
 const kSettingsLanguages = [
-  AppLanguage(AppLanguageCode.tk, SettingsStrings.langTurkmen, 'assets/flags/tm.svg'),
-  AppLanguage(AppLanguageCode.ru, SettingsStrings.langRussian, 'assets/flags/ru.svg'),
-  AppLanguage(AppLanguageCode.tr, SettingsStrings.langTurkish, 'assets/flags/tr.svg'),
+  AppLanguage(
+      AppLanguageCode.tk, SettingsStrings.langTurkmen, 'assets/flags/tm.svg'),
+  AppLanguage(
+      AppLanguageCode.ru, SettingsStrings.langRussian, 'assets/flags/ru.svg'),
+  AppLanguage(
+      AppLanguageCode.tr, SettingsStrings.langTurkish, 'assets/flags/tr.svg'),
 ];
 
 Widget flagFor(AppLanguage lang, {double size = 28}) {
@@ -24,8 +27,13 @@ Widget flagFor(AppLanguage lang, {double size = 28}) {
     return Container(
       width: d,
       height: d,
-      decoration: BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
-      child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedGlobal, color: AppColors.grey2, size: d * 0.6)),
+      decoration:
+          BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
+      child: Center(
+          child: HugeIcon(
+              icon: HugeIcons.strokeRoundedGlobal,
+              color: AppColors.grey2,
+              size: d * 0.6)),
     );
   }
   return ClipOval(
@@ -43,7 +51,8 @@ class LanguageSheet extends StatelessWidget {
   final List<AppLanguage> languages;
   final AppLanguage selected;
 
-  const LanguageSheet({super.key, required this.languages, required this.selected});
+  const LanguageSheet(
+      {super.key, required this.languages, required this.selected});
 
   @override
   Widget build(BuildContext context) {
@@ -59,13 +68,22 @@ class LanguageSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.grey3, borderRadius: BorderRadius.circular(2))),
+            Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: AppColors.grey3,
+                    borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 16),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 12),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text(SettingsStrings.chooseLanguage, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800)),
+                child: Text(SettingsStrings.chooseLanguage,
+                    style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800)),
               ),
             ),
             const SizedBox(height: 8),
@@ -75,12 +93,19 @@ class LanguageSheet extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 onTap: () => Navigator.pop(context, lang),
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary.withValues(alpha: 0.12) : Colors.transparent,
+                    color: isSelected
+                        ? AppColors.primary.withValues(alpha: 0.12)
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(16),
-                    border: isSelected ? Border.all(color: AppColors.primary.withValues(alpha: 0.4)) : null,
+                    border: isSelected
+                        ? Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.4))
+                        : null,
                   ),
                   child: Row(
                     children: [
@@ -89,11 +114,18 @@ class LanguageSheet extends StatelessWidget {
                       Expanded(
                         child: Text(
                           lang.label,
-                          style: TextStyle(color: AppColors.white, fontSize: 15.5, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500),
+                          style: TextStyle(
+                              color: AppColors.white,
+                              fontSize: 15.5,
+                              fontWeight: isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.w500),
                         ),
                       ),
                       HugeIcon(
-                        icon: isSelected ? HugeIcons.strokeRoundedCheckmarkCircle01 : HugeIcons.strokeRoundedCircle,
+                        icon: isSelected
+                            ? HugeIcons.strokeRoundedCheckmarkCircle01
+                            : HugeIcons.strokeRoundedCircle,
                         color: isSelected ? AppColors.primary : AppColors.grey3,
                         size: 20,
                       ),

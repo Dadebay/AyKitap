@@ -17,7 +17,8 @@ class BookmarksStore extends ChangeNotifier {
 
   /// Every bookmark, newest first.
   List<Bookmark> get all {
-    final sorted = [..._bookmarks]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final sorted = [..._bookmarks]
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return List.unmodifiable(sorted);
   }
 
@@ -27,7 +28,9 @@ class BookmarksStore extends ChangeNotifier {
     final raw = prefs.getString(_kKey);
     if (raw != null) {
       final decoded = jsonDecode(raw) as List;
-      _bookmarks = decoded.map((e) => Bookmark.fromJson(e as Map<String, dynamic>)).toList();
+      _bookmarks = decoded
+          .map((e) => Bookmark.fromJson(e as Map<String, dynamic>))
+          .toList();
     }
     _loaded = true;
     notifyListeners();
@@ -36,11 +39,13 @@ class BookmarksStore extends ChangeNotifier {
   /// One book's bookmarks, ordered by position in the book so the reader's
   /// list reads top-to-bottom like the book does.
   List<Bookmark> forBook(int bookId) {
-    final list = _bookmarks.where((b) => b.bookId == bookId).toList()..sort((a, b) => a.progress.compareTo(b.progress));
+    final list = _bookmarks.where((b) => b.bookId == bookId).toList()
+      ..sort((a, b) => a.progress.compareTo(b.progress));
     return List.unmodifiable(list);
   }
 
-  bool isBookmarked(int bookId, String cfi) => _bookmarks.any((b) => b.bookId == bookId && b.cfi == cfi);
+  bool isBookmarked(int bookId, String cfi) =>
+      _bookmarks.any((b) => b.bookId == bookId && b.cfi == cfi);
 
   /// Adds the page if it isn't marked yet, removes it if it is. Returns true
   /// when a bookmark was added.
@@ -52,7 +57,8 @@ class BookmarksStore extends ChangeNotifier {
     required double progress,
   }) async {
     if (cfi.isEmpty) return false;
-    final existing = _bookmarks.where((b) => b.bookId == bookId && b.cfi == cfi).toList();
+    final existing =
+        _bookmarks.where((b) => b.bookId == bookId && b.cfi == cfi).toList();
     if (existing.isNotEmpty) {
       _bookmarks.removeWhere((b) => b.bookId == bookId && b.cfi == cfi);
       await _persist();
@@ -81,6 +87,7 @@ class BookmarksStore extends ChangeNotifier {
 
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kKey, jsonEncode(_bookmarks.map((b) => b.toJson()).toList()));
+    await prefs.setString(
+        _kKey, jsonEncode(_bookmarks.map((b) => b.toJson()).toList()));
   }
 }

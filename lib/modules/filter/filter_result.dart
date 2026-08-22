@@ -1,4 +1,5 @@
-import 'controller/filter_controller.dart' show BookFormatFilter, SortBy, kDefaultSortBy;
+import 'controller/filter_controller.dart'
+    show BookFormatFilter, SortBy, kDefaultSortBy;
 
 /// Returned to the SearchScreen when "Netijeleri görkez" is pressed — whether
 /// any filter is set (drives the red badge) plus every selection that maps

@@ -22,11 +22,14 @@ class ApiException implements Exception {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return const ApiException('Sorag wagty gutardy. Internet baglanyşygyňyzy barlaň.');
+        return const ApiException(
+            'Sorag wagty gutardy. Internet baglanyşygyňyzy barlaň.');
       case DioExceptionType.connectionError:
-        return const ApiException('Internete birikip bolmady. Baglanyşygyňyzy barlaň.');
+        return const ApiException(
+            'Internete birikip bolmady. Baglanyşygyňyzy barlaň.');
       default:
-        return ApiException('Näbelli ýalñyşlyk ýüze çykdy.', statusCode: e.response?.statusCode);
+        return ApiException('Näbelli ýalñyşlyk ýüze çykdy.',
+            statusCode: e.response?.statusCode);
     }
   }
 

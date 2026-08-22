@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import '../models/book_language.dart';
-import '../network/api_endpoints.dart';
+import '../network/catalog_endpoints.dart';
 import '../network/api_exception.dart';
 import '../network/dio_client.dart';
 
@@ -11,7 +11,8 @@ class BookLanguageApiService {
 
   static Future<List<BookLanguage>> getLanguages() async {
     try {
-      final response = await DioClient.instance.get(ApiEndpoints.bookLanguages);
+      final response =
+          await DioClient.instance.get(CatalogEndpoints.bookLanguages);
       final list = response.data['data'] as List;
       return list
           .map((e) => BookLanguage.fromJson(e as Map<String, dynamic>))

@@ -22,10 +22,12 @@ class InsufficientBalanceDialog extends StatelessWidget {
 
   const InsufficientBalanceDialog({super.key, this.shortfallManat, this.note});
 
-  static Future<bool> show(BuildContext context, {int? shortfallManat, String? note}) async {
+  static Future<bool> show(BuildContext context,
+      {int? shortfallManat, String? note}) async {
     final pay = await showDialog<bool>(
       context: context,
-      builder: (_) => InsufficientBalanceDialog(shortfallManat: shortfallManat, note: note),
+      builder: (_) =>
+          InsufficientBalanceDialog(shortfallManat: shortfallManat, note: note),
     );
     return pay == true;
   }
@@ -48,7 +50,9 @@ class InsufficientBalanceDialog extends StatelessWidget {
             width: 160,
             height: 160,
             child: Image.asset(
-              isDark ? 'assets/images/balance_empty_dark.webp' : 'assets/images/balance_empty_light.webp',
+              isDark
+                  ? 'assets/images/balance_empty_dark.webp'
+                  : 'assets/images/balance_empty_light.webp',
               fit: BoxFit.contain,
             ),
           ),
@@ -56,13 +60,17 @@ class InsufficientBalanceDialog extends StatelessWidget {
           Text(
             PaymentStrings.balanceNotEnough,
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800),
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 8),
           Text(
             body,
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.grey2, fontSize: 13.5, height: 1.5),
+            style:
+                TextStyle(color: AppColors.grey2, fontSize: 13.5, height: 1.5),
           ),
         ],
       ),
@@ -75,11 +83,16 @@ class InsufficientBalanceDialog extends StatelessWidget {
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
               elevation: 0,
             ),
             onPressed: () => Navigator.pop(context, true),
-            child: Text(PaymentStrings.payNow, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+            child: Text(PaymentStrings.payNow,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700)),
           ),
         ),
         const SizedBox(height: 8),
@@ -88,7 +101,11 @@ class InsufficientBalanceDialog extends StatelessWidget {
           height: 44,
           child: TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(PaymentStrings.close, style: TextStyle(color: AppColors.grey2, fontSize: 14, fontWeight: FontWeight.w600)),
+            child: Text(PaymentStrings.close,
+                style: TextStyle(
+                    color: AppColors.grey2,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600)),
           ),
         ),
       ],

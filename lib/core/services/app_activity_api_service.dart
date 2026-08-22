@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 
-import '../network/api_endpoints.dart';
+import '../network/account_endpoints.dart';
 import '../network/dio_client.dart';
 
 /// What happened to one [AppActivityApiService.report] call — all the caller
@@ -25,13 +25,14 @@ enum AppActivityDelivery {
   unknown,
 }
 
-/// `POST /users/app-activity` — see [ApiEndpoints.appActivity].
+/// `POST /users/app-activity` — see [AccountEndpoints.appActivity].
 class AppActivityApiService {
   AppActivityApiService._();
 
   static Future<AppActivityDelivery> report({required int seconds}) async {
     try {
-      await DioClient.instance.post(ApiEndpoints.appActivity, data: {'seconds': seconds});
+      await DioClient.instance
+          .post(AccountEndpoints.appActivity, data: {'seconds': seconds});
       return AppActivityDelivery.delivered;
     } on DioException catch (e) {
       switch (e.type) {

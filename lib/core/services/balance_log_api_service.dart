@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import '../models/balance_log.dart';
-import '../network/api_endpoints.dart';
+import '../network/account_endpoints.dart';
 import '../network/api_exception.dart';
 import '../network/dio_client.dart';
 
@@ -10,7 +10,8 @@ class BalanceLogApiService {
 
   static Future<List<BalanceLog>> listLogs() async {
     try {
-      final response = await DioClient.instance.get(ApiEndpoints.balanceLogs);
+      final response =
+          await DioClient.instance.get(AccountEndpoints.balanceLogs);
       final data = response.data['data'] as List;
       final logs = data
           .map((item) => BalanceLog.fromJson(item as Map<String, dynamic>))

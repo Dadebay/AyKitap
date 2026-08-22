@@ -10,7 +10,8 @@ import 'package:flutter/material.dart';
 class ShelfGrid extends StatelessWidget {
   final int itemCount;
   final Widget Function(BuildContext context, int index) itemBuilder;
-  const ShelfGrid({super.key, required this.itemCount, required this.itemBuilder});
+  const ShelfGrid(
+      {super.key, required this.itemCount, required this.itemBuilder});
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +54,9 @@ class _ShelfRow extends StatelessWidget {
                 return Expanded(
                   child: slot == null
                       ? const SizedBox.shrink()
-                      : Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: slot),
+                      : Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: slot),
                 );
               }).toList(),
             ),

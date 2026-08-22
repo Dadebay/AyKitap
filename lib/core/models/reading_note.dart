@@ -69,30 +69,30 @@ class ReadingNote {
   }
 
   ReadingNote copyWith({String? text, int? colorValue}) => ReadingNote(
-    id: id,
-    text: text ?? this.text,
-    bookId: bookId,
-    bookSeed: bookSeed,
-    bookIndex: bookIndex,
-    bookTitle: bookTitle,
-    createdAt: createdAt,
-    colorValue: colorValue ?? this.colorValue,
-    cfi: cfi,
-    remoteId: remoteId,
-  );
+        id: id,
+        text: text ?? this.text,
+        bookId: bookId,
+        bookSeed: bookSeed,
+        bookIndex: bookIndex,
+        bookTitle: bookTitle,
+        createdAt: createdAt,
+        colorValue: colorValue ?? this.colorValue,
+        cfi: cfi,
+        remoteId: remoteId,
+      );
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'text': text,
-    'bookId': bookId,
-    if (bookSeed != null) 'bookSeed': bookSeed,
-    if (bookIndex != null) 'bookIndex': bookIndex,
-    'bookTitle': bookTitle,
-    'createdAt': createdAt.toIso8601String(),
-    'colorValue': colorValue,
-    if (cfi != null) 'cfi': cfi,
-    if (remoteId != null) 'remoteId': remoteId,
-  };
+        'id': id,
+        'text': text,
+        'bookId': bookId,
+        if (bookSeed != null) 'bookSeed': bookSeed,
+        if (bookIndex != null) 'bookIndex': bookIndex,
+        'bookTitle': bookTitle,
+        'createdAt': createdAt.toIso8601String(),
+        'colorValue': colorValue,
+        if (cfi != null) 'cfi': cfi,
+        if (remoteId != null) 'remoteId': remoteId,
+      };
 
   factory ReadingNote.fromJson(Map<String, dynamic> json) {
     final seed = json['bookSeed'] as int?;
@@ -104,12 +104,15 @@ class ReadingNote {
       // seed/index — rebuild the same bookId the reader would use so their
       // highlights still restore.
       bookId: json['bookId'] as int? ??
-          (seed != null && index != null ? stableBookKey('book_${seed}_$index') : 0),
+          (seed != null && index != null
+              ? stableBookKey('book_${seed}_$index')
+              : 0),
       bookSeed: seed,
       bookIndex: index,
       bookTitle: json['bookTitle'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
-      colorValue: json['colorValue'] as int? ?? HighlightColors.defaultColor.toARGB32(),
+      colorValue:
+          json['colorValue'] as int? ?? HighlightColors.defaultColor.toARGB32(),
       cfi: json['cfi'] as String?,
       remoteId: json['remoteId'] as int?,
     );

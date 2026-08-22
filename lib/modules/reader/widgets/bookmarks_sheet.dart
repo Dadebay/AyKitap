@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/localization/strings/reader_strings.dart';
+import '../../../core/localization/strings/reader_bookmark_strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../provider/reader_provider.dart';
 
@@ -18,7 +18,8 @@ class BookmarksSheet extends StatelessWidget {
         final onThisPage = provider.isCurrentPageBookmarked;
 
         return Container(
-          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
+          constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.7),
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -32,13 +33,18 @@ class BookmarksSheet extends StatelessWidget {
                 child: Container(
                   width: 36,
                   height: 4,
-                  decoration: BoxDecoration(color: AppColors.grey3, borderRadius: BorderRadius.circular(2)),
+                  decoration: BoxDecoration(
+                      color: AppColors.grey3,
+                      borderRadius: BorderRadius.circular(2)),
                 ),
               ),
               const SizedBox(height: 16),
               Text(
-                ReaderStrings.bookmarksTitle,
-                style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700),
+                ReaderBookmarkStrings.bookmarksTitle,
+                style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 14),
 
@@ -62,7 +68,9 @@ class BookmarksSheet extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        onThisPage ? ReaderStrings.removeCurrentPage : ReaderStrings.addCurrentPage,
+                        onThisPage
+                            ? ReaderBookmarkStrings.removeCurrentPage
+                            : ReaderBookmarkStrings.addCurrentPage,
                         style: TextStyle(
                           color: onThisPage ? AppColors.grey2 : Colors.white,
                           fontSize: 14.5,
@@ -80,7 +88,7 @@ class BookmarksSheet extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 28),
                   child: Center(
                     child: Text(
-                      ReaderStrings.bookmarksEmpty,
+                      ReaderBookmarkStrings.bookmarksEmpty,
                       style: TextStyle(color: AppColors.grey2, fontSize: 14),
                     ),
                   ),
@@ -90,27 +98,36 @@ class BookmarksSheet extends StatelessWidget {
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: marks.length,
-                    separatorBuilder: (_, __) => Divider(color: AppColors.border, height: 1),
+                    separatorBuilder: (_, __) =>
+                        Divider(color: AppColors.border, height: 1),
                     itemBuilder: (_, i) {
                       final b = marks[i];
                       final percent = (b.progress * 100).round();
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: Icon(Icons.bookmark, color: AppColors.primary, size: 20),
+                        leading: Icon(Icons.bookmark,
+                            color: AppColors.primary, size: 20),
                         title: Text(
-                          b.chapterTitle.isNotEmpty ? b.chapterTitle : ReaderStrings.bookmarkProgress(percent),
+                          b.chapterTitle.isNotEmpty
+                              ? b.chapterTitle
+                              : ReaderBookmarkStrings.bookmarkProgress(percent),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: AppColors.white, fontSize: 14.5, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                              color: AppColors.white,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w600),
                         ),
                         subtitle: b.chapterTitle.isNotEmpty
                             ? Text(
-                                ReaderStrings.bookmarkProgress(percent),
-                                style: TextStyle(color: AppColors.grey2, fontSize: 12),
+                                ReaderBookmarkStrings.bookmarkProgress(percent),
+                                style: TextStyle(
+                                    color: AppColors.grey2, fontSize: 12),
                               )
                             : null,
                         trailing: IconButton(
-                          icon: Icon(Icons.delete_outline, color: AppColors.grey2, size: 20),
+                          icon: Icon(Icons.delete_outline,
+                              color: AppColors.grey2, size: 20),
                           onPressed: () => provider.removeBookmark(b.id),
                         ),
                         onTap: () {

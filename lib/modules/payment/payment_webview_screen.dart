@@ -7,7 +7,7 @@ import '../../core/network/api_exception.dart';
 import '../../core/services/payment_api_service.dart';
 import '../../core/theme/app_colors.dart';
 
-/// Opens a bank's online payment page ([ApiEndpoints.paymentOrders]'s
+/// Opens a bank's online payment page ([PaymentEndpoints.paymentOrders]'s
 /// `invoiceUrl`) inside the app. Closing early (the X button) pops `false`.
 ///
 /// One specific redirect *is* watched for — the bank's own post-payment
@@ -121,7 +121,11 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
-        title: Text(PaymentStrings.paymentPageTitle, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+        title: Text(PaymentStrings.paymentPageTitle,
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700)),
         leading: IconButton(
           icon: Icon(Icons.close_rounded, color: AppColors.white),
           onPressed: () => Navigator.of(context).pop(false),
@@ -130,7 +134,9 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
       body: Stack(
         children: [
           WebViewWidget(controller: _controller),
-          if (_loading) LinearProgressIndicator(color: AppColors.primary, backgroundColor: Colors.transparent),
+          if (_loading)
+            LinearProgressIndicator(
+                color: AppColors.primary, backgroundColor: Colors.transparent),
         ],
       ),
     );

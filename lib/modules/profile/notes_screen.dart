@@ -5,13 +5,14 @@ import '../../core/navigation/app_navigator.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/services/user_notes_api_service.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/theme_controller.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/localization/strings/profile_strings.dart';
 import '../book_detail/catalog_book_detail_screen.dart';
 import 'widgets/edit_note_sheet.dart';
 import 'widgets/note_card.dart';
+import 'widgets/notes_delete_confirm_dialog.dart';
+import 'widgets/notes_empty_state.dart';
 
 /// "Ähli notlary gör" — every note/highlight the signed-in user has saved,
 /// straight from `GET /users/notes` ([UserNotesApiService]). Used to be one
@@ -78,9 +79,11 @@ class _NotesScreenState extends State<NotesScreen> {
     );
     if (draft == null || draft.text.isEmpty) return;
     try {
-      final updated = await UserNotesApiService.updateNote(note.id, note: draft.text);
+      final updated =
+          await UserNotesApiService.updateNote(note.id, note: draft.text);
       if (!mounted) return;
-      setState(() => _notes = _notes?.map((n) => n.id == note.id ? updated : n).toList());
+      setState(() =>
+          _notes = _notes?.map((n) => n.id == note.id ? updated : n).toList());
     } on ApiException catch (e) {
       if (!mounted) return;
       context.showAppSnackBar(e.message, isError: true);
@@ -88,56 +91,8 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   Future<void> _deleteNote(UserNote note) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        icon: Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(color: Colors.redAccent.withValues(alpha: 0.15), shape: BoxShape.circle),
-          child: const Center(child: HugeIcon(icon: HugeIcons.strokeRoundedDelete02, color: Colors.redAccent, size: 24)),
-        ),
-        title: Text(
-          ProfileStrings.deleteNoteConfirmTitle,
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800),
-        ),
-        content: Text(
-          ProfileStrings.actionIrreversible,
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.grey2, fontSize: 13.5, height: 1.5),
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actionsPadding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-        actions: [
-          Column(
-            children: [
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
-                  onPressed: () => Navigator.pop(context, true),
-                  child: Text(ProfileStrings.delete, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                height: 44,
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: Text(ProfileStrings.cancel, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
+    final confirmed = await showDeleteNoteConfirmDialog(context);
+    if (!confirmed) return;
     // Optimistic: remove immediately, roll back and surface the error if the
     // backend call fails.
     final previous = _notes;
@@ -160,7 +115,11 @@ class _NotesScreenState extends State<NotesScreen> {
         scrolledUnderElevation: 0,
         centerTitle: true,
         leading: const AppBackButton(size: 20),
-        title: Text(ProfileStrings.notesTitle, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+        title: Text(ProfileStrings.notesTitle,
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700)),
       ),
       body: SafeArea(top: false, child: _buildBody()),
     );
@@ -177,9 +136,16 @@ class _NotesScreenState extends State<NotesScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+              Text(_error!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.grey2, fontSize: 14)),
               const SizedBox(height: 12),
-              TextButton(onPressed: _load, child: Text(ProfileStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700))),
+              TextButton(
+                  onPressed: _load,
+                  child: Text(ProfileStrings.retry,
+                      style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700))),
             ],
           ),
         ),
@@ -187,7 +153,7 @@ class _NotesScreenState extends State<NotesScreen> {
     }
     final notes = _notes ?? const [];
     return notes.isEmpty
-        ? _buildEmpty()
+        ? const NotesEmptyState()
         : ListView.separated(
             padding: const EdgeInsets.all(20),
             itemCount: notes.length,
@@ -199,41 +165,5 @@ class _NotesScreenState extends State<NotesScreen> {
               onGoToBook: () => _goToBook(notes[i]),
             ),
           );
-  }
-
-  Widget _buildEmpty() {
-    final isDark = AppTheme.instance.isDark;
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 260),
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Image.asset(
-                  isDark ? 'assets/images/notes_empty_dark.webp' : 'assets/images/notes_empty_light.webp',
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-            const SizedBox(height: 28),
-            Text(
-              ProfileStrings.noNotesYetTitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              ProfileStrings.noNotesYetSubtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.grey2, fontSize: 14, height: 1.5),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

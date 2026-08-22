@@ -95,8 +95,7 @@ class BookDetailStrings {
 
   static String get read => t(tk: 'Oka', ru: 'Читать', tr: 'Oku');
   static String get price => t(tk: 'Baha', ru: 'Цена', tr: 'Fiyat');
-  static String priceValue(int manat) =>
-      '$manat TMT';
+  static String priceValue(int manat) => '$manat TMT';
   static String get buy => t(tk: 'Satyn al', ru: 'Купить', tr: 'Satın al');
 
   // catalog_book_detail_screen.dart — the real `GET /books/:id` detail page.
@@ -158,7 +157,7 @@ class BookDetailStrings {
   static String get saveToFiles => t(
         tk: 'Faýllara ýaz',
         ru: 'Сохранить в Файлы',
-      tr: 'Dosyalara kaydet',
+        tr: 'Dosyalara kaydet',
       );
   static String get savePurchasedTitle => t(
       tk: 'Kitaby nirede saklamaly?',
@@ -172,8 +171,8 @@ class BookDetailStrings {
       tk: 'Diňe programmada sakla',
       ru: 'Только в приложении',
       tr: 'Yalnızca uygulamada tut');
-  static String get chooseSaveLocation => t(
-      tk: 'Ýer saýla', ru: 'Выбрать место', tr: 'Konum seç');
+  static String get chooseSaveLocation =>
+      t(tk: 'Ýer saýla', ru: 'Выбрать место', tr: 'Konum seç');
   static String saveToFilesError(Object error) => t(
         tk: 'Faýl paýlaşylmady: $error',
         ru: 'Не удалось поделиться файлом: $error',

@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:hugeicons/hugeicons.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/models/tariff.dart';
@@ -14,12 +11,17 @@ import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/localization/strings/payment_strings.dart';
 import 'payment_webview_screen.dart';
+import 'subscription_plan_helpers.dart';
 import 'widgets/bank_select_sheet.dart';
 import 'widgets/insufficient_balance_dialog.dart';
 import 'widgets/payment_method_sheet.dart';
-import 'widgets/plan_card.dart';
 import 'widgets/promo_code_sheet.dart';
+import 'widgets/subscription_checkout_button.dart';
+import 'widgets/subscription_header.dart';
+import 'widgets/subscription_plan_list.dart';
 import 'widgets/subscription_success_dialog.dart';
+
+part 'subscription_screen_actions.dart';
 
 /// Töleg Ulgamy — TZ section 13.1 (abunalyk planlary). Plans come from
 /// `GET /payments/tariffs` ([PaymentApiService.getTariffs]). Tapping the
@@ -31,6 +33,10 @@ import 'widgets/subscription_success_dialog.dart';
 /// plan's price — [BankSelectSheet] + [PaymentWebViewScreen] — that then
 /// retries the purchase). Once active, [BookDetailScreen] shows "Oka" for
 /// every book instead of gating each one behind [BookPurchaseScreen].
+///
+/// The payment-flow methods ([_startCheckout] and everything it can lead
+/// to) live in subscription_screen_actions.dart, a `part` of this file, to
+/// keep this file under the 200-line limit.
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
 
@@ -48,163 +54,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   @override
   void initState() {
     super.initState();
-    SubscriptionService.instance.load();
+    context.read<SubscriptionService>().load();
     _loadTariffs();
   }
 
-  Future<void> _loadTariffs() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final tariffs = await PaymentApiService.getTariffs();
-      if (!mounted) return;
-      setState(() {
-        _tariffs = tariffs;
-        _loading = false;
-        // Default to the best-value plan (biggest discount) rather than
-        // always the 2nd one — with a dynamic tariff list there's no fixed
-        // "monthly is always index 1" to lean on anymore.
-        _selected = _bestIndex(tariffs);
-      });
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.message;
-        _loading = false;
-      });
-    }
-  }
-
-  static int _bestIndex(List<Tariff> tariffs) {
-    var best = 0;
-    for (var i = 1; i < tariffs.length; i++) {
-      if (tariffs[i].discountPercent > tariffs[best].discountPercent) best = i;
-    }
-    return best;
-  }
-
-  static String _labelFor(Tariff tariff) {
-    switch (tariff.monthCount) {
-      case 1:
-        return PaymentStrings.planMonthly;
-      case 3:
-        return PaymentStrings.plan3Months;
-      case 6:
-        return PaymentStrings.plan6Months;
-      case 12:
-        return PaymentStrings.planYearly;
-      default:
-        return PaymentStrings.planMonthsGeneric(tariff.monthCount);
-    }
-  }
-
-  Future<void> _startCheckout() async {
-    final tariffs = _tariffs;
-    if (_processing || tariffs == null || tariffs.isEmpty) return;
-    final tariff = tariffs[_selected];
-
-    setState(() => _processing = true);
-    bool ok;
-    try {
-      ok = await SubscriptionService.instance.subscribe(tariffId: tariff.id, priceManat: tariff.price);
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      setState(() => _processing = false);
-      context.showAppSnackBar(e.message, isError: true);
-      return;
-    }
-    if (!mounted) return;
-    setState(() => _processing = false);
-
-    if (ok) {
-      await SubscriptionSuccessDialog.show(context, _labelFor(tariff));
-    } else {
-      await _showInsufficientBalanceDialog();
-    }
-  }
-
-  /// Shown when [SubscriptionService.subscribe] can't debit the plan's
-  /// price from the balance — the same dialog a single-book purchase uses
-  /// ([InsufficientBalanceDialog]), differing only in the follow-up: a plan
-  /// hands off to [PaymentMethodSheet] directly so the user can pick promo
-  /// code vs. bank card, rather than the book flow's [startBalanceTopUp].
-  Future<void> _showInsufficientBalanceDialog() async {
-    final pay = await InsufficientBalanceDialog.show(
-      context,
-      note: PaymentStrings.subscriptionBalanceInsufficientNote,
-    );
-    if (pay && mounted) await _choosePaymentMethod();
-  }
-
-  Future<void> _choosePaymentMethod() async {
-    final choice = await PaymentMethodSheet.show(context);
-    if (choice == null || !mounted) return;
-    switch (choice) {
-      case PaymentMethodChoice.promoCode:
-        await _payWithPromoCode();
-      case PaymentMethodChoice.bankCard:
-        await _payWithBank();
-    }
-  }
-
-  /// Redeems the code via `POST /users/promo-codes` — the backend credits
-  /// the balance, not the plan directly, so this just refreshes
-  /// [AccountService] and then re-runs the normal balance-funded checkout
-  /// (which now might actually cover the price).
-  Future<void> _payWithPromoCode() async {
-    final code = await PromoCodeSheet.show(context);
-    if (code == null || code.isEmpty || !mounted) return;
-
-    setState(() => _processing = true);
-    try {
-      await AuthApiService.redeemPromoCode(code: code);
-      await AccountService.instance.refresh();
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      setState(() => _processing = false);
-      context.showAppSnackBar(e.message, isError: true);
-      return;
-    }
-    if (!mounted) return;
-    setState(() => _processing = false);
-    context.showAppSnackBar(PaymentStrings.promoCodeAppliedBalance);
-    await _startCheckout();
-  }
-
-  /// Tops up the balance by exactly the selected plan's price and, once the
-  /// webview closes, re-reads the balance and retries [_startCheckout] —
-  /// same "top up, then retry" shape as [BookPurchaseScreen]'s insufficient-
-  /// balance path. There's no "pay for this subscription via bank" endpoint
-  /// of its own; [ApiEndpoints.paymentOrders] is the only bank-card money-in
-  /// route, so a subscription bought this way is still two steps under the
-  /// hood (top up, then [SubscriptionService.subscribe] spends from it).
-  Future<void> _payWithBank() async {
-    final tariffs = _tariffs;
-    if (_processing || tariffs == null || tariffs.isEmpty) return;
-    final bank = await BankSelectSheet.show(context);
-    if (bank == null || !mounted) return;
-
-    setState(() => _processing = true);
-    final tariff = tariffs[_selected];
-    try {
-      final url = await PaymentApiService.createTopUpOrder(amount: tariff.price, bankId: bank.id);
-      if (!mounted) return;
-      setState(() => _processing = false);
-      await Navigator.of(context).push(MaterialPageRoute(builder: (_) => PaymentWebViewScreen(url: url)));
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      setState(() => _processing = false);
-      context.showAppSnackBar(e.message, isError: true);
-      return;
-    }
-    if (!mounted) return;
-    await AccountService.instance.refresh();
-    if (!mounted) return;
-    final balance = AccountService.instance.balanceManat;
-    if (balance != null && balance >= tariff.price) await _startCheckout();
-  }
+  // setState is @protected — the payment-action methods in
+  // subscription_screen_actions.dart live in an extension, not a subclass,
+  // so they call this thin wrapper instead of setState directly.
+  void _setState(VoidCallback fn) => setState(fn);
 
   @override
   Widget build(BuildContext context) {
@@ -217,7 +74,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         backgroundColor: AppColors.bg,
         leading: const AppBackButton(size: 20),
         centerTitle: true,
-        title: Text(PaymentStrings.subscriptionTitle, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+        title: Text(PaymentStrings.subscriptionTitle,
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700)),
       ),
       body: SafeArea(
         top: false,
@@ -227,126 +88,29 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                 children: [
-                  Column(
-                    children: [
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.15), shape: BoxShape.circle),
-                        child: Center(
-                          child: ClipOval(
-                            child: Image.asset('assets/images/logo.webp', width: 36, height: 36, fit: BoxFit.cover),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        PaymentStrings.unlimitedAccessTitle,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        PaymentStrings.unlimitedAccessSubtitle,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: AppColors.grey2, fontSize: 13, height: 1.4),
-                      ),
-                    ],
-                  ),
-                  if (expiresAt != null) ...[
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
-                      ),
-                      child: Row(
-                        children: [
-                          HugeIcon(icon: HugeIcons.strokeRoundedCheckmarkCircle01, color: AppColors.primary, size: 20),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(PaymentStrings.activeSubscription, style: TextStyle(color: AppColors.white, fontSize: 13.5, fontWeight: FontWeight.w700)),
-                                Text(PaymentStrings.activeUntil(DateFormat.yMMMd().format(expiresAt)), style: TextStyle(color: AppColors.grey2, fontSize: 12)),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  SubscriptionHeader(expiresAt: expiresAt),
                   const SizedBox(height: 28),
-                  ..._buildPlanList(),
+                  SubscriptionPlanList(
+                    loading: _loading,
+                    error: _error,
+                    tariffs: tariffs ?? const [],
+                    selected: _selected,
+                    onRetry: _loadTariffs,
+                    onSelect: (i) => setState(() => _selected = i),
+                  ),
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-              child: SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
-                  onPressed: (_processing || !hasSelection) ? null : _startCheckout,
-                  child: _processing
-                      ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.4))
-                      : Text(
-                          !hasSelection
-                              ? PaymentStrings.subscriptionTitle
-                              : expiresAt != null
-                                  ? '${PaymentStrings.renew} — ${PaymentStrings.manat(tariffs[_selected].price)}'
-                                  : PaymentStrings.subscribeWithPrice(tariffs[_selected].price),
-                          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
-                        ),
-                ),
-              ),
+            SubscriptionCheckoutButton(
+              processing: _processing,
+              hasSelection: hasSelection,
+              expiresAt: expiresAt,
+              selectedTariff: hasSelection ? tariffs[_selected] : null,
+              onPressed: _startCheckout,
             ),
           ],
         ),
       ),
     );
-  }
-
-  List<Widget> _buildPlanList() {
-    if (_loading) {
-      return [Padding(padding: const EdgeInsets.symmetric(vertical: 24), child: Center(child: CircularProgressIndicator(color: AppColors.primary)))];
-    }
-    if (_error != null) {
-      return [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(PaymentStrings.tariffsLoadError, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
-              const SizedBox(height: 8),
-              TextButton(onPressed: _loadTariffs, child: Text(PaymentStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700))),
-            ],
-          ),
-        ),
-      ];
-    }
-    final tariffs = _tariffs ?? const [];
-    final bestIndex = tariffs.isEmpty ? -1 : _bestIndex(tariffs);
-    return tariffs.asMap().entries.map((entry) {
-      final i = entry.key;
-      final tariff = entry.value;
-      final selected = _selected == i;
-      return PlanCard(
-        tariff: tariff,
-        label: _labelFor(tariff),
-        best: i == bestIndex && tariff.discountPercent > 0,
-        selected: selected,
-        onTap: () {
-          if (selected) return;
-          HapticFeedback.selectionClick();
-          setState(() => _selected = i);
-        },
-      );
-    }).toList();
   }
 }

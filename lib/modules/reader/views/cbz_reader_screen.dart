@@ -1,141 +1,39 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:isolate';
-import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hugeicons/hugeicons.dart';
-import 'package:lottie/lottie.dart';
-import 'package:screen_brightness/screen_brightness.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/localization/strings/reader_strings.dart';
+import '../../../core/localization/strings/reader_bookmark_strings.dart';
 import '../../../core/services/bookmarks_store.dart';
 import '../../../core/services/cbz_page_cache.dart';
 import '../../../core/services/last_read_book_store.dart';
 import '../../../core/services/reading_progress_reporter.dart';
 import '../../../core/services/streak_service.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../core/utils/stable_hash.dart';
 import '../../../core/widgets/app_snackbar.dart';
+import '../utils/cbz_extraction.dart';
 import '../utils/cbz_scroll_metrics.dart';
 import '../utils/eye_care.dart';
 import '../utils/page_note.dart';
+import '../utils/reader_brightness_controller.dart';
 import '../utils/reader_orientation.dart';
+import '../utils/reader_streak_ping.dart';
 import '../widgets/cbz_settings_sheet.dart';
 import '../widgets/pdf_bookmarks_sheet.dart';
 import '../widgets/pdf_bottom_bar.dart';
 import '../widgets/pdf_go_to_page_sheet.dart';
+import '../widgets/reader_error_overlay.dart';
+import '../widgets/reader_focus_page_indicator.dart';
+import '../widgets/reader_loading_overlay.dart';
 import '../widgets/reader_top_bar.dart';
 
-/// File extensions a CBZ page can be. Top-level (not a class member) so
-/// [_extractCbzOnIsolate] can see it without capturing `this` — see that
-/// function's doc for why that matters.
-const _cbzImageExtensions = {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'};
-
-/// Orders "page2.jpg" before "page10.jpg" — plain string sort would put
-/// "page10" first, scrambling any chapter with 10+ pages. Top-level for the
-/// same reason as [_cbzImageExtensions].
-int _compareCbzPagesNaturally(String a, String b) {
-  final pattern = RegExp(r'\d+|\D+');
-  final partsA = pattern.allMatches(a).map((m) => m.group(0)!).toList();
-  final partsB = pattern.allMatches(b).map((m) => m.group(0)!).toList();
-  for (var i = 0; i < partsA.length && i < partsB.length; i++) {
-    final numA = int.tryParse(partsA[i]);
-    final numB = int.tryParse(partsB[i]);
-    if (numA != null && numB != null) {
-      if (numA != numB) return numA.compareTo(numB);
-    } else {
-      final c = partsA[i].compareTo(partsB[i]);
-      if (c != 0) return c;
-    }
-  }
-  return partsA.length.compareTo(partsB.length);
-}
-
-Future<List<String>> _sortedCbzPageFiles(Directory cacheDir) async {
-  final entries = await cacheDir.list().toList();
-  final files = entries.whereType<File>().where((f) {
-    final dot = f.path.lastIndexOf('.');
-    return dot != -1 && _cbzImageExtensions.contains(f.path.substring(dot).toLowerCase());
-  }).toList()
-    ..sort((a, b) => a.path.compareTo(b.path));
-  return files.map((f) => f.path).toList();
-}
-
-/// Unpacks a CBZ's pages onto disk: reads the whole zip into memory, decodes
-/// it, and writes one file per page. Runs on a background isolate spawned by
-/// [_CbzReaderScreenState._extract] via [Isolate.run] — a 200-500MB scanned
-/// manga volume decoded on the UI isolate froze the loading animation and
-/// could OOM low-RAM devices, since none of this work yields back to the
-/// event loop in a way that keeps the UI responsive.
-///
-/// Deliberately top-level and free of any State/BuildContext reference:
-/// `Isolate.run`'s closure can only capture plain, isolate-sendable data
-/// (the `(zipPath, cacheDirPath)` strings below), never `this` or `widget` —
-/// capturing either would drag the whole Flutter State object into the
-/// isolate-message graph and fail at runtime. [cacheDirPath] is resolved by
-/// the caller beforehand for the same reason: getApplicationSupportDirectory()
-/// goes through a platform channel, which isn't available off the main
-/// isolate without extra plugin-side setup this app doesn't have.
-Future<(List<String> pagePaths, bool noImages)> _extractCbzOnIsolate(
-  (String zipPath, String cacheDirPath) args,
-) async {
-  final cacheDir = Directory(args.$2);
-  final marker = File('${cacheDir.path}/.done');
-
-  if (await marker.exists()) {
-    final existing = await _sortedCbzPageFiles(cacheDir);
-    if (existing.isNotEmpty) return (existing, false);
-  }
-
-  if (await cacheDir.exists()) await cacheDir.delete(recursive: true);
-  await cacheDir.create(recursive: true);
-
-  final bytes = await File(args.$1).readAsBytes();
-  final archive = ZipDecoder().decodeBytes(bytes);
-
-  final imageEntries = archive.files.where((f) {
-    if (!f.isFile) return false;
-    final dot = f.name.lastIndexOf('.');
-    if (dot == -1) return false;
-    return _cbzImageExtensions.contains(f.name.substring(dot).toLowerCase());
-  }).toList()
-    ..sort((a, b) => _compareCbzPagesNaturally(a.name, b.name));
-
-  if (imageEntries.isEmpty) return (const <String>[], true);
-
-  final paths = <String>[];
-  for (var i = 0; i < imageEntries.length; i++) {
-    final entry = imageEntries[i];
-    final data = entry.readBytes();
-    if (data == null) continue;
-    final ext = entry.name.substring(entry.name.lastIndexOf('.'));
-    final pagePath = '${cacheDir.path}/${i.toString().padLeft(5, '0')}$ext';
-    await File(pagePath).writeAsBytes(data, flush: true);
-    paths.add(pagePath);
-  }
-
-  if (paths.isEmpty) return (const <String>[], true);
-
-  await marker.create();
-  return (paths, false);
-}
-
-/// Spawns the isolate for [_extractCbzOnIsolate]. Kept as its own top-level
-/// function — not inlined into [_CbzReaderScreenState._extract] — so the
-/// `Isolate.run` closure never shares a lexical scope/context with that
-/// method's other closures (the `setState` callbacks, which do capture
-/// `this`). Dart can allocate one shared context object per scope, so even a
-/// closure that only touches [args] here can end up dragging `this` — and the
-/// `Timer` fields hanging off it — into the isolate message if it's declared
-/// alongside closures that need `this`. Giving it a scope of its own avoids
-/// that entirely.
-Future<(List<String> pagePaths, bool noImages)> _runCbzExtraction(
-  (String zipPath, String cacheDirPath) args,
-) {
-  return Isolate.run(() => _extractCbzOnIsolate(args));
-}
+part 'cbz_reader_screen_lifecycle.dart';
+part 'cbz_reader_screen_actions.dart';
+part 'cbz_reader_screen_sheets.dart';
+part 'cbz_reader_screen_scroll.dart';
+part 'cbz_reader_screen_body.dart';
 
 /// Reader for a CBZ — a comic/manga chapter packaged as a zip of page images,
 /// with no text, layout or table of contents of its own (that's what tells it
@@ -149,6 +47,11 @@ Future<(List<String> pagePaths, bool noImages)> _runCbzExtraction(
 /// [InteractiveViewer], rather than a platform view like the PDF reader uses —
 /// there's no comparable native "comic viewer" component in this project, and
 /// decoded images are simple enough for Flutter to draw directly.
+///
+/// Zip extraction itself lives in `../utils/cbz_extraction.dart` (it has to
+/// run on a background isolate — see that file's doc comments); the rest of
+/// this screen is split by responsibility across the `part` files above, the
+/// same way [PdfReaderScreen] is.
 class CbzReaderScreen extends StatefulWidget {
   final String filePath;
   final String title;
@@ -175,7 +78,8 @@ class CbzReaderScreen extends StatefulWidget {
   State<CbzReaderScreen> createState() => _CbzReaderScreenState();
 }
 
-class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingObserver {
+class _CbzReaderScreenState extends State<CbzReaderScreen>
+    with WidgetsBindingObserver {
   // Created synchronously (no `late`) so an early back-press — before the
   // async prefs/extraction work below ever runs — can't dispose() a
   // controller that was never initialized. It starts at page 0 and is
@@ -189,10 +93,12 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
   final ScrollController _scrollController = ScrollController();
 
   List<String> _pagePaths = const [];
+
   /// width/height per page — see [cbzPageAspectRatios]. Empty until extraction
   /// finishes; [CbzScrollMetrics] substitutes a fallback for any page whose
   /// header couldn't be read.
   List<double> _aspectRatios = const [];
+
   /// Rebuilt whenever the page list or the viewport width changes, since both
   /// change every page's height.
   CbzScrollMetrics? _metrics;
@@ -213,9 +119,9 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
   CbzViewMode _viewMode = CbzViewMode.scroll;
 
   Timer? _saveTimer;
-  Timer? _streakPingTimer;
-  static const _streakPingInterval = Duration(seconds: 60);
-  final Stopwatch _streakStopwatch = Stopwatch();
+  final ReaderStreakPing _streakPing = ReaderStreakPing();
+  final ReaderBrightnessController _brightnessController =
+      ReaderBrightnessController();
 
   int get _bookId => widget.bookId ?? stableBookKey(widget.filePath);
   int get _totalPages => _pagePaths.length;
@@ -227,130 +133,16 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
     enableReaderLandscape();
     _bootstrap();
     WidgetsBinding.instance.addObserver(this);
-    _startStreakPing();
-  }
-
-  void _startStreakPing() {
-    _streakPingTimer?.cancel();
-    _streakStopwatch
-      ..reset()
-      ..start();
-    _streakPingTimer = Timer.periodic(_streakPingInterval, (_) {
-      StreakService.instance.recordActiveSeconds(_streakPingInterval.inSeconds);
-      _streakStopwatch.reset();
-    });
-  }
-
-  /// See [ReaderProvider]'s doc comment on the equivalent method — sends
-  /// whatever active-reading time has elapsed since the last periodic tick
-  /// instead of letting it vanish when the timer is cancelled.
-  void _flushStreakResidual() {
-    _streakPingTimer?.cancel();
-    final residual = _streakStopwatch.elapsed.inSeconds;
-    _streakStopwatch
-      ..stop()
-      ..reset();
-    if (residual > 0) StreakService.instance.flushResidual(seconds: residual);
+    _streakPing.start();
   }
 
   /// See [ReaderProvider]'s doc comment on the equivalent override — only
   /// `paused` (genuinely backgrounded) and `resumed` toggle the ping;
-  /// `inactive`'s brief, non-backgrounding interruptions are left alone.
+  /// `inactive`'s brief, non-backgrounding interruptions are left alone. Body
+  /// lives in cbz_reader_screen_lifecycle.dart.
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    switch (state) {
-      case AppLifecycleState.paused:
-      case AppLifecycleState.detached:
-      case AppLifecycleState.hidden:
-        _flushStreakResidual();
-      case AppLifecycleState.resumed:
-        _startStreakPing();
-      case AppLifecycleState.inactive:
-        break;
-    }
-  }
-
-  Future<void> _bootstrap() async {
-    await BookmarksStore.instance.load();
-    final prefs = await SharedPreferences.getInstance();
-    _initialPage = prefs.getInt('book_${_bookId}_cbz_page') ?? 0;
-    _currentPage = _initialPage;
-    _brightness = prefs.getDouble('reader_brightness') ?? 1.0;
-    _eyeCare = prefs.getDouble('reader_eye_care') ?? 0.0;
-    // No saved choice yet: default the gutter to the app's own light/dark
-    // setting rather than always opening dark.
-    _darkGutter = prefs.getBool('reader_cbz_dark_gutter') ?? AppTheme.instance.isDark;
-    _fit = (prefs.getBool('reader_cbz_fit_cover') ?? false) ? BoxFit.cover : BoxFit.contain;
-    // Continuous scroll is the default — a comic page is taller than the
-    // screen, so fitting it whole is what makes it unreadable. See
-    // [CbzViewMode].
-    _viewMode = CbzViewMode.values[
-        (prefs.getInt('reader_cbz_view_mode') ?? CbzViewMode.scroll.index)
-            .clamp(0, CbzViewMode.values.length - 1)];
-    await _applyBrightness();
-    await _extract();
-  }
-
-  /// Clamps the restored page against the page count extraction just
-  /// resolved (a stale save or a re-extracted book can put it out of range —
-  /// fix for #12) and lands the already-constructed [_pageController] there.
-  /// The controller's own `initialPage` was fixed at 0 back when it was
-  /// created in initState — before the real page was known — so getting to
-  /// the right page now takes an explicit jump once the PageView carrying it
-  /// has actually mounted.
-  void _applyRestoredPage() {
-    if (_totalPages == 0) return;
-    _initialPage = _initialPage.clamp(0, _totalPages - 1);
-    _currentPage = _initialPage;
-    if (_initialPage == 0) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _goToPage(_initialPage);
-    });
-  }
-
-  /// Unpacks the zip to one image file per page, in a folder keyed by this
-  /// file's own path — a second open of the same book reuses it instead of
-  /// re-extracting. A `.done` marker is what "reuse" checks for, so a run that
-  /// got killed mid-extraction is redone rather than served half-finished.
-  /// The actual decode/write work happens off the UI isolate — see
-  /// [_extractCbzOnIsolate] for why.
-  Future<void> _extract() async {
-    try {
-      final cacheDir = await cbzPageCacheDirFor(widget.filePath);
-      // Captured as plain Strings, not `cacheDir`/`widget` themselves — see
-      // _extractCbzOnIsolate's doc on what Isolate.run's closure may capture.
-      final zipPath = widget.filePath;
-      final cacheDirPath = cacheDir.path;
-      final (pages, noImages) = await _runCbzExtraction((zipPath, cacheDirPath));
-
-      if (!mounted) return;
-      if (noImages) {
-        setState(() {
-          _error = ReaderStrings.cbzNoImagesError;
-          _isLoading = false;
-        });
-        return;
-      }
-      // Needed before the scroll list can be built: every page's height comes
-      // from its own ratio. Cached on disk after the first open.
-      final ratios = await cbzPageAspectRatios(filePath: widget.filePath, pagePaths: pages);
-      if (!mounted) return;
-      setState(() {
-        _pagePaths = pages;
-        _aspectRatios = ratios;
-        _isLoading = false;
-        _applyRestoredPage();
-      });
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _isLoading = false;
-        });
-      }
-    }
-  }
+  void didChangeAppLifecycleState(AppLifecycleState state) =>
+      _handleAppLifecycleState(state);
 
   @override
   void dispose() {
@@ -358,509 +150,20 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
     _pageController.dispose();
     _scrollController.dispose();
     _saveTimer?.cancel();
-    _flushStreakResidual();
-    _releaseBrightness();
+    _streakPing.flushResidual();
+    _brightnessController.release();
     _saveProgress();
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [SystemUiOverlay.top]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+        overlays: [SystemUiOverlay.top]);
     restoreAppPortraitLock();
     super.dispose();
   }
 
-  // ── Brightness (TZ §12.4) ────────────────────────────────────────────────
-  Future<void> _applyBrightness() async {
-    try {
-      // Always set an explicit value, even at 1.0 — see ReaderProvider's
-      // _applyReaderBrightness for why releasing control at max used to make
-      // 100% visibly dimmer than the slider promised.
-      await ScreenBrightness().setApplicationScreenBrightness(_brightness.clamp(0.0, 1.0));
-    } catch (_) {}
-  }
-
-  Future<void> _releaseBrightness() async {
-    try {
-      await ScreenBrightness().resetApplicationScreenBrightness();
-    } catch (_) {}
-  }
-
-  Future<void> _setBrightness(double v) async {
-    setState(() => _brightness = v.clamp(0.1, 1.0));
-    await _applyBrightness();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('reader_brightness', _brightness);
-  }
-
-  Future<void> _setEyeCare(double v) async {
-    setState(() => _eyeCare = v.clamp(0.0, 1.0));
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('reader_eye_care', _eyeCare);
-  }
-
-  Future<void> _setGutter(bool dark) async {
-    setState(() => _darkGutter = dark);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('reader_cbz_dark_gutter', dark);
-  }
-
-  Future<void> _setFit(BoxFit fit) async {
-    setState(() => _fit = fit);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('reader_cbz_fit_cover', fit == BoxFit.cover);
-  }
-
-  Future<void> _setViewMode(CbzViewMode mode) async {
-    if (_viewMode == mode) return;
-    setState(() => _viewMode = mode);
-    // The other mode's controller isn't attached yet on this frame, so land
-    // the reader back on the page it was already reading once it is.
-    final page = _currentPage;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _goToPage(page);
-    });
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('reader_cbz_view_mode', mode.index);
-  }
-
-  // ── Progress persistence ─────────────────────────────────────────────────
-  Future<void> _saveProgress() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('book_${_bookId}_cbz_page', _currentPage);
-    await LastReadBookStore.instance.updatePage(
-      bookId: _bookId,
-      page: _currentPage,
-    );
-    if (_totalPages > 0) {
-      final fraction = (_currentPage + 1) / _totalPages;
-      await prefs.setDouble('book_${_bookId}_progress', fraction);
-      // `widget.bookId`, not `_bookId`: the latter falls back to a hashed
-      // file path for a user's own imported book, which has no catalogue row
-      // to report against.
-      final catalogueId = widget.bookId;
-      if (catalogueId != null) {
-        ReadingProgressReporter.instance.report(bookId: catalogueId, fraction: fraction);
-      }
-    }
-  }
-
-  // ── Page changes ─────────────────────────────────────────────────────────
-  void _onPageChanged(int page) {
-    if (_lastLoggedPage != null && page > _lastLoggedPage!) {
-      StreakService.instance.recordPageRead(count: (page - _lastLoggedPage!).clamp(1, 5));
-    }
-    _lastLoggedPage = page;
-    setState(() => _currentPage = page);
-    _saveTimer?.cancel();
-    _saveTimer = Timer(const Duration(seconds: 2), _saveProgress);
-  }
-
-  void _jumpToProgress(double value) {
-    if (_totalPages <= 0) return;
-    _goToPage((value * (_totalPages - 1)).round());
-  }
-
-  /// The one way to move to a page, whichever mode is showing — the scrubber,
-  /// a bookmark and "go to page" all land here. In paged mode that's a
-  /// PageView index; in scroll mode it's a scroll offset, which only
-  /// [CbzScrollMetrics] can work out (page boundaries no longer line up with
-  /// screen boundaries there).
-  void _goToPage(int page) {
-    if (_totalPages <= 0) return;
-    final target = page.clamp(0, _totalPages - 1);
-    if (_viewMode == CbzViewMode.paged) {
-      if (_pageController.hasClients) _pageController.jumpToPage(target);
-      return;
-    }
-    final metrics = _metrics;
-    if (metrics == null || !_scrollController.hasClients) {
-      // Metrics/attachment aren't ready on the very first frame after
-      // extraction — retry once the list has been laid out.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || _viewMode != CbzViewMode.scroll) return;
-        final m = _metrics;
-        if (m == null || !_scrollController.hasClients) return;
-        _scrollController.jumpTo(
-          m.offsetOf(target).clamp(0.0, _scrollController.position.maxScrollExtent),
-        );
-      });
-      _onPageChanged(target);
-      return;
-    }
-    _scrollController.jumpTo(
-      metrics.offsetOf(target).clamp(0.0, _scrollController.position.maxScrollExtent),
-    );
-  }
-
-  // ── Bookmarks (TZ §12.1) ─────────────────────────────────────────────────
-  String get _pageKey => 'page:$_currentPage';
-  bool get _isCurrentPageBookmarked => BookmarksStore.instance.isBookmarked(_bookId, _pageKey);
-
-  Future<void> _toggleBookmark() async {
-    final added = await BookmarksStore.instance.toggle(
-      bookId: _bookId,
-      bookTitle: widget.title,
-      cfi: _pageKey,
-      chapterTitle: ReaderStrings.pageOfPages(_currentPage + 1, _totalPages),
-      progress: _totalPages > 0 ? (_currentPage + 1) / _totalPages : 0.0,
-    );
-    if (!mounted) return;
-    setState(() {});
-    context.showAppSnackBar(added ? ReaderStrings.bookmarkAdded : ReaderStrings.bookmarkRemoved);
-  }
-
-  // ── Notes (TZ §12.7) ─────────────────────────────────────────────────────
-  /// Anchored to the current page: a comic page is a bitmap, so there is no
-  /// passage to quote — see [showAddPageNoteSheet].
-  Future<void> _addNote() => showAddPageNoteSheet(
-        context,
-        bookId: _bookId,
-        realBookId: widget.realBookId,
-        bookTitle: widget.title,
-        page: _currentPage + 1,
-        totalPages: _totalPages,
-      );
-
-  // ── Sheets ───────────────────────────────────────────────────────────────
-  void _openSettings() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => StatefulBuilder(
-        builder: (_, setSheetState) => CbzSettingsSheet(
-          darkGutter: _darkGutter,
-          brightness: _brightness,
-          eyeCare: _eyeCare,
-          fit: _fit,
-          viewMode: _viewMode,
-          onGutterChanged: (v) async {
-            await _setGutter(v);
-            setSheetState(() {});
-          },
-          onBrightnessChanged: (v) async {
-            await _setBrightness(v);
-            setSheetState(() {});
-          },
-          onEyeCareChanged: (v) async {
-            await _setEyeCare(v);
-            setSheetState(() {});
-          },
-          onFitChanged: (v) async {
-            await _setFit(v);
-            setSheetState(() {});
-          },
-          onViewModeChanged: (v) async {
-            await _setViewMode(v);
-            setSheetState(() {});
-          },
-        ),
-      ),
-    );
-  }
-
-  void _openBookmarks() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => StatefulBuilder(
-        builder: (_, setSheetState) => PdfBookmarksSheet(
-          bookmarks: BookmarksStore.instance.forBook(_bookId),
-          isCurrentPageBookmarked: _isCurrentPageBookmarked,
-          onToggleCurrent: () async {
-            await _toggleBookmark();
-            setSheetState(() {});
-          },
-          onJump: (b) {
-            final page = int.tryParse(b.cfi.replaceFirst('page:', ''));
-            if (page != null && page < _totalPages) _goToPage(page);
-          },
-          onRemove: (id) async {
-            await BookmarksStore.instance.remove(id);
-            if (mounted) setState(() {});
-            setSheetState(() {});
-          },
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openGoToPage() async {
-    if (_totalPages <= 0) return;
-    final page = await showModalBottomSheet<int>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => PdfGoToPageSheet(currentPage: _currentPage + 1, totalPages: _totalPages),
-    );
-    if (page != null) _goToPage(page - 1);
-  }
-
-  void _toggleControls() => setState(() => _showControls = !_showControls);
-
-  /// [CbzViewMode.scroll] — every page stacked in one continuous scroll, each
-  /// drawn at the full viewport width so a tall comic page stays legible and
-  /// you scroll down it, rather than the whole page being shrunk to fit.
-  ///
-  /// Heights come from [CbzScrollMetrics] rather than from the images
-  /// themselves: a plain `Image.file` in a ListView only knows its height once
-  /// the file has been decoded, so the list would grow and jump under the
-  /// reader as pages stream in — and the scroll offset that tracks the current
-  /// page would jump with it. Sizing each slot up front from the page's known
-  /// aspect ratio keeps the list stable and makes offset ↔ page exact.
-  ///
-  /// No InteractiveViewer here: pinch-zoom inside a vertical list fights the
-  /// scroll gesture, and a page already filling the width is what the zoom was
-  /// for in paged mode.
-  Widget _buildScrollPages(Color bg, int pageCacheWidth) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        if (_metrics == null || _metricsWidth != width) {
-          _metrics = CbzScrollMetrics(aspectRatios: _aspectRatios, viewportWidth: width);
-          _metricsWidth = width;
-        }
-        final metrics = _metrics!;
-        return NotificationListener<ScrollNotification>(
-          onNotification: (n) {
-            if (n is ScrollUpdateNotification || n is ScrollEndNotification) {
-              final page = metrics.pageAt(_scrollController.offset);
-              if (page != _currentPage) _onPageChanged(page);
-            }
-            return false;
-          },
-          child: ListView.builder(
-            controller: _scrollController,
-            itemCount: _totalPages,
-            // Every slot's height is already known, so the viewport can lay
-            // out without measuring children.
-            itemExtentBuilder: (i, _) => metrics.heightOf(i),
-            itemBuilder: (_, i) => ColoredBox(
-              color: bg,
-              child: Image.file(
-                File(_pagePaths[i]),
-                fit: BoxFit.fitWidth,
-                width: width,
-                cacheWidth: pageCacheWidth,
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   @override
-  Widget build(BuildContext context) {
-    final bg = _darkGutter ? const Color(0xFF1C1C1E) : Colors.white;
-    final inFocus = !_showControls && !_isLoading && _error == null;
-    final focusColor = _darkGutter ? Colors.white38 : Colors.black38;
-    // Decode target for each page image. Without this, Image.file decodes a
-    // scanned page at its native resolution (often 3000-4000px on a side) —
-    // full size for every page PageView keeps around (current + neighbours),
-    // which is what caused the stutter/OOM on lower-RAM devices. 2x the
-    // screen's physical pixels leaves headroom for InteractiveViewer's
-    // maxScale: 4 zoom without needing a re-decode.
-    final pageCacheWidth = (MediaQuery.sizeOf(context).width * MediaQuery.devicePixelRatioOf(context) * 2).round();
+  Widget build(BuildContext context) => _buildBody(context);
 
-    return Scaffold(
-      backgroundColor: bg,
-      body: Stack(
-        children: [
-          if (_error == null && !_isLoading)
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: _toggleControls,
-                behavior: HitTestBehavior.opaque,
-                child: _viewMode == CbzViewMode.scroll
-                    ? _buildScrollPages(bg, pageCacheWidth)
-                    : PageView.builder(
-                        controller: _pageController,
-                        itemCount: _totalPages,
-                        onPageChanged: _onPageChanged,
-                        itemBuilder: (_, i) => ColoredBox(
-                          color: bg,
-                          child: InteractiveViewer(
-                            maxScale: 4,
-                            child: Center(
-                              child: Image.file(File(_pagePaths[i]),
-                                  fit: _fit, cacheWidth: pageCacheWidth),
-                            ),
-                          ),
-                        ),
-                      ),
-              ),
-            ),
-
-          // ── Eye-care (blue-light) wash ─────────────────────────────────
-          // A warm amber layer over the page, independent of the gutter colour
-          // so it works on a light or dark gutter alike. Shared with the
-          // EPUB/PDF readers via the same pref.
-          if (readerEyeCareColor(_eyeCare, isDarkPage: _darkGutter) != null && _error == null && !_isLoading)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: ColoredBox(color: readerEyeCareColor(_eyeCare, isDarkPage: _darkGutter)!),
-              ),
-            ),
-
-          if (_isLoading)
-            Positioned.fill(
-              child: ColoredBox(
-                color: bg,
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 240,
-                        height: 240,
-                        child: Lottie.asset(
-                          'assets/animations/book_reading_boy.json',
-                          repeat: true,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                      Text(
-                        ReaderStrings.cbzExtracting,
-                        style: TextStyle(
-                          color: _darkGutter ? Colors.white70 : Colors.black54,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-          if (_error != null)
-            Positioned.fill(
-              child: ColoredBox(
-                color: bg,
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 64,
-                          height: 64,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.12),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: HugeIcon(
-                              icon: HugeIcons.strokeRoundedFileNotFound,
-                              color: AppColors.primary,
-                              size: 28,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          ReaderStrings.cbzOpenError(_error!),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: _darkGutter ? Colors.white70 : Colors.black54,
-                            fontSize: 13.5,
-                            height: 1.45,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-          // ── Top bar ────────────────────────────────────────────────────
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: IgnorePointer(
-              ignoring: !_showControls,
-              child: AnimatedSlide(
-                offset: _showControls ? Offset.zero : const Offset(0, -1),
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeInOut,
-                child: AnimatedOpacity(
-                  opacity: _showControls ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 200),
-                  child: ReaderTopBar(
-                    title: widget.title,
-                    isBookmarked: _isCurrentPageBookmarked,
-                    pageColor: bg,
-                    eyeCare: _eyeCare,
-                    onBack: () async {
-                      final navigator = Navigator.of(context);
-                      await _saveProgress();
-                      navigator.pop();
-                    },
-                    onBookmark: _toggleBookmark,
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // ── Bottom bar ─────────────────────────────────────────────────
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: IgnorePointer(
-              ignoring: !_showControls,
-              child: AnimatedSlide(
-                offset: _showControls ? Offset.zero : const Offset(0, 1),
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeInOut,
-                child: AnimatedOpacity(
-                  opacity: _showControls ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 200),
-                  child: PdfBottomBar(
-                    pageColor: bg,
-                    eyeCare: _eyeCare,
-                    currentPage: _currentPage + 1,
-                    totalPages: _totalPages,
-                    progress: _totalPages > 0 ? (_currentPage + 1) / _totalPages : 0.0,
-                    onProgressChanged: _jumpToProgress,
-                    onBookmarks: _openBookmarks,
-                    onAddNote: _addNote,
-                    onSettings: _openSettings,
-                    onGoToPage: _openGoToPage,
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // ── Focus-mode page number ─────────────────────────────────────
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: IgnorePointer(
-              child: AnimatedOpacity(
-                opacity: inFocus ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 250),
-                child: SafeArea(
-                  top: false,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 12, top: 4),
-                    child: Text(
-                      _totalPages > 0 ? '${_currentPage + 1} / $_totalPages' : '',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: focusColor, fontSize: 13, fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  /// `setState` is `@protected` on [State] — see [PdfReaderScreen]'s
+  /// equivalent wrapper for why the `extension`s in the part files above
+  /// need this instead of calling `setState(...)` directly.
+  void _setState(VoidCallback fn) => setState(fn);
 }

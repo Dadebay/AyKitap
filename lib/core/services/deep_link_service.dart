@@ -39,7 +39,8 @@ class DeepLinkService {
   void _open(String link) {
     final uri = Uri.tryParse(link);
     if (uri == null || uri.host != 'book') return;
-    final idSegment = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
+    final idSegment =
+        uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
     final bookId = int.tryParse(idSegment ?? '');
     if (bookId == null) return;
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/models/library_book.dart';
 import '../../core/network/api_exception.dart';
-import '../../core/services/book_api_service.dart';
+import '../../core/services/book_list_api_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/network_error_state.dart';
@@ -35,7 +35,7 @@ class _CatalogGenreBooksScreenState extends State<CatalogGenreBooksScreen> {
   Future<void> _load() async {
     setState(() => _error = null);
     try {
-      final books = await BookApiService.listBooks(genreId: widget.genreId);
+      final books = await BookListApiService.listBooks(genreId: widget.genreId);
       if (!mounted) return;
       setState(() => _books = books);
     } on ApiException catch (e) {

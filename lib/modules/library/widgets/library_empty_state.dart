@@ -29,16 +29,22 @@ class LibraryEmptyState extends StatelessWidget {
               child: AspectRatio(
                 aspectRatio: 1,
                 child: Image.asset(
-                  isDark ? 'assets/images/library_empty_dark.webp' : 'assets/images/library_empty_light.webp',
+                  isDark
+                      ? 'assets/images/library_empty_dark.webp'
+                      : 'assets/images/library_empty_light.webp',
                   fit: BoxFit.contain,
                 ),
               ),
             ),
             const SizedBox(height: 20),
-            Text(label, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 15)),
+            Text(label,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.grey2, fontSize: 15)),
             if (sub != null) ...[
               const SizedBox(height: 6),
-              Text(sub!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey3, fontSize: 13)),
+              Text(sub!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.grey3, fontSize: 13)),
             ],
           ],
         ),
@@ -83,7 +89,9 @@ class LibraryLoginRequiredState extends StatelessWidget {
               child: AspectRatio(
                 aspectRatio: 1,
                 child: Image.asset(
-                  isDark ? 'assets/images/library_empty_dark.webp' : 'assets/images/library_empty_light.webp',
+                  isDark
+                      ? 'assets/images/library_empty_dark.webp'
+                      : 'assets/images/library_empty_light.webp',
                   fit: BoxFit.contain,
                 ),
               ),
@@ -92,7 +100,10 @@ class LibraryLoginRequiredState extends StatelessWidget {
             Text(
               LibraryStrings.loginRequiredTitle,
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                  color: AppColors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 6),
             Text(

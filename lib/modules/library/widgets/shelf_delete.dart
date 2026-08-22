@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
-import '../../../core/localization/strings/book_detail_strings.dart';
 import '../../../core/localization/strings/library_strings.dart';
 import '../../../core/services/book_access_service.dart';
 import '../../../core/services/book_api_service.dart';
@@ -8,7 +6,8 @@ import '../../../core/services/favorites_sync_service.dart';
 import '../../../core/services/finished_books_sync_service.dart';
 import '../../../core/services/reading_books_store.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/network_cover_image.dart';
+import 'shelf_delete_actions.dart';
+import 'shelf_delete_illustration.dart';
 
 /// What a long-press "poz" does on each [LibraryScreen] shelf. Every shelf
 /// is a different *relationship* to the same catalogue book — progress, a
@@ -25,7 +24,8 @@ extension ShelfRemovalActions on ShelfRemoval {
   String confirmMessage(String bookName) => switch (this) {
         ShelfRemoval.reading => LibraryStrings.deleteReadingConfirm(bookName),
         ShelfRemoval.finished => LibraryStrings.deleteFinishedConfirm(bookName),
-        ShelfRemoval.purchased => LibraryStrings.deletePurchasedConfirm(bookName),
+        ShelfRemoval.purchased =>
+          LibraryStrings.deletePurchasedConfirm(bookName),
         ShelfRemoval.favorite => LibraryStrings.deleteFavoriteConfirm(bookName),
       };
 
@@ -112,8 +112,6 @@ class _ShelfDeleteDialog extends StatelessWidget {
   final String? coverUrl;
   final String? extraLabel;
 
-  static const _danger = Color(0xFFE5484D);
-
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -125,7 +123,7 @@ class _ShelfDeleteDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _Illustration(coverUrl: coverUrl),
+            ShelfDeleteIllustration(coverUrl: coverUrl),
             const SizedBox(height: 18),
             Text(title ?? LibraryStrings.deleteTitle,
                 textAlign: TextAlign.center,
@@ -139,134 +137,9 @@ class _ShelfDeleteDialog extends StatelessWidget {
                 style: TextStyle(
                     color: AppColors.grey1, fontSize: 13.5, height: 1.45)),
             const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: () =>
-                    Navigator.pop(context, ShelfDeleteChoice.delete),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _danger,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                ),
-                child: Text(LibraryStrings.delete,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700)),
-              ),
-            ),
-            if (extraLabel != null) ...[
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                // Outlined, not filled: it's a real alternative to deleting
-                // (keep a copy of the file first), but the card should still
-                // read as one decision, not two competing buttons.
-                child: OutlinedButton(
-                  onPressed: () =>
-                      Navigator.pop(context, ShelfDeleteChoice.extra),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: AppColors.border),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                  ),
-                  child: Text(extraLabel!,
-                      style: TextStyle(
-                          color: AppColors.white,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700)),
-                ),
-              ),
-            ],
-            const SizedBox(height: 6),
-            SizedBox(
-              width: double.infinity,
-              height: 44,
-              // The safe way out is the plainest thing on the card: the
-              // destructive button is the only filled one, so a half-read
-              // dialog can't be dismissed *into* the delete.
-              child: TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(BookDetailStrings.cancel,
-                    style: TextStyle(
-                        color: AppColors.grey2,
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700)),
-              ),
-            ),
+            ShelfDeleteActions(extraLabel: extraLabel),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// The cover being deleted, with a trash badge on its corner — or a tinted
-/// icon circle when there's no artwork to show.
-class _Illustration extends StatelessWidget {
-  const _Illustration({this.coverUrl});
-
-  final String? coverUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    final url = coverUrl;
-    if (url == null || url.isEmpty) {
-      return Container(
-        width: 72,
-        height: 72,
-        decoration: BoxDecoration(
-            color: _ShelfDeleteDialog._danger.withValues(alpha: 0.14),
-            shape: BoxShape.circle),
-        child: const Center(
-          child: HugeIcon(
-              icon: HugeIcons.strokeRoundedDelete02,
-              color: _ShelfDeleteDialog._danger,
-              size: 32),
-        ),
-      );
-    }
-    return SizedBox(
-      width: 72,
-      height: 100,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: NetworkCoverImage(
-                url: url,
-                placeholder: (_) => Container(color: AppColors.bg),
-              ),
-            ),
-          ),
-          Positioned(
-            right: -8,
-            bottom: -8,
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: _ShelfDeleteDialog._danger,
-                shape: BoxShape.circle,
-                // Reads as a badge cut into the cover rather than a sticker
-                // floating over it, whichever theme the card is painted in.
-                border: Border.all(color: AppColors.card, width: 3),
-              ),
-              child: const Center(
-                child: HugeIcon(
-                    icon: HugeIcons.strokeRoundedDelete02,
-                    color: Colors.white,
-                    size: 15),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

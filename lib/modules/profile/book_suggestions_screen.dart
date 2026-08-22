@@ -3,12 +3,12 @@ import '../../core/models/book_suggestion.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/services/feedback_api_service.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/theme_controller.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/localization/strings/profile_strings.dart';
 import 'book_request_sheet.dart';
 import 'widgets/book_suggestion_card.dart';
+import 'widgets/book_suggestions_empty_state.dart';
 import 'widgets/new_book_request_bar.dart';
 
 /// "Kitap haýyşlarym" — TZ 8.5's book-request flow plus its review status.
@@ -166,34 +166,7 @@ class _BookSuggestionsScreenState extends State<BookSuggestionsScreen> {
     }
     final suggestions = _suggestions ?? const [];
     if (suggestions.isEmpty) {
-      final isDark = AppTheme.instance.isDark;
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 260),
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: Image.asset(
-                    isDark
-                        ? 'assets/images/book_request_empty_dark.webp'
-                        : 'assets/images/book_request_empty_light.webp',
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(ProfileStrings.noSuggestionsYet,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: AppColors.grey2, fontSize: 15, height: 1.5)),
-            ],
-          ),
-        ),
-      );
+      return const BookSuggestionsEmptyState();
     }
     return RefreshIndicator(
       onRefresh: _load,
