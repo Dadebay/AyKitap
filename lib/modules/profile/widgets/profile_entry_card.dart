@@ -9,7 +9,8 @@ Widget profileIconCircle(List<List<dynamic>> icon, {Color? color}) {
   return Container(
     width: 40,
     height: 40,
-    decoration: BoxDecoration(color: c.withValues(alpha: 0.15), shape: BoxShape.circle),
+    decoration:
+        BoxDecoration(color: c.withValues(alpha: 0.15), shape: BoxShape.circle),
     child: Center(child: HugeIcon(icon: icon, color: c, size: 20)),
   );
 }
@@ -43,9 +44,13 @@ class ProfileEntryCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: highlighted ? AppColors.primary.withValues(alpha: 0.12) : AppColors.card,
+          color: highlighted
+              ? AppColors.primary.withValues(alpha: 0.12)
+              : AppColors.card,
           borderRadius: BorderRadius.circular(16),
-          border: highlighted ? Border.all(color: AppColors.primary.withValues(alpha: 0.3)) : null,
+          border: highlighted
+              ? Border.all(color: AppColors.primary.withValues(alpha: 0.3))
+              : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,15 +63,26 @@ class ProfileEntryCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: TextStyle(color: titleColor, fontSize: 14.5, fontWeight: FontWeight.w700)),
+                      Text(title,
+                          style: TextStyle(
+                              color: titleColor,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w700)),
                       if (subtitle != null) ...[
                         const SizedBox(height: 2),
-                        Text(subtitle!, style: TextStyle(color: AppColors.grey2, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                        Text(subtitle!,
+                            style: TextStyle(
+                                color: AppColors.grey2,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600)),
                       ],
                     ],
                   ),
                 ),
-                HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: highlighted ? AppColors.primary : AppColors.grey3, size: 18),
+                HugeIcon(
+                    icon: HugeIcons.strokeRoundedArrowRight01,
+                    color: highlighted ? AppColors.primary : AppColors.grey3,
+                    size: 18),
               ],
             ),
             if (extra != null) ...[

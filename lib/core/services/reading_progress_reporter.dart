@@ -59,7 +59,8 @@ class ReadingProgressReporter {
           _lastSent.remove(bookId);
         }
       }
-      if (kDebugMode) debugPrint('ReadingProgressReporter: $bookId → $percent% failed — $e');
+      if (kDebugMode)
+        debugPrint('ReadingProgressReporter: $bookId → $percent% failed — $e');
     }
   }
 

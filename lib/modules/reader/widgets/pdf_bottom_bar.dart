@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../core/localization/strings/reader_strings.dart';
+import '../../../core/localization/strings/reader_notes_strings.dart';
+import '../../../core/localization/strings/reader_bookmark_strings.dart';
 import '../utils/eye_care.dart';
 import 'reader_progress_scrubber.dart';
+import 'reader_toolbar_btn.dart';
 
 /// The PDF reader's bottom toolbar, built to the same design as the EPUB
 /// [ReaderBottomBar]: a scrim derived from the page colour (densest at the
@@ -62,12 +65,16 @@ class PdfBottomBar extends StatelessWidget {
     final labelColor = isDarkPage ? Colors.white38 : Colors.black45;
     final iconColor = isDarkPage ? Colors.white70 : const Color(0xFF44444F);
     final borderColor = eyeCareTint(
-      isDarkPage ? Colors.white.withValues(alpha: 0.10) : Colors.black.withValues(alpha: 0.08),
+      isDarkPage
+          ? Colors.white.withValues(alpha: 0.10)
+          : Colors.black.withValues(alpha: 0.08),
       eyeCare,
       isDarkPage: isDarkPage,
     );
     final wellColor = eyeCareTint(
-      isDarkPage ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
+      isDarkPage
+          ? Colors.white.withValues(alpha: 0.08)
+          : Colors.black.withValues(alpha: 0.05),
       eyeCare,
       isDarkPage: isDarkPage,
     );
@@ -93,7 +100,10 @@ class PdfBottomBar extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          Container(height: 1, margin: const EdgeInsets.symmetric(horizontal: 20), color: borderColor),
+          Container(
+              height: 1,
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              color: borderColor),
           const SizedBox(height: 6),
 
           // ── Page scrubber ─────────────────────────────────────────────
@@ -105,7 +115,8 @@ class PdfBottomBar extends StatelessWidget {
               totalPages: totalPages,
               labelColor: labelColor,
               activeColor: accent,
-              inactiveTrackColor: isDarkPage ? Colors.white24 : const Color(0xFFE0E0E0),
+              inactiveTrackColor:
+                  isDarkPage ? Colors.white24 : const Color(0xFFE0E0E0),
               overlayColor: const Color(0x22E8712C),
               onSeek: onProgressChanged,
             ),
@@ -118,9 +129,9 @@ class PdfBottomBar extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(8, 0, 8, bottomPad + 6),
             child: Row(
               children: [
-                _PdfToolbarBtn(
+                ReaderToolbarBtn(
                   icon: HugeIcons.strokeRoundedBookmark02,
-                  label: ReaderStrings.bookmarksTitle,
+                  label: ReaderBookmarkStrings.bookmarksTitle,
                   color: iconColor,
                   labelColor: labelColor,
                   wellColor: wellColor,
@@ -129,9 +140,9 @@ class PdfBottomBar extends StatelessWidget {
                 ),
                 // The EPUB reader hangs "Not" off a text selection; there is
                 // no selection to hang it off here, so it lives in the bar.
-                _PdfToolbarBtn(
+                ReaderToolbarBtn(
                   icon: HugeIcons.strokeRoundedNoteAdd,
-                  label: ReaderStrings.noteLabel,
+                  label: ReaderNotesStrings.noteLabel,
                   color: iconColor,
                   labelColor: labelColor,
                   wellColor: wellColor,
@@ -140,7 +151,7 @@ class PdfBottomBar extends StatelessWidget {
                 ),
                 // Accented, matching the EPUB bar where settings is the
                 // primary action.
-                _PdfToolbarBtn(
+                ReaderToolbarBtn(
                   icon: HugeIcons.strokeRoundedFilterHorizontal,
                   label: ReaderStrings.settingsTitle,
                   color: accent,
@@ -149,7 +160,7 @@ class PdfBottomBar extends StatelessWidget {
                   onTap: onSettings,
                   compact: compact,
                 ),
-                _PdfToolbarBtn(
+                ReaderToolbarBtn(
                   icon: HugeIcons.strokeRoundedGridView,
                   label: ReaderStrings.pdfGoToPageShort,
                   color: iconColor,
@@ -162,72 +173,6 @@ class PdfBottomBar extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PdfToolbarBtn extends StatelessWidget {
-  final List<List<dynamic>> icon;
-  final String label;
-  final Color color;
-  final Color labelColor;
-  final Color wellColor;
-  final VoidCallback onTap;
-
-  /// Landscape: caption hidden and the well tightened, so the bar fits the
-  /// shorter screen. The tap target keeps the full row height either way.
-  final bool compact;
-
-  const _PdfToolbarBtn({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.labelColor,
-    required this.wellColor,
-    required this.onTap,
-    this.compact = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: compact ? 4 : 6),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: compact ? 5 : 7),
-                  decoration: BoxDecoration(
-                    color: wellColor,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: FittedBox(child: HugeIcon(icon: icon, color: color, size: 22)),
-                  ),
-                ),
-                if (!compact) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: labelColor, fontSize: 11.5, fontWeight: FontWeight.w500),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/highlight_colors.dart';
 import '../../../core/localization/strings/profile_strings.dart';
+import 'color_dot.dart';
 
 /// What [EditNoteSheet] returns when the reader saves — the note text plus the
 /// ARGB highlight colour they picked.
@@ -120,7 +121,7 @@ class _EditNoteSheetState extends State<EditNoteSheet> {
               Row(
                 children: [
                   for (final c in HighlightColors.palette) ...[
-                    _ColorDot(
+                    ColorDot(
                       color: c,
                       selected: c.toARGB32() == _color,
                       onTap: () => setState(() => _color = c.toARGB32()),
@@ -183,41 +184,6 @@ class _EditNoteSheetState extends State<EditNoteSheet> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// One selectable colour in the picker — grows and gains a ring when chosen.
-class _ColorDot extends StatelessWidget {
-  final Color color;
-  final bool selected;
-  final VoidCallback onTap;
-  const _ColorDot(
-      {required this.color, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: 34,
-        height: 34,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: selected ? AppColors.white : Colors.transparent,
-            width: 2.5,
-          ),
-          boxShadow: selected
-              ? [BoxShadow(color: color.withValues(alpha: 0.6), blurRadius: 8)]
-              : null,
-        ),
-        child: selected
-            ? const Icon(Icons.check, color: Colors.black87, size: 18)
-            : null,
       ),
     );
   }

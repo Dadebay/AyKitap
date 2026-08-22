@@ -64,9 +64,11 @@ class DioClient {
         // failing outright. Guarded by `_retriedFallbackHost` so a failure
         // from the fallback itself doesn't loop.
         final options = err.requestOptions;
-        final isConnectionFailure = err.type == DioExceptionType.connectionError ||
-            err.type == DioExceptionType.connectionTimeout;
-        if (isConnectionFailure && options.extra['_retriedFallbackHost'] != true) {
+        final isConnectionFailure =
+            err.type == DioExceptionType.connectionError ||
+                err.type == DioExceptionType.connectionTimeout;
+        if (isConnectionFailure &&
+            options.extra['_retriedFallbackHost'] != true) {
           options.extra['_retriedFallbackHost'] = true;
           options.baseUrl = ApiConfig.fallbackBaseUrl;
           try {

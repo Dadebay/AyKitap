@@ -29,30 +29,51 @@ class LoggedOutSection extends StatelessWidget {
           Container(
             width: 76,
             height: 76,
-            decoration: BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
-            child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedUser, color: AppColors.grey2, size: 36)),
+            decoration:
+                BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
+            child: Center(
+                child: HugeIcon(
+                    icon: HugeIcons.strokeRoundedUser,
+                    color: AppColors.grey2,
+                    size: 36)),
           ),
           const SizedBox(height: 18),
-          Text(ProfileStrings.loginHeading, style: TextStyle(color: AppColors.white, fontSize: 19, fontWeight: FontWeight.w800)),
+          Text(ProfileStrings.loginHeading,
+              style: TextStyle(
+                  color: AppColors.white,
+                  fontSize: 19,
+                  fontWeight: FontWeight.w800)),
           const SizedBox(height: 8),
           Text(
             ProfileStrings.loginBody,
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.grey2, fontSize: 13.5, height: 1.5),
+            style:
+                TextStyle(color: AppColors.grey2, fontSize: 13.5, height: 1.5),
           ),
           Container(
             width: double.infinity,
             height: 52,
             margin: const EdgeInsets.only(top: 24, bottom: 32),
             child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  elevation: 0),
               onPressed: onLogin,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const HugeIcon(icon: HugeIcons.strokeRoundedSmartPhone01, color: Colors.white, size: 19),
+                  const HugeIcon(
+                      icon: HugeIcons.strokeRoundedSmartPhone01,
+                      color: Colors.white,
+                      size: 19),
                   const SizedBox(width: 8),
-                  Text(ProfileStrings.login, style: const TextStyle(color: Colors.white, fontSize: 15.5, fontWeight: FontWeight.w700)),
+                  Text(ProfileStrings.login,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w700)),
                 ],
               ),
             ),
@@ -91,7 +112,11 @@ class ProfileTopSection extends StatelessWidget {
           onTap: onTap,
           child: Stack(
             children: [
-              ProfileAvatar(index: avatarIndex, size: 88, imageBase64: avatarImage, imageUrl: avatarUrl),
+              ProfileAvatar(
+                  index: avatarIndex,
+                  size: 88,
+                  imageBase64: avatarImage,
+                  imageUrl: avatarUrl),
               Positioned(
                 bottom: 0,
                 right: 0,
@@ -103,7 +128,11 @@ class ProfileTopSection extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.bg, width: 2),
                   ),
-                  child: const Center(child: HugeIcon(icon: HugeIcons.strokeRoundedCamera01, color: Colors.white, size: 13)),
+                  child: const Center(
+                      child: HugeIcon(
+                          icon: HugeIcons.strokeRoundedCamera01,
+                          color: Colors.white,
+                          size: 13)),
                 ),
               ),
             ],
@@ -115,13 +144,21 @@ class ProfileTopSection extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(name, style: TextStyle(color: AppColors.white, fontSize: 20, fontWeight: FontWeight.w700)),
+              Text(name,
+                  style: TextStyle(
+                      color: AppColors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700)),
               const SizedBox(width: 6),
-              HugeIcon(icon: HugeIcons.strokeRoundedEdit02, color: AppColors.grey3, size: 15),
+              HugeIcon(
+                  icon: HugeIcons.strokeRoundedEdit02,
+                  color: AppColors.grey3,
+                  size: 15),
             ],
           ),
         ),
-        Text(maskedPhone, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+        Text(maskedPhone,
+            style: TextStyle(color: AppColors.grey2, fontSize: 14)),
       ],
     );
   }

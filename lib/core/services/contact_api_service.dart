@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import '../models/contact_info.dart';
-import '../network/api_endpoints.dart';
+import '../network/account_endpoints.dart';
 import '../network/api_exception.dart';
 import '../network/dio_client.dart';
 
@@ -10,8 +10,9 @@ class ContactApiService {
 
   static Future<ContactInfo> getContacts() async {
     try {
-      final response = await DioClient.instance.get(ApiEndpoints.contacts);
-      return ContactInfo.fromJson(response.data['data'] as Map<String, dynamic>);
+      final response = await DioClient.instance.get(AccountEndpoints.contacts);
+      return ContactInfo.fromJson(
+          response.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

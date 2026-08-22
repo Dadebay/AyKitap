@@ -5,11 +5,13 @@ import '../strings_base.dart';
 class LanguageSelectStrings {
   LanguageSelectStrings._();
 
-  static String get title => t(tk: 'Dili saýlaň', ru: 'Выберите язык', tr: 'Dili seçin');
+  static String get title =>
+      t(tk: 'Dili saýlaň', ru: 'Выберите язык', tr: 'Dili seçin');
   static String get subtitle => t(
         tk: 'Programmanyň dilini saýlaň. Muny islendik wagt Sazlamalardan üýtgedip bilersiňiz.',
         ru: 'Выберите язык приложения. Вы всегда сможете изменить его в настройках.',
         tr: 'Uygulamanın dilini seçin. Bunu istediğiniz zaman ayarlardan değiştirebilirsiniz.',
       );
-  static String get continueLabel => t(tk: 'Dowam et', ru: 'Продолжить', tr: 'Devam et');
+  static String get continueLabel =>
+      t(tk: 'Dowam et', ru: 'Продолжить', tr: 'Devam et');
 }

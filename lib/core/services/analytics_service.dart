@@ -63,13 +63,17 @@ class AnalyticsService {
     await _analytics?.logSearch(searchTerm: term);
   }
 
-  Future<void> logSelectBook({required String id, required String title}) async {
+  Future<void> logSelectBook(
+      {required String id, required String title}) async {
     await _analytics?.logSelectContent(contentType: 'book', itemId: id);
-    await logEvent('book_selected', parameters: {'book_id': id, 'title': title});
+    await logEvent('book_selected',
+        parameters: {'book_id': id, 'title': title});
   }
 
-  Future<void> logBookOpened({required String id, required String format}) async {
-    await logEvent('book_opened', parameters: {'book_id': id, 'format': format});
+  Future<void> logBookOpened(
+      {required String id, required String format}) async {
+    await logEvent('book_opened',
+        parameters: {'book_id': id, 'format': format});
   }
 
   Future<void> logPurchase({
@@ -77,7 +81,8 @@ class AnalyticsService {
     required double value,
     required String currency,
   }) async {
-    await _analytics?.logPurchase(currency: currency, value: value, parameters: {'book_id': bookId});
+    await _analytics?.logPurchase(
+        currency: currency, value: value, parameters: {'book_id': bookId});
   }
 
   Future<void> logLogin() async => _analytics?.logLogin(loginMethod: 'phone');
@@ -86,6 +91,7 @@ class AnalyticsService {
   /// locale wouldn't capture — the app's language is picked in Settings and
   /// often differs from it.
   Future<void> setLanguage(String languageCode) async {
-    await _analytics?.setUserProperty(name: 'app_language', value: languageCode);
+    await _analytics?.setUserProperty(
+        name: 'app_language', value: languageCode);
   }
 }

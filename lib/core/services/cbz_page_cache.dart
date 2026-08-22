@@ -32,9 +32,12 @@ Future<List<double>> cbzPageAspectRatios({
     final dir = await cbzPageCacheDirFor(filePath);
     cacheFile = File('${dir.path}/aspect_ratios.json');
     if (await cacheFile.exists()) {
-      final decoded = jsonDecode(await cacheFile.readAsString()) as List<dynamic>;
+      final decoded =
+          jsonDecode(await cacheFile.readAsString()) as List<dynamic>;
       if (decoded.length == pagePaths.length) {
-        return decoded.map((e) => (e as num).toDouble()).toList(growable: false);
+        return decoded
+            .map((e) => (e as num).toDouble())
+            .toList(growable: false);
       }
     }
   } catch (_) {

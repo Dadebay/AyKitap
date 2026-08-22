@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import '../network/api_endpoints.dart';
+import '../network/account_endpoints.dart';
 import '../network/api_exception.dart';
 import '../network/dio_client.dart';
 
@@ -20,7 +20,7 @@ class GiftApiService {
     try {
       _debugLog('checking recipient: ${_maskedPhone(phone)}');
       final response = await DioClient.instance.get(
-        ApiEndpoints.isUserExists,
+        AccountEndpoints.isUserExists,
         queryParameters: {'phone': phone},
       );
       // Most API responses are wrapped as `{data: ...}`, but accepting the
@@ -69,7 +69,7 @@ class GiftApiService {
         'sending ${amount.toStringAsFixed(2)} TMT to ${_maskedPhone(phone)}',
       );
       final response = await DioClient.instance.post(
-        ApiEndpoints.sendToFriend,
+        AccountEndpoints.sendToFriend,
         data: {'phone': phone, 'amount': amount},
       );
       _debugLog(

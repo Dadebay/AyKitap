@@ -92,7 +92,8 @@ class _ReaderProgressScrubberState extends State<ReaderProgressScrubber> {
 
     return Row(
       children: [
-        Text('$displayedPage', style: TextStyle(color: widget.labelColor, fontSize: 11)),
+        Text('$displayedPage',
+            style: TextStyle(color: widget.labelColor, fontSize: 11)),
         Expanded(
           child: SliderTheme(
             data: SliderTheme.of(context).copyWith(
@@ -114,7 +115,8 @@ class _ReaderProgressScrubberState extends State<ReaderProgressScrubber> {
             ),
           ),
         ),
-        Text('${widget.totalPages}', style: TextStyle(color: widget.labelColor, fontSize: 11)),
+        Text('${widget.totalPages}',
+            style: TextStyle(color: widget.labelColor, fontSize: 11)),
       ],
     );
   }

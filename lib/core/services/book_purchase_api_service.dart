@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import '../network/api_endpoints.dart';
+import '../network/book_endpoints.dart';
 import '../network/api_exception.dart';
 import '../network/dio_client.dart';
 
@@ -19,7 +19,7 @@ class BookPurchaseApiService {
   /// opens the book.
   static Future<void> buy(int bookId) async {
     try {
-      await DioClient.instance.post(ApiEndpoints.buyBook(bookId));
+      await DioClient.instance.post(BookEndpoints.buyBook(bookId));
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

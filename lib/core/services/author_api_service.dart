@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import '../models/author_detail.dart';
-import '../network/api_endpoints.dart';
+import '../network/catalog_endpoints.dart';
 import '../network/api_exception.dart';
 import '../network/dio_client.dart';
 
@@ -12,7 +12,7 @@ class AuthorApiService {
   static Future<AuthorDetail> getAuthorById(int id) async {
     try {
       final response =
-          await DioClient.instance.get(ApiEndpoints.authorById(id));
+          await DioClient.instance.get(CatalogEndpoints.authorById(id));
       return AuthorDetail.fromJson(
           response.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
@@ -28,7 +28,7 @@ class AuthorApiService {
   }) async {
     try {
       final response = await DioClient.instance
-          .get(ApiEndpoints.authorsSearch, queryParameters: {
+          .get(CatalogEndpoints.authorsSearch, queryParameters: {
         'search': search,
         'page': page,
         'size': size,

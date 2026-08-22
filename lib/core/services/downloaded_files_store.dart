@@ -23,12 +23,15 @@ class DownloadedFileEntry {
     required this.downloadedAt,
   });
 
-  factory DownloadedFileEntry.fromJson(Map<String, dynamic> json) => DownloadedFileEntry(
+  factory DownloadedFileEntry.fromJson(Map<String, dynamic> json) =>
+      DownloadedFileEntry(
         bookId: json['book_id'] as int,
         format: json['format'] as String? ?? '',
         path: json['path'] as String? ?? '',
         sizeBytes: (json['size_bytes'] as num?)?.toInt() ?? 0,
-        downloadedAt: DateTime.tryParse(json['downloaded_at'] as String? ?? '') ?? DateTime.now(),
+        downloadedAt:
+            DateTime.tryParse(json['downloaded_at'] as String? ?? '') ??
+                DateTime.now(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -68,7 +71,10 @@ class DownloadedFilesStore extends ChangeNotifier {
     if (_loaded) return;
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getStringList(_kKey) ?? const [];
-    final parsed = raw.map((s) => DownloadedFileEntry.fromJson(jsonDecode(s) as Map<String, dynamic>)).toList();
+    final parsed = raw
+        .map((s) =>
+            DownloadedFileEntry.fromJson(jsonDecode(s) as Map<String, dynamic>))
+        .toList();
     // Drop entries whose file is gone (reinstall, OS storage reclaim) so
     // "already downloaded" never means "opens a missing file".
     _entries = parsed.where((e) => File(e.path).existsSync()).toList();
@@ -77,7 +83,8 @@ class DownloadedFilesStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<DownloadedFileEntry> forBook(int bookId) => _entries.where((e) => e.bookId == bookId).toList();
+  List<DownloadedFileEntry> forBook(int bookId) =>
+      _entries.where((e) => e.bookId == bookId).toList();
 
   /// The downloaded file to open for [bookId], best format first, or null
   /// if nothing of this book is on disk.
@@ -105,7 +112,8 @@ class DownloadedFilesStore extends ChangeNotifier {
     await load();
     _entries = [
       entry,
-      ..._entries.where((e) => !(e.bookId == entry.bookId && e.format.toLowerCase() == entry.format.toLowerCase())),
+      ..._entries.where((e) => !(e.bookId == entry.bookId &&
+          e.format.toLowerCase() == entry.format.toLowerCase())),
     ];
     await _persist();
     notifyListeners();
@@ -132,6 +140,7 @@ class DownloadedFilesStore extends ChangeNotifier {
 
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_kKey, _entries.map((e) => jsonEncode(e.toJson())).toList());
+    await prefs.setStringList(
+        _kKey, _entries.map((e) => jsonEncode(e.toJson())).toList());
   }
 }

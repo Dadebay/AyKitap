@@ -50,6 +50,7 @@ class AppActivityService with WidgetsBindingObserver {
   int _pendingMillis = 0;
 
   Timer? _timer;
+
   /// Runs only while the app is genuinely being used — foreground *and* not
   /// idle. Using elapsed time rather than counting ticks is what makes the
   /// background flush's partial minute come out right.
@@ -137,7 +138,8 @@ class AppActivityService with WidgetsBindingObserver {
     final whole = _pendingMillis ~/ 1000;
     if (whole <= 0) return;
     final since = _lastReportAt;
-    if (since != null && DateTime.now().difference(since) < _minReportGap) return;
+    if (since != null && DateTime.now().difference(since) < _minReportGap)
+      return;
     // Anonymous time can't be attributed to anyone — the endpoint is
     // per-user and would just 401. The seconds stay banked, so a session
     // that starts mid-run still gets credited for the time before it.

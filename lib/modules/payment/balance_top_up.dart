@@ -34,7 +34,8 @@ Future<void> startBalanceTopUp(BuildContext context) async {
       if (code == null || code.isEmpty || !context.mounted) return;
       try {
         await AuthApiService.redeemPromoCode(code: code);
-        if (context.mounted) context.showAppSnackBar(PaymentStrings.promoCodeAppliedBalance);
+        if (context.mounted)
+          context.showAppSnackBar(PaymentStrings.promoCodeAppliedBalance);
       } on ApiException catch (e) {
         if (!context.mounted) return;
         context.showAppSnackBar(e.message, isError: true);
@@ -46,9 +47,11 @@ Future<void> startBalanceTopUp(BuildContext context) async {
       final bank = await BankSelectSheet.show(context);
       if (bank == null || !context.mounted) return;
       try {
-        final url = await PaymentApiService.createTopUpOrder(amount: amount, bankId: bank.id);
+        final url = await PaymentApiService.createTopUpOrder(
+            amount: amount, bankId: bank.id);
         if (!context.mounted) return;
-        await Navigator.of(context).push(MaterialPageRoute(builder: (_) => PaymentWebViewScreen(url: url)));
+        await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => PaymentWebViewScreen(url: url)));
       } on ApiException catch (e) {
         if (!context.mounted) return;
         context.showAppSnackBar(e.message, isError: true);

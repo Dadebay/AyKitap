@@ -98,7 +98,10 @@ class LibraryBookCover extends StatelessWidget {
                   child: Container(
                     color: Colors.black.withValues(alpha: 0.45),
                     alignment: Alignment.center,
-                    child: const HugeIcon(icon: HugeIcons.strokeRoundedSquareLock02, color: Colors.white, size: 22),
+                    child: const HugeIcon(
+                        icon: HugeIcons.strokeRoundedSquareLock02,
+                        color: Colors.white,
+                        size: 22),
                   ),
                 ),
               ),
@@ -135,7 +138,8 @@ class LibraryBookCover extends StatelessWidget {
                     padding: EdgeInsets.all(5),
                     child: _CornerBadge(
                       size: 26,
-                      child: Icon(IconlyBold.heart, color: Color(0xFFE5484D), size: 15),
+                      child: Icon(IconlyBold.heart,
+                          color: Color(0xFFE5484D), size: 15),
                     ),
                   ),
                 ),

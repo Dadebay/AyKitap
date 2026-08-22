@@ -27,7 +27,8 @@ Color? readerEyeCareColor(double level, {required bool isDarkPage}) {
 /// the same way [readerEyeCareColor] does, so a dark bar doesn't lighten
 /// either. [strength] caps how far even a full-level filter can pull the mix,
 /// so the wells stay legible against their own scrim.
-Color eyeCareTint(Color base, double level, {required bool isDarkPage, double strength = 0.3}) {
+Color eyeCareTint(Color base, double level,
+    {required bool isDarkPage, double strength = 0.3}) {
   if (level <= 0.0) return base;
   final tint = isDarkPage ? readerEyeCareTintDark : readerEyeCareTintLight;
   return Color.lerp(base, tint, level.clamp(0.0, 1.0) * strength) ?? base;

@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import '../models/streak.dart';
-import '../network/api_endpoints.dart';
+import '../network/streak_endpoints.dart';
 import '../network/api_exception.dart';
 import '../network/dio_client.dart';
 
@@ -15,17 +15,19 @@ class StreakApiService {
   /// *successful* report (required), [pages] the page-turn delta over the
   /// same window (omitted entirely when there's nothing to report, since
   /// the backend treats it as optional rather than a literal 0).
-  static Future<StreakReportResult> report({required int seconds, int? pages, int? bookId}) async {
+  static Future<StreakReportResult> report(
+      {required int seconds, int? pages, int? bookId}) async {
     try {
       final response = await DioClient.instance.post(
-        ApiEndpoints.streakReport,
+        StreakEndpoints.streakReport,
         data: {
           'seconds': seconds,
           if (pages != null && pages > 0) 'pages': pages,
           if (bookId != null) 'book_id': bookId,
         },
       );
-      return StreakReportResult.fromJson(response.data['data'] as Map<String, dynamic>);
+      return StreakReportResult.fromJson(
+          response.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -34,8 +36,9 @@ class StreakApiService {
   /// `GET /streaks/me` — backs the whole Streak screen in one call.
   static Future<StreakOverview> getMe() async {
     try {
-      final response = await DioClient.instance.get(ApiEndpoints.streakMe);
-      return StreakOverview.fromJson(response.data['data'] as Map<String, dynamic>);
+      final response = await DioClient.instance.get(StreakEndpoints.streakMe);
+      return StreakOverview.fromJson(
+          response.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -43,10 +46,14 @@ class StreakApiService {
 
   /// `GET /streaks/history` — one page of the daily reading log, newest
   /// first. [limit] is 1..100 server-side (default 30).
-  static Future<StreakHistoryPage> getHistory({int page = 1, int limit = 30}) async {
+  static Future<StreakHistoryPage> getHistory(
+      {int page = 1, int limit = 30}) async {
     try {
-      final response = await DioClient.instance.get(ApiEndpoints.streakHistory, queryParameters: {'page': page, 'limit': limit});
-      return StreakHistoryPage.fromJson(response.data['data'] as Map<String, dynamic>);
+      final response = await DioClient.instance.get(
+          StreakEndpoints.streakHistory,
+          queryParameters: {'page': page, 'limit': limit});
+      return StreakHistoryPage.fromJson(
+          response.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

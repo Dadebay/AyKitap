@@ -1,27 +1,27 @@
-# Session Snapshot — 2026-08-22 15:26
+# Session Snapshot — 2026-08-22 19:40
 
 ## Files Changed
-- .Codex/completions/2026-08-11-play-screenshot-mockup.md
-- .claude/sessions/.claude-md-validated-2026-08-15
-- .claude/sessions/.ghost-checked-20260815
-- .claude/sessions/.snapshot-injected-2026-08-15
-- .claude/sessions/snapshot.md
-- .claude/sessions/token-log.md
-- README.md
-- android/app/src/main/AndroidManifest.xml
-- android/app/src/main/kotlin/com/aykitap/aykitap/MainActivity.kt
-- assets/images/aykitap-play-screenshot-01.png
+- .Codex/completions/2026-08-15-ios-push-foreground.md
+- .Codex/completions/2026-08-22-gift-api-debug-logs.md
+- .Codex/completions/2026-08-22-gift-sheet-form-refinement.md
+- .Codex/completions/2026-08-22-gift-success-celebration.md
+- .Codex/completions/2026-08-22-send-gift-sheet-design.md
+- .claude/completions/2026-08-15-epub-cover-wrong-image.md
+- .claude/completions/2026-08-16-shelf-delete-everywhere.md
+- .claude/sessions/.claude-md-validated-2026-08-16
+- .claude/sessions/.claude-md-validated-2026-08-22
+- .claude/sessions/.ghost-checked-20260816
 
 ## Recent Commits
+- c8a51cd Aug 22
 - 2de849d V1 reader
 - 7d120da Aug 11
 - 66fa541 Aug 8
 - a463032 Aug 6
-- d4c7c53 Aug 3
 
 ## Token Estimate
 ~763 tokens in auto-loaded files
 
 ## Last Turn
-Kendi durumuna (deneyim yılı, hedef ülke/şirket, remote mu yerinde mi) göre daha net bir sayı ister misin?
+Her adımda `dart format` + `flutter analyze` + `flutter test` çalıştırdım — hepsi temiz. [docs/refactor-progress.md](doc
 

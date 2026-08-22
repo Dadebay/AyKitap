@@ -31,14 +31,17 @@ class OwnBooksStore extends ChangeNotifier {
     if (_loaded) return;
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getStringList(_kKey) ?? const [];
-    final loaded = raw.map((s) => OwnBook.fromJson(jsonDecode(s) as Map<String, dynamic>)).toList();
+    final loaded = raw
+        .map((s) => OwnBook.fromJson(jsonDecode(s) as Map<String, dynamic>))
+        .toList();
     // Drop entries whose backing file was lost (cache cleared, reinstall).
     _books = loaded.where((b) => File(b.filePath).existsSync()).toList();
     _loaded = true;
     if (_books.length != loaded.length) await _persist();
   }
 
-  Future<OwnBook> addFromPickedFile({required String sourcePath, required String fileName}) async {
+  Future<OwnBook> addFromPickedFile(
+      {required String sourcePath, required String fileName}) async {
     await _ensureLoaded();
     final lower = fileName.toLowerCase();
     final format = lower.endsWith('.pdf')
@@ -55,8 +58,14 @@ class OwnBooksStore extends ChangeNotifier {
     final destPath = '${ownDir.path}/$id-$fileName';
     await File(sourcePath).copy(destPath);
 
-    final title = fileName.replaceAll(RegExp(r'\.(epub|pdf|cbz)$', caseSensitive: false), '');
-    final book = OwnBook(id: id, title: title, filePath: destPath, format: format, addedAt: DateTime.now());
+    final title = fileName.replaceAll(
+        RegExp(r'\.(epub|pdf|cbz)$', caseSensitive: false), '');
+    final book = OwnBook(
+        id: id,
+        title: title,
+        filePath: destPath,
+        format: format,
+        addedAt: DateTime.now());
 
     _books = [book, ..._books];
     await _persist();
@@ -92,6 +101,7 @@ class OwnBooksStore extends ChangeNotifier {
 
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_kKey, _books.map((b) => jsonEncode(b.toJson())).toList());
+    await prefs.setStringList(
+        _kKey, _books.map((b) => jsonEncode(b.toJson())).toList());
   }
 }

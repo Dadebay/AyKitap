@@ -6,6 +6,7 @@ import '../network/api_exception.dart';
 import 'account_service.dart';
 import 'auth_session.dart';
 import 'book_api_service.dart';
+import 'book_list_api_service.dart';
 import 'subscription_service.dart';
 
 /// What the app is allowed to do with a book right now, in the order the
@@ -62,7 +63,8 @@ class BookAccessService extends ChangeNotifier {
   /// The offline half of [resolve]: can this book be opened right now,
   /// without asking the backend anything? Used by the reading flow once a
   /// file is already on disk, and by the downloaded shelf's lock badge.
-  bool canRead(int bookId) => isPurchased(bookId) || SubscriptionService.instance.isActive;
+  bool canRead(int bookId) =>
+      isPurchased(bookId) || SubscriptionService.instance.isActive;
 
   /// Full evaluation for [book]'s CTA row. Reads only cached state — the
   /// token, the purchased set, [SubscriptionService], and the last known
@@ -92,7 +94,7 @@ class BookAccessService extends ChangeNotifier {
     await load();
     if (!await AuthSession.isLoggedIn()) return;
     try {
-      final books = await BookApiService.listBooks(bought: true);
+      final books = await BookListApiService.listBooks(bought: true);
       await replacePurchased(books.map((b) => b.id));
     } on ApiException {
       // Keep the cached set.
@@ -138,6 +140,7 @@ class BookAccessService extends ChangeNotifier {
 
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_kPurchasedIds, _purchasedIds.map((id) => '$id').toList());
+    await prefs.setStringList(
+        _kPurchasedIds, _purchasedIds.map((id) => '$id').toList());
   }
 }

@@ -37,15 +37,20 @@ class _AvatarPickerSheetState extends State<AvatarPickerSheet> {
     if (_picking) return;
     setState(() => _picking = true);
     try {
-      final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+      final result = await FilePicker.platform
+          .pickFiles(type: FileType.image, withData: true);
       final bytes = result?.files.single.bytes;
       if (bytes == null) return;
       // Shrink to the backend's 1 MB avatar upload limit before it ever
       // reaches the base64 encode — a raw gallery photo routinely exceeds it.
       final compressed = ImageCompressor.compress(bytes) ?? bytes;
-      if (mounted) Navigator.pop(context, AvatarPickResult.image(base64Encode(compressed)));
+      if (mounted)
+        Navigator.pop(
+            context, AvatarPickResult.image(base64Encode(compressed)));
     } catch (e) {
-      if (mounted) context.showAppSnackBar(ProfileStrings.imageNotSelected(e), isError: true);
+      if (mounted)
+        context.showAppSnackBar(ProfileStrings.imageNotSelected(e),
+            isError: true);
     } finally {
       if (mounted) setState(() => _picking = false);
     }
@@ -65,36 +70,68 @@ class _AvatarPickerSheetState extends State<AvatarPickerSheet> {
                 child: Container(
                   width: 40,
                   height: 4,
-                  decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
+                  decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(2)),
                 ),
               ),
               const SizedBox(height: 16),
-              Text(ProfileStrings.chooseAvatarTitle, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+              Text(ProfileStrings.chooseAvatarTitle,
+                  style: TextStyle(
+                      color: AppColors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700)),
               const SizedBox(height: 16),
               GestureDetector(
                 onTap: _pickOwnPhoto,
                 child: Container(
                   padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14)),
+                  decoration: BoxDecoration(
+                      color: AppColors.card,
+                      borderRadius: BorderRadius.circular(14)),
                   child: Row(
                     children: [
                       Container(
                         width: 40,
                         height: 40,
-                        decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.15), shape: BoxShape.circle),
+                        decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.15),
+                            shape: BoxShape.circle),
                         child: _picking
-                            ? Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)))
-                            : Center(child: HugeIcon(icon: HugeIcons.strokeRoundedImage01, color: AppColors.primary, size: 20)),
+                            ? Center(
+                                child: SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.primary)))
+                            : Center(
+                                child: HugeIcon(
+                                    icon: HugeIcons.strokeRoundedImage01,
+                                    color: AppColors.primary,
+                                    size: 20)),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(child: Text(ProfileStrings.chooseOwnPhoto, style: TextStyle(color: AppColors.white, fontSize: 14.5, fontWeight: FontWeight.w600))),
-                      HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: AppColors.grey3, size: 18),
+                      Expanded(
+                          child: Text(ProfileStrings.chooseOwnPhoto,
+                              style: TextStyle(
+                                  color: AppColors.white,
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w600))),
+                      HugeIcon(
+                          icon: HugeIcons.strokeRoundedArrowRight01,
+                          color: AppColors.grey3,
+                          size: 18),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-              Text(ProfileStrings.presetAvatars, style: TextStyle(color: AppColors.grey2, fontSize: 13, fontWeight: FontWeight.w600)),
+              Text(ProfileStrings.presetAvatars,
+                  style: TextStyle(
+                      color: AppColors.grey2,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600)),
               const SizedBox(height: 12),
               GridView.builder(
                 shrinkWrap: true,
@@ -108,11 +145,14 @@ class _AvatarPickerSheetState extends State<AvatarPickerSheet> {
                 itemBuilder: (context, i) {
                   final selected = i == widget.current;
                   return GestureDetector(
-                    onTap: () => Navigator.pop(context, AvatarPickResult.preset(i)),
+                    onTap: () =>
+                        Navigator.pop(context, AvatarPickResult.preset(i)),
                     child: Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: selected ? Border.all(color: AppColors.primary, width: 3) : null,
+                        border: selected
+                            ? Border.all(color: AppColors.primary, width: 3)
+                            : null,
                       ),
                       padding: const EdgeInsets.all(3),
                       child: ProfileAvatar(index: i, size: 60),

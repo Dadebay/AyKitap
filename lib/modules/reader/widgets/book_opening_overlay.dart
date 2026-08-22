@@ -31,7 +31,8 @@ class BookOpeningOverlay extends StatefulWidget {
   State<BookOpeningOverlay> createState() => _BookOpeningOverlayState();
 }
 
-class _BookOpeningOverlayState extends State<BookOpeningOverlay> with SingleTickerProviderStateMixin {
+class _BookOpeningOverlayState extends State<BookOpeningOverlay>
+    with SingleTickerProviderStateMixin {
   static const _rampCeiling = 0.92;
   static const _rampDuration = Duration(milliseconds: 3200);
   static const _finishDuration = Duration(milliseconds: 260);
@@ -108,7 +109,8 @@ class _BookOpeningOverlayState extends State<BookOpeningOverlay> with SingleTick
                 const SizedBox(height: 4),
                 Text(
                   '$shown%',
-                  style: TextStyle(color: fg, fontSize: 22, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                      color: fg, fontSize: 22, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 10),
                 SizedBox(

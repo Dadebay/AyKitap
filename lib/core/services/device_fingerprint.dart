@@ -39,7 +39,8 @@ class DeviceFingerprint {
       }
       if (Platform.isIOS) {
         final info = await plugin.iosInfo;
-        return info.identifierForVendor ?? await _persistedFallback(seed: info.identifierForVendor);
+        return info.identifierForVendor ??
+            await _persistedFallback(seed: info.identifierForVendor);
       }
     } catch (_) {
       // Plugin unsupported/failed on this platform — fall back below.
@@ -54,7 +55,8 @@ class DeviceFingerprint {
     final existing = prefs.getString(_kFallbackId);
     if (existing != null) return existing;
 
-    final raw = '${seed ?? ''}-${DateTime.now().microsecondsSinceEpoch}-${identityHashCode(prefs)}';
+    final raw =
+        '${seed ?? ''}-${DateTime.now().microsecondsSinceEpoch}-${identityHashCode(prefs)}';
     final id = sha256.convert(utf8.encode(raw)).toString();
     await prefs.setString(_kFallbackId, id);
     return id;

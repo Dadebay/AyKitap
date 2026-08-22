@@ -3,6 +3,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../../core/localization/strings/reader_strings.dart';
 import '../utils/eye_care.dart';
 import 'reader_progress_scrubber.dart';
+import 'reader_toolbar_btn.dart';
 
 /// TZ §12.3 — the reader's bottom toolbar: three labelled actions
 /// (Mazmun / Sazlamalar / Gözleg) sitting on a gradient bar, above the
@@ -52,14 +53,18 @@ class ReaderBottomBar extends StatelessWidget {
     // page's contrast colour like the top bar does.
     final iconColor = isDarkPage ? Colors.white70 : const Color(0xFF44444F);
     final borderColor = eyeCareTint(
-      isDarkPage ? Colors.white.withValues(alpha: 0.10) : Colors.black.withValues(alpha: 0.08),
+      isDarkPage
+          ? Colors.white.withValues(alpha: 0.10)
+          : Colors.black.withValues(alpha: 0.08),
       eyeCare,
       isDarkPage: isDarkPage,
     );
     // The rounded "well" behind each icon — same idiom as the top bar's
     // circular buttons — so taps have an obvious target and feedback.
     final wellColor = eyeCareTint(
-      isDarkPage ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
+      isDarkPage
+          ? Colors.white.withValues(alpha: 0.08)
+          : Colors.black.withValues(alpha: 0.05),
       eyeCare,
       isDarkPage: isDarkPage,
     );
@@ -106,7 +111,8 @@ class ReaderBottomBar extends StatelessWidget {
               totalPages: totalPages,
               labelColor: labelColor,
               activeColor: accent,
-              inactiveTrackColor: isDarkPage ? Colors.white24 : const Color(0xFFE0E0E0),
+              inactiveTrackColor:
+                  isDarkPage ? Colors.white24 : const Color(0xFFE0E0E0),
               overlayColor: const Color(0x22E8712C),
               onSeek: onProgressChanged,
             ),
@@ -120,7 +126,7 @@ class ReaderBottomBar extends StatelessWidget {
             child: Row(
               children: [
                 // Содержание — chapters list
-                _ToolbarBtn(
+                ReaderToolbarBtn(
                   icon: HugeIcons.strokeRoundedBookOpen01,
                   label: ReaderStrings.contentsLabel,
                   color: iconColor,
@@ -130,7 +136,7 @@ class ReaderBottomBar extends StatelessWidget {
                   compact: compact,
                 ),
                 // Настройки — reader settings (accented, like the reference)
-                _ToolbarBtn(
+                ReaderToolbarBtn(
                   icon: HugeIcons.strokeRoundedFilterHorizontal,
                   label: ReaderStrings.settingsTitle,
                   color: accent,
@@ -140,7 +146,7 @@ class ReaderBottomBar extends StatelessWidget {
                   compact: compact,
                 ),
                 // Поиск — in-book search
-                _ToolbarBtn(
+                ReaderToolbarBtn(
                   icon: HugeIcons.strokeRoundedSearch01,
                   label: ReaderStrings.searchShortLabel,
                   color: iconColor,
@@ -153,72 +159,6 @@ class ReaderBottomBar extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ToolbarBtn extends StatelessWidget {
-  final List<List<dynamic>> icon;
-  final String label;
-  final Color color;
-  final Color labelColor;
-  final Color wellColor;
-  final VoidCallback onTap;
-
-  /// Landscape: caption hidden and the well tightened, so the bar fits the
-  /// shorter screen. The tap target keeps the full row height either way.
-  final bool compact;
-
-  const _ToolbarBtn({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.labelColor,
-    required this.wellColor,
-    required this.onTap,
-    this.compact = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: compact ? 4 : 6),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: compact ? 5 : 7),
-                  decoration: BoxDecoration(
-                    color: wellColor,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: FittedBox(child: HugeIcon(icon: icon, color: color, size: 22)),
-                  ),
-                ),
-                if (!compact) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: labelColor, fontSize: 11.5, fontWeight: FontWeight.w500),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

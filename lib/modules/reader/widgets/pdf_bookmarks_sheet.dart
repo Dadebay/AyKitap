@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import '../../../core/localization/strings/reader_strings.dart';
+import '../../../core/localization/strings/reader_bookmark_strings.dart';
 import '../../../core/models/bookmark.dart';
 import '../../../core/theme/app_colors.dart';
 
@@ -33,12 +33,14 @@ class PdfBookmarksSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
+      constraints:
+          BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      padding: EdgeInsets.fromLTRB(16, 12, 16, 24 + MediaQuery.of(context).padding.bottom),
+      padding: EdgeInsets.fromLTRB(
+          16, 12, 16, 24 + MediaQuery.of(context).padding.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,13 +49,18 @@ class PdfBookmarksSheet extends StatelessWidget {
             child: Container(
               width: 36,
               height: 4,
-              decoration: BoxDecoration(color: AppColors.grey3, borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(
+                  color: AppColors.grey3,
+                  borderRadius: BorderRadius.circular(2)),
             ),
           ),
           const SizedBox(height: 16),
           Text(
-            ReaderStrings.bookmarksTitle,
-            style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700),
+            ReaderBookmarkStrings.bookmarksTitle,
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 14),
 
@@ -64,7 +71,9 @@ class PdfBookmarksSheet extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
-                color: isCurrentPageBookmarked ? AppColors.card : AppColors.primary,
+                color: isCurrentPageBookmarked
+                    ? AppColors.card
+                    : AppColors.primary,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -74,14 +83,20 @@ class PdfBookmarksSheet extends StatelessWidget {
                     icon: isCurrentPageBookmarked
                         ? HugeIcons.strokeRoundedBookmarkRemove02
                         : HugeIcons.strokeRoundedBookmarkAdd02,
-                    color: isCurrentPageBookmarked ? AppColors.grey2 : Colors.white,
+                    color: isCurrentPageBookmarked
+                        ? AppColors.grey2
+                        : Colors.white,
                     size: 19,
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    isCurrentPageBookmarked ? ReaderStrings.removeCurrentPage : ReaderStrings.addCurrentPage,
+                    isCurrentPageBookmarked
+                        ? ReaderBookmarkStrings.removeCurrentPage
+                        : ReaderBookmarkStrings.addCurrentPage,
                     style: TextStyle(
-                      color: isCurrentPageBookmarked ? AppColors.grey2 : Colors.white,
+                      color: isCurrentPageBookmarked
+                          ? AppColors.grey2
+                          : Colors.white,
                       fontSize: 14.5,
                       fontWeight: FontWeight.w600,
                     ),
@@ -98,9 +113,13 @@ class PdfBookmarksSheet extends StatelessWidget {
               child: Center(
                 child: Column(
                   children: [
-                    HugeIcon(icon: HugeIcons.strokeRoundedBookmark02, color: AppColors.grey3, size: 34),
+                    HugeIcon(
+                        icon: HugeIcons.strokeRoundedBookmark02,
+                        color: AppColors.grey3,
+                        size: 34),
                     const SizedBox(height: 10),
-                    Text(ReaderStrings.bookmarksEmpty, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+                    Text(ReaderBookmarkStrings.bookmarksEmpty,
+                        style: TextStyle(color: AppColors.grey2, fontSize: 14)),
                   ],
                 ),
               ),
@@ -110,27 +129,39 @@ class PdfBookmarksSheet extends StatelessWidget {
               child: ListView.separated(
                 shrinkWrap: true,
                 itemCount: bookmarks.length,
-                separatorBuilder: (_, __) => Divider(color: AppColors.border, height: 1),
+                separatorBuilder: (_, __) =>
+                    Divider(color: AppColors.border, height: 1),
                 itemBuilder: (_, i) {
                   final b = bookmarks[i];
                   final percent = (b.progress * 100).round();
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: HugeIcon(icon: HugeIcons.strokeRoundedBookmark01, color: AppColors.primary, size: 20),
+                    leading: HugeIcon(
+                        icon: HugeIcons.strokeRoundedBookmark01,
+                        color: AppColors.primary,
+                        size: 20),
                     // chapterTitle carries the "Sahypa 12 / 340" label the PDF
                     // screen stored when the mark was made.
                     title: Text(
-                      b.chapterTitle.isNotEmpty ? b.chapterTitle : ReaderStrings.bookmarkProgress(percent),
+                      b.chapterTitle.isNotEmpty
+                          ? b.chapterTitle
+                          : ReaderBookmarkStrings.bookmarkProgress(percent),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: AppColors.white, fontSize: 14.5, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          color: AppColors.white,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w600),
                     ),
                     subtitle: Text(
-                      ReaderStrings.bookmarkProgress(percent),
+                      ReaderBookmarkStrings.bookmarkProgress(percent),
                       style: TextStyle(color: AppColors.grey2, fontSize: 12),
                     ),
                     trailing: IconButton(
-                      icon: HugeIcon(icon: HugeIcons.strokeRoundedDelete02, color: AppColors.grey2, size: 20),
+                      icon: HugeIcon(
+                          icon: HugeIcons.strokeRoundedDelete02,
+                          color: AppColors.grey2,
+                          size: 20),
                       onPressed: () => onRemove(b.id),
                     ),
                     onTap: () {

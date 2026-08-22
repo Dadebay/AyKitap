@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import '../models/user_note.dart';
-import '../network/api_endpoints.dart';
+import '../network/account_endpoints.dart';
 import '../network/api_exception.dart';
 import '../network/dio_client.dart';
 
@@ -11,17 +11,21 @@ class UserNotesApiService {
 
   static Future<List<UserNote>> getNotes() async {
     try {
-      final response = await DioClient.instance.get(ApiEndpoints.userNotes);
+      final response = await DioClient.instance.get(AccountEndpoints.userNotes);
       final items = response.data['data'] as List;
-      return items.map((e) => UserNote.fromJson(e as Map<String, dynamic>)).toList();
+      return items
+          .map((e) => UserNote.fromJson(e as Map<String, dynamic>))
+          .toList();
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
   }
 
-  static Future<UserNote> createNote({required int bookId, required String note, String? snippet}) async {
+  static Future<UserNote> createNote(
+      {required int bookId, required String note, String? snippet}) async {
     try {
-      final response = await DioClient.instance.post(ApiEndpoints.userNotes, data: {
+      final response =
+          await DioClient.instance.post(AccountEndpoints.userNotes, data: {
         'book_id': bookId,
         'note': note,
         if (snippet != null) 'snippet': snippet,
@@ -32,9 +36,11 @@ class UserNotesApiService {
     }
   }
 
-  static Future<UserNote> updateNote(int noteId, {String? note, String? snippet}) async {
+  static Future<UserNote> updateNote(int noteId,
+      {String? note, String? snippet}) async {
     try {
-      final response = await DioClient.instance.patch(ApiEndpoints.userNoteById(noteId), data: {
+      final response = await DioClient.instance
+          .patch(AccountEndpoints.userNoteById(noteId), data: {
         if (note != null) 'note': note,
         if (snippet != null) 'snippet': snippet,
       });
@@ -46,7 +52,7 @@ class UserNotesApiService {
 
   static Future<void> deleteNote(int noteId) async {
     try {
-      await DioClient.instance.delete(ApiEndpoints.userNoteById(noteId));
+      await DioClient.instance.delete(AccountEndpoints.userNoteById(noteId));
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
