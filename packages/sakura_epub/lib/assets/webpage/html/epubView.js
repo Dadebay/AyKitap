@@ -2145,16 +2145,20 @@ function _transitionSpec(mode, dir) {
       return { out: 'scale(0.92) skewY(' + (-5 * dir) + 'deg) translateX(' + (-55 * dir) + '%)', outOpacity: 0,
                inFrom: 'scale(0.95) skewY(' + (3 * dir) + 'deg) translateX(' + (28 * dir) + '%)', inOpacity: 0.15,
                outMs: 200, inMs: 220, ease: ease };
-    // Прокрутка — the only *vertical* mode. The new page rises up from the
-    // bottom edge into place (never sideways), the old one lifts slightly and
-    // fades out the top, and the swipe that drives it is vertical too (see the
-    // detectSwipe callback). Non-directional — an arrival, not a left/right
-    // turn — with a slower entrance than exit so the rise itself is what reads
-    // on screen. Paired with a vertical swipe this reads as "scrolling up to
-    // the next page", which is what "Prokrutka" is meant to feel like.
+    // Прокрутка — the only *vertical* mode. Going forward the new page rises up
+    // from the bottom edge into place (never sideways) while the old one lifts
+    // slightly and fades out the top; going back it mirrors, so the page you
+    // are returning to comes back down from the top. The swipe that drives it
+    // is vertical too (see the detectSwipe callback), with a slower entrance
+    // than exit so the travel itself is what reads on screen.
+    //
+    // Both offsets are multiplied by `dir` for that mirroring — exactly as the
+    // horizontal modes above do. They used to be hardcoded to the forward pose,
+    // which meant a backwards turn still played "new page arrives from the
+    // bottom": the page changed correctly but appeared to travel the wrong way.
     case 'scroll':
-      return { out: 'translateY(-10%)', outOpacity: 0,
-               inFrom: 'translateY(72%)', inOpacity: 0,
+      return { out: 'translateY(' + (-10 * dir) + '%)', outOpacity: 0,
+               inFrom: 'translateY(' + (72 * dir) + '%)', inOpacity: 0,
                outMs: 150, inMs: 280, ease: ease };
     // Листание — the plain horizontal page slide every reader does: the page
     // travels the full width sideways, so it leaves and arrives edge-to-edge

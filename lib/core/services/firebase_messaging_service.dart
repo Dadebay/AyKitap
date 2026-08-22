@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -20,8 +21,22 @@ class FirebaseMessagingService {
 
   Future<void> init() async {
     await LocalNotificationsService.instance.init();
-    await _printTokens();
     await _requestPermission();
+    // Firebase deliberately suppresses notification banners while an iOS app
+    // is open unless these presentation options are set. This is independent
+    // of the user's notification permission.
+    if (Platform.isIOS) {
+      await FirebaseMessaging.instance
+          .setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    }
+    // On iOS, APNs registration is initiated by the permission request. Get
+    // the FCM token only afterwards, so it is correctly associated with the
+    // APNs token before it is used by Firebase Console or our backend.
+    await _printTokens();
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     FirebaseMessaging.onMessage.listen(_onForegroundMessage);
     FirebaseMessaging.onMessageOpenedApp.listen(_onMessageOpenedApp);
@@ -87,12 +102,21 @@ class FirebaseMessagingService {
   }
 
   Future<void> _requestPermission() async {
-    await FirebaseMessaging.instance.requestPermission(alert: true, badge: true, sound: true);
+    final settings = await FirebaseMessaging.instance.requestPermission();
+    _debugPrintColored(
+      'Push permission: ${settings.authorizationStatus.name}',
+      settings.authorizationStatus == AuthorizationStatus.authorized ||
+              settings.authorizationStatus == AuthorizationStatus.provisional
+          ? _AnsiColor.cyan
+          : _AnsiColor.red,
+    );
   }
 
   void _onForegroundMessage(RemoteMessage message) {
     final notification = message.notification;
-    if (notification != null) {
+    // iOS now presents the remote message itself (configured in [init]). A
+    // second local notification here would create duplicate banners.
+    if (notification != null && !Platform.isIOS) {
       LocalNotificationsService.instance.showNotification(
         notification.title,
         notification.body,
@@ -109,7 +133,8 @@ class FirebaseMessagingService {
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (Firebase.apps.isEmpty) {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform);
   }
 }
 

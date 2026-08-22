@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:developer';
-import 'dart:io' show Platform;
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:lottie/lottie.dart';
+import 'package:pdfrx/pdfrx.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/localization/strings/reader_strings.dart';
@@ -17,7 +17,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/stable_hash.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../utils/eye_care.dart';
+import '../utils/page_note.dart';
 import '../utils/pdf_book_opener.dart';
+import '../utils/reader_orientation.dart';
 import '../widgets/pdf_bookmarks_sheet.dart';
 import '../widgets/pdf_bottom_bar.dart';
 import '../widgets/pdf_go_to_page_sheet.dart';
@@ -31,15 +33,29 @@ import '../widgets/reader_top_bar.dart';
 /// on text simply have nothing to act on and aren't offered here: font
 /// size/family/line spacing (the page is a fixed picture), in-book search and
 /// the chapter list (these files carry no text layer or outline), and
-/// highlights/notes (nothing selectable). What *does* carry over is wired up:
-/// the reader's top bar, focus mode (tap to hide the chrome), a page scrubber,
-/// device brightness (TZ §12.4), per-page bookmarks (TZ §12.1), and
-/// progress that's saved and restored across sessions.
+/// *highlights* (there is no selection to paint). What *does* carry over is
+/// wired up: the reader's top bar, focus mode (tap to hide the chrome), a page
+/// scrubber, device brightness (TZ §12.4), per-page bookmarks (TZ §12.1),
+/// notes anchored to the page rather than to a passage
+/// ([showAddPageNoteSheet]), and progress that's saved and restored across
+/// sessions.
 ///
-/// The page itself is drawn by the native PDFium view ([PDFView]) rather than
-/// re-rendered in Dart — much faster on the large scanned files this opens.
-/// A [Listener] over it recognises a tap without swallowing scroll (a
-/// GestureDetector would consume the drag the native view needs), the same way
+/// Pages are drawn by [PdfViewer] (pdfrx). This used to be flutter_pdfview's
+/// native PDFium view, and the two could not coexist: pdfrx ships
+/// `libpdfium.so` and flutter_pdfview ships `libmodpdfium.so`, *both*
+/// declaring `SONAME libpdfium.so`, which is also what flutter_pdfview's
+/// `libjniPdfium.so` links against. Whichever loaded first won that name for
+/// the whole process — and since [PdfReflowService] classifies a PDF (loading
+/// pdfrx's copy) before this screen opens, flutter_pdfview's renderer ended up
+/// calling into *pdfrx's* PDFium, which has Dart FFI font callbacks installed.
+/// A page needing a substituted font then invoked Dart from flutter_pdfview's
+/// native render thread — "Cannot invoke native callback outside an isolate" —
+/// and aborted the process. Books whose fonts are all embedded never hit the
+/// font mapper and so never crashed, which is why it looked file-specific.
+/// One engine removes the conflict at its root.
+///
+/// A [Listener] over the viewer recognises a tap without swallowing scroll (a
+/// GestureDetector would consume the drag the viewer needs), the same way
 /// the EPUB reader reads taps back out of its WebView.
 class PdfReaderScreen extends StatefulWidget {
   final String filePath;
@@ -50,11 +66,31 @@ class PdfReaderScreen extends StatefulWidget {
   /// with the rest of the app; otherwise the file path stands in.
   final int? bookId;
 
+  /// The real `/books/:id` catalogue id — see [ReaderScreen.realBookId]. Set
+  /// only for a downloaded catalogue book; notes taken here are then also
+  /// persisted via `POST /users/notes`, which is what puts them in the
+  /// profile's "Notlar" list. Null for the user's own imported PDFs, whose
+  /// notes stay local, exactly as an imported EPUB's do.
+  ///
+  /// Deliberately separate from [bookId]: that one falls back to a hashed file
+  /// path for an import, and a hash is not an id the backend would accept.
+  final int? realBookId;
+
+  /// This book's pages are images (a scan, a manga/comic) rather than text —
+  /// see [PdfReflowService.isImageOnlyPdf], which [PdfOpeningScreen] resolves
+  /// before handing over. Such a book opens filling the screen's *width* and
+  /// scrolling down the page, since fitting a tall picture page to the screen's
+  /// height shrinks it to an unreadable sliver. Only the opening default is
+  /// affected — the settings sheet still switches modes freely afterwards.
+  final bool imageOnly;
+
   const PdfReaderScreen({
     super.key,
     required this.filePath,
     required this.title,
     this.bookId,
+    this.realBookId,
+    this.imageOnly = false,
   });
 
   @override
@@ -62,9 +98,12 @@ class PdfReaderScreen extends StatefulWidget {
 }
 
 class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingObserver {
-  PDFViewController? _controller;
+  final _controller = PdfViewerController();
 
-  int _currentPage = 0; // 0-based, as PDFView reports it.
+  /// 0-based throughout this screen — pdfrx speaks 1-based page numbers, so
+  /// the two are converted at the boundary rather than churning every
+  /// bookmark/note/progress key that already stores a 0-based index.
+  int _currentPage = 0;
   int _totalPages = 0;
   int _initialPage = 0;
   int? _lastLoggedPage;
@@ -77,7 +116,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
   // `reader_eye_care` pref (see ReaderProvider). 0.0 = off.
   double _eyeCare = 0.0;
   PdfColorMode _colorMode = PdfColorMode.light;
-  FitPolicy _fitPolicy = FitPolicy.BOTH;
+  PdfFitMode _fitPolicy = PdfFitMode.page;
   PdfViewMode _viewMode = PdfViewMode.paged;
 
   // Tap vs. scroll discrimination for the focus-mode toggle.
@@ -95,6 +134,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    enableReaderLandscape();
     _restoreState();
     WidgetsBinding.instance.addObserver(this);
     _startStreakPing();
@@ -164,12 +204,25 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
     // Continuous scroll is the default — see [PdfViewMode]. Paged (sideways,
     // one page per swipe) is opt-in for anyone who prefers reading it like a
     // normal book.
-    _viewMode = PdfViewMode.values[(prefs.getInt('reader_pdf_view_mode') ?? PdfViewMode.scroll.index).clamp(0, PdfViewMode.values.length - 1)];
-    // WIDTH is the default, matching the default scroll mode — see
-    // [_setViewMode] for why the two travel together. BOTH is what paged mode
-    // needs (there's no way to scroll to the rest of a page WIDTH left below
-    // the fold), so it only kicks in once the user actually picks paged.
-    _fitPolicy = (prefs.getBool('reader_pdf_fit_width') ?? (_viewMode == PdfViewMode.scroll)) ? FitPolicy.WIDTH : FitPolicy.BOTH;
+    //
+    // The mode preference is app-wide, which is right for text PDFs but wrong
+    // for an image book: a reader who once chose paged for a novel would then
+    // have every manga open with its tall pages squeezed whole onto the screen
+    // — the exact unreadable sliver [PdfViewMode.scroll] exists to avoid. So an
+    // image book ignores the app-wide preference and opens in scroll unless a
+    // choice was made *for this book*, which [_setViewMode] records separately.
+    final bookMode = prefs.getInt('book_${_bookId}_pdf_view_mode');
+    final defaultMode =
+        widget.imageOnly ? PdfViewMode.scroll.index : (prefs.getInt('reader_pdf_view_mode') ?? PdfViewMode.scroll.index);
+    _viewMode = PdfViewMode.values[(bookMode ?? defaultMode).clamp(0, PdfViewMode.values.length - 1)];
+    // Fit-width is the default, matching the default scroll mode — see
+    // [_setViewMode] for why the two travel together. Whole-page is what paged
+    // mode needs (there's no way to scroll to the rest of a page fit-width
+    // left below the fold), so it only kicks in once the user picks paged.
+    final bookFitWidth = prefs.getBool('book_${_bookId}_pdf_fit_width');
+    final defaultFitWidth =
+        widget.imageOnly ? true : (prefs.getBool('reader_pdf_fit_width') ?? (_viewMode == PdfViewMode.scroll));
+    _fitPolicy = (bookFitWidth ?? defaultFitWidth) ? PdfFitMode.width : PdfFitMode.page;
     _applyBrightness();
     if (mounted) setState(() {});
   }
@@ -178,11 +231,10 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
   /// which owns the conversion.
   ///
   /// It deliberately does *not* convert here and push the text reader
-  /// itself: the conversion runs pdfrx's PDFium across the whole document,
-  /// and starting that while this screen's own [PDFView] still holds the
-  /// same file open in flutter_pdfview's PDFium crashed the app outright on
-  /// a large book. Replacing this route first means the PDF view is torn
-  /// down before any of that begins.
+  /// itself: the conversion drives PDFium over the whole document, and
+  /// starting that while this screen's own [PdfViewer] still holds the same
+  /// file open put two readers on one document. Replacing this route first
+  /// means the viewer is torn down before any of that begins.
   Future<void> _switchToTextView() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(preferFixedPrefKey(_bookId), false);
@@ -190,7 +242,12 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => PdfOpeningScreen(filePath: widget.filePath, title: widget.title, bookId: _bookId),
+        builder: (_) => PdfOpeningScreen(
+          filePath: widget.filePath,
+          title: widget.title,
+          bookId: _bookId,
+          realBookId: widget.realBookId,
+        ),
       ),
     );
   }
@@ -203,6 +260,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
     _releaseBrightness();
     _saveProgress();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [SystemUiOverlay.top]);
+    restoreAppPortraitLock();
     super.dispose();
   }
 
@@ -264,10 +322,11 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
   }
 
   // ── Page changes ───────────────────────────────────────────────────────────
-  void _onPageChanged(int? page, int? total) {
-    final p = page ?? 0;
-    final t = total ?? _totalPages;
-    log('📄 PDF page=${p + 1}/$t');
+  /// [pageNumber] is pdfrx's 1-based page; everything below it is 0-based.
+  void _onPageChanged(int? pageNumber) {
+    if (pageNumber == null) return;
+    final p = pageNumber - 1;
+    log('📄 PDF page=$pageNumber/$_totalPages');
     if (_lastLoggedPage != null && p > _lastLoggedPage!) {
       StreakService.instance.recordPageRead(count: (p - _lastLoggedPage!).clamp(1, 5));
     }
@@ -280,7 +339,15 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
   void _jumpToProgress(double value) {
     if (_totalPages <= 0) return;
     final target = (value * (_totalPages - 1)).round().clamp(0, _totalPages - 1);
-    _controller?.setPage(target);
+    _goToPage(target);
+  }
+
+  /// [page] is 0-based; pdfrx wants 1-based. Guarded on [PdfViewerController]
+  /// being attached to a laid-out document — calling it before the viewer is
+  /// ready throws rather than no-oping.
+  void _goToPage(int page) {
+    if (!_controller.isReady) return;
+    unawaited(_controller.goToPage(pageNumber: page + 1));
   }
 
   // ── Bookmarks (TZ §12.1) ───────────────────────────────────────────────────
@@ -303,6 +370,18 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
     context.showAppSnackBar(added ? ReaderStrings.bookmarkAdded : ReaderStrings.bookmarkRemoved);
   }
 
+  // ── Notes (TZ §12.7) ───────────────────────────────────────────────────────
+  /// Anchored to the current page, since a PDFium-drawn page offers no text
+  /// selection to quote — see [showAddPageNoteSheet].
+  Future<void> _addNote() => showAddPageNoteSheet(
+        context,
+        bookId: _bookId,
+        realBookId: widget.realBookId,
+        bookTitle: widget.title,
+        page: _currentPage + 1,
+        totalPages: _totalPages,
+      );
+
   Future<void> _setBrightness(double v) async {
     setState(() => _brightness = v.clamp(0.1, 1.0));
     await _applyBrightness();
@@ -318,10 +397,10 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
 
   Future<void> _setColorMode(PdfColorMode mode) async {
     if (_colorMode == mode) return;
-    // Toggling night mode rebuilds the native view (nightMode is read once at
-    // creation — see the PDFView key), so remember where we are or the rebuild
-    // would drop us back at page one. Sepia is a pure Flutter overlay and needs
-    // no rebuild, but pinning the page here is harmless either way.
+    // Both night and sepia are pure Flutter overlays now (see
+    // [_NightModeFilter]), so neither reloads the document — but pinning the
+    // page costs nothing and keeps this in step with [_setFit]/[_setViewMode],
+    // which do rebuild the viewer.
     setState(() {
       _initialPage = _currentPage;
       _colorMode = mode;
@@ -330,14 +409,17 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
     await prefs.setInt('reader_pdf_color_mode', mode.index);
   }
 
-  Future<void> _setFit(FitPolicy fit) async {
+  Future<void> _setFit(PdfFitMode fit) async {
     if (_fitPolicy == fit) return;
     setState(() {
       _initialPage = _currentPage;
       _fitPolicy = fit;
     });
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('reader_pdf_fit_width', fit == FitPolicy.WIDTH);
+    await prefs.setBool('reader_pdf_fit_width', fit == PdfFitMode.width);
+    // Also recorded against this book, so the choice outranks the image-book
+    // default next time it's opened (see [_restoreState]).
+    await prefs.setBool('book_${_bookId}_pdf_fit_width', fit == PdfFitMode.width);
   }
 
   Future<void> _setViewMode(PdfViewMode mode) async {
@@ -348,7 +430,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
     // shrink a tall page to nothing, and paged + fit-width would still cut
     // one off below the fold. It's still a plain setting afterwards: the fit
     // tiles stay live, so anyone who wants the other pairing can pick it.
-    final fit = mode == PdfViewMode.scroll ? FitPolicy.WIDTH : FitPolicy.BOTH;
+    final fit = mode == PdfViewMode.scroll ? PdfFitMode.width : PdfFitMode.page;
     setState(() {
       _initialPage = _currentPage;
       _viewMode = mode;
@@ -356,7 +438,11 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
     });
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('reader_pdf_view_mode', mode.index);
-    await prefs.setBool('reader_pdf_fit_width', fit == FitPolicy.WIDTH);
+    await prefs.setBool('reader_pdf_fit_width', fit == PdfFitMode.width);
+    // See [_setFit]: the per-book copy is what lets an image book keep a mode
+    // the reader picked for it, instead of reverting to the scroll default.
+    await prefs.setInt('book_${_bookId}_pdf_view_mode', mode.index);
+    await prefs.setBool('book_${_bookId}_pdf_fit_width', fit == PdfFitMode.width);
   }
 
   // ── Sheets ─────────────────────────────────────────────────────────────────
@@ -419,8 +505,9 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
             setSheetState(() {});
           },
           onJump: (b) {
+            // `page:N` stores a 0-based index — see [_pageKey].
             final page = int.tryParse(b.cfi.replaceFirst('page:', ''));
-            if (page != null) _controller?.setPage(page);
+            if (page != null) _goToPage(page);
           },
           onRemove: (id) async {
             await BookmarksStore.instance.remove(id);
@@ -440,8 +527,50 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
       isScrollControlled: true,
       builder: (_) => PdfGoToPageSheet(currentPage: _currentPage + 1, totalPages: _totalPages),
     );
-    // The sheet speaks in 1-based page numbers, PDFView in 0-based indices.
-    if (page != null) _controller?.setPage(page - 1);
+    // The sheet speaks in 1-based page numbers, this screen in 0-based indices.
+    if (page != null) _goToPage(page - 1);
+  }
+
+  // ── Page layout ────────────────────────────────────────────────────────────
+  /// Lays the document out for the current [_viewMode].
+  ///
+  /// * [PdfViewMode.paged] — pages side by side, each centred in a slot as
+  ///   wide as the widest page, with a gutter between them. Each page keeps
+  ///   its own size, so a book carrying oversized inserts (promo pages
+  ///   appended at a different page size) doesn't shrink its normal pages to
+  ///   match them.
+  /// * [PdfViewMode.scroll] — pages stacked vertically with **no** gap, so
+  ///   they run together as one continuous strip. That seamlessness is the
+  ///   whole point for a webtoon/manhwa PDF, where a visible gap every screen
+  ///   reads as a border printed on the picture.
+  PdfPageLayout _layoutPages(List<PdfPage> pages, PdfViewerParams params) {
+    final paged = _viewMode == PdfViewMode.paged;
+    final gap = paged ? params.margin : 0.0;
+    final layouts = <Rect>[];
+
+    if (paged) {
+      final slot = pages.fold(0.0, (w, p) => math.max(w, p.width));
+      final tallest = pages.fold(0.0, (h, p) => math.max(h, p.height));
+      var x = gap;
+      for (final page in pages) {
+        layouts.add(Rect.fromLTWH(
+          x + (slot - page.width) / 2,
+          gap + (tallest - page.height) / 2,
+          page.width,
+          page.height,
+        ));
+        x += slot + gap;
+      }
+      return PdfPageLayout(pageLayouts: layouts, documentSize: Size(x, tallest + gap * 2));
+    }
+
+    final width = pages.fold(0.0, (w, p) => math.max(w, p.width));
+    var y = 0.0;
+    for (final page in pages) {
+      layouts.add(Rect.fromLTWH((width - page.width) / 2, y, page.width, page.height));
+      y += page.height;
+    }
+    return PdfPageLayout(pageLayouts: layouts, documentSize: Size(width, y));
   }
 
   @override
@@ -468,85 +597,71 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
               child: Listener(
                 onPointerDown: _onPointerDown,
                 onPointerUp: _onPointerUp,
-                child: PDFView(
-                  // nightMode and fitPolicy are read once when the native view
-                  // is created, so changing either has to rebuild it — that's
-                  // what varying the key does. defaultPage carries our place
-                  // across that rebuild and across reopening the book. (Sepia
-                  // isn't in the key: it's a Flutter overlay, not a render
-                  // change, so switching to/from it mustn't reload the file.)
-                  key: ValueKey('pdf_${nightMode}_${_fitPolicy.name}_${_viewMode.name}_$_initialPage'),
-                  filePath: widget.filePath,
-                  // Paged: one page per sideways swipe, like a real page turn.
-                  // Vertical *paged* scrolling was the old default and read
-                  // badly — the tail of the current page, a gap, then the top
-                  // of the next one bleeding in, which looked like a border
-                  // round the picture (it wasn't: a page's height rarely
-                  // divides the screen evenly). Scroll mode below is different:
-                  // it drops the snapping entirely so pages run together as
-                  // one continuous strip, which is what a tall webtoon page
-                  // needs.
-                  swipeHorizontal: _viewMode == PdfViewMode.paged,
-                  // Only snap/fling to page boundaries when pages *are* the
-                  // unit of movement. In scroll mode they'd fight the free
-                  // vertical scroll that makes a tall page readable — and on
-                  // iOS pageFling is what picks a paging controller over
-                  // continuous scrolling, so it has to go there too.
-                  pageSnap: _viewMode == PdfViewMode.paged,
-                  pageFling: _viewMode == PdfViewMode.paged,
-                  // ── Closing the gap between pages in scroll mode ────────
-                  // It takes two different settings, because the one flag
-                  // upstream offers means two unrelated things per platform:
-                  //
-                  //  - Android — `autoSpacing` is AndroidPdfViewer's real
-                  //    spacing control: it pads every page out to a full
-                  //    screen of its own, and that padding *is* the gap.
-                  //    Switching it off (with `pageSpacing` at 0) leaves the
-                  //    pages running together as one strip.
-                  //  - iOS — the same flag is assigned to PDFKit's
-                  //    `autoScales` ("fit the page to the screen"), so
-                  //    turning it off there wouldn't touch the gap, only
-                  //    break the fit. Its gap lives in `pageBreakMargins`,
-                  //    which our vendored copy reaches via `pageSpacing`.
-                  //
-                  // Only in scroll mode: paged mode wants each page on its
-                  // own screen, which is exactly what autoSpacing gives it.
-                  autoSpacing: !(Platform.isAndroid && _viewMode == PdfViewMode.scroll),
-                  pageSpacing: 0,
-                  // Scale each page to the view on its own. Without it,
-                  // AndroidPdfViewer scales every page relative to the
-                  // *largest* one in the document — so a book carrying
-                  // oversized inserts (promo/store pages appended at a
-                  // different page size) renders its own, smaller pages
-                  // shrunken with bands down either side. Upstream declares
-                  // this parameter but never forwards it, which is one of
-                  // the two reasons the plugin is vendored (see pubspec).
-                  fitEachPage: true,
-                  // Night mode inverts the rendered page to light-on-dark — the
-                  // "göz goraýyş" dark reading the user asked for. It's ideal
-                  // for text PDFs (black-on-white becomes white-on-black) and
-                  // poor for scanned/manga pages (they become photo negatives),
-                  // which is why it's an opt-in mode, not the default. PDFium's
-                  // nightMode is Android-only; on iOS it does nothing, so night
-                  // there degrades to the plain page on a dark gutter.
-                  nightMode: nightMode,
-                  defaultPage: _initialPage,
-                  fitPolicy: _fitPolicy,
-                  backgroundColor: bg,
-                  onViewCreated: (c) => _controller = c,
-                  onRender: (pages) => setState(() {
-                    _totalPages = pages ?? 0;
-                    _isLoading = false;
-                  }),
-                  onPageChanged: _onPageChanged,
-                  onError: (error) => setState(() {
-                    // The raw exception (often a bare "PlatformException(...)")
-                    // is developer noise, not something a reader should have to
-                    // parse — log it and show a plain-language message instead.
-                    log('❌ PDF open error: $error');
-                    _error = ReaderStrings.pdfOpenError;
-                    _isLoading = false;
-                  }),
+                child: _NightModeFilter(
+                  // Inverts the rendered page to light-on-dark — the "göz
+                  // goraýyş" dark reading the user asked for. Ideal for text
+                  // PDFs (black-on-white becomes white-on-black) and poor for
+                  // scanned/manga pages (they become photo negatives), which
+                  // is why it's an opt-in mode rather than the default. Done
+                  // as a Flutter layer, so unlike PDFium's Android-only night
+                  // mode it now works identically on iOS.
+                  enabled: nightMode,
+                  child: PdfViewer.file(
+                    widget.filePath,
+                    controller: _controller,
+                    // The layout and the initial zoom are read when the viewer
+                    // lays out, so changing either has to rebuild it — that's
+                    // what varying the key does. `initialPageNumber` carries
+                    // our place across that rebuild and across reopening the
+                    // book. (Sepia and night aren't in the key: both are
+                    // Flutter overlays, not render changes, so switching to or
+                    // from them mustn't reload the file.)
+                    key: ValueKey('pdf_${_fitPolicy.name}_${_viewMode.name}_$_initialPage'),
+                    initialPageNumber: _initialPage + 1,
+                    params: PdfViewerParams(
+                      backgroundColor: bg,
+                      // Paged mode lays pages left-to-right, one per sideways
+                      // swipe, like a real page turn; scroll mode stacks them
+                      // top-to-bottom with no gap so a tall webtoon page runs
+                      // straight into the next. See [_layoutPages].
+                      layoutPages: _layoutPages,
+                      // Paged mode moves one page at a time along its own
+                      // axis; locking the pan to that axis is what keeps a
+                      // sideways swipe from drifting the page diagonally.
+                      panAxis: _viewMode == PdfViewMode.paged ? PanAxis.horizontal : PanAxis.free,
+                      // Fit-width means "fill the screen's width and scroll
+                      // down the rest", which is pdfrx's *alternative* fit
+                      // scale (its default fits the whole page). Falling back
+                      // to the default keeps a page on screen if the
+                      // alternative isn't available yet.
+                      sizeDelegateProvider: PdfViewerSizeDelegateProviderLegacy(
+                        calculateInitialZoom: (document, controller, alternativeFitZoom, coverZoom) =>
+                            _fitPolicy == PdfFitMode.width ? alternativeFitZoom : coverZoom,
+                      ),
+                      onViewerReady: (document, controller) => setState(() {
+                        _totalPages = document.pages.length;
+                        _isLoading = false;
+                      }),
+                      onPageChanged: _onPageChanged,
+                      // The raw exception is developer noise, not something a
+                      // reader should have to parse — log it and show a
+                      // plain-language message instead. Returning an empty box
+                      // lets this screen's own error state own the display.
+                      errorBannerBuilder: (context, error, stackTrace, documentRef) {
+                        log('❌ PDF open error: $error');
+                        // The builder runs during layout, so the state change
+                        // has to wait for the frame to finish.
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (!mounted || _error != null) return;
+                          setState(() {
+                            _error = ReaderStrings.pdfOpenError;
+                            _isLoading = false;
+                          });
+                        });
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -703,6 +818,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
                     progress: _totalPages > 0 ? (_currentPage + 1) / _totalPages : 0.0,
                     onProgressChanged: _jumpToProgress,
                     onBookmarks: _openBookmarks,
+                    onAddNote: _addNote,
                     onSettings: _openSettings,
                     onGoToPage: _openGoToPage,
                   ),
@@ -738,4 +854,29 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> with WidgetsBindingOb
       ),
     );
   }
+}
+
+/// Colour-inverts its child when [enabled] — the PDF reader's night mode.
+///
+/// The matrix negates each channel (`-1 × c + 255`) and leaves alpha alone,
+/// turning a black-on-white page into a white-on-black one. Applied over the
+/// rendered pages rather than asked of the PDF engine, so it behaves the same
+/// on both platforms; the surrounding gutter is already dark in this mode, so
+/// only the pages themselves visibly change.
+class _NightModeFilter extends StatelessWidget {
+  final bool enabled;
+  final Widget child;
+
+  const _NightModeFilter({required this.enabled, required this.child});
+
+  static const _invert = ColorFilter.matrix(<double>[
+    -1, 0, 0, 0, 255, //
+    0, -1, 0, 0, 255, //
+    0, 0, -1, 0, 255, //
+    0, 0, 0, 1, 0, //
+  ]);
+
+  @override
+  Widget build(BuildContext context) =>
+      enabled ? ColorFiltered(colorFilter: _invert, child: child) : child;
 }

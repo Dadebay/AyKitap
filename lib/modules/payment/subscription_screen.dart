@@ -233,7 +233,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         width: 56,
                         height: 56,
                         decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.15), shape: BoxShape.circle),
-                        child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedDiamond, color: AppColors.primary, size: 28)),
+                        child: Center(
+                          child: ClipOval(
+                            child: Image.asset('assets/images/logo.webp', width: 36, height: 36, fit: BoxFit.cover),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 14),
                       Text(

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'package:flutter/cupertino.dart' show CupertinoSlidingSegmentedControl;
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -372,6 +373,7 @@ class _SearchScreenState extends State<SearchScreen> {
         // `GET /authors/search` only takes `search` — genre/language/year
         // don't apply here, and [_shouldShowResults] already keeps this
         // mode from firing without typed text.
+        log('🔍 GET /authors/search search="$_query"');
         final authors = await AuthorApiService.searchAuthors(search: _query, size: 30);
         if (!mounted || requestId != _searchRequestId) return;
         setState(() {
@@ -381,6 +383,7 @@ class _SearchScreenState extends State<SearchScreen> {
         return;
       }
       final page = loadMore ? _searchPage + 1 : 1;
+      log('🔍 GET /books/all search="${_hasQuery ? _query : ''}" genre=$_selectedGenreId page=$page');
       final results = await BookApiService.listBooks(
         search: _hasQuery ? _query : null,
         genreId: _selectedGenreId,
@@ -589,7 +592,7 @@ class _SearchScreenState extends State<SearchScreen> {
     if (isEmpty) {
       final isDark = AppTheme.instance.isDark;
       return Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,

@@ -225,7 +225,7 @@ final translations = <TranslationEntry>[
   // ============================================================================
   // home_strings.dart  (8 strings)
   // ============================================================================
-  TranslationEntry(file: 'home_strings.dart', key: 'welcomePrefix', tk: 'Hoşgeldin, ', ru: 'Добро пожаловать, ', tr: 'Hoş geldin, '),
+  TranslationEntry(file: 'home_strings.dart', key: 'welcomePrefix', tk: 'Hoş geldiñ, ', ru: 'Добро пожаловать, ', tr: 'Hoş geldin, '),
   TranslationEntry(file: 'home_strings.dart', key: 'defaultReaderName', tk: 'Okyjy', ru: 'Читатель', tr: 'Okuyucu'),
   TranslationEntry(file: 'home_strings.dart', key: 'seeAll', tk: 'Ählisini gör', ru: 'Смотреть все', tr: 'Tümünü gör'),
   TranslationEntry(file: 'home_strings.dart', key: 'seeMore', tk: 'Has köp', ru: 'Больше', tr: 'Daha fazla'),

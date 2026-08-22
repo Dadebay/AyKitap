@@ -60,6 +60,42 @@ class LibraryStrings {
       ru: 'Эта книга не загружена на устройство',
       tr: 'Bu kitap cihazınıza indirilmemiş');
 
+  // Long-press delete, shared by every shelf (see [ShelfRemoval]). Each
+  // shelf spells out what it actually removes, because "poz" means
+  // something different on each one — progress, a purchase, a like, or the
+  // imported file itself.
+  static String get deleteTitle =>
+      t(tk: 'Tekjeden poz', ru: 'Удалить с полки', tr: 'Raftan sil');
+  static String get delete => t(tk: 'Poz', ru: 'Удалить', tr: 'Sil');
+  static String deleteReadingConfirm(String title) => t(
+      tk: '«$title» okaýanlarymdan aýrylar we okaýyş göterimi ýitiriler. Kitabyň özi pozulmaýar.',
+      ru: '«$title» исчезнет из «Читаю», прогресс чтения будет сброшен. Сама книга не удаляется.',
+      tr: '«$title» okuduklarımdan kalkar ve okuma ilerlemesi sıfırlanır. Kitabın kendisi silinmez.');
+  static String deleteFinishedConfirm(String title) => t(
+      tk: '«$title» okap gutaranlarymdan aýrylar we okaýyş göterimi ýitiriler. Kitabyň özi pozulmaýar.',
+      ru: '«$title» исчезнет из «Прочитанные», прогресс чтения будет сброшен. Сама книга не удаляется.',
+      tr: '«$title» bitirdiklerimden kalkar ve okuma ilerlemesi sıfırlanır. Kitabın kendisi silinmez.');
+  static String deletePurchasedConfirm(String title) => t(
+      tk: '«$title» satyn alnanlardan aýrylar. Ony täzeden okamak üçin gaýtadan satyn almaly bolarsyňyz.',
+      ru: '«$title» исчезнет из купленных. Чтобы снова её читать, придётся купить её заново.',
+      tr: '«$title» satın alınanlardan kalkar. Tekrar okumak için yeniden satın almanız gerekir.');
+  static String deleteFavoriteConfirm(String title) => t(
+      tk: '«$title» halaýanlarymdan aýrylar.',
+      ru: '«$title» исчезнет из избранного.',
+      tr: '«$title» favorilerimden kalkar.');
+  static String deleteOwnBookConfirm(String title) => t(
+      tk: '«$title» faýly enjamyňyzdan hemişelik pozulýar.',
+      ru: 'Файл «$title» будет навсегда удалён с устройства.',
+      tr: '«$title» dosyası cihazınızdan kalıcı olarak silinir.');
+  static String removedFromFavorites(String title) => t(
+      tk: '«$title» halaýanlarymdan aýryldy',
+      ru: '«$title» удалена из избранного',
+      tr: '«$title» favorilerimden kaldırıldı');
+  static String bookDeleted(String title) => t(
+      tk: '«$title» tekjeden aýryldy',
+      ru: '«$title» удалена с полки',
+      tr: '«$title» raftan kaldırıldı');
+
   // Own-books tab.
   static String fileAddError(Object e) => t(
       tk: 'Faýl goşulmady: $e',

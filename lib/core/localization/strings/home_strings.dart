@@ -4,7 +4,7 @@ import '../strings_base.dart';
 class HomeStrings {
   HomeStrings._();
 
-  static String get welcomePrefix => t(tk: 'Hoşgeldin, ', ru: 'Добро пожаловать, ', tr: 'Hoş geldin, ');
+  static String get welcomePrefix => t(tk: 'Hoş geldiñ, ', ru: 'Добро пожаловать, ', tr: 'Hoş geldin, ');
 
   // Placeholder shown in the header while the real name is still loading
   // asynchronously from the session.

@@ -1,12 +1,12 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/localization/strings/book_detail_strings.dart';
 import '../../../core/localization/strings/library_strings.dart';
 import '../../../core/models/library_book.dart';
 import '../../../core/navigation/app_navigator.dart';
+import '../../../core/network/api_config.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/services/book_access_service.dart';
 import '../../../core/services/book_api_service.dart';
@@ -20,6 +20,7 @@ import '../../book_detail/book_open_flow.dart';
 import '../../book_detail/catalog_book_detail_screen.dart';
 import 'library_book_cover.dart';
 import 'library_empty_state.dart';
+import 'shelf_delete.dart';
 import 'shelf_grid.dart';
 
 /// No backend endpoint tracks this (see [DownloadedBooksStore]'s doc
@@ -71,7 +72,7 @@ class _DownloadedTabState extends State<DownloadedTab>
           // cover carries a lock and opening it hits the normal gate.
           showLockWhenNoAccess: true,
           onTap: () => _openDownloaded(books[i]),
-          onLongPress: () => _showDownloadActions(books[i]),
+          onLongPress: () => _confirmDeleteDownload(books[i]),
         ),
       ),
     );
@@ -107,46 +108,6 @@ class _DownloadedTabState extends State<DownloadedTab>
     );
   }
 
-  /// Long-press menu for a downloaded cover — purchased books are the
-  /// user's to keep, so alongside freeing space ([_confirmDeleteDownload])
-  /// they can hand the on-disk file to the OS share sheet and pick "Save to
-  /// Files" (iOS) or a Downloads-capable target (Android) themselves. The
-  /// app-private copy this shelf runs on stays untouched either way.
-  Future<void> _showDownloadActions(LibraryBook book) async {
-    final action = await showModalBottomSheet<_DownloadAction>(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: HugeIcon(icon: HugeIcons.strokeRoundedShare08, color: AppColors.white),
-              title: Text(BookDetailStrings.saveToFiles, style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w700)),
-              onTap: () => Navigator.pop(context, _DownloadAction.saveToFiles),
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
-              title: Text(BookDetailStrings.deleteDownload, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700)),
-              onTap: () => Navigator.pop(context, _DownloadAction.delete),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (!mounted || action == null) return;
-    switch (action) {
-      case _DownloadAction.saveToFiles:
-        await _saveToFiles(book);
-        break;
-      case _DownloadAction.delete:
-        await _confirmDeleteDownload(book);
-        break;
-    }
-  }
-
   /// Hands the already-downloaded file to the OS share sheet so the user
   /// can save their own copy wherever they like (iOS Files / iCloud Drive,
   /// Android Downloads or Drive) — the app's private copy is untouched.
@@ -168,37 +129,40 @@ class _DownloadedTabState extends State<DownloadedTab>
   /// goes ([DownloadedFilesStore.removeBook] deletes it from disk) and the
   /// shelf entry goes, but a purchased book is still purchased and can be
   /// downloaded again.
+  ///
+  /// This is the same dialog every other shelf's long-press opens. It used
+  /// to be a bottom sheet (save-to-Files / delete) with a second confirm
+  /// dialog behind it — two steps, and unlike anywhere else in the library.
+  /// The share action survives as the dialog's own alternative: purchased
+  /// books are the user's to keep, so before freeing the space they can hand
+  /// the on-disk file to the OS share sheet and pick "Save to Files" (iOS)
+  /// or a Downloads-capable target (Android) themselves.
   Future<void> _confirmDeleteDownload(LibraryBook book) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(BookDetailStrings.deleteDownload, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800)),
-        content: Text(
-          BookDetailStrings.deleteDownloadConfirm(book.name),
-          style: TextStyle(color: AppColors.grey2, fontSize: 13.5, height: 1.5),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(BookDetailStrings.cancel, style: TextStyle(color: AppColors.grey2)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(BookDetailStrings.remove, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
+    final image = book.image;
+    final choice = await showShelfDeleteDialog(
+      context,
+      title: BookDetailStrings.deleteDownload,
+      message: BookDetailStrings.deleteDownloadConfirm(book.name),
+      coverUrl: image != null && image.isNotEmpty
+          ? ApiConfig.resolveImageUrl(image)
+          : null,
+      extraLabel: BookDetailStrings.saveToFiles,
     );
-    if (confirmed != true) return;
+    if (!mounted) return;
+    switch (choice) {
+      case ShelfDeleteChoice.cancel:
+        return;
+      case ShelfDeleteChoice.extra:
+        await _saveToFiles(book);
+        return;
+      case ShelfDeleteChoice.delete:
+        break;
+    }
     await DownloadedFilesStore.instance.removeBook(book.id);
     await DownloadedBooksStore.instance.remove(book.id);
     if (mounted) context.showAppSnackBar(BookDetailStrings.downloadDeleted);
   }
 }
-
-enum _DownloadAction { saveToFiles, delete }
 
 /// A [LibraryScreen] tab backed by `GET /books/all` — [fetcher] is one of
 /// [BookApiService.listBooks]'s `my_books`/`bought`/`wants_to` filters,
@@ -231,6 +195,12 @@ class ApiBooksTab extends StatefulWidget {
   /// mode and open the downloaded file directly.
   final bool openLocalWhenOffline;
 
+  /// What a long-press on one of this shelf's covers removes. Every shelf
+  /// sets it — until it existed, a book could only be taken off the
+  /// downloaded shelf, so there was no way to drop a finished book or a
+  /// purchase without opening its detail page.
+  final ShelfRemoval? removal;
+
   const ApiBooksTab({
     super.key,
     required this.fetcher,
@@ -242,6 +212,7 @@ class ApiBooksTab extends StatefulWidget {
     this.offlineFetcher,
     this.cacheLoadedBooks,
     this.openLocalWhenOffline = false,
+    this.removal,
   });
 
   @override
@@ -358,6 +329,54 @@ class _ApiBooksTabState extends State<ApiBooksTab>
     );
   }
 
+  /// Long-press → confirm → [_remove]. The dialog shows the book's own cover
+  /// so it's obvious *which* one is about to go, since a long-press on a
+  /// dense shelf grid is easy to land on the wrong tile.
+  Future<void> _confirmDelete(LibraryBook book) async {
+    final removal = widget.removal;
+    if (removal == null) return;
+    final image = book.image;
+    final choice = await showShelfDeleteDialog(
+      context,
+      message: removal.confirmMessage(book.name),
+      coverUrl: image != null && image.isNotEmpty
+          ? ApiConfig.resolveImageUrl(image)
+          : null,
+    );
+    if (choice != ShelfDeleteChoice.delete || !mounted) return;
+    await _remove(book, removal, LibraryStrings.bookDeleted(book.name));
+  }
+
+  /// The favorites shelf's heart button — the same `unlike` the long-press
+  /// dialog runs, but straight away: a filled heart is a toggle everywhere
+  /// else in the app (Book Detail's header included), and confirming a
+  /// *like* would be heavier than the action deserves.
+  Future<void> _unfavorite(LibraryBook book) async {
+    await _remove(book, ShelfRemoval.favorite,
+        LibraryStrings.removedFromFavorites(book.name));
+  }
+
+  /// Drops the cover from this shelf as soon as the call succeeds rather
+  /// than waiting for a re-fetch; [ShelfRemoval.notifyShelvesChanged] then
+  /// handles the *other* shelves showing the same state (a finished book
+  /// also sits behind the reading shelf's filter). A failed call leaves the
+  /// shelf untouched and shows the server's reason.
+  Future<void> _remove(
+      LibraryBook book, ShelfRemoval removal, String successMessage) async {
+    try {
+      await removal.apply(book.id);
+      if (!mounted) return;
+      setState(() {
+        _books = [...?_books?.where((b) => b.id != book.id)];
+      });
+      context.showAppSnackBar(successMessage);
+      removal.notifyShelvesChanged();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      context.showAppSnackBar(e.message, isError: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -414,6 +433,13 @@ class _ApiBooksTabState extends State<ApiBooksTab>
             onPurchasedBookRemoved: _load,
             onTap: widget.openLocalWhenOffline
                 ? () => _openBook(books[i])
+                : null,
+            onLongPress:
+                widget.removal == null ? null : () => _confirmDelete(books[i]),
+            // Derived rather than a second flag: the heart *is* this
+            // shelf's removal, so the two can't drift apart.
+            onUnfavorite: widget.removal == ShelfRemoval.favorite
+                ? () => _unfavorite(books[i])
                 : null,
           ),
         ),

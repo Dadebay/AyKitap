@@ -279,9 +279,9 @@ void openCatalogBookFile(
   AnalyticsService.instance.logBookOpened(id: '$bookId', format: format);
   switch (format) {
     case 'pdf':
-      openPdfBook(context, filePath: path, title: title, bookId: bookId);
+      openPdfBook(context, filePath: path, title: title, bookId: bookId, realBookId: bookId);
     case 'cbz':
-      context.push(CbzReaderScreen(filePath: path, title: title, bookId: bookId));
+      context.push(CbzReaderScreen(filePath: path, title: title, bookId: bookId, realBookId: bookId));
     default:
       context.push(
         ChangeNotifierProvider(

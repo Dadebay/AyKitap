@@ -18,7 +18,10 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../core/utils/stable_hash.dart';
 import '../../../core/widgets/app_snackbar.dart';
+import '../utils/cbz_scroll_metrics.dart';
 import '../utils/eye_care.dart';
+import '../utils/page_note.dart';
+import '../utils/reader_orientation.dart';
 import '../widgets/cbz_settings_sheet.dart';
 import '../widgets/pdf_bookmarks_sheet.dart';
 import '../widgets/pdf_bottom_bar.dart';
@@ -155,11 +158,17 @@ class CbzReaderScreen extends StatefulWidget {
   /// path inline.
   final int? bookId;
 
+  /// The real `/books/:id` catalogue id — see [PdfReaderScreen.realBookId] for
+  /// why it's separate from [bookId] and what it unlocks (notes reaching the
+  /// profile's "Notlar" list). Null for the user's own imported chapters.
+  final int? realBookId;
+
   const CbzReaderScreen({
     super.key,
     required this.filePath,
     required this.title,
     this.bookId,
+    this.realBookId,
   });
 
   @override
@@ -174,7 +183,20 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
   // count; see _applyRestoredPage.
   final PageController _pageController = PageController();
 
+  /// Drives [CbzViewMode.scroll]'s continuous list. Both controllers exist for
+  /// the lifetime of the screen (only one is attached at a time, to whichever
+  /// mode is built) so switching modes never disposes a live controller.
+  final ScrollController _scrollController = ScrollController();
+
   List<String> _pagePaths = const [];
+  /// width/height per page — see [cbzPageAspectRatios]. Empty until extraction
+  /// finishes; [CbzScrollMetrics] substitutes a fallback for any page whose
+  /// header couldn't be read.
+  List<double> _aspectRatios = const [];
+  /// Rebuilt whenever the page list or the viewport width changes, since both
+  /// change every page's height.
+  CbzScrollMetrics? _metrics;
+  double _metricsWidth = 0;
   int _currentPage = 0; // 0-based
   int _initialPage = 0;
   int? _lastLoggedPage;
@@ -188,6 +210,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
   double _eyeCare = 0.0;
   bool _darkGutter = true;
   BoxFit _fit = BoxFit.contain;
+  CbzViewMode _viewMode = CbzViewMode.scroll;
 
   Timer? _saveTimer;
   Timer? _streakPingTimer;
@@ -201,6 +224,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    enableReaderLandscape();
     _bootstrap();
     WidgetsBinding.instance.addObserver(this);
     _startStreakPing();
@@ -257,6 +281,12 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
     // setting rather than always opening dark.
     _darkGutter = prefs.getBool('reader_cbz_dark_gutter') ?? AppTheme.instance.isDark;
     _fit = (prefs.getBool('reader_cbz_fit_cover') ?? false) ? BoxFit.cover : BoxFit.contain;
+    // Continuous scroll is the default — a comic page is taller than the
+    // screen, so fitting it whole is what makes it unreadable. See
+    // [CbzViewMode].
+    _viewMode = CbzViewMode.values[
+        (prefs.getInt('reader_cbz_view_mode') ?? CbzViewMode.scroll.index)
+            .clamp(0, CbzViewMode.values.length - 1)];
     await _applyBrightness();
     await _extract();
   }
@@ -274,9 +304,8 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
     _currentPage = _initialPage;
     if (_initialPage == 0) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _pageController.hasClients) {
-        _pageController.jumpToPage(_initialPage);
-      }
+      if (!mounted) return;
+      _goToPage(_initialPage);
     });
   }
 
@@ -303,8 +332,13 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
         });
         return;
       }
+      // Needed before the scroll list can be built: every page's height comes
+      // from its own ratio. Cached on disk after the first open.
+      final ratios = await cbzPageAspectRatios(filePath: widget.filePath, pagePaths: pages);
+      if (!mounted) return;
       setState(() {
         _pagePaths = pages;
+        _aspectRatios = ratios;
         _isLoading = false;
         _applyRestoredPage();
       });
@@ -322,11 +356,13 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
+    _scrollController.dispose();
     _saveTimer?.cancel();
     _flushStreakResidual();
     _releaseBrightness();
     _saveProgress();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [SystemUiOverlay.top]);
+    restoreAppPortraitLock();
     super.dispose();
   }
 
@@ -371,6 +407,19 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
     await prefs.setBool('reader_cbz_fit_cover', fit == BoxFit.cover);
   }
 
+  Future<void> _setViewMode(CbzViewMode mode) async {
+    if (_viewMode == mode) return;
+    setState(() => _viewMode = mode);
+    // The other mode's controller isn't attached yet on this frame, so land
+    // the reader back on the page it was already reading once it is.
+    final page = _currentPage;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _goToPage(page);
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('reader_cbz_view_mode', mode.index);
+  }
+
   // ── Progress persistence ─────────────────────────────────────────────────
   Future<void> _saveProgress() async {
     final prefs = await SharedPreferences.getInstance();
@@ -405,8 +454,39 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
 
   void _jumpToProgress(double value) {
     if (_totalPages <= 0) return;
-    final target = (value * (_totalPages - 1)).round().clamp(0, _totalPages - 1);
-    _pageController.jumpToPage(target);
+    _goToPage((value * (_totalPages - 1)).round());
+  }
+
+  /// The one way to move to a page, whichever mode is showing — the scrubber,
+  /// a bookmark and "go to page" all land here. In paged mode that's a
+  /// PageView index; in scroll mode it's a scroll offset, which only
+  /// [CbzScrollMetrics] can work out (page boundaries no longer line up with
+  /// screen boundaries there).
+  void _goToPage(int page) {
+    if (_totalPages <= 0) return;
+    final target = page.clamp(0, _totalPages - 1);
+    if (_viewMode == CbzViewMode.paged) {
+      if (_pageController.hasClients) _pageController.jumpToPage(target);
+      return;
+    }
+    final metrics = _metrics;
+    if (metrics == null || !_scrollController.hasClients) {
+      // Metrics/attachment aren't ready on the very first frame after
+      // extraction — retry once the list has been laid out.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _viewMode != CbzViewMode.scroll) return;
+        final m = _metrics;
+        if (m == null || !_scrollController.hasClients) return;
+        _scrollController.jumpTo(
+          m.offsetOf(target).clamp(0.0, _scrollController.position.maxScrollExtent),
+        );
+      });
+      _onPageChanged(target);
+      return;
+    }
+    _scrollController.jumpTo(
+      metrics.offsetOf(target).clamp(0.0, _scrollController.position.maxScrollExtent),
+    );
   }
 
   // ── Bookmarks (TZ §12.1) ─────────────────────────────────────────────────
@@ -426,6 +506,18 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
     context.showAppSnackBar(added ? ReaderStrings.bookmarkAdded : ReaderStrings.bookmarkRemoved);
   }
 
+  // ── Notes (TZ §12.7) ─────────────────────────────────────────────────────
+  /// Anchored to the current page: a comic page is a bitmap, so there is no
+  /// passage to quote — see [showAddPageNoteSheet].
+  Future<void> _addNote() => showAddPageNoteSheet(
+        context,
+        bookId: _bookId,
+        realBookId: widget.realBookId,
+        bookTitle: widget.title,
+        page: _currentPage + 1,
+        totalPages: _totalPages,
+      );
+
   // ── Sheets ───────────────────────────────────────────────────────────────
   void _openSettings() {
     showModalBottomSheet(
@@ -438,6 +530,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
           brightness: _brightness,
           eyeCare: _eyeCare,
           fit: _fit,
+          viewMode: _viewMode,
           onGutterChanged: (v) async {
             await _setGutter(v);
             setSheetState(() {});
@@ -452,6 +545,10 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
           },
           onFitChanged: (v) async {
             await _setFit(v);
+            setSheetState(() {});
+          },
+          onViewModeChanged: (v) async {
+            await _setViewMode(v);
             setSheetState(() {});
           },
         ),
@@ -474,7 +571,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
           },
           onJump: (b) {
             final page = int.tryParse(b.cfi.replaceFirst('page:', ''));
-            if (page != null && page < _totalPages) _pageController.jumpToPage(page);
+            if (page != null && page < _totalPages) _goToPage(page);
           },
           onRemove: (id) async {
             await BookmarksStore.instance.remove(id);
@@ -494,10 +591,62 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
       isScrollControlled: true,
       builder: (_) => PdfGoToPageSheet(currentPage: _currentPage + 1, totalPages: _totalPages),
     );
-    if (page != null) _pageController.jumpToPage(page - 1);
+    if (page != null) _goToPage(page - 1);
   }
 
   void _toggleControls() => setState(() => _showControls = !_showControls);
+
+  /// [CbzViewMode.scroll] — every page stacked in one continuous scroll, each
+  /// drawn at the full viewport width so a tall comic page stays legible and
+  /// you scroll down it, rather than the whole page being shrunk to fit.
+  ///
+  /// Heights come from [CbzScrollMetrics] rather than from the images
+  /// themselves: a plain `Image.file` in a ListView only knows its height once
+  /// the file has been decoded, so the list would grow and jump under the
+  /// reader as pages stream in — and the scroll offset that tracks the current
+  /// page would jump with it. Sizing each slot up front from the page's known
+  /// aspect ratio keeps the list stable and makes offset ↔ page exact.
+  ///
+  /// No InteractiveViewer here: pinch-zoom inside a vertical list fights the
+  /// scroll gesture, and a page already filling the width is what the zoom was
+  /// for in paged mode.
+  Widget _buildScrollPages(Color bg, int pageCacheWidth) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        if (_metrics == null || _metricsWidth != width) {
+          _metrics = CbzScrollMetrics(aspectRatios: _aspectRatios, viewportWidth: width);
+          _metricsWidth = width;
+        }
+        final metrics = _metrics!;
+        return NotificationListener<ScrollNotification>(
+          onNotification: (n) {
+            if (n is ScrollUpdateNotification || n is ScrollEndNotification) {
+              final page = metrics.pageAt(_scrollController.offset);
+              if (page != _currentPage) _onPageChanged(page);
+            }
+            return false;
+          },
+          child: ListView.builder(
+            controller: _scrollController,
+            itemCount: _totalPages,
+            // Every slot's height is already known, so the viewport can lay
+            // out without measuring children.
+            itemExtentBuilder: (i, _) => metrics.heightOf(i),
+            itemBuilder: (_, i) => ColoredBox(
+              color: bg,
+              child: Image.file(
+                File(_pagePaths[i]),
+                fit: BoxFit.fitWidth,
+                width: width,
+                cacheWidth: pageCacheWidth,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -521,20 +670,23 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
               child: GestureDetector(
                 onTap: _toggleControls,
                 behavior: HitTestBehavior.opaque,
-                child: PageView.builder(
-                  controller: _pageController,
-                  itemCount: _totalPages,
-                  onPageChanged: _onPageChanged,
-                  itemBuilder: (_, i) => ColoredBox(
-                    color: bg,
-                    child: InteractiveViewer(
-                      maxScale: 4,
-                      child: Center(
-                        child: Image.file(File(_pagePaths[i]), fit: _fit, cacheWidth: pageCacheWidth),
+                child: _viewMode == CbzViewMode.scroll
+                    ? _buildScrollPages(bg, pageCacheWidth)
+                    : PageView.builder(
+                        controller: _pageController,
+                        itemCount: _totalPages,
+                        onPageChanged: _onPageChanged,
+                        itemBuilder: (_, i) => ColoredBox(
+                          color: bg,
+                          child: InteractiveViewer(
+                            maxScale: 4,
+                            child: Center(
+                              child: Image.file(File(_pagePaths[i]),
+                                  fit: _fit, cacheWidth: pageCacheWidth),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
               ),
             ),
 
@@ -675,6 +827,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with WidgetsBindingOb
                     progress: _totalPages > 0 ? (_currentPage + 1) / _totalPages : 0.0,
                     onProgressChanged: _jumpToProgress,
                     onBookmarks: _openBookmarks,
+                    onAddNote: _addNote,
                     onSettings: _openSettings,
                     onGoToPage: _openGoToPage,
                   ),
