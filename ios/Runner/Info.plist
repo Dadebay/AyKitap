@@ -134,10 +134,17 @@
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+	<!-- iOS only honours orientations listed here, so landscape has to be
+	     declared for the readers to be able to rotate (see
+	     reader_orientation.dart). The app itself stays portrait: main.dart
+	     locks it to portraitUp at startup and every reader restores that lock
+	     on the way out, so only the readers ever go sideways. -->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>

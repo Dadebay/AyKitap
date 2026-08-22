@@ -15210,8 +15210,18 @@ class resources_Resources {
       });
     });
     return Promise.all(replacements).then(replacementUrls => {
-      this.replacementUrls = replacementUrls.filter(url => {
-        return typeof url === "string";
+      // PATCH: upstream filtered the failures out here, which silently
+      // *shifted* every later entry — and replacementUrls is addressed by the
+      // index of this.urls (see get(), substitute() and replaceCss() below).
+      // One manifest item that isn't actually in the zip (a stale
+      // <item href="Images/main-1.jpg"> is common in shop-generated EPUBs)
+      // therefore handed every following asset its neighbour's blob url: the
+      // cover rendered as whatever image happened to come after it in the
+      // manifest. Keep the failures as null so the arrays stay aligned —
+      // substitute() already skips falsy replacements, so a missing asset now
+      // just stays unsubstituted instead of corrupting the rest.
+      this.replacementUrls = replacementUrls.map(url => {
+        return typeof url === "string" ? url : null;
       });
       return replacementUrls;
     });

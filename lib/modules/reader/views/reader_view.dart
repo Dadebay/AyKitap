@@ -18,6 +18,7 @@ import '../widgets/search_sheet.dart';
 import '../widgets/selection_toolbar.dart';
 import 'pdf_reader_screen.dart';
 import '../utils/eye_care.dart';
+import '../utils/reader_orientation.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/services/notes_store.dart';
 import '../../../core/services/user_notes_api_service.dart';
@@ -96,6 +97,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    enableReaderLandscape();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context
           .read<ReaderProvider>()
@@ -106,6 +108,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   @override
   void dispose() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [SystemUiOverlay.top]);
+    restoreAppPortraitLock();
     super.dispose();
   }
 
@@ -381,6 +384,15 @@ class _ReaderScreenState extends State<ReaderScreen> {
       displaySettings: EpubDisplaySettings(
         flow: EpubFlow.paginated,
         snap: true,
+        // One column of text, whatever the screen's width. The default is
+        // EpubSpread.auto, which is what put the book into a two-page spread
+        // as soon as the reader was rotated (epub.js sets divisor = 2 once the
+        // viewport is wider than its minSpreadWidth) — a book split down the
+        // middle into two narrow columns, rather than the single full-width
+        // column that landscape is being used for in the first place.
+        // 'none' pins epub.js's divisor to 1, so rotating just makes the one
+        // column wider.
+        spread: EpubSpread.none,
         theme: provider.currentEpubTheme,
         // sakura_epub applies this as `${fontSize}px`, while the provider keeps
         // it as a double for its slider — round on the way in. This only seeds
@@ -577,7 +589,12 @@ class _ReaderScreenState extends State<ReaderScreen> {
     if (!context.mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => PdfReaderScreen(filePath: pdfPath, title: widget.bookTitle, bookId: widget.bookId),
+        builder: (_) => PdfReaderScreen(
+          filePath: pdfPath,
+          title: widget.bookTitle,
+          bookId: widget.bookId,
+          realBookId: widget.realBookId,
+        ),
       ),
     );
   }

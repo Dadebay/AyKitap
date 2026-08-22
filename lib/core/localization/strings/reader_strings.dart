@@ -251,4 +251,13 @@ class ReaderStrings {
         ru: 'Напишите заметку к выделенному тексту',
         tr: 'Seçili metin için not yazın',
       );
+
+  /// The fixed-layout readers' variant: a PDF/CBZ page has no selectable text
+  /// to quote, so the note is anchored to the page instead — see
+  /// [showAddPageNoteSheet].
+  static String get addPageNoteSubtitle => t(
+        tk: 'Şu sahypa üçin bellik ýazyň',
+        ru: 'Напишите заметку к этой странице',
+        tr: 'Bu sayfa için not yazın',
+      );
 }

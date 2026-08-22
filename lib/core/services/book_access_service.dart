@@ -116,6 +116,16 @@ class BookAccessService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// The offline half of `DELETE /books/bought/:id`: the book is no longer
+  /// owned, so the cached set must stop granting [canRead] for it (an
+  /// already-downloaded file would otherwise keep opening in airplane mode).
+  Future<void> removePurchased(int bookId) async {
+    await load();
+    if (!_purchasedIds.remove(bookId)) return;
+    await _persist();
+    notifyListeners();
+  }
+
   /// Called on logout — without this the next account on this device would
   /// inherit the previous one's purchases.
   Future<void> clear() async {

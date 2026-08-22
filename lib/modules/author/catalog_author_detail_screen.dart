@@ -35,7 +35,7 @@ class _CatalogAuthorDetailScreenState extends State<CatalogAuthorDetailScreen> {
   // Client-side only — the author's books are already fetched in full
   // (see `_load`'s `size: 100` default), so re-sorting locally avoids a
   // round-trip the `/books/all` `sort_by`/`sort_order` params would need.
-  _AuthorBooksSort? _sort;
+  _AuthorBooksSort? _sort = _AuthorBooksSort.name;
 
   List<LibraryBook> _sortedBooks(List<LibraryBook> books) {
     if (_sort == null) return books;

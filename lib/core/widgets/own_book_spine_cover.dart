@@ -11,6 +11,7 @@ class OwnBookSpineCover extends StatelessWidget {
     super.key,
     required this.book,
     required this.onTap,
+    this.onLongPress,
     this.borderRadius = 3,
     this.padding = const EdgeInsets.symmetric(horizontal: 7, vertical: 8),
     this.wrapAspectRatio = true,
@@ -18,6 +19,10 @@ class OwnBookSpineCover extends StatelessWidget {
 
   final OwnBook book;
   final VoidCallback onTap;
+
+  /// Long-press action — the Library tab's "poz" for an imported file. The
+  /// offline grid leaves it null (nothing there can be deleted mid-flight).
+  final VoidCallback? onLongPress;
   final double borderRadius;
   final EdgeInsetsGeometry padding;
 
@@ -39,6 +44,7 @@ class OwnBookSpineCover extends StatelessWidget {
     };
     final content = GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: Container(

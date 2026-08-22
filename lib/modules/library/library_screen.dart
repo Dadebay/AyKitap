@@ -7,6 +7,7 @@ import '../../core/services/reading_books_store.dart';
 import '../../core/theme/app_colors.dart';
 import 'widgets/library_tabs.dart';
 import 'widgets/own_books_tab.dart';
+import 'widgets/shelf_delete.dart';
 
 /// Kitaplagrym Sahypasy — TZ section 7. 6 tabs on a "shelf" style page.
 class LibraryScreen extends StatefulWidget {
@@ -93,6 +94,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                     },
                     cacheLoadedBooks: ReadingBooksStore.instance.mergeFromBackend,
                     openLocalWhenOffline: true,
+                    removal: ShelfRemoval.reading,
                   ),
                   ApiBooksTab(
                     fetcher: () => BookApiService.listBooks(
@@ -102,6 +104,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                     emptyLabel: LibraryStrings.emptyFinished,
                     showProgress: true,
                     refreshOn: FinishedBooksSyncService.instance,
+                    removal: ShelfRemoval.finished,
                   ),
                   // No `/books/all` filter for this — see
                   // DownloadedBooksStore's doc comment.
@@ -111,11 +114,13 @@ class _LibraryScreenState extends State<LibraryScreen>
                     emptyLabel: LibraryStrings.emptyPurchased,
                     allowRemovingPurchasedBooks: true,
                     syncsPurchasedAccess: true,
+                    removal: ShelfRemoval.purchased,
                   ),
                   ApiBooksTab(
                     fetcher: () => BookApiService.listBooks(wantsTo: true),
                     emptyLabel: LibraryStrings.emptyFavorites,
                     refreshOn: FavoritesSyncService.instance,
+                    removal: ShelfRemoval.favorite,
                   ),
                   const OwnBooksTab(),
                 ],

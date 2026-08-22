@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:iconly/iconly.dart';
 import 'package:provider/provider.dart';
 import '../../../core/models/library_book.dart';
 import '../../../core/navigation/app_navigator.dart';
@@ -32,6 +33,11 @@ class LibraryBookCover extends StatelessWidget {
   /// shelf work with no connection.
   final VoidCallback? onTap;
 
+  /// Set on the favorites shelf: draws a filled heart on the cover's top
+  /// corner that un-likes the book in one tap, so taking something off that
+  /// shelf doesn't mean discovering the long-press or opening the book.
+  final VoidCallback? onUnfavorite;
+
   const LibraryBookCover({
     super.key,
     required this.book,
@@ -41,6 +47,7 @@ class LibraryBookCover extends StatelessWidget {
     this.showLockWhenNoAccess = false,
     this.onLongPress,
     this.onTap,
+    this.onUnfavorite,
   });
 
   @override
@@ -95,6 +102,9 @@ class LibraryBookCover extends StatelessWidget {
                   ),
                 ),
               ),
+            // Only the progress-showing shelves pass [showProgress] and only
+            // the favorites shelf passes [onUnfavorite], so these two never
+            // compete for the same corner.
             if (progress != null)
               Positioned(
                 top: 4,
@@ -106,6 +116,27 @@ class LibraryBookCover extends StatelessWidget {
                         color: Colors.black87,
                         fontSize: 8,
                         fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+            if (onUnfavorite != null)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: GestureDetector(
+                  onTap: onUnfavorite,
+                  // The badge itself is only 26px across — the transparent
+                  // padding around it is what makes the tap target big
+                  // enough to hit on a grid this tight, and `opaque` is what
+                  // keeps that padding from passing the tap through to the
+                  // cover underneath (which would open the book instead).
+                  behavior: HitTestBehavior.opaque,
+                  child: const Padding(
+                    padding: EdgeInsets.all(5),
+                    child: _CornerBadge(
+                      size: 26,
+                      child: Icon(IconlyBold.heart, color: Color(0xFFE5484D), size: 15),
+                    ),
                   ),
                 ),
               ),
@@ -133,13 +164,14 @@ class _CoverPlaceholder extends StatelessWidget {
 /// White, shadowed circular badge pinned to a shelf cover's corner.
 class _CornerBadge extends StatelessWidget {
   final Widget child;
-  const _CornerBadge({required this.child});
+  final double size;
+  const _CornerBadge({required this.child, this.size = 20});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 20,
-      height: 20,
+      width: size,
+      height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: Colors.white,

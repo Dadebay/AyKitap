@@ -42,6 +42,10 @@ class ReaderBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
+    // The readers can be rotated (see reader_orientation.dart); everything
+    // below keys off this rather than a width breakpoint, since it's the lost
+    // *height* that the bar has to give back to the page.
+    final compact = MediaQuery.of(context).orientation == Orientation.landscape;
     final isDarkPage = pageColor.computeLuminance() < 0.4;
     final labelColor = isDarkPage ? Colors.white38 : Colors.black45;
     // Buttons sit straight on the scrim now (no filled bar), so they take the
@@ -62,7 +66,12 @@ class ReaderBottomBar extends StatelessWidget {
     const accent = Color(0xFFE8712C);
 
     return Container(
-      height: 132 + bottomPad,
+      // Rotated, the screen is barely half as tall (~390dp), and the portrait
+      // bar's 132dp would eat a third of it before a line of the book is
+      // drawn. The compact variant drops the button captions — the three icons
+      // are the same ones, in the same order, and there's no room for a page
+      // of text *and* a caption — which buys the page back ~36dp.
+      height: (compact ? 96 : 132) + bottomPad,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.bottomCenter,
@@ -118,6 +127,7 @@ class ReaderBottomBar extends StatelessWidget {
                   labelColor: labelColor,
                   wellColor: wellColor,
                   onTap: onChapters,
+                  compact: compact,
                 ),
                 // Настройки — reader settings (accented, like the reference)
                 _ToolbarBtn(
@@ -127,6 +137,7 @@ class ReaderBottomBar extends StatelessWidget {
                   labelColor: accent,
                   wellColor: accent.withValues(alpha: 0.16),
                   onTap: onSettings,
+                  compact: compact,
                 ),
                 // Поиск — in-book search
                 _ToolbarBtn(
@@ -136,6 +147,7 @@ class ReaderBottomBar extends StatelessWidget {
                   labelColor: labelColor,
                   wellColor: wellColor,
                   onTap: onSearch,
+                  compact: compact,
                 ),
               ],
             ),
@@ -154,6 +166,10 @@ class _ToolbarBtn extends StatelessWidget {
   final Color wellColor;
   final VoidCallback onTap;
 
+  /// Landscape: caption hidden and the well tightened, so the bar fits the
+  /// shorter screen. The tap target keeps the full row height either way.
+  final bool compact;
+
   const _ToolbarBtn({
     required this.icon,
     required this.label,
@@ -161,6 +177,7 @@ class _ToolbarBtn extends StatelessWidget {
     required this.labelColor,
     required this.wellColor,
     required this.onTap,
+    this.compact = false,
   });
 
   @override
@@ -172,12 +189,13 @@ class _ToolbarBtn extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
+            padding: EdgeInsets.symmetric(vertical: compact ? 4 : 6),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 7),
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: compact ? 5 : 7),
                   decoration: BoxDecoration(
                     color: wellColor,
                     borderRadius: BorderRadius.circular(14),
@@ -188,13 +206,15 @@ class _ToolbarBtn extends StatelessWidget {
                     child: FittedBox(child: HugeIcon(icon: icon, color: color, size: 22)),
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: labelColor, fontSize: 11.5, fontWeight: FontWeight.w500),
-                ),
+                if (!compact) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: labelColor, fontSize: 11.5, fontWeight: FontWeight.w500),
+                  ),
+                ],
               ],
             ),
           ),

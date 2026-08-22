@@ -29,6 +29,15 @@ class ApiEndpoints {
   /// book purchases.
   static const String balanceLogs = '/users/balance-logs';
 
+  /// GET `?phone=` — whether [phone] belongs to a registered user. Backs
+  /// [SendGiftSheet]'s live lookup as the recipient's number is typed, gating
+  /// [sendToFriend] on a hit.
+  static const String isUserExists = '/users/is-user-exists';
+
+  /// POST `{phone, amount}` — moves `amount` TMT from the signed-in user's
+  /// balance to the registered user at `phone`. See [isUserExists].
+  static const String sendToFriend = '/users/send-to-friend';
+
   /// POST — foreground seconds spent anywhere in the app (`{"seconds": 60}`,
   /// 1..7200), which the admin dashboard's "most active users" widget is
   /// built from. Distinct from [streakReport], which counts *reading* time
@@ -61,6 +70,12 @@ class ApiEndpoints {
   /// progress for [bookId] server-side. [CatalogBookDetailScreen]'s "mark
   /// as finished" flag button sends `100`; nothing else calls this yet
   /// (the readers still track progress purely on-device via prefs).
+  ///
+  /// DELETE on the same path drops that progress record entirely, which is
+  /// what takes a book off *both* progress-backed shelves — `my_books`
+  /// (Okaýanlarym) and `my_books`+`finished` (Okap gutaranlarym) are two
+  /// views of this one row, so there is deliberately no separate
+  /// "un-finish" endpoint. The catalogue book itself is untouched.
   static String bookProgress(int bookId) => '/books/$bookId/progress';
 
   /// POST — likes [bookId] for the signed-in user.

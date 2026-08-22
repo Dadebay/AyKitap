@@ -110,8 +110,11 @@ class BookApiService {
         if (formats.isNotEmpty) 'book_format': formats.first,
         if (startYear != null) 'start_year': startYear,
         if (endYear != null) 'end_year': endYear,
-        if (sortBy != null) 'sort_by': sortBy,
-        if (sortOrder != null) 'sort_order': sortOrder,
+        // A text `search` ranks by relevance server-side — sending a sort on
+        // top of that would fight it, so it's only sent for the sort-driven
+        // "discover" grid (no typed query).
+        if (sortBy != null && (search == null || search.isEmpty)) 'sort_by': sortBy,
+        if (sortOrder != null && (search == null || search.isEmpty)) 'sort_order': sortOrder,
       });
       final items = response.data['data']['items'] as List;
       final books = items
@@ -243,6 +246,19 @@ class BookApiService {
     try {
       await DioClient.instance.post(ApiEndpoints.bookProgress(bookId),
           data: {'progress': progress});
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// DELETE `/books/:bookId/progress` — drops the signed-in user's reading
+  /// progress for the book, removing it from the reading shelf and, if it
+  /// was marked complete, from the finished shelf too (both shelves read the
+  /// same record — see [ApiEndpoints.bookProgress]). The catalogue book and
+  /// any purchase of it are untouched.
+  static Future<void> deleteProgress(int bookId) async {
+    try {
+      await DioClient.instance.delete(ApiEndpoints.bookProgress(bookId));
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

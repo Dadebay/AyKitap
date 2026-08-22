@@ -15,6 +15,7 @@ import '../../reader/provider/reader_provider.dart';
 import '../../reader/utils/pdf_book_opener.dart';
 import '../../reader/views/cbz_reader_screen.dart';
 import '../../reader/views/reader_view.dart';
+import 'shelf_delete.dart';
 import 'shelf_grid.dart';
 
 class OwnBooksTab extends StatefulWidget {
@@ -67,6 +68,19 @@ class _OwnBooksTabState extends State<OwnBooksTab> {
     }
   }
 
+  /// Imported files live only on this device, so unlike the API-backed
+  /// shelves there's nothing to un-do server-side: confirming here deletes
+  /// the copied file (and its CBZ/reflow caches) for good.
+  Future<void> _confirmDelete(OwnBook book) async {
+    // No `coverUrl` — an imported file has no artwork, so the dialog falls
+    // back to its icon badge.
+    final choice = await showShelfDeleteDialog(context,
+        message: LibraryStrings.deleteOwnBookConfirm(book.title));
+    if (choice != ShelfDeleteChoice.delete) return;
+    await _store.remove(book.id);
+    if (mounted) context.showAppSnackBar(LibraryStrings.bookDeleted(book.title));
+  }
+
   @override
   Widget build(BuildContext context) {
     final books = context.watch<OwnBooksStore>().books;
@@ -106,7 +120,12 @@ class _OwnBooksTabState extends State<OwnBooksTab> {
               const SizedBox(height: 12),
               ShelfGrid(
                 itemCount: books.length,
-                itemBuilder: (context, i) => OwnBookSpineCover(book: books[i], onTap: () => _openBook(books[i])),
+                itemBuilder: (context, i) => OwnBookSpineCover(
+                  key: ValueKey(books[i].id),
+                  book: books[i],
+                  onTap: () => _openBook(books[i]),
+                  onLongPress: () => _confirmDelete(books[i]),
+                ),
               ),
               const SizedBox(height: 16),
             ],

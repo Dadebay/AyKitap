@@ -4,20 +4,34 @@ import '../../../core/localization/strings/reader_strings.dart';
 import '../../../core/theme/app_colors.dart';
 import 'reader_fit_tile.dart';
 
+/// How a CBZ's page images are laid out and moved through — the image-book
+/// counterpart of [PdfViewMode], and the same trade-off.
+///
+/// * [scroll] — every page stacked in one continuous top-to-bottom scroll,
+///   each drawn at the full screen width. This is the default: a comic page is
+///   typically much taller than the screen, so fitting it whole shrinks the
+///   panels and lettering to an unreadable size. Filling the width and letting
+///   the reader scroll down the page is how comics are read.
+/// * [paged] — one page per sideways swipe, scaled to fit the screen whole.
+///   Opt-in, for the reader who wants a page at a time.
+enum CbzViewMode { scroll, paged }
+
 /// The CBZ reader's settings panel — [PdfSettingsSheet]'s sibling, same
 /// layout and same three sections (gutter colour, page scale, brightness), but
 /// scaling the *image* pages with Flutter's own [BoxFit] instead of
-/// flutter_pdfview's [FitPolicy], since a comic page here is drawn by
-/// `Image.file` rather than a native PDF view.
+/// [PdfFitMode], since a comic page here is drawn by `Image.file` rather
+/// than by a PDF engine.
 class CbzSettingsSheet extends StatelessWidget {
   final bool darkGutter;
   final double brightness;
   final double eyeCare;
   final BoxFit fit;
+  final CbzViewMode viewMode;
   final ValueChanged<bool> onGutterChanged;
   final ValueChanged<double> onBrightnessChanged;
   final ValueChanged<double> onEyeCareChanged;
   final ValueChanged<BoxFit> onFitChanged;
+  final ValueChanged<CbzViewMode> onViewModeChanged;
 
   const CbzSettingsSheet({
     super.key,
@@ -25,21 +39,25 @@ class CbzSettingsSheet extends StatelessWidget {
     required this.brightness,
     required this.eyeCare,
     required this.fit,
+    required this.viewMode,
     required this.onGutterChanged,
     required this.onBrightnessChanged,
     required this.onEyeCareChanged,
     required this.onFitChanged,
+    required this.onViewModeChanged,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      // See [PdfSettingsSheet] — same cap-and-scroll treatment, so the sheet
+      // still fits once the reader is rotated into landscape.
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: EdgeInsets.fromLTRB(
-          20, 12, 20, 24 + MediaQuery.of(context).padding.bottom),
+      padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + MediaQuery.of(context).padding.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,9 +66,8 @@ class CbzSettingsSheet extends StatelessWidget {
             child: Container(
               width: 40,
               height: 4,
-              decoration: BoxDecoration(
-                  color: AppColors.grey3,
-                  borderRadius: BorderRadius.circular(2)),
+              decoration:
+                  BoxDecoration(color: AppColors.grey3, borderRadius: BorderRadius.circular(2)),
             ),
           ),
           const SizedBox(height: 16),
@@ -59,10 +76,7 @@ class CbzSettingsSheet extends StatelessWidget {
             children: [
               Text(
                 ReaderStrings.settingsTitle,
-                style: TextStyle(
-                    color: AppColors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800),
+                style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800),
               ),
               const Spacer(),
               GestureDetector(
@@ -71,95 +85,137 @@ class CbzSettingsSheet extends StatelessWidget {
                 child: Container(
                   width: 30,
                   height: 30,
-                  decoration: BoxDecoration(
-                      color: AppColors.card, shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: AppColors.card, shape: BoxShape.circle),
                   child: HugeIcon(
-                      icon: HugeIcons.strokeRoundedArrowDown01,
-                      color: AppColors.grey2,
-                      size: 18),
+                      icon: HugeIcons.strokeRoundedArrowDown01, color: AppColors.grey2, size: 18),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 18),
 
-          // ── Gutter colour ─────────────────────────────────────────────
-          _SectionLabel(ReaderStrings.backgroundColorLabel),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _GutterSwatch(
-                  color: Colors.white,
-                  label: ReaderStrings.themeWhite,
-                  selected: !darkGutter,
-                  onTap: () => onGutterChanged(false),
-                ),
+          // Grab handle and heading stay put; everything below them scrolls,
+          // so a short (landscape) viewport still reaches every section.
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Gutter colour ─────────────────────────────────────────────
+                  _SectionLabel(ReaderStrings.backgroundColorLabel),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _GutterSwatch(
+                          color: Colors.white,
+                          label: ReaderStrings.themeWhite,
+                          selected: !darkGutter,
+                          onTap: () => onGutterChanged(false),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _GutterSwatch(
+                          color: const Color(0xFF1C1C1E),
+                          label: ReaderStrings.themeDark,
+                          selected: darkGutter,
+                          onTap: () => onGutterChanged(true),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 22),
+
+                  // ── View mode ─────────────────────────────────────────────────
+                  // Above the scale tiles for the same reason as in
+                  // [PdfSettingsSheet]: it's the coarser choice, and picking it
+                  // also moves the scale to the one that works with it.
+                  _SectionLabel(ReaderStrings.pdfViewModeLabel),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ReaderFitTile(
+                          icon: HugeIcons.strokeRoundedScrollVertical,
+                          label: ReaderStrings.pdfViewModeScroll,
+                          selected: viewMode == CbzViewMode.scroll,
+                          onTap: () => onViewModeChanged(CbzViewMode.scroll),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ReaderFitTile(
+                          icon: HugeIcons.strokeRoundedScrollHorizontal,
+                          label: ReaderStrings.pdfViewModePaged,
+                          selected: viewMode == CbzViewMode.paged,
+                          onTap: () => onViewModeChanged(CbzViewMode.paged),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 22),
+
+                  // ── Page scale ────────────────────────────────────────────────
+                  // Only meaningful page-at-a-time: in continuous scroll every
+                  // page already fills the width by definition.
+                  if (viewMode == CbzViewMode.paged) ...[
+                    _SectionLabel(ReaderStrings.pdfFitLabel),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ReaderFitTile(
+                            icon: HugeIcons.strokeRoundedFitToScreen,
+                            label: ReaderStrings.cbzFitContain,
+                            selected: fit == BoxFit.contain,
+                            onTap: () => onFitChanged(BoxFit.contain),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ReaderFitTile(
+                            icon: HugeIcons.strokeRoundedMaximize01,
+                            label: ReaderStrings.cbzFitCover,
+                            selected: fit == BoxFit.cover,
+                            onTap: () => onFitChanged(BoxFit.cover),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 22),
+                  ],
+
+                  // ── Brightness (TZ §12.4) ──────────────────────────────────────
+                  _SectionLabel(ReaderStrings.brightnessLabel),
+                  const SizedBox(height: 10),
+                  _SliderRow(
+                    leadingIcon: HugeIcons.strokeRoundedSun01,
+                    trailingIcon: HugeIcons.strokeRoundedSun01,
+                    value: brightness,
+                    min: 0.1,
+                    onChanged: onBrightnessChanged,
+                  ),
+
+                  const SizedBox(height: 22),
+
+                  // ── Eye care (blue-light filter) ───────────────────────────────
+                  // A warm amber wash over the page, shared with the EPUB/PDF readers.
+                  _SectionLabel(ReaderStrings.eyeCareLabel),
+                  const SizedBox(height: 10),
+                  _SliderRow(
+                    leadingIcon: HugeIcons.strokeRoundedViewOff,
+                    trailingIcon: HugeIcons.strokeRoundedEye,
+                    value: eyeCare,
+                    min: 0.0,
+                    onChanged: onEyeCareChanged,
+                  ),
+                ],
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _GutterSwatch(
-                  color: const Color(0xFF1C1C1E),
-                  label: ReaderStrings.themeDark,
-                  selected: darkGutter,
-                  onTap: () => onGutterChanged(true),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 22),
-
-          // ── Page scale ────────────────────────────────────────────────
-          _SectionLabel(ReaderStrings.pdfFitLabel),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: ReaderFitTile(
-                  icon: HugeIcons.strokeRoundedFitToScreen,
-                  label: ReaderStrings.cbzFitContain,
-                  selected: fit == BoxFit.contain,
-                  onTap: () => onFitChanged(BoxFit.contain),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ReaderFitTile(
-                  icon: HugeIcons.strokeRoundedMaximize01,
-                  label: ReaderStrings.cbzFitCover,
-                  selected: fit == BoxFit.cover,
-                  onTap: () => onFitChanged(BoxFit.cover),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 22),
-
-          // ── Brightness (TZ §12.4) ──────────────────────────────────────
-          _SectionLabel(ReaderStrings.brightnessLabel),
-          const SizedBox(height: 10),
-          _SliderRow(
-            leadingIcon: HugeIcons.strokeRoundedSun01,
-            trailingIcon: HugeIcons.strokeRoundedSun01,
-            value: brightness,
-            min: 0.1,
-            onChanged: onBrightnessChanged,
-          ),
-
-          const SizedBox(height: 22),
-
-          // ── Eye care (blue-light filter) ───────────────────────────────
-          // A warm amber wash over the page, shared with the EPUB/PDF readers.
-          _SectionLabel(ReaderStrings.eyeCareLabel),
-          const SizedBox(height: 10),
-          _SliderRow(
-            leadingIcon: HugeIcons.strokeRoundedViewOff,
-            trailingIcon: HugeIcons.strokeRoundedEye,
-            value: eyeCare,
-            min: 0.0,
-            onChanged: onEyeCareChanged,
+            ),
           ),
         ],
       ),
@@ -208,11 +264,7 @@ class _SliderRow extends StatelessWidget {
                 thumbColor: AppColors.primary,
                 overlayColor: AppColors.primary.withValues(alpha: 0.13),
               ),
-              child: Slider(
-                  value: value.clamp(min, 1.0),
-                  min: min,
-                  max: 1.0,
-                  onChanged: onChanged),
+              child: Slider(value: value.clamp(min, 1.0), min: min, max: 1.0, onChanged: onChanged),
             ),
           ),
           HugeIcon(icon: trailingIcon, color: AppColors.grey1, size: 21),
@@ -229,10 +281,7 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(text,
-        style: TextStyle(
-            color: AppColors.grey2,
-            fontSize: 12.5,
-            fontWeight: FontWeight.w600));
+        style: TextStyle(color: AppColors.grey2, fontSize: 12.5, fontWeight: FontWeight.w600));
   }
 }
 
@@ -251,8 +300,7 @@ class _GutterSwatch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final onColor =
-        color.computeLuminance() < 0.4 ? Colors.white : Colors.black87;
+    final onColor = color.computeLuminance() < 0.4 ? Colors.white : Colors.black87;
     return Semantics(
       label: label,
       selected: selected,
@@ -285,10 +333,7 @@ class _GutterSwatch extends StatelessWidget {
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    color: onColor,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w500),
+                style: TextStyle(color: onColor, fontSize: 10.5, fontWeight: FontWeight.w500),
               ),
             ],
           ),

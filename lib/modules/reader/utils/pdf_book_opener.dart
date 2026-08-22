@@ -28,13 +28,22 @@ String preferFixedPrefKey(int bookId) => 'book_${bookId}_pdf_prefer_fixed';
 ///
 /// The same [bookId] is passed through either way, so bookmarks/notes (keyed
 /// by bare bookId) carry over regardless of which reader ends up handling it.
+/// [realBookId] rides along for the same reason and is separate for the reason
+/// given on [PdfReaderScreen.realBookId] — a catalogue book's notes have to
+/// reach `POST /users/notes` from whichever of the two readers took them.
 Future<void> openPdfBook(
   BuildContext context, {
   required String filePath,
   required String title,
   required int bookId,
+  int? realBookId,
 }) {
-  return context.push(PdfOpeningScreen(filePath: filePath, title: title, bookId: bookId));
+  return context.push(PdfOpeningScreen(
+    filePath: filePath,
+    title: title,
+    bookId: bookId,
+    realBookId: realBookId,
+  ));
 }
 
 /// A brief hand-off screen pushed while the PDF is classified (and, on first
@@ -44,11 +53,10 @@ Future<void> openPdfBook(
 /// Every path into the reflow conversion goes through here, including the
 /// "Tekst görnüşi" switch from inside [PdfReaderScreen] (which pushes this
 /// as a replacement rather than converting in place). That is deliberate:
-/// the conversion drives pdfrx's PDFium over the whole document, and doing
-/// that while a live [PDFView] holds the same file open in
-/// flutter_pdfview's *own* PDFium — two engines, one file, one of them
-/// rendering — took the whole app down on a large book. Converting only
-/// from here means no PDF view is ever alive at the time.
+/// the conversion drives PDFium over the whole document, and doing that
+/// while a live [PdfViewer] holds the same file open put two readers on one
+/// document. Converting only from here means no PDF view is ever alive at
+/// the time.
 ///
 /// This deliberately does *not* reuse [BookOpeningOverlay]'s ramped 0→100%
 /// animation: that overlay holds for a multi-second minimum by design (see
@@ -68,7 +76,16 @@ class PdfOpeningScreen extends StatefulWidget {
   final String title;
   final int bookId;
 
-  const PdfOpeningScreen({required this.filePath, required this.title, required this.bookId});
+  /// See [PdfReaderScreen.realBookId] — handed on unchanged to whichever
+  /// reader [_proceed] lands on.
+  final int? realBookId;
+
+  const PdfOpeningScreen({
+    required this.filePath,
+    required this.title,
+    required this.bookId,
+    this.realBookId,
+  });
 
   @override
   State<PdfOpeningScreen> createState() => PdfOpeningScreenState();
@@ -107,11 +124,20 @@ class PdfOpeningScreenState extends State<PdfOpeningScreen> {
         context.showAppSnackBar(ReaderStrings.pdfTextViewUnavailable, isError: true);
       }
     }
+    // Landing on the fixed pages: find out whether they're page *images* (a
+    // scan, a manga) so the reader can lay them out for pictures rather than
+    // text. Cached on disk after the first open — see [isImageOnlyPdf] — and
+    // this screen is already the place that classifies, so it costs nothing
+    // extra on reopen.
+    var imageOnly = false;
+    if (epubPath == null) {
+      imageOnly = await PdfReflowService.instance.isImageOnlyPdf(filePath: widget.filePath);
+    }
     if (!mounted) return;
-    _proceed(epubPath);
+    _proceed(epubPath, imageOnly: imageOnly);
   }
 
-  void _proceed(String? epubPath) {
+  void _proceed(String? epubPath, {bool imageOnly = false}) {
     final replacement = epubPath != null
         ? ChangeNotifierProvider(
             create: (_) => ReaderProvider(),
@@ -119,10 +145,17 @@ class PdfOpeningScreenState extends State<PdfOpeningScreen> {
               bookPath: epubPath,
               bookId: widget.bookId,
               bookTitle: widget.title,
+              realBookId: widget.realBookId,
               originalPdfPath: widget.filePath,
             ),
           )
-        : PdfReaderScreen(filePath: widget.filePath, title: widget.title, bookId: widget.bookId);
+        : PdfReaderScreen(
+            filePath: widget.filePath,
+            title: widget.title,
+            bookId: widget.bookId,
+            realBookId: widget.realBookId,
+            imageOnly: imageOnly,
+          );
     Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => replacement));
   }
 

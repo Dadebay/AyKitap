@@ -40,6 +40,18 @@ class ReadingBooksStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Drops one book from the shadow — the local half of deleting its
+  /// progress server-side. Without this the shelf would repaint the book
+  /// from disk on the next cold start, since [mergeFromBackend] keeps
+  /// locally-opened books the backend didn't return.
+  Future<void> remove(int bookId) async {
+    await load();
+    if (!_books.any((book) => book.id == bookId)) return;
+    _books = _books.where((book) => book.id != bookId).toList();
+    await _persist();
+    notifyListeners();
+  }
+
   /// Reconciles the offline shadow with the authoritative, non-finished
   /// backend list while retaining local launches not yet synced by progress.
   Future<void> mergeFromBackend(Iterable<LibraryBook> books) async {

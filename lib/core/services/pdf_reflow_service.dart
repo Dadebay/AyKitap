@@ -80,6 +80,42 @@ class PdfReflowService {
     return null;
   }
 
+  /// Whether [filePath] is an image book — a scan, a manga, a comic — rather
+  /// than one with a real text layer. This is the same test
+  /// [reflowEpubPathFor] uses to decide there is nothing to reflow, exposed on
+  /// its own because the *fixed-page* reader wants it too: a page that is one
+  /// big picture needs a layout chosen for pictures (fill the width and scroll
+  /// down it) rather than the whole page shrunk to fit the screen's height,
+  /// which turns a tall manga page into an unreadable sliver.
+  ///
+  /// Shares [reflowEpubPathFor]'s on-disk verdict cache, so the PDFium pass
+  /// runs at most once per book — afterwards this is a file-exists check, and
+  /// a later reflow attempt reads the same marker instead of re-sampling.
+  ///
+  /// Returns false if the file can't be read at all: an unreadable PDF
+  /// shouldn't have a layout picked for it on the strength of a guess.
+  Future<bool> isImageOnlyPdf({required String filePath}) async {
+    try {
+      final dir = await _cacheDirFor(filePath);
+      // A generated EPUB is proof it had text; the marker is proof it didn't.
+      if (await File('${dir.path}/reflow.epub').exists()) return false;
+      final markerFile = File('${dir.path}/is_image.marker');
+      if (await markerFile.exists()) return true;
+
+      final document = await PdfDocument.openFile(filePath);
+      try {
+        if (await _looksLikeTextPdf(document)) return false;
+        await dir.create(recursive: true);
+        await markerFile.create();
+        return true;
+      } finally {
+        await document.dispose();
+      }
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Deletes [filePath]'s reflow cache (the generated EPUB or the "it's an
   /// image PDF" marker), if any. Safe to call for a book that was never
   /// opened or isn't a PDF at all.

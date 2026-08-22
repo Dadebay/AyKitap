@@ -4,17 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../core/localization/strings/gift_strings.dart';
+import '../../core/localization/strings/payment_strings.dart';
+import '../../core/localization/strings/profile_strings.dart';
 import '../../core/navigation/app_navigator.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/network/api_config.dart';
 import '../../core/services/account_service.dart';
 import '../../core/services/auth_session.dart';
 import '../../core/services/streak_service.dart';
 import '../../core/services/subscription_service.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/widgets/streak_flame.dart';
 import '../../core/widgets/streak_week_row.dart';
-import '../../core/localization/strings/payment_strings.dart';
-import '../../core/localization/strings/profile_strings.dart';
 import '../auth/phone_login_screen.dart';
 import '../payment/subscription_screen.dart';
 import '../streak/streak_screen.dart';
@@ -26,6 +27,7 @@ import 'report_problem_sheet.dart';
 import 'settings_screen.dart';
 import 'widgets/profile_entry_card.dart';
 import 'widgets/profile_header.dart';
+import 'widgets/send_gift_sheet.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -65,7 +67,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _isLoggedIn = loggedIn;
         _phone = phone ?? '';
-        _name = (name != null && name.isNotEmpty) ? name : ProfileStrings.defaultReaderName;
+        _name = (name != null && name.isNotEmpty)
+            ? name
+            : ProfileStrings.defaultReaderName;
         _avatarIndex = avatar;
         _avatarImage = avatarImage;
       });
@@ -94,12 +98,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       if (username != null && username.isNotEmpty) _name = username;
       if (user.phone.isNotEmpty) _phone = user.phone;
-      _backendAvatarUrl = (user.image != null && user.image!.isNotEmpty) ? ApiConfig.resolveImageUrl(user.image!) : null;
+      _backendAvatarUrl = (user.image != null && user.image!.isNotEmpty)
+          ? ApiConfig.resolveImageUrl(user.image!)
+          : null;
     });
   }
 
   Future<void> _openBalance() async {
     await context.push(const BalanceScreen());
+  }
+
+  Future<void> _openSendGift() async {
+    // The sheet awaits AccountService.refresh after a confirmed transfer.
+    // This screen watches that service, so the profile balance card rebuilds
+    // with the new value as soon as the success dialog is dismissed.
+    await SendGiftSheet.show(context);
   }
 
   // TZ 8.1: phone shown half-hidden as "+993 XX ***XX". Works off the digits
@@ -125,7 +138,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _openSettings() async {
-    final result = await context.push<String>(SettingsScreen(isLoggedIn: _isLoggedIn));
+    final result =
+        await context.push<String>(SettingsScreen(isLoggedIn: _isLoggedIn));
     if (result == 'logout' && mounted) {
       setState(() => _isLoggedIn = false);
     }
@@ -141,7 +155,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: AppColors.bg,
         scrolledUnderElevation: 0.0,
         centerTitle: true,
-        title: Text(ProfileStrings.profileTitle, style: TextStyle(color: AppColors.white, fontSize: 22, fontWeight: FontWeight.w700)),
+        title: Text(ProfileStrings.profileTitle,
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w700)),
       ),
       body: SafeArea(
         bottom: false,
@@ -152,9 +170,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 110),
           children: _isLoggedIn
               ? [
-                  ProfileTopSection(name: _name, maskedPhone: _maskedPhone, avatarIndex: _avatarIndex, avatarImage: _avatarImage, avatarUrl: _backendAvatarUrl, onTap: _openEditProfile),
+                  ProfileTopSection(
+                      name: _name,
+                      maskedPhone: _maskedPhone,
+                      avatarIndex: _avatarIndex,
+                      avatarImage: _avatarImage,
+                      avatarUrl: _backendAvatarUrl,
+                      onTap: _openEditProfile),
                   const SizedBox(height: 24),
                   _buildBalanceEntry(context, balance),
+                  const SizedBox(height: 12),
+                  _buildSendGiftButton(context),
                   const SizedBox(height: 12),
                   _buildSubscriptionEntry(context, subscription),
                   const SizedBox(height: 12),
@@ -187,17 +213,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildSendGiftButton(BuildContext context) {
+    return ProfileEntryCard(
+      leading: profileIconCircle(HugeIcons.strokeRoundedGift),
+      title: GiftStrings.entryTitle,
+      onTap: _openSendGift,
+    );
+  }
+
   // Highlighted (primary tint + border, same treatment as the book-request
   // CTA below) and shows the real expiry when active, rather than the always-
   // -on "Abuna ýazyl" subtitle — so an active subscription is obvious right
   // on this row, without opening SubscriptionScreen to check.
-  Widget _buildSubscriptionEntry(BuildContext context, SubscriptionService subscription) {
+  Widget _buildSubscriptionEntry(
+      BuildContext context, SubscriptionService subscription) {
     final active = subscription.isActive;
     final expiresAt = subscription.expiresAt;
     return ProfileEntryCard(
-      leading: profileIconCircle(active ? HugeIcons.strokeRoundedCheckmarkCircle01 : HugeIcons.strokeRoundedDiamond),
+      leading: profileIconCircle(active
+          ? HugeIcons.strokeRoundedCheckmarkCircle01
+          : HugeIcons.strokeRoundedDiamond),
       title: ProfileStrings.subscription,
-      subtitle: active && expiresAt != null ? ProfileStrings.subscriptionActiveUntil(DateFormat.yMMMd().format(expiresAt)) : ProfileStrings.subscribeNow,
+      subtitle: active && expiresAt != null
+          ? ProfileStrings.subscriptionActiveUntil(
+              DateFormat.yMMMd().format(expiresAt))
+          : ProfileStrings.subscribeNow,
       highlighted: active,
       onTap: () => context.push(const SubscriptionScreen()),
     );
@@ -211,7 +251,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // or removed without the other.
     final streak = context.watch<StreakService>();
     return ProfileEntryCard(
-      leading: const SizedBox(width: 40, height: 40, child: StreakFlame(size: 32)),
+      leading:
+          const SizedBox(width: 40, height: 40, child: StreakFlame(size: 32)),
       title: ProfileStrings.streakDays(streak.currentStreak),
       subtitle: ProfileStrings.bestStreak(streak.bestStreak),
       extra: StreakWeekRow(weekRead: streak.weekRead, circleSize: 34),
