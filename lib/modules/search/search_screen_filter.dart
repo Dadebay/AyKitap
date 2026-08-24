@@ -13,7 +13,12 @@ extension _SearchScreenFilter on _SearchScreenState {
     ));
     if (res == null || !mounted) return;
     _debounce?.cancel();
-    final sortChanged = res.sortBy != _filterSort;
+    // Also counts as changed the first time the filter page is applied even
+    // if [res.sortBy] happens to already equal [_filterSort]: before this,
+    // the discover grid was still following the daily rotation (see
+    // [_discoverSort]), so confirming the same-looking value is still a real
+    // change from "rotating" to "pinned".
+    final sortChanged = res.sortBy != _filterSort || !_sortChosenByUser;
     _setState(() {
       _filterActive = res.active;
       // Same selection the chip row shows/sets — picking a genre inside the
@@ -28,6 +33,7 @@ extension _SearchScreenFilter on _SearchScreenState {
       _filterStartYear = res.startYear;
       _filterEndYear = res.endYear;
       _filterSort = res.sortBy;
+      _sortChosenByUser = true;
     });
     // Sort applies to the discover grid as well, and that list was fetched
     // in the old order — so a new sort means re-fetching it, whether or not

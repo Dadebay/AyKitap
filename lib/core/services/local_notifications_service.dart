@@ -5,8 +5,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 /// background/terminated pushes, doesn't show anything on its own.
 class LocalNotificationsService {
   LocalNotificationsService._();
-  static final LocalNotificationsService instance =
-      LocalNotificationsService._();
+  static final LocalNotificationsService instance = LocalNotificationsService._();
 
   late final FlutterLocalNotificationsPlugin _plugin;
   final _androidChannel = const AndroidNotificationChannel(
@@ -28,17 +27,12 @@ class LocalNotificationsService {
       requestBadgePermission: true,
       requestSoundPermission: true,
     );
-    await _plugin.initialize(
-        const InitializationSettings(android: androidInit, iOS: iosInit));
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(_androidChannel);
+    await _plugin.initialize(const InitializationSettings(android: androidInit, iOS: iosInit));
+    await _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()?.createNotificationChannel(_androidChannel);
     _initialized = true;
   }
 
-  Future<void> showNotification(
-      String? title, String? body, String? payload) async {
+  Future<void> showNotification(String? title, String? body, String? payload) async {
     final androidDetails = AndroidNotificationDetails(
       _androidChannel.id,
       _androidChannel.name,

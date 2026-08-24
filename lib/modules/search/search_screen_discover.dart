@@ -28,10 +28,15 @@ extension _SearchScreenDiscover on _SearchScreenState {
 
   /// Only takes over while the filter page's own sort is still untouched —
   /// picking a real sort there (even re-picking today's rotation's own
-  /// value) keeps meaning exactly what it says instead of drifting to a
-  /// different order tomorrow underneath the user.
+  /// value, or [kDefaultSortBy] itself) keeps meaning exactly what it says
+  /// instead of drifting to a different order tomorrow underneath the user.
+  /// Keyed off [_sortChosenByUser] rather than `_filterSort !=
+  /// kDefaultSortBy`: [kDefaultSortBy] is itself a selectable option
+  /// ("Ýüklenen wagty (täzeden köne)"), so that comparison couldn't tell
+  /// "never opened the filter page" apart from "opened it and picked the
+  /// option that happens to match the default".
   (String, String) get _discoverSort {
-    if (_filterSort != kDefaultSortBy) {
+    if (_sortChosenByUser) {
       return (_filterSort.apiSortBy, _filterSort.apiSortOrder);
     }
     final weekday = DateTime.now().weekday; // 1 (Mon) .. 7 (Sun)
