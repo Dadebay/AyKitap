@@ -12,10 +12,13 @@ class GiftApiService {
   GiftApiService._();
 
   /// GET `/users/is-user-exists?phone=...` — whether [phone] belongs to a
-  /// registered user. The exact success shape isn't pinned down in the API
-  /// contract, so this tolerates a plain boolean `data` as well as
-  /// `data: {exists: bool}`, and otherwise treats any 2xx as "exists" (a
-  /// 404 is the one shape read as "doesn't exist").
+  /// registered user. Confirmed response shape (from a live debug-log
+  /// capture): `{statusCode, message, data: {userExists: bool}}`. This also
+  /// tolerates a plain boolean `data` and the `exists` key some earlier
+  /// contract draft used, and otherwise treats an unrecognised 2xx shape as
+  /// "doesn't exist" — the safe default for a check that gates sending
+  /// money, unlike the "exists" fallback this replaced (a 404 is the other
+  /// shape read as "doesn't exist").
   static Future<bool> checkUserExists({required String phone}) async {
     try {
       _debugLog('checking recipient: ${_maskedPhone(phone)}');
@@ -35,15 +38,20 @@ class GiftApiService {
         _debugLog('recipient ${_maskedPhone(phone)} exists: $data');
         return data;
       }
+      if (data is Map && data['userExists'] is bool) {
+        final exists = data['userExists'] as bool;
+        _debugLog('recipient ${_maskedPhone(phone)} exists: $exists');
+        return exists;
+      }
       if (data is Map && data['exists'] is bool) {
         final exists = data['exists'] as bool;
         _debugLog('recipient ${_maskedPhone(phone)} exists: $exists');
         return exists;
       }
       _debugLog(
-        'recipient ${_maskedPhone(phone)} returned an unrecognised success payload; treating as exists: $payload',
+        'recipient ${_maskedPhone(phone)} returned an unrecognised success payload; treating as NOT existing: $payload',
       );
-      return true;
+      return false;
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
         _debugLog('recipient ${_maskedPhone(phone)} does not exist (404)');

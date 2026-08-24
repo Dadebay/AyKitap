@@ -50,17 +50,35 @@ extension _PdfReaderScreenPageLayer on _PdfReaderScreenState {
                     panAxis: _viewMode == PdfViewMode.paged
                         ? PanAxis.horizontal
                         : PanAxis.free,
-                    // Fit-width means "fill the screen's width and scroll
-                    // down the rest", which is pdfrx's *alternative* fit
-                    // scale (its default fits the whole page). Falling back
-                    // to the default keeps a page on screen if the
-                    // alternative isn't available yet.
+                    // pdfrx's naming is the opposite of what it sounds like
+                    // here: `alternativeFitZoom` fits *one page* (both axes)
+                    // into the viewport — that's [PdfFitMode.page], "the
+                    // whole page has to be on screen". `coverZoom` scales to
+                    // the *document*'s full laid-out bounding box (all pages
+                    // — see [_layoutPages]'s `documentSize`); for scroll
+                    // mode's tall single-column strip that bounding box is
+                    // far taller than it is wide, so covering it collapses
+                    // to fitting the width — that's [PdfFitMode.width]. A
+                    // prior migration from flutter_pdfview matched these to
+                    // the wrong [PdfFitMode], which showed every PDF letter-
+                    // boxed (whole page, margins left/right) regardless of
+                    // which fit the reader had picked.
                     sizeDelegateProvider: PdfViewerSizeDelegateProviderLegacy(
+                      // Continuous scroll has no "whole page visible, no
+                      // scrolling" state the way paged mode does — a page
+                      // there is always followed by more page below, so
+                      // "fit page" would only mean shrinking it to letterbox
+                      // inside the viewport (visible margins left/right,
+                      // exactly the "stuck in the middle" look this is meant
+                      // to avoid). So scroll mode always covers to the full
+                      // width regardless of [_fitPolicy]; only paged mode
+                      // still honors the whole-page choice.
                       calculateInitialZoom: (document, controller,
                               alternativeFitZoom, coverZoom) =>
-                          _fitPolicy == PdfFitMode.width
-                              ? alternativeFitZoom
-                              : coverZoom,
+                          (_fitPolicy == PdfFitMode.width ||
+                                  _viewMode == PdfViewMode.scroll)
+                              ? coverZoom
+                              : alternativeFitZoom,
                     ),
                     onViewerReady: (document, controller) => _setState(() {
                       _totalPages = document.pages.length;

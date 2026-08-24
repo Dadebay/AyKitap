@@ -37,12 +37,19 @@ extension _PdfReaderScreenLayout on _PdfReaderScreenState {
           pageLayouts: layouts, documentSize: Size(x, tallest + gap * 2));
     }
 
+    // Every page is stretched to the same [width] (preserving its own aspect
+    // ratio) rather than kept at its native size like paged mode does above.
+    // A book's pages aren't always uniform — a wide promo/cover insert next
+    // to normal-sized chapter pages, say — and scroll mode picks one zoom for
+    // the whole document; leaving pages at their native width under that one
+    // zoom is what made the narrower ones render short of the screen edges
+    // instead of filling it like the wide one does.
     final width = pages.fold(0.0, (w, p) => math.max(w, p.width));
     var y = 0.0;
     for (final page in pages) {
-      layouts.add(
-          Rect.fromLTWH((width - page.width) / 2, y, page.width, page.height));
-      y += page.height;
+      final height = page.height * (width / page.width);
+      layouts.add(Rect.fromLTWH(0, y, width, height));
+      y += height;
     }
     return PdfPageLayout(pageLayouts: layouts, documentSize: Size(width, y));
   }

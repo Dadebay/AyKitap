@@ -85,6 +85,12 @@ class _SearchScreenState extends State<SearchScreen> {
   // discover grid too — sorting isn't a narrowing, so it has something to do
   // even when nothing is being searched for.
   SortBy _filterSort = kDefaultSortBy;
+  // Set once the filter page has actually been applied — [_filterSort]
+  // starts equal to [kDefaultSortBy], the same value "Ýüklenen wagty
+  // (täzeden köne)" carries, so equality alone can't tell "never touched"
+  // apart from "the user picked that option on purpose". See
+  // [_SearchScreenDiscover._discoverSort].
+  bool _sortChosenByUser = false;
 
   // True once the grid below has been scrolled away from its top: the page
   // title, the Kitap/Ýazar toggle and the chip row fold away so the covers
