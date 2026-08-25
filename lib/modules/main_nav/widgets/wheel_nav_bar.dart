@@ -3,8 +3,10 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
+import '../../../core/services/profile_avatar_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
+import '../../../core/widgets/profile_avatar.dart';
 import 'wheel_nav_bar_disk_painter.dart';
 
 part 'wheel_nav_bar_geometry.dart';
@@ -68,7 +70,15 @@ class _WheelNavBarState extends State<WheelNavBar>
   void initState() {
     super.initState();
     _fromFloat = widget.selectedIndex.toDouble();
+    // The profile tab's icon mirrors the signed-in user's chosen avatar
+    // (see _buildIcons) — load it now, and again whenever EditProfileScreen
+    // saves a change, so returning from there updates the wheel without
+    // needing this bar to be rebuilt from scratch.
+    ProfileAvatarService.instance.load();
+    ProfileAvatarService.instance.addListener(_onAvatarChanged);
   }
+
+  void _onAvatarChanged() => setState(() {});
 
   @override
   void didUpdateWidget(WheelNavBar old) {
@@ -87,6 +97,7 @@ class _WheelNavBarState extends State<WheelNavBar>
   @override
   void dispose() {
     _ctrl.dispose();
+    ProfileAvatarService.instance.removeListener(_onAvatarChanged);
     super.dispose();
   }
 

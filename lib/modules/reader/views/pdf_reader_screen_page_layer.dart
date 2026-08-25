@@ -39,6 +39,20 @@ extension _PdfReaderScreenPageLayer on _PdfReaderScreenState {
                   initialPageNumber: _initialPage + 1,
                   params: PdfViewerParams(
                     backgroundColor: bg,
+                    // A long scanned book (a few hundred image-heavy pages,
+                    // common for a CamScanner/phone-photo PDF) can push the
+                    // default 100MB rendered-page cache and the default
+                    // one-viewport-ahead/behind cache extent past what a
+                    // budget Android phone's PDFium has room for, which
+                    // surfaces as the whole app getting killed rather than
+                    // a catchable Dart error — pdfium's crash isn't
+                    // something a try/catch here can stop. Trading some
+                    // scroll-ahead smoothness for a smaller memory
+                    // footprint is worth it: a slightly-more-often
+                    // re-rendered page beats the reader force-closing.
+                    maxImageBytesCachedOnMemory: 40 * 1024 * 1024,
+                    horizontalCacheExtent: 0.5,
+                    verticalCacheExtent: 0.5,
                     // Paged mode lays pages left-to-right, one per sideways
                     // swipe, like a real page turn; scroll mode stacks them
                     // top-to-bottom with no gap so a tall webtoon page runs
@@ -77,7 +91,21 @@ extension _PdfReaderScreenPageLayer on _PdfReaderScreenState {
                               alternativeFitZoom, coverZoom) =>
                           (_fitPolicy == PdfFitMode.width ||
                                   _viewMode == PdfViewMode.scroll)
-                              ? coverZoom
+                              // `coverZoom` is computed as an exact
+                              // viewportWidth/documentWidth ratio, which
+                              // should leave the page flush with both
+                              // edges — but the floating-point zoom that
+                              // comes back out of it, once matrix-composed
+                              // and clamped by the viewer, lands a hair
+                              // under exact on some devices, leaving a
+                              // faint sliver of the gutter colour down each
+                              // side. Overscaling by 1.5% intentionally
+                              // bleeds the page a few px past both edges
+                              // instead — PDF pages already carry blank
+                              // print margins there, so nothing readable is
+                              // lost, and it costs far less than the
+                              // visible gap did.
+                              ? coverZoom * 1.015
                               : alternativeFitZoom,
                     ),
                     onViewerReady: (document, controller) => _setState(() {

@@ -20,7 +20,9 @@ import '../../core/widgets/app_snackbar.dart';
 import '../auth/phone_login_screen.dart';
 import '../payment/balance_top_up.dart';
 import '../payment/book_purchase_screen.dart';
+import '../payment/subscription_screen.dart';
 import '../payment/widgets/insufficient_balance_dialog.dart';
+import '../payment/widgets/subscription_required_dialog.dart';
 import '../reader/utils/catalog_book_opener.dart';
 
 part 'book_open_flow_actions.dart';
@@ -71,14 +73,27 @@ class BookOpenFlow {
         final loggedIn = await _login();
         if (loggedIn && context.mounted) await read(retries: retries - 1);
 
+      // "Oka" doesn't assume the reader wants to buy just this one book —
+      // that's what a separate "Satyn al" tap means (see [buy] below, which
+      // still goes straight to purchase/top-up). Not owned and not
+      // subscribed means offering both ways forward.
       case BookAccess.needsPurchase:
-        if (retries <= 0) return;
-        final bought = await buy();
-        if (bought && context.mounted) await read(retries: retries - 1);
-
       case BookAccess.needsTopUp:
-        await _topUp();
-        if (context.mounted) onAccessChanged?.call();
+        if (retries <= 0) return;
+        final choice = await SubscriptionRequiredDialog.show(context);
+        if (choice == null || !context.mounted) return;
+        switch (choice) {
+          case SubscriptionPromptChoice.subscribe:
+            await context.push(const SubscriptionScreen());
+            // Whether or not they actually subscribed, the CTA row's
+            // verdict may have changed — same "refresh, let the reader tap
+            // again" restraint [_topUp] uses below, rather than assuming
+            // success and reopening the reader on their behalf.
+            if (context.mounted) onAccessChanged?.call();
+          case SubscriptionPromptChoice.buy:
+            final bought = await buy();
+            if (bought && context.mounted) await read(retries: retries - 1);
+        }
     }
   }
 

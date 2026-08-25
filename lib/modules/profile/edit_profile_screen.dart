@@ -3,6 +3,7 @@ import '../../core/localization/strings/profile_strings.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/services/auth_api_service.dart';
 import '../../core/services/auth_session.dart';
+import '../../core/services/profile_avatar_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/app_snackbar.dart';
@@ -92,6 +93,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } else {
       await AuthSession.clearAvatarImage();
     }
+    // So the wheel nav bar's profile tab icon (which mirrors this) picks up
+    // the change immediately on navigating back, not just on next app start.
+    ProfileAvatarService.instance.set(index: _avatarIndex, image: _avatarImage);
 
     // Local storage above is already what the rest of the app reads from,
     // so a backend failure here (offline, ...) shouldn't trap the user on
