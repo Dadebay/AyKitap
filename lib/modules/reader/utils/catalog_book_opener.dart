@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/navigation/app_navigator.dart';
 import '../../../core/services/analytics_service.dart';
 import '../provider/reader_provider.dart';
 import '../views/cbz_reader_screen.dart';
 import '../views/reader_view.dart';
+import '../widgets/reader_entrance.dart';
 import 'pdf_book_opener.dart';
 
 /// Pushes whichever reader handles [format] for an already-downloaded
@@ -28,23 +28,45 @@ void openCatalogBookFile(
   required int bookId,
   required String title,
   int? pageCount,
+  String? coverUrl,
+  String? heroTag,
 }) {
   AnalyticsService.instance.logBookOpened(id: '$bookId', format: format);
   switch (format) {
     case 'pdf':
-      openPdfBook(context,
-          filePath: path, title: title, bookId: bookId, realBookId: bookId);
+      openPdfBook(
+        context,
+        filePath: path,
+        title: title,
+        bookId: bookId,
+        realBookId: bookId,
+        coverUrl: coverUrl,
+        heroTag: heroTag,
+      );
     case 'cbz':
-      context.push(CbzReaderScreen(
-          filePath: path, title: title, bookId: bookId, realBookId: bookId));
+      pushReaderRoute(
+        context,
+        coverUrl: coverUrl,
+        heroTag: heroTag,
+        reader: CbzReaderScreen(
+          filePath: path,
+          title: title,
+          bookId: bookId,
+          realBookId: bookId,
+        ),
+      );
     default:
-      context.push(
-        ChangeNotifierProvider(
+      pushReaderRoute(
+        context,
+        coverUrl: coverUrl,
+        heroTag: heroTag,
+        reader: ChangeNotifierProvider(
           create: (_) => ReaderProvider(),
           child: ReaderScreen(
             bookPath: path,
             bookId: bookId,
             bookTitle: title,
+            coverUrl: coverUrl,
             bookPages: pageCount,
             realBookId: bookId,
           ),

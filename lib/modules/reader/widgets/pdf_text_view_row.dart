@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import '../../../core/localization/strings/reader_strings.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/strings/reader_pdf_strings.dart';
 
 /// The reverse of the EPUB reader's "view original PDF pages" row: offered
 /// in [PdfSettingsSheet] once a text-layer conversion for this book already
@@ -37,7 +37,7 @@ class PdfTextViewRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      ReaderStrings.pdfTextViewLabel,
+                      ReaderPdfStrings.pdfTextViewLabel,
                       style: TextStyle(
                           color: AppColors.white,
                           fontSize: 14,
@@ -45,7 +45,7 @@ class PdfTextViewRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      ReaderStrings.pdfTextViewHint,
+                      ReaderPdfStrings.pdfTextViewHint,
                       style: TextStyle(color: AppColors.grey2, fontSize: 11.5),
                     ),
                   ],

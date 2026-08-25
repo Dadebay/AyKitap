@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/localization/strings/reader_strings.dart';
-import '../../../core/navigation/app_navigator.dart';
 import '../../../core/services/pdf_reflow_service.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../provider/reader_provider.dart';
 import '../views/pdf_reader_screen.dart';
 import '../views/reader_view.dart';
+import '../widgets/reader_entrance.dart';
+import '../../../core/localization/strings/reader_pdf_strings.dart';
 
 /// Per-book override, set from the reader's own settings sheet, for a reader
 /// who switched a PDF between fixed page images and reflowed text. Read here
@@ -37,18 +37,27 @@ Future<void> openPdfBook(
   required String title,
   required int bookId,
   int? realBookId,
+  String? coverUrl,
+  String? heroTag,
 }) {
-  return context.push(PdfOpeningScreen(
-    filePath: filePath,
-    title: title,
-    bookId: bookId,
-    realBookId: realBookId,
-  ));
+  return pushReaderRoute(
+    context,
+    coverUrl: coverUrl,
+    heroTag: heroTag,
+    reader: PdfOpeningScreen(
+      filePath: filePath,
+      title: title,
+      bookId: bookId,
+      realBookId: realBookId,
+      coverUrl: coverUrl,
+    ),
+  );
 }
 
-/// A brief hand-off screen pushed while the PDF is classified (and, on first
-/// open only, converted) — then immediately replaced with whichever reader
-/// the result calls for.
+/// A brief hand-off screen shown while the PDF is classified (and, on first
+/// open only, converted), then swapped in-place for whichever reader the
+/// result calls for. Keeping one route also lets the cover entrance finish
+/// without being interrupted by an immediate route replacement.
 ///
 /// Every path into the reflow conversion goes through here, including the
 /// "Tekst görnüşi" switch from inside [PdfReaderScreen] (which pushes this
@@ -79,12 +88,14 @@ class PdfOpeningScreen extends StatefulWidget {
   /// See [PdfReaderScreen.realBookId] — handed on unchanged to whichever
   /// reader [_proceed] lands on.
   final int? realBookId;
+  final String? coverUrl;
 
   const PdfOpeningScreen({
     required this.filePath,
     required this.title,
     required this.bookId,
     this.realBookId,
+    this.coverUrl,
   });
 
   @override
@@ -93,6 +104,7 @@ class PdfOpeningScreen extends StatefulWidget {
 
 class PdfOpeningScreenState extends State<PdfOpeningScreen> {
   static const _bgColor = Color(0xFF1C1C1E);
+  Widget? _reader;
 
   @override
   void initState() {
@@ -123,7 +135,7 @@ class PdfOpeningScreenState extends State<PdfOpeningScreen> {
       if (epubPath == null) {
         await prefs.setBool(preferFixedPrefKey(widget.bookId), true);
         if (!mounted) return;
-        context.showAppSnackBar(ReaderStrings.pdfTextViewUnavailable,
+        context.showAppSnackBar(ReaderPdfStrings.pdfTextViewUnavailable,
             isError: true);
       }
     }
@@ -149,6 +161,7 @@ class PdfOpeningScreenState extends State<PdfOpeningScreen> {
               bookPath: epubPath,
               bookId: widget.bookId,
               bookTitle: widget.title,
+              coverUrl: widget.coverUrl,
               realBookId: widget.realBookId,
               originalPdfPath: widget.filePath,
             ),
@@ -160,12 +173,13 @@ class PdfOpeningScreenState extends State<PdfOpeningScreen> {
             realBookId: widget.realBookId,
             imageOnly: imageOnly,
           );
-    Navigator.of(context)
-        .pushReplacement(MaterialPageRoute(builder: (_) => replacement));
+    setState(() => _reader = replacement);
   }
 
   @override
   Widget build(BuildContext context) {
+    final reader = _reader;
+    if (reader != null) return reader;
     return Scaffold(
       backgroundColor: _bgColor,
       body: Center(

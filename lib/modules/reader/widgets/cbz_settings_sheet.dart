@@ -8,6 +8,7 @@ import 'reader_fit_tile.dart';
 import 'reader_section_label.dart';
 import 'reader_sheet_header.dart';
 import 'reader_slider_row.dart';
+import '../../../core/localization/strings/reader_pdf_strings.dart';
 
 /// How a CBZ's page images are laid out and moved through — the image-book
 /// counterpart of [PdfViewMode], and the same trade-off.
@@ -116,14 +117,14 @@ class CbzSettingsSheet extends StatelessWidget {
                   // Above the scale tiles for the same reason as in
                   // [PdfSettingsSheet]: it's the coarser choice, and picking it
                   // also moves the scale to the one that works with it.
-                  ReaderSectionLabel(ReaderStrings.pdfViewModeLabel),
+                  ReaderSectionLabel(ReaderPdfStrings.pdfViewModeLabel),
                   const SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
                         child: ReaderFitTile(
                           icon: HugeIcons.strokeRoundedScrollVertical,
-                          label: ReaderStrings.pdfViewModeScroll,
+                          label: ReaderPdfStrings.pdfViewModeScroll,
                           selected: viewMode == CbzViewMode.scroll,
                           onTap: () => onViewModeChanged(CbzViewMode.scroll),
                         ),
@@ -132,7 +133,7 @@ class CbzSettingsSheet extends StatelessWidget {
                       Expanded(
                         child: ReaderFitTile(
                           icon: HugeIcons.strokeRoundedScrollHorizontal,
-                          label: ReaderStrings.pdfViewModePaged,
+                          label: ReaderPdfStrings.pdfViewModePaged,
                           selected: viewMode == CbzViewMode.paged,
                           onTap: () => onViewModeChanged(CbzViewMode.paged),
                         ),

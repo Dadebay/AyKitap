@@ -5,7 +5,8 @@ class BookDetailGenre {
   final String name;
   const BookDetailGenre({required this.id, required this.name});
 
-  factory BookDetailGenre.fromJson(Map<String, dynamic> json) => BookDetailGenre(
+  factory BookDetailGenre.fromJson(Map<String, dynamic> json) =>
+      BookDetailGenre(
         id: json['id'] as int,
         name: json['name'] as String? ?? '',
       );
@@ -20,7 +21,11 @@ class BookFile {
   final String fileKey;
   final String fileFormat;
   final int fileSize;
-  const BookFile({required this.id, required this.fileKey, required this.fileFormat, required this.fileSize});
+  const BookFile(
+      {required this.id,
+      required this.fileKey,
+      required this.fileFormat,
+      required this.fileSize});
 
   factory BookFile.fromJson(Map<String, dynamic> json) => BookFile(
         id: json['id'] as int,
@@ -82,9 +87,15 @@ class BookDetail {
         readCount: json['read_count'] as int? ?? 0,
         soldCount: json['sold_count'] as int? ?? 0,
         progress: _parseProgress(json['progress']),
-        genres: (json['genres'] as List? ?? const []).map((e) => BookDetailGenre.fromJson(e as Map<String, dynamic>)).toList(),
-        authors: (json['authors'] as List? ?? const []).map((e) => LibraryBookAuthor.fromJson(e as Map<String, dynamic>)).toList(),
-        bookFiles: (json['bookFiles'] as List? ?? const []).map((e) => BookFile.fromJson(e as Map<String, dynamic>)).toList(),
+        genres: (json['genres'] as List? ?? const [])
+            .map((e) => BookDetailGenre.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        authors: (json['authors'] as List? ?? const [])
+            .map((e) => LibraryBookAuthor.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        bookFiles: (json['bookFiles'] as List? ?? const [])
+            .map((e) => BookFile.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
 
   static double? _parseProgress(dynamic value) {

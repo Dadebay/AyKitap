@@ -14,7 +14,8 @@ void main() {
   });
 
   Future<void> pump(WidgetTester tester, Widget badge) async {
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: Center(child: badge))));
+    await tester
+        .pumpWidget(MaterialApp(home: Scaffold(body: Center(child: badge))));
   }
 
   group('sizing', () {
@@ -38,13 +39,16 @@ void main() {
   });
 
   group('pastel variant (default)', () {
-    testWidgets('fills a circle with journeySoft and colours the icon with journeyInk',
+    testWidgets(
+        'fills a circle with journeySoft and colours the icon with journeyInk',
         (tester) async {
-      await pump(tester, const JourneyGradientIconBadge(icon: Icon(Icons.star)));
+      await pump(
+          tester, const JourneyGradientIconBadge(icon: Icon(Icons.star)));
 
       final decoratedBox = tester.widget<Container>(
         find.descendant(
-            of: find.byType(JourneyGradientIconBadge), matching: find.byType(Container)),
+            of: find.byType(JourneyGradientIconBadge),
+            matching: find.byType(Container)),
       );
       final decoration = decoratedBox.decoration as BoxDecoration;
       expect(decoration.shape, BoxShape.circle);
@@ -52,7 +56,8 @@ void main() {
 
       final iconTheme = tester.widget<IconTheme>(
         find.descendant(
-            of: find.byType(JourneyGradientIconBadge), matching: find.byType(IconTheme)),
+            of: find.byType(JourneyGradientIconBadge),
+            matching: find.byType(IconTheme)),
       );
       expect(iconTheme.data.color, AppColors.journeyInk);
 
@@ -60,12 +65,14 @@ void main() {
       // not something painted onto the glyph.
       expect(
         find.descendant(
-            of: find.byType(JourneyGradientIconBadge), matching: find.byType(ShaderMask)),
+            of: find.byType(JourneyGradientIconBadge),
+            matching: find.byType(ShaderMask)),
         findsNothing,
       );
     });
 
-    testWidgets('iconColor overrides the default journeyInk tint', (tester) async {
+    testWidgets('iconColor overrides the default journeyInk tint',
+        (tester) async {
       await pump(
         tester,
         const JourneyGradientIconBadge(
@@ -75,7 +82,8 @@ void main() {
       );
       final iconTheme = tester.widget<IconTheme>(
         find.descendant(
-            of: find.byType(JourneyGradientIconBadge), matching: find.byType(IconTheme)),
+            of: find.byType(JourneyGradientIconBadge),
+            matching: find.byType(IconTheme)),
       );
       expect(iconTheme.data.color, const Color(0xFF00FF00));
     });
@@ -104,7 +112,8 @@ void main() {
   });
 
   group('primaryAction variant', () {
-    testWidgets('paints the glyph with journeyPrimary via ShaderMask, no filled disc',
+    testWidgets(
+        'paints the glyph with journeyPrimary via ShaderMask, no filled disc',
         (tester) async {
       await pump(
         tester,
@@ -115,12 +124,15 @@ void main() {
       );
 
       final shaderMask = find.descendant(
-          of: find.byType(JourneyGradientIconBadge), matching: find.byType(ShaderMask));
+          of: find.byType(JourneyGradientIconBadge),
+          matching: find.byType(ShaderMask));
       expect(shaderMask, findsOneWidget);
 
       // No circular gradient container behind it.
       final containers = find
-          .descendant(of: find.byType(JourneyGradientIconBadge), matching: find.byType(Container))
+          .descendant(
+              of: find.byType(JourneyGradientIconBadge),
+              matching: find.byType(Container))
           .evaluate()
           .map((e) => e.widget as Container);
       for (final c in containers) {
@@ -140,19 +152,21 @@ void main() {
       );
       final mask = tester.widget<ShaderMask>(
         find.descendant(
-            of: find.byType(JourneyGradientIconBadge), matching: find.byType(ShaderMask)),
+            of: find.byType(JourneyGradientIconBadge),
+            matching: find.byType(ShaderMask)),
       );
       // shaderCallback is a closure, so compare what it produces for a
       // fixed rect rather than the function identity.
       final shader = mask.shaderCallback(const Rect.fromLTWH(0, 0, 48, 48));
-      final expectedShader =
-          AppGradients.journeySunset.createShader(const Rect.fromLTWH(0, 0, 48, 48));
+      final expectedShader = AppGradients.journeySunset
+          .createShader(const Rect.fromLTWH(0, 0, 48, 48));
       expect(shader.runtimeType, expectedShader.runtimeType);
     });
   });
 
   group('semantics', () {
-    testWidgets('exposes semanticsLabel to the accessibility tree', (tester) async {
+    testWidgets('exposes semanticsLabel to the accessibility tree',
+        (tester) async {
       final handle = tester.ensureSemantics();
       await pump(
         tester,
@@ -169,34 +183,43 @@ void main() {
     // internally, so "no Semantics in the tree at all" isn't the right check —
     // what must be absent is *our* wrapper specifically: a Semantics widget
     // whose own excludeSemantics is true (Icon's has excludeSemantics unset).
-    testWidgets('adds no excludeSemantics wrapper when semanticsLabel is omitted', (tester) async {
+    testWidgets(
+        'adds no excludeSemantics wrapper when semanticsLabel is omitted',
+        (tester) async {
       final handle = tester.ensureSemantics();
-      await pump(tester, const JourneyGradientIconBadge(icon: Icon(Icons.star)));
-      final ourWrapper =
-          find.byWidgetPredicate((w) => w is Semantics && w.excludeSemantics == true);
+      await pump(
+          tester, const JourneyGradientIconBadge(icon: Icon(Icons.star)));
+      final ourWrapper = find.byWidgetPredicate(
+          (w) => w is Semantics && w.excludeSemantics == true);
       expect(ourWrapper, findsNothing);
       handle.dispose();
     });
   });
 
   group('theme contrast', () {
-    testWidgets('journeyInk default tracks light/dark so the icon stays readable', (tester) async {
+    testWidgets(
+        'journeyInk default tracks light/dark so the icon stays readable',
+        (tester) async {
       // Icon colour and the disc's own background must be captured together,
       // under the same theme, or the comparison below is meaningless.
       await AppTheme.instance.setDark(false);
-      await pump(tester, const JourneyGradientIconBadge(icon: Icon(Icons.star)));
+      await pump(
+          tester, const JourneyGradientIconBadge(icon: Icon(Icons.star)));
       final lightIconTheme = tester.widget<IconTheme>(
         find.descendant(
-            of: find.byType(JourneyGradientIconBadge), matching: find.byType(IconTheme)),
+            of: find.byType(JourneyGradientIconBadge),
+            matching: find.byType(IconTheme)),
       );
       final lightColor = lightIconTheme.data.color!;
       final lightBg = AppGradients.journeySoftColors.first;
 
       await AppTheme.instance.setDark(true);
-      await pump(tester, const JourneyGradientIconBadge(icon: Icon(Icons.star)));
+      await pump(
+          tester, const JourneyGradientIconBadge(icon: Icon(Icons.star)));
       final darkIconTheme = tester.widget<IconTheme>(
         find.descendant(
-            of: find.byType(JourneyGradientIconBadge), matching: find.byType(IconTheme)),
+            of: find.byType(JourneyGradientIconBadge),
+            matching: find.byType(IconTheme)),
       );
       final darkColor = darkIconTheme.data.color!;
       final darkBg = AppGradients.journeySoftColors.first;
@@ -207,8 +230,10 @@ void main() {
       // *lighter* than it; light-mode disc is a bright pastel, so the icon
       // has to be *darker* than it. Getting either backwards means the icon
       // would wash out against its own background.
-      expect(darkColor.computeLuminance(), greaterThan(darkBg.computeLuminance()));
-      expect(lightColor.computeLuminance(), lessThan(lightBg.computeLuminance()));
+      expect(
+          darkColor.computeLuminance(), greaterThan(darkBg.computeLuminance()));
+      expect(
+          lightColor.computeLuminance(), lessThan(lightBg.computeLuminance()));
     });
   });
 }

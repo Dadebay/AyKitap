@@ -55,7 +55,8 @@ class Collection {
   });
 
   factory Collection.fromJson(Map<String, dynamic> json) {
-    final type = json['type'] == 'author' ? CollectionType.author : CollectionType.book;
+    final type =
+        json['type'] == 'author' ? CollectionType.author : CollectionType.book;
     return Collection(
       id: json['id'] as int,
       type: type,
@@ -69,7 +70,9 @@ class Collection {
       // doing the work for a list nothing reads.
       books: type == CollectionType.author
           ? const []
-          : (json['books'] as List? ?? const []).map((e) => LibraryBook.fromJson(e as Map<String, dynamic>)).toList(),
+          : (json['books'] as List? ?? const [])
+              .map((e) => LibraryBook.fromJson(e as Map<String, dynamic>))
+              .toList(),
       authors: (json['authors'] as List?)
           ?.map((e) => LibraryBookAuthor.fromJson(e as Map<String, dynamic>))
           .toList(),

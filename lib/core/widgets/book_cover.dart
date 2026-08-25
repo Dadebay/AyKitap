@@ -27,7 +27,9 @@ class BookCover extends StatelessWidget {
     return Container(
       width: width,
       height: height,
-      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(borderRadius)),
+      decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(borderRadius)),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: Image.asset(imagePath, fit: fit),

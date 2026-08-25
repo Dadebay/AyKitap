@@ -38,7 +38,11 @@ class BookCollection {
   final String emoji;
   final List<Color> gradient;
   final List<Book> books;
-  const BookCollection({required this.title, required this.emoji, required this.gradient, required this.books});
+  const BookCollection(
+      {required this.title,
+      required this.emoji,
+      required this.gradient,
+      required this.books});
 }
 
 /// A themed book series ("Seriýa") — a large image card on HomeScreen, each
@@ -47,7 +51,8 @@ class BookSeries {
   final String title;
   final String coverImage;
   final List<Book> books;
-  const BookSeries({required this.title, required this.coverImage, required this.books});
+  const BookSeries(
+      {required this.title, required this.coverImage, required this.books});
 
   int get bookCount => books.length;
 }
@@ -58,9 +63,14 @@ class Author {
   final Color color;
   final String bio;
 
-  const Author({required this.id, required this.name, required this.color, required this.bio});
+  const Author(
+      {required this.id,
+      required this.name,
+      required this.color,
+      required this.bio});
 
-  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'color': color.toARGB32(), 'bio': bio};
+  Map<String, dynamic> toJson() =>
+      {'id': id, 'name': name, 'color': color.toARGB32(), 'bio': bio};
 
   factory Author.fromJson(Map<String, dynamic> json) => Author(
         id: json['id'] as String,

@@ -24,113 +24,115 @@ extension _PdfReaderScreenPageLayer on _PdfReaderScreenState {
                 // as a Flutter layer, so unlike PDFium's Android-only night
                 // mode it now works identically on iOS.
                 enabled: nightMode,
-                child: PdfViewer.file(
-                  widget.filePath,
-                  controller: _controller,
-                  // The layout and the initial zoom are read when the viewer
-                  // lays out, so changing either has to rebuild it — that's
-                  // what varying the key does. `initialPageNumber` carries
-                  // our place across that rebuild and across reopening the
-                  // book. (Sepia and night aren't in the key: both are
-                  // Flutter overlays, not render changes, so switching to or
-                  // from them mustn't reload the file.)
-                  key: ValueKey(
-                      'pdf_${_fitPolicy.name}_${_viewMode.name}_$_initialPage'),
-                  initialPageNumber: _initialPage + 1,
-                  params: PdfViewerParams(
-                    backgroundColor: bg,
-                    // A long scanned book (a few hundred image-heavy pages,
-                    // common for a CamScanner/phone-photo PDF) can push the
-                    // default 100MB rendered-page cache and the default
-                    // one-viewport-ahead/behind cache extent past what a
-                    // budget Android phone's PDFium has room for, which
-                    // surfaces as the whole app getting killed rather than
-                    // a catchable Dart error — pdfium's crash isn't
-                    // something a try/catch here can stop. Trading some
-                    // scroll-ahead smoothness for a smaller memory
-                    // footprint is worth it: a slightly-more-often
-                    // re-rendered page beats the reader force-closing.
-                    maxImageBytesCachedOnMemory: 40 * 1024 * 1024,
-                    horizontalCacheExtent: 0.5,
-                    verticalCacheExtent: 0.5,
-                    // Paged mode lays pages left-to-right, one per sideways
-                    // swipe, like a real page turn; scroll mode stacks them
-                    // top-to-bottom with no gap so a tall webtoon page runs
-                    // straight into the next. See [_layoutPages].
-                    layoutPages: _layoutPages,
-                    // Paged mode moves one page at a time along its own
-                    // axis; locking the pan to that axis is what keeps a
-                    // sideways swipe from drifting the page diagonally.
-                    panAxis: _viewMode == PdfViewMode.paged
-                        ? PanAxis.horizontal
-                        : PanAxis.free,
-                    // pdfrx's naming is the opposite of what it sounds like
-                    // here: `alternativeFitZoom` fits *one page* (both axes)
-                    // into the viewport — that's [PdfFitMode.page], "the
-                    // whole page has to be on screen". `coverZoom` scales to
-                    // the *document*'s full laid-out bounding box (all pages
-                    // — see [_layoutPages]'s `documentSize`); for scroll
-                    // mode's tall single-column strip that bounding box is
-                    // far taller than it is wide, so covering it collapses
-                    // to fitting the width — that's [PdfFitMode.width]. A
-                    // prior migration from flutter_pdfview matched these to
-                    // the wrong [PdfFitMode], which showed every PDF letter-
-                    // boxed (whole page, margins left/right) regardless of
-                    // which fit the reader had picked.
-                    sizeDelegateProvider: PdfViewerSizeDelegateProviderLegacy(
-                      // Continuous scroll has no "whole page visible, no
-                      // scrolling" state the way paged mode does — a page
-                      // there is always followed by more page below, so
-                      // "fit page" would only mean shrinking it to letterbox
-                      // inside the viewport (visible margins left/right,
-                      // exactly the "stuck in the middle" look this is meant
-                      // to avoid). So scroll mode always covers to the full
-                      // width regardless of [_fitPolicy]; only paged mode
-                      // still honors the whole-page choice.
-                      calculateInitialZoom: (document, controller,
-                              alternativeFitZoom, coverZoom) =>
-                          (_fitPolicy == PdfFitMode.width ||
-                                  _viewMode == PdfViewMode.scroll)
-                              // `coverZoom` is computed as an exact
-                              // viewportWidth/documentWidth ratio, which
-                              // should leave the page flush with both
-                              // edges — but the floating-point zoom that
-                              // comes back out of it, once matrix-composed
-                              // and clamped by the viewer, lands a hair
-                              // under exact on some devices, leaving a
-                              // faint sliver of the gutter colour down each
-                              // side. Overscaling by 1.5% intentionally
-                              // bleeds the page a few px past both edges
-                              // instead — PDF pages already carry blank
-                              // print margins there, so nothing readable is
-                              // lost, and it costs far less than the
-                              // visible gap did.
-                              ? coverZoom * 1.015
-                              : alternativeFitZoom,
-                    ),
-                    onViewerReady: (document, controller) => _setState(() {
-                      _totalPages = document.pages.length;
-                      _isLoading = false;
-                    }),
-                    onPageChanged: _onPageChanged,
-                    // The raw exception is developer noise, not something a
-                    // reader should have to parse — log it and show a
-                    // plain-language message instead. Returning an empty box
-                    // lets this screen's own error state own the display.
-                    errorBannerBuilder:
-                        (context, error, stackTrace, documentRef) {
-                      log('❌ PDF open error: $error');
-                      // The builder runs during layout, so the state change
-                      // has to wait for the frame to finish.
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (!mounted || _error != null) return;
-                        _setState(() {
-                          _error = ReaderStrings.pdfOpenError;
-                          _isLoading = false;
+                // Trims the page's own blank print margins so the text block
+                // reaches both screen edges instead of sitting between two
+                // empty strips. See [PdfMarginCropBox] for why this is done
+                // by sizing the viewport rather than by asking for more zoom.
+                child: PdfMarginCropBox(
+                  fraction: _marginCropFraction,
+                  child: PdfViewer.file(
+                    widget.filePath,
+                    controller: _controller,
+                    // The layout and the initial zoom are read when the viewer
+                    // lays out, so changing either has to rebuild it — that's
+                    // what varying the key does. `initialPageNumber` carries
+                    // our place across that rebuild and across reopening the
+                    // book. (Sepia and night aren't in the key: both are
+                    // Flutter overlays, not render changes, so switching to or
+                    // from them mustn't reload the file.)
+                    key: ValueKey(
+                        'pdf_${_fitPolicy.name}_${_viewMode.name}_$_initialPage'),
+                    initialPageNumber: _initialPage + 1,
+                    params: PdfViewerParams(
+                      backgroundColor: bg,
+                      // A long scanned book (a few hundred image-heavy pages,
+                      // common for a CamScanner/phone-photo PDF) can push the
+                      // default 100MB rendered-page cache and the default
+                      // one-viewport-ahead/behind cache extent past what a
+                      // budget Android phone's PDFium has room for, which
+                      // surfaces as the whole app getting killed rather than
+                      // a catchable Dart error — pdfium's crash isn't
+                      // something a try/catch here can stop. Trading some
+                      // scroll-ahead smoothness for a smaller memory
+                      // footprint is worth it: a slightly-more-often
+                      // re-rendered page beats the reader force-closing.
+                      maxImageBytesCachedOnMemory: 40 * 1024 * 1024,
+                      horizontalCacheExtent: 0.5,
+                      verticalCacheExtent: 0.5,
+                      // Paged mode lays pages left-to-right, one per sideways
+                      // swipe, like a real page turn; scroll mode stacks them
+                      // top-to-bottom with no gap so a tall webtoon page runs
+                      // straight into the next. See [_layoutPages].
+                      layoutPages: _layoutPages,
+                      // Paged mode moves one page at a time along its own
+                      // axis; locking the pan to that axis is what keeps a
+                      // sideways swipe from drifting the page diagonally.
+                      panAxis: _viewMode == PdfViewMode.paged
+                          ? PanAxis.horizontal
+                          : PanAxis.free,
+                      // pdfrx's naming is the opposite of what it sounds like
+                      // here: `alternativeFitZoom` fits *one page* (both axes)
+                      // into the viewport — that's [PdfFitMode.page], "the
+                      // whole page has to be on screen". `coverZoom` scales to
+                      // the *document*'s full laid-out bounding box (all pages
+                      // — see [_layoutPages]'s `documentSize`); for scroll
+                      // mode's tall single-column strip that bounding box is
+                      // far taller than it is wide, so covering it collapses
+                      // to fitting the width — that's [PdfFitMode.width]. A
+                      // prior migration from flutter_pdfview matched these to
+                      // the wrong [PdfFitMode], which showed every PDF letter-
+                      // boxed (whole page, margins left/right) regardless of
+                      // which fit the reader had picked.
+                      sizeDelegateProvider: PdfViewerSizeDelegateProviderLegacy(
+                        // Continuous scroll has no "whole page visible, no
+                        // scrolling" state the way paged mode does — a page
+                        // there is always followed by more page below, so
+                        // "fit page" would only mean shrinking it to letterbox
+                        // inside the viewport (visible margins left/right,
+                        // exactly the "stuck in the middle" look this is meant
+                        // to avoid). So scroll mode always covers to the full
+                        // width regardless of [_fitPolicy]; only paged mode
+                        // still honors the whole-page choice.
+                        // Asking for more than `coverZoom` here does nothing:
+                        // pdfrx jumps to the initial page right after this and
+                        // recomputes the zoom as
+                        // `viewportWidth / (pageWidth + 2 * params.margin)`,
+                        // capped at whatever was set here — so the page is
+                        // always fit to its *full* width and can never be
+                        // pushed past the edges from this callback. Closing
+                        // the page's blank print margins is [PdfMarginCropBox]'s
+                        // job instead; this callback only picks *which* fit.
+                        calculateInitialZoom: (document, controller,
+                                alternativeFitZoom, coverZoom) =>
+                            (_fitPolicy == PdfFitMode.width ||
+                                    _viewMode == PdfViewMode.scroll)
+                                ? coverZoom
+                                : alternativeFitZoom,
+                      ),
+                      onViewerReady: (document, controller) => _setState(() {
+                        _totalPages = document.pages.length;
+                        _isLoading = false;
+                      }),
+                      onPageChanged: _onPageChanged,
+                      // The raw exception is developer noise, not something a
+                      // reader should have to parse — log it and show a
+                      // plain-language message instead. Returning an empty box
+                      // lets this screen's own error state own the display.
+                      errorBannerBuilder:
+                          (context, error, stackTrace, documentRef) {
+                        log('❌ PDF open error: $error');
+                        // The builder runs during layout, so the state change
+                        // has to wait for the frame to finish.
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (!mounted || _error != null) return;
+                          _setState(() {
+                            _error = ReaderPdfStrings.pdfOpenError;
+                            _isLoading = false;
+                          });
                         });
-                      });
-                      return const SizedBox.shrink();
-                    },
+                        return const SizedBox.shrink();
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -176,7 +178,7 @@ extension _PdfReaderScreenPageLayer on _PdfReaderScreenState {
           ReaderErrorOverlay(
               backgroundColor: bg,
               isDarkSurface: isDarkSurface,
-              message: ReaderStrings.pdfOpenError),
+              message: ReaderPdfStrings.pdfOpenError),
       ],
     );
   }

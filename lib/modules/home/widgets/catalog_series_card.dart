@@ -20,16 +20,21 @@ class CatalogSeriesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ownImage = collection.image;
-    final coverImage = (ownImage != null && ownImage.isNotEmpty) ? ownImage : (collection.books.isNotEmpty ? collection.books.first.image : null);
+    final coverImage = (ownImage != null && ownImage.isNotEmpty)
+        ? ownImage
+        : (collection.books.isNotEmpty ? collection.books.first.image : null);
     return GestureDetector(
-      onTap: () => context.push(CatalogCollectionBooksScreen(title: collection.name, books: collection.books)),
+      onTap: () => context.push(CatalogCollectionBooksScreen(
+          title: collection.name, books: collection.books)),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
         child: Stack(
           fit: StackFit.expand,
           children: [
             coverImage != null && coverImage.isNotEmpty
-                ? NetworkCoverImage(url: ApiConfig.resolveImageUrl(coverImage), placeholder: (_) => Container(color: AppColors.card))
+                ? NetworkCoverImage(
+                    url: ApiConfig.resolveImageUrl(coverImage),
+                    placeholder: (_) => Container(color: AppColors.card))
                 : Container(color: AppColors.card),
             // Frosted glass strip pinned to the bottom edge — the art above
             // it stays untouched and sharp, only the text panel itself is
@@ -56,14 +61,21 @@ class CatalogSeriesCard extends StatelessWidget {
                       children: [
                         Text(
                           collection.name,
-                          style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w800, height: 1.2),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w800,
+                              height: 1.2),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 5),
                         Text(
                           SeriesStrings.bookCount(collection.books.length),
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 15, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.75),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),

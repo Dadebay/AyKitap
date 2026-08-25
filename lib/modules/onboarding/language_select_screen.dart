@@ -32,7 +32,8 @@ class _LanguageSelectScreenState extends State<LanguageSelectScreen> {
       context,
       PageRouteBuilder(
         pageBuilder: (_, __, ___) => const MainNavScreen(),
-        transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child),
+        transitionsBuilder: (_, a, __, child) =>
+            FadeTransition(opacity: a, child: child),
         transitionDuration: const Duration(milliseconds: 400),
       ),
     );
@@ -42,7 +43,8 @@ class _LanguageSelectScreenState extends State<LanguageSelectScreen> {
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: AppTheme.instance.isDark ? Brightness.light : Brightness.dark,
+      statusBarIconBrightness:
+          AppTheme.instance.isDark ? Brightness.light : Brightness.dark,
     ));
 
     return Scaffold(
@@ -55,12 +57,16 @@ class _LanguageSelectScreenState extends State<LanguageSelectScreen> {
             children: [
               Text(
                 LanguageSelectStrings.title,
-                style: TextStyle(color: AppColors.white, fontSize: 24, fontWeight: FontWeight.w800),
+                style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 10),
               Text(
                 LanguageSelectStrings.subtitle,
-                style: TextStyle(color: AppColors.grey2, fontSize: 14, height: 1.45),
+                style: TextStyle(
+                    color: AppColors.grey2, fontSize: 14, height: 1.45),
               ),
               const SizedBox(height: 32),
               ...kSettingsLanguages.map((lang) {
@@ -71,11 +77,18 @@ class _LanguageSelectScreenState extends State<LanguageSelectScreen> {
                     borderRadius: BorderRadius.circular(18),
                     onTap: () => setState(() => _selected = lang.code),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primary.withValues(alpha: 0.12) : AppColors.surface,
+                        color: isSelected
+                            ? AppColors.primary.withValues(alpha: 0.12)
+                            : AppColors.surface,
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: isSelected ? AppColors.primary : AppColors.border, width: isSelected ? 1.5 : 1),
+                        border: Border.all(
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.border,
+                            width: isSelected ? 1.5 : 1),
                       ),
                       child: Row(
                         children: [
@@ -84,12 +97,21 @@ class _LanguageSelectScreenState extends State<LanguageSelectScreen> {
                           Expanded(
                             child: Text(
                               lang.label,
-                              style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500),
+                              style: TextStyle(
+                                  color: AppColors.white,
+                                  fontSize: 16,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w700
+                                      : FontWeight.w500),
                             ),
                           ),
                           Icon(
-                            isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                            color: isSelected ? AppColors.primary : AppColors.grey3,
+                            isSelected
+                                ? Icons.radio_button_checked
+                                : Icons.radio_button_unchecked,
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.grey3,
                             size: 22,
                           ),
                         ],
@@ -107,12 +129,17 @@ class _LanguageSelectScreenState extends State<LanguageSelectScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     disabledBackgroundColor: AppColors.card,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28)),
                     elevation: 0,
                   ),
                   child: Text(
                     LanguageSelectStrings.continueLabel,
-                    style: TextStyle(color: _selected == null ? AppColors.grey3 : Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                        color:
+                            _selected == null ? AppColors.grey3 : Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700),
                   ),
                 ),
               ),

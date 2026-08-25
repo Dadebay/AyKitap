@@ -29,7 +29,10 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
             left: 0,
             right: 0,
             height: _CatalogBookDetailScreenState._headerHeight,
-            child: CatalogDetailHeaderArt(imageUrl: imageUrl)),
+            child: CatalogDetailHeaderArt(
+              imageUrl: imageUrl,
+              heroTag: AppHeroTags.catalogBookCover(book.id),
+            )),
         ListView(
           padding: EdgeInsets.zero,
           children: [

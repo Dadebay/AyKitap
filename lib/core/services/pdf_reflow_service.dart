@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdfrx/pdfrx.dart';
-import '../localization/strings/reader_strings.dart';
+import '../localization/strings/reader_pdf_strings.dart';
 import '../utils/stable_hash.dart';
 
 part 'pdf_reflow_epub_builder.dart';

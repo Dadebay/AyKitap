@@ -17,7 +17,11 @@ class GenreTag extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
         ),
-        child: Text(label, style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600)),
+        child: Text(label,
+            style: TextStyle(
+                color: AppColors.primary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600)),
       ),
     );
   }

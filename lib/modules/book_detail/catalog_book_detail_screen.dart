@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/localization/strings/book_detail_strings.dart';
 import '../../core/models/book_detail.dart';
 import '../../core/models/library_book.dart';
+import '../../core/navigation/app_hero_tags.dart';
 import '../../core/navigation/app_navigator.dart';
 import '../../core/network/api_config.dart';
 import '../../core/network/api_exception.dart';
@@ -175,6 +176,10 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
       bookId: book.id,
       title: book.name,
       pageCount: book.pageCount,
+      coverUrl: book.image == null || book.image!.isEmpty
+          ? null
+          : ApiConfig.resolveImageUrl(book.image!),
+      heroTag: AppHeroTags.catalogBookCover(book.id),
     );
     return true;
   }

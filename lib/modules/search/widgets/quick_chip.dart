@@ -5,7 +5,11 @@ class QuickChip extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  const QuickChip({super.key, required this.label, required this.selected, required this.onTap});
+  const QuickChip(
+      {super.key,
+      required this.label,
+      required this.selected,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -17,9 +21,14 @@ class QuickChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? AppColors.primary : AppColors.card,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: selected ? AppColors.primary : AppColors.border),
+          border: Border.all(
+              color: selected ? AppColors.primary : AppColors.border),
         ),
-        child: Text(label, style: TextStyle(color: selected ? Colors.white : AppColors.grey1, fontSize: 13, fontWeight: FontWeight.w600)),
+        child: Text(label,
+            style: TextStyle(
+                color: selected ? Colors.white : AppColors.grey1,
+                fontSize: 13,
+                fontWeight: FontWeight.w600)),
       ),
     );
   }

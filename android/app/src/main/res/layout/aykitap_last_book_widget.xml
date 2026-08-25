@@ -1,116 +1,170 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_container"
+<!-- Same wrap-height card as the streak widget: the background stops at the
+     content instead of stretching to whatever the launcher hands the cell.
+     The title is capped at one line for that to be safe — with two lines the
+     card's height stops being deterministic, and a short cell would clip the
+     CTA off the bottom. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/aykitap_widget_background"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:padding="13dp">
-
-    <FrameLayout
-        android:layout_width="86dp"
-        android:layout_height="match_parent"
-        android:background="@drawable/aykitap_widget_cover">
-
-        <ImageView
-            android:id="@+id/widget_cover"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:contentDescription="Book cover"
-            android:scaleType="centerCrop"
-            android:visibility="gone" />
-
-        <TextView
-            android:id="@+id/widget_cover_placeholder"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:fontFamily="@font/gilroy_regular"
-            android:gravity="bottom|center_horizontal"
-            android:includeFontPadding="false"
-            android:paddingBottom="12dp"
-            android:text="AÝ\nKITAP"
-            android:textAlignment="center"
-            android:textColor="#FFFFFF"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </FrameLayout>
+    android:layout_height="match_parent">
 
     <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_marginStart="14dp"
-        android:layout_weight="1"
+        android:id="@+id/widget_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:background="@drawable/aykitap_widget_background"
         android:gravity="center_vertical"
-        android:orientation="vertical">
+        android:orientation="horizontal"
+        android:padding="11dp">
 
-        <TextView
-            android:id="@+id/widget_eyebrow"
-            android:layout_width="wrap_content"
+        <!-- Fixed 2:3 box rather than match_parent height: the cover bitmap is
+             center-cropped to that ratio and has its corners rounded in
+             AykitapReadingWidgetProvider (RemoteViews can't clip an ImageView
+             to its background's radius), so the box has to match the bitmap's
+             ratio or the rounded corners would be cropped straight again. -->
+        <FrameLayout
+            android:layout_width="78dp"
+            android:layout_height="117dp"
+            android:background="@drawable/aykitap_widget_cover">
+
+            <ImageView
+                android:id="@+id/widget_cover"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="Book cover"
+                android:scaleType="fitXY"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/widget_cover_placeholder"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fontFamily="@font/gilroy_regular"
+                android:gravity="bottom|center_horizontal"
+                android:includeFontPadding="false"
+                android:paddingBottom="11dp"
+                android:text="AÝ\nKITAP"
+                android:textAlignment="center"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/gilroy_regular"
-            android:includeFontPadding="false"
-            android:text="CONTINUE READING"
-            android:textAllCaps="true"
-            android:textColor="#A13B75"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/widget_title"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:ellipsize="end"
-            android:fontFamily="@font/gilroy_regular"
-            android:includeFontPadding="false"
-            android:maxLines="2"
-            android:text="The Little Prince"
-            android:textColor="#211D2B"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            <TextView
+                android:id="@+id/widget_eyebrow"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/gilroy_regular"
+                android:includeFontPadding="false"
+                android:letterSpacing="0.06"
+                android:text="CONTINUE READING"
+                android:textAllCaps="true"
+                android:textColor="#A13B75"
+                android:textSize="9sp"
+                android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/widget_subtitle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:ellipsize="end"
-            android:fontFamily="@font/gilroy_regular"
-            android:includeFontPadding="false"
-            android:maxLines="1"
-            android:text="Page 82 of 240"
-            android:textColor="#746D7D"
-            android:textSize="12sp" />
+            <TextView
+                android:id="@+id/widget_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:ellipsize="end"
+                android:fontFamily="@font/gilroy_regular"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="The Little Prince"
+                android:textColor="#211D2B"
+                android:textSize="16sp"
+                android:textStyle="bold" />
 
-        <!-- Hidden entirely (not just 0%) when there's no book yet — a stub
-             progress bar sitting at 0% next to "choose your next book" read
-             as clutter rather than progress. GONE closes the gap on its own,
-             no conditional margins needed on the CTA below. -->
-        <ProgressBar
-            android:id="@+id/widget_progress"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent"
-            android:layout_height="6dp"
-            android:layout_marginTop="10dp"
-            android:max="100"
-            android:progress="34"
-            android:progressDrawable="@drawable/aykitap_widget_progress" />
+            <!-- GONE, not blank, when the catalogue entry has no author list —
+                 an empty line would push the rest of the column down for
+                 nothing. Same reasoning as the progress row below. -->
+            <TextView
+                android:id="@+id/widget_author"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:ellipsize="end"
+                android:fontFamily="@font/gilroy_regular"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="Antoine de Saint-Exupéry"
+                android:textColor="#8A5C86"
+                android:textSize="11sp"
+                android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/widget_cta"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/aykitap_widget_cta_chip"
-            android:fontFamily="@font/gilroy_regular"
-            android:includeFontPadding="false"
-            android:paddingStart="10dp"
-            android:paddingTop="5dp"
-            android:paddingEnd="10dp"
-            android:paddingBottom="5dp"
-            android:text="Tap to continue  →"
-            android:textColor="#7647E8"
-            android:textSize="11sp"
-            android:textStyle="bold" />
+            <TextView
+                android:id="@+id/widget_subtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:ellipsize="end"
+                android:fontFamily="@font/gilroy_regular"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="Page 82 of 240 · 158 left"
+                android:textColor="#746D7D"
+                android:textSize="11sp" />
+
+            <LinearLayout
+                android:id="@+id/widget_progress_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="7dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <!-- Hidden entirely (not just 0%) when there's no book yet — a stub
+                     progress bar sitting at 0% next to "choose your next book" read
+                     as clutter rather than progress. GONE closes the gap on its own,
+                     no conditional margins needed on the CTA below. -->
+                <ProgressBar
+                    android:id="@+id/widget_progress"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="0dp"
+                    android:layout_height="5dp"
+                    android:layout_weight="1"
+                    android:max="100"
+                    android:progress="34"
+                    android:progressDrawable="@drawable/aykitap_widget_progress" />
+
+                <TextView
+                    android:id="@+id/widget_percent"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:fontFamily="@font/gilroy_regular"
+                    android:includeFontPadding="false"
+                    android:text="34%"
+                    android:textColor="#7647E8"
+                    android:textSize="10.5sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/widget_cta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="7dp"
+                android:background="@drawable/aykitap_widget_cta_chip"
+                android:fontFamily="@font/gilroy_regular"
+                android:includeFontPadding="false"
+                android:paddingStart="10dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="4dp"
+                android:text="Tap to continue  →"
+                android:textColor="#7647E8"
+                android:textSize="10.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </LinearLayout>
-</LinearLayout>
+</FrameLayout>

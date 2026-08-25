@@ -17,5 +17,6 @@ int stableBookKey(String id) {
   // First 4 digest bytes as a non-negative 32-bit int — ample keyspace for
   // this app's book count, and shaped like the plain ints these keys already
   // used.
-  return (bytes[0] << 24 | bytes[1] << 16 | bytes[2] << 8 | bytes[3]) & 0x7FFFFFFF;
+  return (bytes[0] << 24 | bytes[1] << 16 | bytes[2] << 8 | bytes[3]) &
+      0x7FFFFFFF;
 }

@@ -30,7 +30,8 @@ class ImageCompressor {
     }
 
     for (final quality in _qualitySteps) {
-      final encoded = Uint8List.fromList(img.encodeJpg(image, quality: quality));
+      final encoded =
+          Uint8List.fromList(img.encodeJpg(image, quality: quality));
       if (encoded.length <= maxBytes) return encoded;
     }
 

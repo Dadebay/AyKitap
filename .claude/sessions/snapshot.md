@@ -1,27 +1,27 @@
-# Session Snapshot — 2026-08-25 12:39
+# Session Snapshot — 2026-08-25 13:09
 
 ## Files Changed
-- .Codex/SHIPATON_2026_IMPLEMENTATION_PLAN.md
-- .Codex/SONNET_TRANSLATION_THEME_TASKS.md
-- .Codex/completions/2026-08-25-shipaton-implementation-plan.md
-- .Codex/completions/2026-08-25-sonnet-translation-theme-task-split.md
-- .claude/sessions/.claude-md-validated-2026-08-25
-- .claude/sessions/.ghost-checked-20260825
-- .claude/sessions/.notification-shown-2026-08-25
-- .claude/sessions/.snapshot-injected-2026-08-25
+- .Codex/completions/2026-08-25-active-subscription-profile-card.md
+- .Codex/completions/2026-08-25-android-widget-data-inflation-fix.md
+- .Codex/completions/2026-08-25-reading-summary-widget-redesign.md
+- .Codex/completions/2026-08-25-split-native-book-and-streak-widgets.md
+- .Codex/completions/2026-08-25-subscription-screen-premium-redesign.md
 - .claude/sessions/snapshot.md
 - .claude/sessions/token-log.md
+- android/app/src/main/AndroidManifest.xml
+- android/app/src/main/kotlin/com/aykitap/aykitap/AykitapReadingWidgetProvider.kt
+- android/app/src/main/kotlin/com/aykitap/aykitap/AykitapStreakWidgetProvider.kt
 
 ## Recent Commits
+- 270e467 V1
 - b63dc08 befor shipaton
 - bfd8d0e Aug 24
 - f95cb37 Aug 22
 - 771df0c finished codes fixed
-- c8a51cd Aug 22
 
 ## Token Estimate
 ~703 tokens in auto-loaded files
 
 ## Last Turn
-Test için: uygulamayı yeniden derleyip yükleyin, hem boş durumu (mevcut ekranınız) hem de bir kitap açtıktan sonraki dol
+```
 

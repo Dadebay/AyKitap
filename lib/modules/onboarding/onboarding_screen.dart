@@ -71,7 +71,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       context,
       PageRouteBuilder(
         pageBuilder: (_, a, __) => const LanguageSelectScreen(),
-        transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child),
+        transitionsBuilder: (_, a, __, child) =>
+            FadeTransition(opacity: a, child: child),
         transitionDuration: const Duration(milliseconds: 400),
       ),
     );
@@ -88,7 +89,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final page = _pages[_current];
     // Height of the bottom controls bar (top pad + 56px button + bottom pad),
     // used to keep page text from overlapping it.
-    final bottomControlsHeight = 20 + 56 + 24 + MediaQuery.of(context).padding.bottom;
+    final bottomControlsHeight =
+        20 + 56 + 24 + MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -106,7 +108,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             },
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 400),
-              transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
+              transitionBuilder: (child, animation) =>
+                  FadeTransition(opacity: animation, child: child),
               child: OnboardPage(
                 key: ValueKey(_current),
                 data: page,
@@ -124,7 +127,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               duration: const Duration(milliseconds: 200),
               child: TextButton(
                 onPressed: _goHome,
-                child: Text(OnboardingStrings.skip, style: TextStyle(color: AppColors.grey2, fontSize: 15)),
+                child: Text(OnboardingStrings.skip,
+                    style: TextStyle(color: AppColors.grey2, fontSize: 15)),
               ),
             ),
           ),
@@ -135,7 +139,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             left: 0,
             right: 0,
             child: Container(
-              padding: EdgeInsets.fromLTRB(28, 20, 28, MediaQuery.of(context).padding.bottom + 24),
+              padding: EdgeInsets.fromLTRB(
+                  28, 20, 28, MediaQuery.of(context).padding.bottom + 24),
               child: Row(
                 children: [
                   AnimatedSmoothIndicator(
@@ -155,32 +160,44 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     onTap: _next,
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
-                      width: _current == _pages.length - 1 ? size.width * 0.44 : 56,
+                      width: _current == _pages.length - 1
+                          ? size.width * 0.44
+                          : 56,
                       height: 56,
                       decoration: BoxDecoration(
                         color: page.accentColor,
                         borderRadius: BorderRadius.circular(28),
                         boxShadow: [
-                          BoxShadow(color: page.accentColor.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 6)),
+                          BoxShadow(
+                              color: page.accentColor.withValues(alpha: 0.4),
+                              blurRadius: 20,
+                              offset: const Offset(0, 6)),
                         ],
                       ),
                       child: _current == _pages.length - 1
                           ? Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text(OnboardingStrings.start, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                                    Text(OnboardingStrings.start,
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700)),
                                     const SizedBox(width: 6),
-                                    const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                                    const Icon(Icons.arrow_forward_rounded,
+                                        color: Colors.white, size: 18),
                                   ],
                                 ),
                               ),
                             )
-                          : const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 24),
+                          : const Icon(Icons.arrow_forward_rounded,
+                              color: Colors.white, size: 24),
                     ),
                   ),
                 ],

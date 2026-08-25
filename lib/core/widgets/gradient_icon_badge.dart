@@ -22,8 +22,10 @@ class GradientIconBadge extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(gradient: gradient, borderRadius: AppRadius.brXl),
-      child: Center(child: HugeIcon(icon: icon, color: Colors.white, size: size * 0.47)),
+      decoration:
+          BoxDecoration(gradient: gradient, borderRadius: AppRadius.brXl),
+      child: Center(
+          child: HugeIcon(icon: icon, color: Colors.white, size: size * 0.47)),
     );
   }
 }

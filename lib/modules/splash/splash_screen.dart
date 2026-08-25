@@ -26,7 +26,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
   // One-shot entrance timeline.
   late final AnimationController _entrance = AnimationController(
     vsync: this,
@@ -65,7 +66,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     super.initState();
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: AppTheme.instance.isDark ? Brightness.light : Brightness.dark,
+      statusBarIconBrightness:
+          AppTheme.instance.isDark ? Brightness.light : Brightness.dark,
     ));
     _bootstrap();
   }
@@ -83,7 +85,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     // from disk at boot rather than on the first book tapped. The purchased
     // list is then re-synced from the backend when there's a session —
     // best-effort, so this never delays the splash.
-    unawaited(BookAccessService.instance.load().then((_) => BookAccessService.instance.refreshPurchased()));
+    unawaited(BookAccessService.instance
+        .load()
+        .then((_) => BookAccessService.instance.refreshPurchased()));
     unawaited(SubscriptionService.instance.load());
     unawaited(DownloadedFilesStore.instance.load());
 
@@ -110,7 +114,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
         pageBuilder: (_, __, ___) => isOffline
             ? const OfflineLibraryScreen()
             : (seen ? const MainNavScreen() : const OnboardingScreen()),
-        transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child),
+        transitionsBuilder: (_, a, __, child) =>
+            FadeTransition(opacity: a, child: child),
         transitionDuration: const Duration(milliseconds: 500),
       ),
     );
@@ -153,7 +158,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      isDark ? const Color(0xFF0C0C12) : const Color(0x1AD8CFC4),
+                      isDark
+                          ? const Color(0xFF0C0C12)
+                          : const Color(0x1AD8CFC4),
                     ],
                   ),
                 ),
@@ -164,7 +171,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Spacer(flex: 3),
-                  SplashLogo(entrance: _entrance, ambient: _ambient, logoScale: _logoScale, logoFade: _logoFade),
+                  SplashLogo(
+                      entrance: _entrance,
+                      ambient: _ambient,
+                      logoScale: _logoScale,
+                      logoFade: _logoFade),
                   const SizedBox(height: 28),
                   SplashWordmark(animation: _wordmark),
                   const SizedBox(height: 14),

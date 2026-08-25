@@ -29,6 +29,7 @@ class BookSuggestion {
         language: json['language'] as String? ?? '',
         status: json['status'] as String? ?? 'new',
         rejectedReason: json['rejected_reason'] as String?,
-        createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ?? DateTime.now(),
+        createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+            DateTime.now(),
       );
 }

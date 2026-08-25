@@ -157,5 +157,9 @@ extension _BookOpenFlowActions on BookOpenFlow {
         bookId: book.id,
         title: book.name,
         pageCount: book.pageCount,
+        coverUrl: book.image == null || book.image!.isEmpty
+            ? null
+            : ApiConfig.resolveImageUrl(book.image!),
+        heroTag: AppHeroTags.catalogBookCover(book.id),
       );
 }

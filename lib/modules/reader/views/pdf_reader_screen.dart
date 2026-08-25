@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/localization/strings/reader_strings.dart';
+import '../../../core/localization/strings/reader_pdf_strings.dart';
 import '../../../core/localization/strings/reader_bookmark_strings.dart';
 import '../../../core/services/bookmarks_store.dart';
 import '../../../core/services/last_read_book_store.dart';
@@ -22,6 +23,7 @@ import '../utils/reader_streak_ping.dart';
 import '../widgets/pdf_bookmarks_sheet.dart';
 import '../widgets/pdf_bottom_bar.dart';
 import '../widgets/pdf_go_to_page_sheet.dart';
+import '../widgets/pdf_margin_crop_box.dart';
 import '../widgets/pdf_night_mode_filter.dart';
 import '../widgets/pdf_settings_sheet.dart';
 import '../widgets/reader_error_overlay.dart';
@@ -135,6 +137,13 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
   PdfColorMode _colorMode = PdfColorMode.light;
   PdfFitMode _fitPolicy = PdfFitMode.page;
   PdfViewMode _viewMode = PdfViewMode.paged;
+
+  /// How much of the page's blank print margin to trim — a 0..1 slider
+  /// position, not the fraction itself, so the settings sheet can reuse
+  /// [ReaderSliderRow] unchanged the way brightness and eye care do.
+  /// [_marginCropFraction] is what [PdfMarginCropBox] actually crops by.
+  double _marginCrop = 0.0;
+  double get _marginCropFraction => _marginCrop * PdfMarginCropBox.maxFraction;
 
   // Tap vs. scroll discrimination for the focus-mode toggle.
   Offset? _touchStart;

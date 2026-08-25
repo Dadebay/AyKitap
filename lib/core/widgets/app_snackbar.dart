@@ -52,10 +52,20 @@ class _AppSnackBarCard extends StatelessWidget {
         // is behind it, which is often the same surface color. A brighter
         // edge (a white glow in dark mode, a harder black shadow in light
         // mode) is what actually separates it from the background.
-        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.16) : Colors.black.withValues(alpha: 0.10)),
+        border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.16)
+                : Colors.black.withValues(alpha: 0.10)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.22), blurRadius: 20, offset: const Offset(0, 10)),
-          if (isDark) BoxShadow(color: Colors.white.withValues(alpha: 0.06), blurRadius: 10, offset: const Offset(0, -1)),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.22),
+              blurRadius: 20,
+              offset: const Offset(0, 10)),
+          if (isDark)
+            BoxShadow(
+                color: Colors.white.withValues(alpha: 0.06),
+                blurRadius: 10,
+                offset: const Offset(0, -1)),
         ],
       ),
       child: Row(
@@ -64,18 +74,28 @@ class _AppSnackBarCard extends StatelessWidget {
             width: 38,
             height: 38,
             clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(color: accent.withValues(alpha: 0.14), shape: BoxShape.circle),
+            decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.14), shape: BoxShape.circle),
             child: isError
-                ? Center(child: HugeIcon(icon: HugeIcons.strokeRoundedCancelCircle, color: accent, size: 19))
+                ? Center(
+                    child: HugeIcon(
+                        icon: HugeIcons.strokeRoundedCancelCircle,
+                        color: accent,
+                        size: 19))
                 // A book "idea" animation reads as a friendly confirmation
                 // rather than a generic checkmark — fits a reading app.
-                : Lottie.asset('assets/animations/book_idea.json', repeat: true, fit: BoxFit.cover),
+                : Lottie.asset('assets/animations/book_idea.json',
+                    repeat: true, fit: BoxFit.cover),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               message,
-              style: TextStyle(color: AppColors.white, fontSize: 13.5, fontWeight: FontWeight.w600, height: 1.35),
+              style: TextStyle(
+                  color: AppColors.white,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  height: 1.35),
             ),
           ),
         ],

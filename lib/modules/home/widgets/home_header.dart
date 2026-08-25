@@ -22,22 +22,32 @@ class HomeHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 16, 20, 16),
+      padding: EdgeInsets.fromLTRB(
+          20, MediaQuery.of(context).padding.top + 16, 20, 16),
       child: Row(
         children: [
           Expanded(
             child: Text.rich(
               TextSpan(
                 children: [
-                  TextSpan(text: HomeStrings.welcomePrefix, style: TextStyle(color: AppColors.grey2, fontSize: 18)),
-                  TextSpan(text: name, style: TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                  TextSpan(
+                      text: HomeStrings.welcomePrefix,
+                      style: TextStyle(color: AppColors.grey2, fontSize: 18)),
+                  TextSpan(
+                      text: name,
+                      style: TextStyle(
+                          color: AppColors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800)),
                 ],
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          _StreakPill(days: context.watch<StreakService>().currentStreak, onTap: onStreakTap),
+          _StreakPill(
+              days: context.watch<StreakService>().currentStreak,
+              onTap: onStreakTap),
         ],
       ),
     );
@@ -57,13 +67,18 @@ class _StreakPill extends StatelessWidget {
         height: 38,
         // margin: const EdgeInsets.only(right: 10),
         padding: const EdgeInsets.only(left: 4, right: 16),
-        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+            color: AppColors.card, borderRadius: BorderRadius.circular(12)),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             const StreakFlame(size: 30),
             const SizedBox(width: 3),
-            Text('$days', style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+            Text('$days',
+                style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700)),
           ],
         ),
       ),

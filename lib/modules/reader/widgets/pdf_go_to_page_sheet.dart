@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
-import '../../../core/localization/strings/reader_strings.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/strings/reader_pdf_strings.dart';
 
 /// Jump straight to a page number. The bottom bar's scrubber covers rough
 /// movement, but on a 300-page scan one pixel of track is several pages — this
@@ -76,7 +76,7 @@ class _PdfGoToPageSheetState extends State<PdfGoToPageSheet> {
             Row(
               children: [
                 Text(
-                  ReaderStrings.pdfGoToPageTitle,
+                  ReaderPdfStrings.pdfGoToPageTitle,
                   style: TextStyle(
                       color: AppColors.white,
                       fontSize: 17,
@@ -101,7 +101,7 @@ class _PdfGoToPageSheetState extends State<PdfGoToPageSheet> {
             ),
             const SizedBox(height: 6),
             Text(
-              ReaderStrings.pdfGoToPageHint(widget.totalPages),
+              ReaderPdfStrings.pdfGoToPageHint(widget.totalPages),
               style: TextStyle(color: AppColors.grey2, fontSize: 12.5),
             ),
             const SizedBox(height: 16),
@@ -153,7 +153,7 @@ class _PdfGoToPageSheetState extends State<PdfGoToPageSheet> {
                       padding: const EdgeInsets.symmetric(horizontal: 22),
                     ),
                     child: Text(
-                      ReaderStrings.pdfGoToPageAction,
+                      ReaderPdfStrings.pdfGoToPageAction,
                       style: TextStyle(
                         color: valid ? Colors.white : AppColors.grey3,
                         fontSize: 15,

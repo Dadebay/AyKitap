@@ -76,11 +76,16 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
                 const SizedBox(height: 12),
                 const GradientIconBadge(icon: HugeIcons.strokeRoundedUser),
                 const SizedBox(height: 24),
-                Text(AuthStrings.nameEntryTitle, style: TextStyle(color: AppColors.white, fontSize: 26, fontWeight: FontWeight.w800)),
+                Text(AuthStrings.nameEntryTitle,
+                    style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800)),
                 const SizedBox(height: 8),
                 Text(
                   AuthStrings.nameEntrySubtitle,
-                  style: TextStyle(color: AppColors.grey2, fontSize: 14.5, height: 1.5),
+                  style: TextStyle(
+                      color: AppColors.grey2, fontSize: 14.5, height: 1.5),
                 ),
                 const SizedBox(height: 32),
                 AppTextField(
@@ -95,7 +100,10 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
                   onSubmitted: (_) => _continue(),
                 ),
                 const Spacer(),
-                PrimaryButton(label: AuthStrings.continueButton, loading: _saving, onPressed: _isValid ? _continue : null),
+                PrimaryButton(
+                    label: AuthStrings.continueButton,
+                    loading: _saving,
+                    onPressed: _isValid ? _continue : null),
               ],
             ),
           ),

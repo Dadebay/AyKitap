@@ -57,10 +57,14 @@ void main() {
     });
 
     test('existing shared gradients are untouched and still const', () {
-      expect(AppGradients.coralPurple.colors, [const Color(0xFFF77E68), const Color(0xFFB44BE8)]);
-      expect(AppGradients.pdfSpine.colors, [const Color(0xFF6B3B3B), const Color(0xFF2E1919)]);
-      expect(AppGradients.epubSpine.colors, [const Color(0xFF3B4A6B), const Color(0xFF191F2E)]);
-      expect(AppGradients.cbzSpine.colors, [const Color(0xFF6B4B2E), const Color(0xFF2E2115)]);
+      expect(AppGradients.coralPurple.colors,
+          [const Color(0xFFF77E68), const Color(0xFFB44BE8)]);
+      expect(AppGradients.pdfSpine.colors,
+          [const Color(0xFF6B3B3B), const Color(0xFF2E1919)]);
+      expect(AppGradients.epubSpine.colors,
+          [const Color(0xFF3B4A6B), const Color(0xFF191F2E)]);
+      expect(AppGradients.cbzSpine.colors,
+          [const Color(0xFF6B4B2E), const Color(0xFF2E2115)]);
     });
   });
 
@@ -87,9 +91,10 @@ void main() {
 
     test('journeyRoseViolet and journeySunset are the two-stop cuts', () async {
       await useDark(false);
-      expect(
-          AppGradients.journeyRoseVioletColors, [const Color(0xFFFF6A88), const Color(0xFFB34BEA)]);
-      expect(AppGradients.journeySunsetColors, [const Color(0xFFFFB34D), const Color(0xFFFF5F6D)]);
+      expect(AppGradients.journeyRoseVioletColors,
+          [const Color(0xFFFF6A88), const Color(0xFFB34BEA)]);
+      expect(AppGradients.journeySunsetColors,
+          [const Color(0xFFFFB34D), const Color(0xFFFF5F6D)]);
     });
 
     test('journeyMist and journeyInk are the specified flats', () async {
@@ -116,8 +121,10 @@ void main() {
         AppGradients.journeySunsetColors,
       ];
       for (var i = 0; i < light.length; i++) {
-        expect(dark[i], isNot(light[i]), reason: 'gradient $i needs its own dark build');
-        expect(dark[i].length, light[i].length, reason: 'gradient $i stop count must match');
+        expect(dark[i], isNot(light[i]),
+            reason: 'gradient $i needs its own dark build');
+        expect(dark[i].length, light[i].length,
+            reason: 'gradient $i stop count must match');
       }
     });
 
@@ -149,7 +156,8 @@ void main() {
         ...AppGradients.journeySunsetColors,
       ];
       for (var i = 0; i < light.length; i++) {
-        expect(dark[i].computeLuminance(), lessThan(light[i].computeLuminance()),
+        expect(
+            dark[i].computeLuminance(), lessThan(light[i].computeLuminance()),
             reason: 'stop $i is not toned down for dark mode');
       }
     });
@@ -158,8 +166,8 @@ void main() {
     // existing dark surfaces it would read as a raised card, not a page.
     test('dark journeyMist stays a background tone', () async {
       await useDark(true);
-      expect(
-          AppColors.journeyMist.computeLuminance(), lessThan(AppColors.surface.computeLuminance()));
+      expect(AppColors.journeyMist.computeLuminance(),
+          lessThan(AppColors.surface.computeLuminance()));
       expect(AppColors.journeyInk.computeLuminance(),
           greaterThan(AppColors.journeyMist.computeLuminance()));
     });
@@ -167,9 +175,11 @@ void main() {
 
   test('gradients expose their stops for reuse with other geometry', () async {
     await useDark(false);
-    expect(AppGradients.journeyPrimary.colors, AppGradients.journeyPrimaryColors);
+    expect(
+        AppGradients.journeyPrimary.colors, AppGradients.journeyPrimaryColors);
     expect(AppGradients.journeySoft.colors, AppGradients.journeySoftColors);
-    expect(AppGradients.journeyRoseViolet.colors, AppGradients.journeyRoseVioletColors);
+    expect(AppGradients.journeyRoseViolet.colors,
+        AppGradients.journeyRoseVioletColors);
     expect(AppGradients.journeySunset.colors, AppGradients.journeySunsetColors);
   });
 }

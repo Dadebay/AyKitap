@@ -14,9 +14,13 @@ class AuthSubscription {
   final DateTime? activatedAt;
   final DateTime? expiredAt;
 
-  const AuthSubscription({required this.tariffId, required this.activatedAt, required this.expiredAt});
+  const AuthSubscription(
+      {required this.tariffId,
+      required this.activatedAt,
+      required this.expiredAt});
 
-  factory AuthSubscription.fromJson(Map<String, dynamic> json) => AuthSubscription(
+  factory AuthSubscription.fromJson(Map<String, dynamic> json) =>
+      AuthSubscription(
         tariffId: json['tariff_id'] as int?,
         activatedAt: DateTime.tryParse(json['activated_at'] as String? ?? ''),
         expiredAt: DateTime.tryParse(json['expired_at'] as String? ?? ''),
@@ -50,6 +54,9 @@ class AuthUser {
         username: json['username'] as String?,
         image: json['image'] as String?,
         balance: json['balance'] as int? ?? 0,
-        subscription: json['subscription'] != null ? AuthSubscription.fromJson(json['subscription'] as Map<String, dynamic>) : null,
+        subscription: json['subscription'] != null
+            ? AuthSubscription.fromJson(
+                json['subscription'] as Map<String, dynamic>)
+            : null,
       );
 }

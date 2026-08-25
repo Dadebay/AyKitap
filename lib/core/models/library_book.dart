@@ -8,13 +8,15 @@ class LibraryBookAuthor {
 
   const LibraryBookAuthor({required this.id, required this.name, this.image});
 
-  factory LibraryBookAuthor.fromJson(Map<String, dynamic> json) => LibraryBookAuthor(
+  factory LibraryBookAuthor.fromJson(Map<String, dynamic> json) =>
+      LibraryBookAuthor(
         id: json['id'] as int,
         name: json['name'] as String? ?? '',
         image: json['image'] as String?,
       );
 
-  Map<String, dynamic> toJson() => {'id': id, 'name': name, if (image != null) 'image': image};
+  Map<String, dynamic> toJson() =>
+      {'id': id, 'name': name, if (image != null) 'image': image};
 }
 
 /// One book summary from the real catalogue — `GET /books/all` (via

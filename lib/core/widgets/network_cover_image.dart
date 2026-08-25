@@ -14,6 +14,7 @@ class NetworkCoverImage extends StatelessWidget {
   final BoxFit fit;
   final double? width;
   final double? height;
+
   /// Which part of the source survives a [BoxFit.cover] crop — worth moving
   /// off center for portraits, where the face sits above the middle.
   final Alignment alignment;

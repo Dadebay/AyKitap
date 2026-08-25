@@ -38,10 +38,14 @@ class AuthProvider extends ChangeNotifier {
 
   /// Verifies the SMS code. Returns the backend's result (token + user) on
   /// success, or null with [errorMessage] set on failure.
-  Future<VerifyLoginResult?> verifyLogin({required String phone, required String code, required String deviceId}) async {
+  Future<VerifyLoginResult?> verifyLogin(
+      {required String phone,
+      required String code,
+      required String deviceId}) async {
     _setLoading(true);
     try {
-      final result = await AuthApiService.verifyLogin(phone: phone, code: code, deviceId: deviceId);
+      final result = await AuthApiService.verifyLogin(
+          phone: phone, code: code, deviceId: deviceId);
       errorMessage = null;
       return result;
     } on ApiException catch (e) {

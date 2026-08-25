@@ -21,18 +21,18 @@ class OwnBook {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'title': title,
-    'filePath': filePath,
-    'format': format.name,
-    'addedAt': addedAt.toIso8601String(),
-  };
+        'id': id,
+        'title': title,
+        'filePath': filePath,
+        'format': format.name,
+        'addedAt': addedAt.toIso8601String(),
+      };
 
   factory OwnBook.fromJson(Map<String, dynamic> json) => OwnBook(
-    id: json['id'] as String,
-    title: json['title'] as String,
-    filePath: json['filePath'] as String,
-    format: OwnBookFormat.values.byName(json['format'] as String),
-    addedAt: DateTime.parse(json['addedAt'] as String),
-  );
+        id: json['id'] as String,
+        title: json['title'] as String,
+        filePath: json['filePath'] as String,
+        format: OwnBookFormat.values.byName(json['format'] as String),
+        addedAt: DateTime.parse(json['addedAt'] as String),
+      );
 }

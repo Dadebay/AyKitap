@@ -6,6 +6,7 @@ import '../../../core/localization/strings/reader_bookmark_strings.dart';
 import '../utils/eye_care.dart';
 import 'reader_progress_scrubber.dart';
 import 'reader_toolbar_btn.dart';
+import '../../../core/localization/strings/reader_pdf_strings.dart';
 
 /// The PDF reader's bottom toolbar, built to the same design as the EPUB
 /// [ReaderBottomBar]: a scrim derived from the page colour (densest at the
@@ -162,7 +163,7 @@ class PdfBottomBar extends StatelessWidget {
                 ),
                 ReaderToolbarBtn(
                   icon: HugeIcons.strokeRoundedGridView,
-                  label: ReaderStrings.pdfGoToPageShort,
+                  label: ReaderPdfStrings.pdfGoToPageShort,
                   color: iconColor,
                   labelColor: labelColor,
                   wellColor: wellColor,

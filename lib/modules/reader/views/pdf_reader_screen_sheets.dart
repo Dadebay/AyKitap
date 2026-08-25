@@ -19,6 +19,7 @@ extension _PdfReaderScreenSheets on _PdfReaderScreenState {
           eyeCare: _eyeCare,
           fitPolicy: _fitPolicy,
           viewMode: _viewMode,
+          marginCrop: _marginCrop,
           onColorModeChanged: (v) async {
             await _setColorMode(v);
             setSheetState(() {});
@@ -29,6 +30,10 @@ extension _PdfReaderScreenSheets on _PdfReaderScreenState {
           },
           onEyeCareChanged: (v) async {
             await _setEyeCare(v);
+            setSheetState(() {});
+          },
+          onMarginCropChanged: (v) async {
+            await _setMarginCrop(v);
             setSheetState(() {});
           },
           onFitChanged: (v) async {
