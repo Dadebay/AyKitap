@@ -31,8 +31,7 @@ extension _WheelNavBarIcons on _WheelNavBarState {
       final angle = it.angle;
       final absA = angle.abs();
 
-      final opacity =
-          ((_windowRad - absA) / (_windowRad - _fadeStart)).clamp(0.0, 1.0);
+      final opacity = ((_windowRad - absA) / (_windowRad - _fadeStart)).clamp(0.0, 1.0);
       if (opacity <= 0) return const SizedBox.shrink();
 
       // 1 at the very centre, 0 by the time it reaches the next slot.
@@ -40,8 +39,7 @@ extension _WheelNavBarIcons on _WheelNavBarState {
 
       final itemSize = ui.lerpDouble(_iconBoxSize, _fabSize, fabFrac)!;
       final iconSz = ui.lerpDouble(21.0, 26.0, fabFrac)!;
-      final bgColor =
-          Color.lerp(Colors.transparent, AppColors.primary, fabFrac)!;
+      final bgColor = Color.lerp(Colors.transparent, AppColors.primary, fabFrac)!;
       final iconColor = Color.lerp(AppColors.navUnsel, Colors.white, fabFrac)!;
       final iconBottomPad = ui.lerpDouble(12.0, 0.0, fabFrac)!;
 
@@ -97,10 +95,7 @@ extension _WheelNavBarIcons on _WheelNavBarState {
                     child: Padding(
                       padding: EdgeInsets.only(bottom: iconBottomPad),
                       child: Center(
-                        child: HugeIcon(
-                            icon: _icons[it.index],
-                            color: iconColor,
-                            size: iconSz),
+                        child: _buildTabGlyph(it.index, itemSize, iconColor, iconSz),
                       ),
                     ),
                   ),
@@ -111,5 +106,13 @@ extension _WheelNavBarIcons on _WheelNavBarState {
         ),
       );
     }).toList();
+  }
+
+  /// The profile tab shows the signed-in user's actual avatar once one is
+  /// set (leaving a ring of [itemSize]'s badge colour visible around it, the
+  /// same highlight every other tab gets on selection); every other tab, and
+  /// a profile with no avatar chosen yet, keeps the plain [HugeIcon].
+  Widget _buildTabGlyph(int index, double itemSize, Color iconColor, double iconSz) {
+    return HugeIcon(icon: _icons[index], color: iconColor, size: iconSz);
   }
 }

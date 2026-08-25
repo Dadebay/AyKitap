@@ -84,4 +84,21 @@ class AuthStrings {
       t(tk: 'Meselem: Aýgül', ru: 'Например: Айгуль', tr: 'Örneğin: Aygül');
   static String get continueButton =>
       t(tk: 'Dowam et', ru: 'Продолжить', tr: 'Devam et');
+
+  // ── Welcome bonus (new-account signup only) ─────────────────────────────
+  static String get welcomeBonusTitle => t(
+      tk: 'Hoş geldiňiz! 🎉', ru: 'Добро пожаловать! 🎉', tr: 'Hoş geldin! 🎉');
+
+  /// [amount] is the signed-in user's real balance right after signup
+  /// (`GET /users/me`'s `balance`), not a hardcoded figure — the backend
+  /// credits the welcome gift as part of account creation, so this always
+  /// states what's actually sitting in the account rather than a number
+  /// that could drift from whatever the backend is configured to grant.
+  static String welcomeBonusBody(String amount) => t(
+        tk: 'Sowgat hökmünde balansyňyza $amount TMT goşduk! Muny 1 hepdelik Plus abunalygyny satyn almak ýa-da bir kitap satyn alyp okamak üçin ulanyp bilersiňiz.',
+        ru: 'Мы начислили $amount TMT на ваш баланс в подарок! Используйте их, чтобы купить недельную подписку Plus или один платный электронную книгу.',
+        tr: 'Hediye olarak bakiyene $amount TMT ekledik! Bunu 1 haftalık Plus aboneliği satın almak ya da bir kitap satın alıp okumak için kullanabilirsin.',
+      );
+  static String get welcomeBonusCta =>
+      t(tk: 'Başlaýyn!', ru: 'Начать', tr: 'Başlayalım!');
 }

@@ -1,30 +1,42 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/localization/strings/library_strings.dart';
+import '../../core/models/library_book.dart';
 import '../../core/models/own_book.dart';
 import '../../core/navigation/app_navigator.dart';
 import '../../core/services/analytics_service.dart';
+import '../../core/services/book_access_service.dart';
+import '../../core/services/downloaded_books_store.dart';
+import '../../core/services/downloaded_files_store.dart';
 import '../../core/services/own_books_store.dart';
+import '../../core/services/subscription_service.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/utils/stable_hash.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/own_book_spine_cover.dart';
+import '../../core/widgets/section_header.dart';
 import '../main_nav/main_nav_screen.dart';
 import '../reader/provider/reader_provider.dart';
+import '../reader/utils/catalog_book_opener.dart';
 import '../reader/utils/pdf_book_opener.dart';
 import '../reader/views/cbz_reader_screen.dart';
 import '../reader/views/reader_view.dart';
-import '../../core/localization/strings/library_strings.dart';
+import 'widgets/library_book_cover.dart';
 import 'widgets/offline_library_actions.dart';
 import 'widgets/offline_library_empty_state.dart';
 import 'widgets/offline_library_header.dart';
 
+part 'offline_library_screen_sections.dart';
+
 /// TZ 12.6: shown right after the splash screen instead of the normal app
-/// when there's no network — the only content that can actually be opened
-/// with no connection is what's already saved on-device (the "Öz Kitaplarym"
-/// imports, copied into app-private storage by [OwnBooksStore]), so that's
-/// what this screen lists. A "Baglanyşygy barla" button re-checks
-/// connectivity and hands off to the normal app once it's back.
+/// when there's no network — everything that can actually be opened with no
+/// connection is what's already saved on-device: both the "Öz Kitaplarym"
+/// imports ([OwnBooksStore]) and any catalogue book that was downloaded
+/// while online and is still within its access window (purchased, or an
+/// as-yet-unexpired subscription — see [BookAccessService.canRead]). A
+/// "Baglanyşygy barla" button re-checks connectivity and hands off to the
+/// normal app once it's back.
 class OfflineLibraryScreen extends StatefulWidget {
   const OfflineLibraryScreen({super.key});
 
@@ -33,13 +45,16 @@ class OfflineLibraryScreen extends StatefulWidget {
 }
 
 class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
-  final _store = OwnBooksStore.instance;
+  final _ownBooks = OwnBooksStore.instance;
   bool _checking = false;
 
   @override
   void initState() {
     super.initState();
-    _store.load();
+    _ownBooks.load();
+    DownloadedBooksStore.instance.load();
+    DownloadedFilesStore.instance.load();
+    BookAccessService.instance.load();
   }
 
   Future<void> _checkConnection() async {
@@ -57,7 +72,7 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
     }
   }
 
-  void _openBook(OwnBook book) {
+  void _openOwnBook(OwnBook book) {
     AnalyticsService.instance
         .logBookOpened(id: book.id, format: book.format.name);
     switch (book.format) {
@@ -84,9 +99,54 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
     }
   }
 
+  /// Opens a downloaded catalogue book straight from disk — same as
+  /// Kitaplygym's own "Ýüklenenler" shelf, since a `GET /books/:id` detail
+  /// page (the online fallback that shelf has) is exactly what isn't
+  /// reachable here. [_readableCatalogBooks] already filters to books that
+  /// still pass this check, so the guard below is only for a verdict that
+  /// changed (e.g. a subscription expiring) between build and tap.
+  Future<void> _openCatalogBook(LibraryBook book) async {
+    final entry = DownloadedFilesStore.instance.best(book.id);
+    if (entry == null || !BookAccessService.instance.canRead(book.id)) {
+      if (mounted) {
+        context.showAppSnackBar(LibraryStrings.noInternetSnackbar,
+            isError: true);
+      }
+      return;
+    }
+    openCatalogBookFile(
+      context,
+      path: entry.path,
+      format: entry.format,
+      bookId: book.id,
+      title: book.name,
+      pageCount: book.pageCount,
+    );
+  }
+
+  /// Downloaded catalogue books that can still actually be opened offline —
+  /// on disk ([DownloadedFilesStore]) *and* within access
+  /// ([BookAccessService.canRead], which a lapsed subscription can fail even
+  /// though the file itself is still there).
+  List<LibraryBook> get _readableCatalogBooks {
+    final access = BookAccessService.instance;
+    return DownloadedBooksStore.instance.books
+        .where((b) =>
+            DownloadedFilesStore.instance.best(b.id) != null &&
+            access.canRead(b.id))
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final books = context.watch<OwnBooksStore>().books;
+    final ownBooks = context.watch<OwnBooksStore>().books;
+    context.watch<DownloadedBooksStore>();
+    context.watch<DownloadedFilesStore>();
+    context.watch<BookAccessService>();
+    context.watch<SubscriptionService>();
+    final catalogBooks = _readableCatalogBooks;
+    final isEmpty = ownBooks.isEmpty && catalogBooks.isEmpty;
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -94,26 +154,11 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
           children: [
             const OfflineLibraryHeader(),
             Expanded(
-              child: books.isEmpty
+              child: isEmpty
                   ? const OfflineLibraryEmptyState()
-                  : GridView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        mainAxisSpacing: 18,
-                        crossAxisSpacing: 14,
-                        childAspectRatio: 0.62,
-                      ),
-                      itemCount: books.length,
-                      itemBuilder: (context, i) => OwnBookSpineCover(
-                        book: books[i],
-                        onTap: () => _openBook(books[i]),
-                        borderRadius: 8,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 10),
-                        wrapAspectRatio: false,
-                      ),
+                  : CustomScrollView(
+                      slivers: _buildSlivers(
+                          ownBooks: ownBooks, catalogBooks: catalogBooks),
                     ),
             ),
             OfflineLibraryActions(

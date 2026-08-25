@@ -120,6 +120,17 @@ class PaymentStrings {
       ru: 'Действует до $date',
       tr: '$date tarihine kadar geçerli');
   static String get renew => t(tk: 'Uzalt', ru: 'Продлить', tr: 'Yenile');
+
+  // widgets/subscription_required_dialog.dart
+  static String get subscriptionRequiredTitle =>
+      t(tk: 'Abunalyk gerek', ru: 'Требуется подписка', tr: 'Abonelik gerekli');
+  static String get subscriptionRequiredBody => t(
+        tk: 'Bu kitaby okamak üçin abuna bolup ähli kitaplara giriş gazanyp bilersiňiz, ýa-da diňe şu kitaby satyn alyp bilersiňiz.',
+        ru: 'Чтобы читать эту книгу, оформите подписку и получите доступ ко всем книгам, либо купите только эту книгу.',
+        tr: 'Bu kitabı okumak için abone olup tüm kitaplara erişebilir, ya da yalnızca bu kitabı satın alabilirsiniz.',
+      );
+  static String get subscribeCta =>
+      t(tk: 'Abuna bol', ru: 'Оформить подписку', tr: 'Abone ol');
   static String get subscriptionBalanceInsufficientNote => t(
         tk: 'Balansyňyz bu meýilnamany satyn almaga ýetmeýär. Bank kartasy bilen töläp bilersiňiz.',
         ru: 'Вашего баланса недостаточно для покупки этого плана. Вы можете оплатить банковской картой.',
