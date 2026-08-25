@@ -4,8 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'localization_delegates.dart';
 
-/// The 3 UI languages offered on the Settings screen.
-enum AppLanguageCode { tk, ru, tr }
+/// The UI languages offered on the Settings screen.
+enum AppLanguageCode { tk, ru, tr, en }
 
 /// App-wide language switch — same singleton pattern as [AppTheme]. Every
 /// screen's strings read [AppLocale.instance.current] (via the [t] helper in
@@ -30,6 +30,7 @@ class AppLocale extends ChangeNotifier {
         AppLanguageCode.tk => kTurkmenFallbackLocale.languageCode,
         AppLanguageCode.ru => 'ru',
         AppLanguageCode.tr => 'tr',
+        AppLanguageCode.en => 'en',
       };
 
   Future<void> load() async {

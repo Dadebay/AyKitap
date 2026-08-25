@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../core/localization/app_locale.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/strings/settings_strings.dart';
+import '../../../core/theme/app_colors.dart';
 
 class AppLanguage {
   final AppLanguageCode code;
@@ -19,6 +19,8 @@ const kSettingsLanguages = [
       AppLanguageCode.ru, SettingsStrings.langRussian, 'assets/flags/ru.svg'),
   AppLanguage(
       AppLanguageCode.tr, SettingsStrings.langTurkish, 'assets/flags/tr.svg'),
+  AppLanguage(
+      AppLanguageCode.en, SettingsStrings.langEnglish, 'assets/flags/us.svg'),
 ];
 
 Widget flagFor(AppLanguage lang, {double size = 28}) {

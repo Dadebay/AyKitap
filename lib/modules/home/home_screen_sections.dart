@@ -125,13 +125,21 @@ extension _HomeScreenSections on _HomeScreenState {
       children: [
         SectionHeader(title: collection.name, subtitle: collection.subTitle),
         SizedBox(
-          height: 160,
+          // Tall enough for a 130-wide card's 2:3 photo (195) plus its
+          // two-line name and badge row underneath — see
+          // [CatalogAuthorCard].
+          height: 268,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             itemCount: authors.length,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (_, i) => CatalogAuthorAvatar(author: authors[i]),
+            itemBuilder: (_, i) => CatalogAuthorCard(
+              authorId: authors[i].id,
+              name: authors[i].name,
+              image: authors[i].image,
+              width: 130,
+            ),
           ),
         ),
       ],

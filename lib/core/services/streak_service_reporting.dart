@@ -53,6 +53,13 @@ extension _StreakServiceReporting on StreakService {
       _pendingPages = 0;
       _applyReport(result);
       _notify();
+      unawaited(HomeScreenWidgetService.syncStreak(
+        streak: currentStreak,
+        bestStreak: bestStreak,
+        todayPages: todayPages,
+        goalMinutes: goalMinMinutes,
+        weekRead: weekRead,
+      ));
       if (result.rewards.isNotEmpty) unawaited(_showRewards(result.rewards));
     } on ApiException {
       // Offline or a server error: leave `_pendingSeconds`/`_pendingPages`

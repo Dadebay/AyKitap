@@ -89,11 +89,14 @@ dependencies:
   firebase_messaging: ^16.0.2
   flutter_local_notifications: ^19.0.0
   screen_brightness: ^2.1.11
+  home_widget: ^0.9.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  home_widget_generator: ^0.0.1
+  home_widget_cli: ^0.0.1
 
 flutter:
   uses-material-design: true

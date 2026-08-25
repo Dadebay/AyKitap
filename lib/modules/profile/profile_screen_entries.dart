@@ -1,5 +1,8 @@
 part of 'profile_screen.dart';
 
+// Journey badge imports live at the top of the part file (not
+// profile_screen.dart itself) since only the row builders below use them.
+
 /// Row-builder methods for every [ProfileEntryCard] on the Profile tab, plus
 /// the navigation/side-effect callbacks a couple of them own directly
 /// (balance + gift, which don't belong in [_ProfileScreenSession]).
@@ -32,24 +35,23 @@ extension _ProfileScreenEntries on _ProfileScreenState {
     );
   }
 
-  // Highlighted (primary tint + border, same treatment as the book-request
-  // CTA below) and shows the real expiry when active, rather than the always-
-  // -on "Abuna ýazyl" subtitle — so an active subscription is obvious right
-  // on this row, without opening SubscriptionScreen to check.
+  // A live entitlement is account status rather than a routine settings row,
+  // so it gets the dedicated premium card. Inactive users keep the compact
+  // entry that leads to the same plan screen.
   Widget _buildSubscriptionEntry(
       BuildContext context, SubscriptionService subscription) {
     final active = subscription.isActive;
     final expiresAt = subscription.expiresAt;
+    if (active && expiresAt != null) {
+      return ActiveSubscriptionCard(
+        expiresAt: expiresAt,
+        onTap: () => context.push(const SubscriptionScreen()),
+      );
+    }
     return ProfileEntryCard(
-      leading: profileIconCircle(active
-          ? HugeIcons.strokeRoundedCheckmarkCircle01
-          : HugeIcons.strokeRoundedDiamond),
+      leading: profileIconCircle(HugeIcons.strokeRoundedDiamond),
       title: ProfileStrings.subscription,
-      subtitle: active && expiresAt != null
-          ? ProfileStrings.subscriptionActiveUntil(
-              DateFormat.yMMMd().format(expiresAt))
-          : ProfileStrings.subscribeNow,
-      highlighted: active,
+      subtitle: ProfileStrings.subscribeNow,
       onTap: () => context.push(const SubscriptionScreen()),
     );
   }
@@ -91,7 +93,6 @@ extension _ProfileScreenEntries on _ProfileScreenState {
     return ProfileEntryCard(
       leading: profileIconCircle(HugeIcons.strokeRoundedBookOpen01),
       title: ProfileStrings.sendBookRequest,
-      highlighted: true,
       onTap: () => context.push(const BookSuggestionsScreen()),
     );
   }

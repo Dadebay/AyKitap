@@ -100,6 +100,9 @@ extension _SearchScreenQuery on _SearchScreenState {
         _searchError = null;
         _headerCollapsed = false;
       });
+      // Nothing typed yet — Author mode falls through to its own discover
+      // grid (see [_loadDiscoverAuthors]), same as Book mode already does.
+      if (mode == _SearchMode.author) _loadDiscoverAuthors();
     }
   }
 

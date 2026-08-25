@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_controller.dart';
 import '../../../core/localization/strings/profile_strings.dart';
 import '../../../core/widgets/profile_avatar.dart';
 
@@ -106,17 +107,37 @@ class ProfileTopSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A plain black shadow reads fine on light mode's near-white background,
+    // but at the same strength it barely shows against dark mode's own
+    // near-black one — so dark mode gets it a good deal stronger (and softer/
+    // wider) to still read as a lifted disc rather than vanishing into the
+    // page.
+    final isDark = AppTheme.instance.isDark;
     return Column(
       children: [
         GestureDetector(
           onTap: onTap,
           child: Stack(
             children: [
-              ProfileAvatar(
-                  index: avatarIndex,
-                  size: 88,
-                  imageBase64: avatarImage,
-                  imageUrl: avatarUrl),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color:
+                          Colors.black.withValues(alpha: isDark ? 0.55 : 0.18),
+                      blurRadius: isDark ? 24 : 16,
+                      spreadRadius: isDark ? 1 : 0,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: ProfileAvatar(
+                    index: avatarIndex,
+                    size: 88,
+                    imageBase64: avatarImage,
+                    imageUrl: avatarUrl),
+              ),
               Positioned(
                 bottom: 0,
                 right: 0,

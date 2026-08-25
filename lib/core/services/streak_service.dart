@@ -5,6 +5,7 @@ import '../navigation/root_navigator.dart';
 import '../network/api_exception.dart';
 import '../widgets/streak_reward_dialog.dart';
 import 'account_service.dart';
+import 'home_screen_widget_service.dart';
 import 'streak_api_service.dart';
 
 part 'streak_service_reporting.dart';
@@ -32,6 +33,7 @@ class StreakService extends ChangeNotifier {
   int get currentStreak => _overview?.currentStreak ?? 0;
   int get bestStreak => _overview?.bestStreak ?? 0;
   int get goalMinMinutes => _overview?.goalMinMinutes ?? 15;
+  int get todayPages => _overview?.today.pages ?? 0;
   StreakDay? get today => _overview?.today;
   StreakMonthSummary? get thisMonth => _overview?.thisMonth;
   StreakMonthSummary? get lastMonth => _overview?.lastMonth;
@@ -110,6 +112,13 @@ class StreakService extends ChangeNotifier {
     } finally {
       _loading = false;
       notifyListeners();
+      unawaited(HomeScreenWidgetService.syncStreak(
+        streak: currentStreak,
+        bestStreak: bestStreak,
+        todayPages: todayPages,
+        goalMinutes: goalMinMinutes,
+        weekRead: weekRead,
+      ));
     }
   }
 

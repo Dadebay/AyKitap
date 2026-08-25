@@ -28,4 +28,25 @@ class AppColors {
   static Color get navBg => _isDark ? const Color(0xFF1A1A26) : const Color(0xFFFFFFFF);
   static Color get navSelected => const Color(0xFFE8712C);
   static Color get navUnsel => _isDark ? const Color(0xFF5C5C73) : const Color(0xFFAFAFC0);
+
+  // ── Journey palette ───────────────────────────────────────────────────────
+  //
+  // The two flat tones of the Journey look; its gradients live in
+  // [AppGradients]. Deliberately separate from [bg]/[white] rather than
+  // replacing them: those are what every existing screen is painted with, and
+  // repointing them would reskin the whole app as a side effect. A screen opts
+  // into the Journey ground by naming these.
+
+  /// Page background for the Journey surfaces — a hair cooler and lighter than
+  /// [bg], which is what gives those screens their airier feel.
+  ///
+  /// The dark build is not a mirrored light value but a near-black carrying the
+  /// same faint violet cast, chosen to sit beside the existing [bg] (#13131A)
+  /// without reading as a second, competing black.
+  static Color get journeyMist => _isDark ? const Color(0xFF14131B) : const Color(0xFFF8F7FC);
+
+  /// Heading text on [journeyMist]. Slightly softer than pure black in light
+  /// mode, and slightly off-white in dark, so a large title doesn't harden into
+  /// a slab of maximum contrast against the tinted ground.
+  static Color get journeyInk => _isDark ? const Color(0xFFF5F3FB) : const Color(0xFF22212A);
 }

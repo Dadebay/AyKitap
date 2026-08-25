@@ -6,9 +6,9 @@ import 'app_locale.dart';
 /// getters built on top of this.
 ///
 /// [tk] is required — it's always the source-of-truth baseline the app
-/// shipped with — [ru] and [tr] are optional while translations are filled
-/// in incrementally; either falls back to [tk] when missing.
-String t({required String tk, String? ru, String? tr}) {
+/// shipped with — [ru], [tr] and [en] are optional while translations are
+/// filled in incrementally; each falls back to [tk] when missing.
+String t({required String tk, String? ru, String? tr, String? en}) {
   switch (AppLocale.instance.current) {
     case AppLanguageCode.tk:
       return tk;
@@ -16,5 +16,7 @@ String t({required String tk, String? ru, String? tr}) {
       return ru ?? tk;
     case AppLanguageCode.tr:
       return tr ?? tk;
+    case AppLanguageCode.en:
+      return en ?? tk;
   }
 }

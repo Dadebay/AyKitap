@@ -29,6 +29,9 @@ class BookLanguage {
       AppLanguageCode.tk => nameTk,
       AppLanguageCode.ru => nameRu,
       AppLanguageCode.tr => nameTr,
+      // The backend's `GET /book-languages` response has no `en` name yet —
+      // empty falls through to the same tk/tr/ru fallback chain below.
+      AppLanguageCode.en => '',
     };
     if (preferred.isNotEmpty) return preferred;
     return [nameTk, nameTr, nameRu]

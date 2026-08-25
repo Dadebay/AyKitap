@@ -92,4 +92,38 @@ extension _SearchScreenDiscover on _SearchScreenState {
       });
     }
   }
+
+  /// Author mode's discover fetch — `GET /authors/search` with an empty
+  /// `search`, confirmed against the live backend to return a real default
+  /// list rather than erroring. Fetched once, lazily, the first time Author
+  /// mode is opened (see [_setSearchMode]) and cached in [_discoverAuthors]
+  /// rather than re-fetched on every switch back to that tab; [_retry] is
+  /// the one path that forces a fresh call after a failure.
+  Future<void> _loadDiscoverAuthors({bool retry = false}) async {
+    if (_discoverAuthorsLoading) return;
+    if (_discoverAuthors != null && !retry) return;
+    final requestId = ++_discoverAuthorsRequestId;
+    _setState(() {
+      _discoverAuthorsLoading = true;
+      _discoverAuthorsError = null;
+    });
+    try {
+      final authors = await AuthorApiService.searchAuthors(
+        sortBy: 'created_at',
+        sortOrder: 'ASC',
+        size: _SearchScreenState._pageSize,
+      );
+      if (!mounted || requestId != _discoverAuthorsRequestId) return;
+      _setState(() {
+        _discoverAuthors = authors;
+        _discoverAuthorsLoading = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted || requestId != _discoverAuthorsRequestId) return;
+      _setState(() {
+        _discoverAuthorsError = e.message;
+        _discoverAuthorsLoading = false;
+      });
+    }
+  }
 }

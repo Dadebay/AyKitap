@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/library_book.dart';
+import '../network/api_config.dart';
+import 'home_screen_widget_service.dart';
 
 /// The one catalogue book surfaced by the Play tab. Reader-specific page
 /// state remains in each reader's existing preferences; this stores the
@@ -105,6 +108,7 @@ class LastReadBookStore extends ChangeNotifier {
       page: existingPage,
     );
     await _persist();
+    unawaited(_syncWidget(includeCover: true));
     notifyListeners();
   }
 
@@ -117,6 +121,7 @@ class LastReadBookStore extends ChangeNotifier {
     }
     _book = current.copyWith(page: page);
     await _persist();
+    unawaited(_syncWidget());
     notifyListeners();
   }
 
@@ -128,5 +133,19 @@ class LastReadBookStore extends ChangeNotifier {
     } else {
       await prefs.setString(_kKey, jsonEncode(current.toJson()));
     }
+  }
+
+  Future<void> _syncWidget({bool includeCover = false}) async {
+    final current = _book;
+    await HomeScreenWidgetService.syncBook(
+      bookId: current?.bookId,
+      title: current?.title,
+      page: current?.page ?? 0,
+      pageCount: current?.pageCount,
+      coverUrl: includeCover && current?.image != null
+          ? ApiConfig.resolveImageUrl(current!.image!)
+          : null,
+      updateCover: includeCover,
+    );
   }
 }

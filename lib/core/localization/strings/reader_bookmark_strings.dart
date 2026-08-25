@@ -7,31 +7,42 @@ import '../strings_base.dart';
 class ReaderBookmarkStrings {
   ReaderBookmarkStrings._();
 
-  static String get bookmarkAdded =>
-      t(tk: 'Bellik goşuldy', ru: 'Закладка добавлена', tr: 'Yer imi eklendi');
-  static String get bookmarkRemoved =>
-      t(tk: 'Bellik aýryldy', ru: 'Закладка удалена', tr: 'Yer imi kaldırıldı');
+  static String get bookmarkAdded => t(
+      tk: 'Bellik goşuldy',
+      ru: 'Закладка добавлена',
+      tr: 'Yer imi eklendi',
+      en: 'Bookmark added');
+  static String get bookmarkRemoved => t(
+      tk: 'Bellik aýryldy',
+      ru: 'Закладка удалена',
+      tr: 'Yer imi kaldırıldı',
+      en: 'Bookmark removed');
   static String get bookmarksTitle =>
-      t(tk: 'Bellikler', ru: 'Закладки', tr: 'Yer imleri');
+      t(tk: 'Bellikler', ru: 'Закладки', tr: 'Yer imleri', en: 'Bookmarks');
   static String get bookmarksEmpty => t(
         tk: 'Bu kitapda entäk bellik ýok',
         ru: 'В этой книге пока нет закладок',
         tr: 'Bu kitapta henüz yer imi yok',
+        en: 'No bookmarks in this book yet',
       );
   static String get addCurrentPage => t(
       tk: 'Şu sahypany belle',
       ru: 'Добавить эту страницу',
-      tr: 'Bu sayfayı işaretle');
+      tr: 'Bu sayfayı işaretle',
+      en: 'Bookmark this page');
   static String get removeCurrentPage => t(
       tk: 'Şu sahypanyň belligini aýyr',
       ru: 'Убрать закладку с этой страницы',
-      tr: 'Bu sayfanın yer imini kaldır');
+      tr: 'Bu sayfanın yer imini kaldır',
+      en: 'Remove bookmark from this page');
   static String bookmarkProgress(int percent) => t(
       tk: '$percent% okaldy',
       ru: 'Прочитано $percent%',
-      tr: '%$percent okundu');
+      tr: '%$percent okundu',
+      en: '$percent% read');
   static String pageOfPages(int page, int total) => t(
       tk: 'Sahypa $page / $total',
       ru: 'Страница $page из $total',
-      tr: 'Sayfa $page / $total');
+      tr: 'Sayfa $page / $total',
+      en: 'Page $page of $total');
 }
