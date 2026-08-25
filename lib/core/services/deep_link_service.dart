@@ -3,8 +3,11 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 
 import '../../modules/book_detail/catalog_book_detail_screen.dart';
+import '../../modules/reader/views/reader_tab_screen.dart';
+import '../../modules/streak/streak_screen.dart';
 import '../navigation/app_navigator.dart';
 import '../navigation/root_navigator.dart';
+import 'last_read_book_store.dart';
 
 /// Bridges the native `aykitap://book/<id>` deep link hand-off
 /// (MainActivity.kt on Android, SceneDelegate.swift on iOS) into a push of
@@ -26,26 +29,39 @@ class DeepLinkService {
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'onDeepLink') {
         final link = call.arguments as String?;
-        if (link != null) _open(link);
+        if (link != null) await _open(link);
       }
     });
-    unawaited(
-      _channel.invokeMethod<String>('getInitialLink').then((link) {
-        if (link != null) _open(link);
-      }),
-    );
+    unawaited(_channel.invokeMethod<String>('getInitialLink').then<void>(
+      (link) async {
+        if (link != null) await _open(link);
+      },
+    ));
   }
 
-  void _open(String link) {
+  Future<void> _open(String link) async {
     final uri = Uri.tryParse(link);
-    if (uri == null || uri.host != 'book') return;
+    if (uri == null) return;
+    final context = rootNavigatorKey.currentState?.overlay?.context;
+    if (context == null || !context.mounted) return;
+    if (uri.host == 'streak') {
+      context.push(const StreakScreen());
+      return;
+    }
+    if (uri.host != 'book' && uri.host != 'reader') return;
     final idSegment =
         uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
     final bookId = int.tryParse(idSegment ?? '');
     if (bookId == null) return;
 
-    final context = rootNavigatorKey.currentState?.overlay?.context;
-    if (context == null || !context.mounted) return;
+    if (uri.host == 'reader') {
+      await LastReadBookStore.instance.load();
+      final isCurrentBook = LastReadBookStore.instance.book?.bookId == bookId;
+      if (isCurrentBook && context.mounted) {
+        final opened = await openLastReadBook(context);
+        if (opened || !context.mounted) return;
+      }
+    }
     context.push(CatalogBookDetailScreen(bookId: bookId));
   }
 }

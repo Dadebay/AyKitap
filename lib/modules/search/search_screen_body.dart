@@ -42,7 +42,12 @@ extension _SearchScreenBody on _SearchScreenState {
                 onNotification: _onResultsScroll,
                 child: _shouldShowResults
                     ? _buildSearchResults()
-                    : _buildDiscoverGrid(),
+                    // [_buildDiscoverGrid] is book-only — Author mode with
+                    // nothing typed yet gets its own discover grid instead
+                    // of falling through to book covers.
+                    : _searchMode == _SearchMode.author
+                        ? _buildAuthorDiscoverGrid()
+                        : _buildDiscoverGrid(),
               ),
             ),
           ],
@@ -115,15 +120,9 @@ extension _SearchScreenBody on _SearchScreenState {
     // directly (id/name/image/book_count), so these render straight from
     // [_authorResults] rather than being derived from book results.
     if (_searchMode == _SearchMode.author) {
-      // A list of full-width rows rather than Home's square avatar grid: a
-      // search hit is chosen by reading the name, and [AuthorResultCard]
-      // also surfaces the `book_count` the endpoint returns, which the
-      // grid cell had no room for.
-      return ListView.separated(
+      return AuthorResultGrid(
+        authors: authorResults,
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-        itemCount: authorResults.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (_, i) => AuthorResultCard(author: authorResults[i]),
       );
     }
     // CatalogBookCard already navigates to CatalogBookDetailScreen on tap
@@ -171,6 +170,74 @@ extension _SearchScreenBody on _SearchScreenState {
       books: books,
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       loadingMore: _discoverLoadingMore,
+    );
+  }
+
+  /// Author mode's counterpart of [_buildDiscoverGrid] — a default author
+  /// list (see [_loadDiscoverAuthors]) shown before any name is typed,
+  /// rather than either falling through to the book grid or sitting empty.
+  Widget _buildAuthorDiscoverGrid() {
+    if (_discoverAuthorsLoading && _discoverAuthors == null) {
+      return Center(child: CircularProgressIndicator(color: AppColors.primary));
+    }
+    if (_discoverAuthorsError != null && _discoverAuthors == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_discoverAuthorsError!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => _loadDiscoverAuthors(retry: true),
+                child: Text(SearchStrings.retry,
+                    style: TextStyle(
+                        color: AppColors.primary, fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    final authors = _discoverAuthors ?? const [];
+    // Only reachable if the backend genuinely has zero authors — the typed-
+    // search prompt still applies then, since there's nothing to browse.
+    if (authors.isEmpty) return _buildAuthorSearchPrompt();
+    return AuthorResultGrid(
+      authors: authors,
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+    );
+  }
+
+  Widget _buildAuthorSearchPrompt() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle),
+              child: Center(
+                  child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedUserSearch01,
+                      color: AppColors.primary,
+                      size: 28)),
+            ),
+            const SizedBox(height: 16),
+            Text(SearchStrings.authorSearchPrompt,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.grey2, fontSize: 14.5)),
+          ],
+        ),
+      ),
     );
   }
 }

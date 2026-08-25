@@ -11,37 +11,46 @@ class ReaderNotesStrings {
 
   // ── Selection toolbar ──────────────────────────────────────────────────
   static String get copyLabel =>
-      t(tk: 'Kopyala', ru: 'Копировать', tr: 'Kopyala');
+      t(tk: 'Kopyala', ru: 'Копировать', tr: 'Kopyala', en: 'Copy');
   static String get highlightLabel =>
-      t(tk: 'Belle', ru: 'Выделить', tr: 'İşaretle');
-  static String get noteLabel => t(tk: 'Not', ru: 'Заметка', tr: 'Not');
+      t(tk: 'Belle', ru: 'Выделить', tr: 'İşaretle', en: 'Highlight');
+  static String get noteLabel =>
+      t(tk: 'Not', ru: 'Заметка', tr: 'Not', en: 'Note');
   static String get shareLabel =>
-      t(tk: 'Paýlaş', ru: 'Поделиться', tr: 'Paylaş');
+      t(tk: 'Paýlaş', ru: 'Поделиться', tr: 'Paylaş', en: 'Share');
   static String get highlightedMessage =>
-      t(tk: 'Bellendi', ru: 'Выделено', tr: 'İşaretlendi');
-  static String get noteSavedMessage =>
-      t(tk: 'Not goşuldy', ru: 'Заметка добавлена', tr: 'Not eklendi');
+      t(tk: 'Bellendi', ru: 'Выделено', tr: 'İşaretlendi', en: 'Highlighted');
+  static String get noteSavedMessage => t(
+      tk: 'Not goşuldy',
+      ru: 'Заметка добавлена',
+      tr: 'Not eklendi',
+      en: 'Note added');
   static String get noteSaveFailedMessage => t(
         tk: 'Not saklanmady — internet baglanyşygyňyzy barlaň',
         ru: 'Не удалось сохранить заметку — проверьте подключение к интернету',
         tr: 'Not kaydedilemedi — internet bağlantınızı kontrol edin',
+        en: 'Note couldn\'t be saved — check your internet connection',
       );
 
   /// Shown in the selection toolbar instead of "Not" when the tapped passage
   /// is already highlighted — removes the highlight (and its note) rather
   /// than adding a new one.
   static String get removeHighlightLabel =>
-      t(tk: 'Poz', ru: 'Удалить', tr: 'Kaldır');
-  static String get highlightRemovedMessage =>
-      t(tk: 'Bellik aýryldy', ru: 'Выделение удалено', tr: 'İşaret kaldırıldı');
+      t(tk: 'Poz', ru: 'Удалить', tr: 'Kaldır', en: 'Remove');
+  static String get highlightRemovedMessage => t(
+      tk: 'Bellik aýryldy',
+      ru: 'Выделение удалено',
+      tr: 'İşaret kaldırıldı',
+      en: 'Highlight removed');
 
   // ── Add-note sheet ──────────────────────────────────────────────────────
   static String get addNoteTitle =>
-      t(tk: 'Not goş', ru: 'Добавить заметку', tr: 'Not ekle');
+      t(tk: 'Not goş', ru: 'Добавить заметку', tr: 'Not ekle', en: 'Add note');
   static String get addNoteSubtitle => t(
         tk: 'Saýlanan tekst üçin bellik ýazyň',
         ru: 'Напишите заметку к выделенному тексту',
         tr: 'Seçili metin için not yazın',
+        en: 'Write a note for the selected text',
       );
 
   /// The fixed-layout readers' variant: a PDF/CBZ page has no selectable text
@@ -51,5 +60,6 @@ class ReaderNotesStrings {
         tk: 'Şu sahypa üçin bellik ýazyň',
         ru: 'Напишите заметку к этой странице',
         tr: 'Bu sayfa için not yazın',
+        en: 'Write a note for this page',
       );
 }

@@ -4,6 +4,9 @@ import '../strings_base.dart';
 class SeriesStrings {
   SeriesStrings._();
 
-  static String bookCount(int count) =>
-      t(tk: '$count kitap', ru: '$count книг', tr: '$count kitap');
+  static String bookCount(int count) => t(
+      tk: '$count kitap',
+      ru: '$count книг',
+      tr: '$count kitap',
+      en: '$count books');
 }

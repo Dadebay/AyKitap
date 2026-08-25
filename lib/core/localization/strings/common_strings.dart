@@ -22,6 +22,8 @@ class CommonStrings {
         return const ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
       case AppLanguageCode.tr:
         return const ['Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Ct', 'Pa'];
+      case AppLanguageCode.en:
+        return const ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
     }
   }
 }

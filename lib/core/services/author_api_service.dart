@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import '../models/author_detail.dart';
-import '../network/catalog_endpoints.dart';
 import '../network/api_exception.dart';
+import '../network/catalog_endpoints.dart';
 import '../network/dio_client.dart';
 
 /// Talks to `GET /authors/:id` — the single call behind
@@ -21,10 +21,19 @@ class AuthorApiService {
   }
 
   /// GET `/authors/search?search=` — [SearchScreen]'s "Ýazar" mode.
+  ///
+  /// An empty [search] is also valid — confirmed against the live backend —
+  /// and is what powers that mode's own "discover" grid (shown before the
+  /// user has typed anything, same idea as the Book mode's discover grid).
+  /// [sortBy]/[sortOrder] are sent the same way `/books/all` takes them, but
+  /// this endpoint doesn't currently seem to act on them — passed through
+  /// anyway so this call is already correct if/when it starts to.
   static Future<List<AuthorSearchResult>> searchAuthors({
-    required String search,
+    String search = '',
     int page = 1,
     int size = 20,
+    String? sortBy,
+    String? sortOrder,
   }) async {
     try {
       final response = await DioClient.instance
@@ -32,6 +41,8 @@ class AuthorApiService {
         'search': search,
         'page': page,
         'size': size,
+        if (sortBy != null) 'sort_by': sortBy,
+        if (sortOrder != null) 'sort_order': sortOrder,
       });
       final list = response.data['data'] as List;
       return list

@@ -69,14 +69,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     final tariffs = _tariffs;
     final hasSelection = tariffs != null && tariffs.isNotEmpty;
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: AppColors.journeyMist,
       appBar: AppBar(
-        backgroundColor: AppColors.bg,
+        backgroundColor: AppColors.journeyMist,
         leading: const AppBackButton(size: 20),
         centerTitle: true,
         title: Text(PaymentStrings.subscriptionTitle,
             style: TextStyle(
-                color: AppColors.white,
+                color: AppColors.journeyInk,
                 fontSize: 17,
                 fontWeight: FontWeight.w700)),
       ),
@@ -86,10 +86,29 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
                 children: [
                   SubscriptionHeader(expiresAt: expiresAt),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 30),
+                  Text(
+                    PaymentStrings.chooseYourPlan,
+                    style: TextStyle(
+                      color: AppColors.journeyInk,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    PaymentStrings.chooseYourPlanSubtitle,
+                    style: TextStyle(
+                      color: AppColors.grey2,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   SubscriptionPlanList(
                     loading: _loading,
                     error: _error,

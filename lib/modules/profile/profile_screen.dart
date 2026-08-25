@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/localization/strings/gift_strings.dart';
 import '../../core/localization/strings/payment_strings.dart';
@@ -26,6 +25,7 @@ import 'edit_profile_screen.dart';
 import 'notes_screen.dart';
 import 'report_problem_sheet.dart';
 import 'settings_screen.dart';
+import 'widgets/active_subscription_card.dart';
 import 'widgets/profile_entry_card.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/send_gift_sheet.dart';
@@ -65,14 +65,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final balance = context.watch<AccountService>().balanceManat;
     final subscription = context.watch<SubscriptionService>();
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      // journeyMist rather than the app-wide AppColors.bg (TZ S5) — its dark
+      // build is deliberately near-identical to AppColors.bg's own dark value
+      // (#14131B vs #13131A), so this is a real but practically invisible
+      // dark-mode choice: the airier tone only actually shows up in light
+      // mode, and dark mode's existing contrast carries over unchanged.
+      backgroundColor: AppColors.journeyMist,
       appBar: AppBar(
-        backgroundColor: AppColors.bg,
+        backgroundColor: AppColors.journeyMist,
         scrolledUnderElevation: 0.0,
         centerTitle: true,
         title: Text(ProfileStrings.profileTitle,
             style: TextStyle(
-                color: AppColors.white,
+                color: AppColors.journeyInk,
                 fontSize: 22,
                 fontWeight: FontWeight.w700)),
       ),

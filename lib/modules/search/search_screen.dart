@@ -24,7 +24,7 @@ import '../filter/controller/filter_controller.dart'
         kDefaultSortBy,
         kDefaultYearRange;
 import '../filter/filter_screen.dart';
-import 'widgets/author_result_card.dart';
+import 'widgets/author_result_grid.dart';
 import 'widgets/quick_chip.dart';
 import 'widgets/search_result_grid.dart';
 
@@ -153,6 +153,16 @@ class _SearchScreenState extends State<SearchScreen> {
   // fresh page-1 load) can otherwise land after an in-flight load-more's
   // response and have that older page's books appended on top of it.
   int _discoverRequestId = 0;
+
+  // Author mode's counterpart of the fields above — a default author list
+  // shown before any name is typed, fetched once (lazily, the first time
+  // Author mode is opened) and cached rather than re-fetched on every
+  // switch back to it. `GET /authors/search` takes no genre/language/format
+  // filters, so there's nothing else to mirror from the book discover state.
+  List<AuthorSearchResult>? _discoverAuthors;
+  bool _discoverAuthorsLoading = false;
+  String? _discoverAuthorsError;
+  int _discoverAuthorsRequestId = 0;
 
   @override
   void initState() {

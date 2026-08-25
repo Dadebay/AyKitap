@@ -9,13 +9,15 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 /// formatting speak Turkish while the app's own [t] strings stay Türkmen.
 const Locale kTurkmenFallbackLocale = Locale('tr');
 
-/// The 3 languages offered on the Settings screen, in [AppLanguageCode] order.
+/// The languages offered on the Settings screen, in [AppLanguageCode] order.
 /// `tk` is first so it also acts as the resolution fallback for any unexpected
-/// device locale.
+/// device locale. `en` needs no custom delegate below (unlike `tk`) — it's a
+/// language `flutter_localizations`/`intl` already ship data for.
 const List<Locale> kAppSupportedLocales = <Locale>[
   Locale('tk'),
   Locale('ru'),
   Locale('tr'),
+  Locale('en'),
 ];
 
 /// Without these, `MaterialApp` asserts "No MaterialLocalizations found" the
