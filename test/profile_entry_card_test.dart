@@ -19,11 +19,16 @@ void main() {
   }
 
   Container outerContainer(WidgetTester tester) => tester.widget<Container>(
-        find.descendant(of: find.byType(ProfileEntryCard), matching: find.byType(Container)).first,
+        find
+            .descendant(
+                of: find.byType(ProfileEntryCard),
+                matching: find.byType(Container))
+            .first,
       );
 
   group('plain (default) path — must stay exactly as it always looked', () {
-    testWidgets('white card, no border, grey1 title, corner radius in the 16-20dp spec',
+    testWidgets(
+        'white card, no border, grey1 title, corner radius in the 16-20dp spec',
         (tester) async {
       await AppTheme.instance.setDark(false);
       var tapped = false;
@@ -50,8 +55,10 @@ void main() {
     });
   });
 
-  group('highlighted path — the book-request CTA\'s existing look, untouched', () {
-    testWidgets('orange tint + border + orange title, same as before accentGradient existed',
+  group('highlighted path — the book-request CTA\'s existing look, untouched',
+      () {
+    testWidgets(
+        'orange tint + border + orange title, same as before accentGradient existed',
         (tester) async {
       await pump(
         tester,
@@ -72,13 +79,16 @@ void main() {
 
       // The accent bar is unique to accentGradient — confirms the two paths
       // don't bleed into each other.
-      expect(find.byWidgetPredicate((w) => w is Container && w.constraints?.maxWidth == 4),
+      expect(
+          find.byWidgetPredicate(
+              (w) => w is Container && w.constraints?.maxWidth == 4),
           findsNothing);
     });
   });
 
   group('accentGradient path — the new subscription-row treatment', () {
-    testWidgets('draws a thin left gradient bar instead of a border', (tester) async {
+    testWidgets('draws a thin left gradient bar instead of a border',
+        (tester) async {
       await AppTheme.instance.setDark(false);
       await pump(
         tester,
@@ -109,7 +119,8 @@ void main() {
       expect(title.style!.color, AppGradients.journeyRoseVioletColors.first);
     });
 
-    testWidgets('tap still fires through the gradient-bar layout', (tester) async {
+    testWidgets('tap still fires through the gradient-bar layout',
+        (tester) async {
       var tapped = false;
       await pump(
         tester,
@@ -137,7 +148,8 @@ void main() {
     // just enough accidental height from Scaffold to mask it. So this pins
     // the exact production shape: several ProfileEntryCards, one of them
     // accented, inside a plain ListView.
-    testWidgets('renders with real height and stays tappable inside a ListView of siblings',
+    testWidgets(
+        'renders with real height and stays tappable inside a ListView of siblings',
         (tester) async {
       var tapped = false;
       await tester.pumpWidget(
@@ -171,7 +183,9 @@ void main() {
 
       final cards = find.byType(ProfileEntryCard);
       expect(cards, findsNWidgets(3));
-      for (final size in tester.widgetList(cards).map((w) => tester.getSize(find.byWidget(w)))) {
+      for (final size in tester
+          .widgetList(cards)
+          .map((w) => tester.getSize(find.byWidget(w)))) {
         expect(size.height, greaterThan(0));
       }
       // Every title actually painted — nothing below the accented card was
@@ -185,7 +199,8 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('adapts to the dark-mode build of the gradient automatically', (tester) async {
+    testWidgets('adapts to the dark-mode build of the gradient automatically',
+        (tester) async {
       await AppTheme.instance.setDark(true);
       await pump(
         tester,
@@ -204,7 +219,8 @@ void main() {
     });
   });
 
-  testWidgets('composes with JourneyGradientIconBadge as leading — the real profile-row shape',
+  testWidgets(
+      'composes with JourneyGradientIconBadge as leading — the real profile-row shape',
       (tester) async {
     // Mirrors exactly how _buildBalanceEntry/_buildSettingsEntry/etc. in
     // profile_screen_entries.dart build their leading widget now.

@@ -65,13 +65,21 @@ class BookCtaRow extends StatelessWidget {
       height: 52,
       child: ElevatedButton.icon(
         onPressed: access == null ? null : onRead,
-        icon: const HugeIcon(icon: HugeIcons.strokeRoundedBookOpen01, color: Colors.white, size: 18),
-        label: Text(BookDetailStrings.read, style: const TextStyle(color: Colors.white, fontSize: 15.5, fontWeight: FontWeight.w800)),
+        icon: const HugeIcon(
+            icon: HugeIcons.strokeRoundedBookOpen01,
+            color: Colors.white,
+            size: 18),
+        label: Text(BookDetailStrings.read,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15.5,
+                fontWeight: FontWeight.w800)),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
       ),
     );
@@ -88,7 +96,8 @@ class BookCtaRow extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -108,7 +117,10 @@ class BookCtaRow extends StatelessWidget {
             const SizedBox(width: 10),
             Text(
               '${(progress * 100).round()}%',
-              style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800),
             ),
           ],
         ),
@@ -124,16 +136,24 @@ class BookCtaRow extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primary,
           side: BorderSide(color: AppColors.primary, width: 1.4),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(BookDetailStrings.buy, style: TextStyle(color: AppColors.primary, fontSize: 14.5, fontWeight: FontWeight.w800)),
+            Text(BookDetailStrings.buy,
+                style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w800)),
             const SizedBox(height: 1),
             Text(
               BookDetailStrings.priceValue(priceManat ?? 0),
-              style: TextStyle(color: AppColors.primary.withValues(alpha: 0.85), fontSize: 11.5, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                  color: AppColors.primary.withValues(alpha: 0.85),
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -153,9 +173,16 @@ class BookCtaRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          HugeIcon(icon: HugeIcons.strokeRoundedCheckmarkCircle02, color: AppColors.grey2, size: 17),
+          HugeIcon(
+              icon: HugeIcons.strokeRoundedCheckmarkCircle02,
+              color: AppColors.grey2,
+              size: 17),
           const SizedBox(width: 7),
-          Text(BookDetailStrings.purchasedBadge, style: TextStyle(color: AppColors.grey2, fontSize: 14, fontWeight: FontWeight.w700)),
+          Text(BookDetailStrings.purchasedBadge,
+              style: TextStyle(
+                  color: AppColors.grey2,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700)),
         ],
       ),
     );

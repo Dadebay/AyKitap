@@ -1,6 +1,13 @@
+<!-- minHeight is sized to the card's own ~122dp of content rather than the
+     old 132dp: the layout no longer stretches to fill the cell, so anything
+     above the content height only ever showed as dead space. targetCell* is
+     the API 31+ way of asking for that same footprint in grid cells. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="250dp"
-    android:minHeight="132dp"
+    android:minHeight="124dp"
+    android:minResizeHeight="124dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
     android:initialLayout="@layout/aykitap_streak_widget"
     android:previewLayout="@layout/aykitap_streak_widget"
     android:resizeMode="horizontal|vertical"

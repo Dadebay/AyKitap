@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../core/localization/strings/reader_strings.dart';
 import '../../../core/theme/app_colors.dart';
+import 'pdf_appearance_sliders.dart';
 import 'pdf_color_mode_section.dart';
 import 'pdf_layout_section.dart';
 import 'pdf_text_view_row.dart';
@@ -61,9 +62,14 @@ class PdfSettingsSheet extends StatelessWidget {
   final double eyeCare;
   final PdfFitMode fitPolicy;
   final PdfViewMode viewMode;
+
+  /// How far the page's blank print margins are trimmed, 0 (leave them) to 1
+  /// (the widest crop [PdfMarginCropBox] allows).
+  final double marginCrop;
   final ValueChanged<PdfColorMode> onColorModeChanged;
   final ValueChanged<double> onBrightnessChanged;
   final ValueChanged<double> onEyeCareChanged;
+  final ValueChanged<double> onMarginCropChanged;
   final ValueChanged<PdfFitMode> onFitChanged;
   final ValueChanged<PdfViewMode> onViewModeChanged;
 
@@ -79,9 +85,11 @@ class PdfSettingsSheet extends StatelessWidget {
     required this.eyeCare,
     required this.fitPolicy,
     required this.viewMode,
+    required this.marginCrop,
     required this.onColorModeChanged,
     required this.onBrightnessChanged,
     required this.onEyeCareChanged,
+    required this.onMarginCropChanged,
     required this.onFitChanged,
     required this.onViewModeChanged,
     this.onSwitchToTextView,
@@ -139,34 +147,14 @@ class PdfSettingsSheet extends StatelessWidget {
 
                   const SizedBox(height: 22),
 
-                  // ── Brightness (TZ §12.4) ──────────────────────────────────────
-                  // A full-width slider row rather than the EPUB panel's vertical
-                  // "fill level" tile: that shape only reads as a set, side by side
-                  // with the size/spacing tiles it has there — alone, it was a
-                  // narrow box floating in the middle of otherwise full-width rows.
-                  ReaderSectionLabel(ReaderStrings.brightnessLabel),
-                  const SizedBox(height: 10),
-                  ReaderSliderRow(
-                    leadingIcon: HugeIcons.strokeRoundedSun01,
-                    trailingIcon: HugeIcons.strokeRoundedSun01,
-                    value: brightness,
-                    min: 0.1,
-                    onChanged: onBrightnessChanged,
-                  ),
-
-                  const SizedBox(height: 22),
-
-                  // ── Eye care (blue-light filter) ───────────────────────────────
-                  // A warm amber wash over the page to cut blue light; strength runs
-                  // from off (0) to warmest. Shared with the EPUB reader.
-                  ReaderSectionLabel(ReaderStrings.eyeCareLabel),
-                  const SizedBox(height: 10),
-                  ReaderSliderRow(
-                    leadingIcon: HugeIcons.strokeRoundedViewOff,
-                    trailingIcon: HugeIcons.strokeRoundedEye,
-                    value: eyeCare,
-                    min: 0.0,
-                    onChanged: onEyeCareChanged,
+                  // ── Page margins, brightness, eye care ─────────────────────────
+                  PdfAppearanceSliders(
+                    marginCrop: marginCrop,
+                    brightness: brightness,
+                    eyeCare: eyeCare,
+                    onMarginCropChanged: onMarginCropChanged,
+                    onBrightnessChanged: onBrightnessChanged,
+                    onEyeCareChanged: onEyeCareChanged,
                   ),
 
                   // ── Back to the reflowable text view ───────────────────────────

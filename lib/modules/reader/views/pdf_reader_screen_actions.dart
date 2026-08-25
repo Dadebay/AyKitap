@@ -142,6 +142,20 @@ extension _PdfReaderScreenActions on _PdfReaderScreenState {
     await prefs.setInt('reader_pdf_color_mode', mode.index);
   }
 
+  /// Unlike [_setFit] and [_setViewMode] this doesn't pin [_initialPage] or
+  /// rebuild the viewer: the crop is a Flutter layer around it
+  /// ([PdfMarginCropBox]), so the document is never reloaded and the reader
+  /// watches the margins close as they drag the slider.
+  Future<void> _setMarginCrop(double v) async {
+    _setState(() => _marginCrop = v.clamp(0.0, 1.0));
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('reader_pdf_margin_crop', _marginCrop);
+    // Also against this book: margins differ from book to book, so the one
+    // the reader tuned here should be what it reopens with (see
+    // [_restoreState]), the same way [_setFit] records its per-book copy.
+    await prefs.setDouble('book_${_bookId}_pdf_margin_crop', _marginCrop);
+  }
+
   Future<void> _setFit(PdfFitMode fit) async {
     if (_fitPolicy == fit) return;
     _setState(() {

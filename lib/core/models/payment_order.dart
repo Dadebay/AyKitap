@@ -16,7 +16,11 @@ class PaymentOrder {
   final Bank bank;
   final DateTime createdAt;
 
-  const PaymentOrder({required this.id, required this.amount, required this.bank, required this.createdAt});
+  const PaymentOrder(
+      {required this.id,
+      required this.amount,
+      required this.bank,
+      required this.createdAt});
 
   factory PaymentOrder.fromJson(Map<String, dynamic> json) => PaymentOrder(
         id: json['id'] as int,

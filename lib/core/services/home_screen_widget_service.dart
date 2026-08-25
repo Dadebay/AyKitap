@@ -17,6 +17,7 @@ class HomeScreenWidgetService {
   static Future<void> sync({
     required int? bookId,
     required String? title,
+    String? author,
     required int page,
     required int? pageCount,
     required int streak,
@@ -32,6 +33,7 @@ class HomeScreenWidgetService {
         _saveBookData(
           bookId: bookId,
           title: title,
+          author: author,
           page: page,
           pageCount: pageCount,
         ),
@@ -53,6 +55,7 @@ class HomeScreenWidgetService {
   static Future<void> syncBook({
     required int? bookId,
     required String? title,
+    String? author,
     required int page,
     required int? pageCount,
     String? coverUrl,
@@ -63,6 +66,7 @@ class HomeScreenWidgetService {
       await _saveBookData(
         bookId: bookId,
         title: title,
+        author: author,
         page: page,
         pageCount: pageCount,
       );
@@ -102,12 +106,14 @@ class HomeScreenWidgetService {
   static Future<void> _saveBookData({
     required int? bookId,
     required String? title,
+    required String? author,
     required int page,
     required int? pageCount,
   }) async {
     await Future.wait([
       HomeWidget.saveWidgetData<int>('book_id', bookId),
       HomeWidget.saveWidgetData<String>('book_title', title),
+      HomeWidget.saveWidgetData<String>('book_author', author),
       HomeWidget.saveWidgetData<int>('book_page', page),
       HomeWidget.saveWidgetData<int>('book_page_count', pageCount),
     ]);

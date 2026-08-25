@@ -6,6 +6,7 @@ import '../../../core/network/api_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_gradients.dart';
 import '../../../core/widgets/network_cover_image.dart';
+import '../../../core/widgets/pressable_scale.dart';
 import '../../author/catalog_author_detail_screen.dart';
 
 /// Photo-forward author card — replaces the old circular-avatar treatment
@@ -56,14 +57,13 @@ class CatalogAuthorCard extends StatelessWidget {
     return Semantics(
       label: name,
       button: true,
-      child: SizedBox(
-        width: width,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () =>
-                context.push(CatalogAuthorDetailScreen(authorId: authorId)),
+      child: PressableScale(
+        onTap: () =>
+            context.push(CatalogAuthorDetailScreen(authorId: authorId)),
+        child: SizedBox(
+          width: width,
+          child: Material(
+            color: Colors.transparent,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,

@@ -32,10 +32,16 @@ class SectionHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.sectionTitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(title,
+                    style: AppTextStyles.sectionTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
                 if (subtitle != null) ...[
                   const SizedBox(height: 3),
-                  Text(subtitle!, style: AppTextStyles.sectionSubtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(subtitle!,
+                      style: AppTextStyles.sectionSubtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
                 ],
               ],
             ),

@@ -3,6 +3,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../../core/localization/strings/reader_strings.dart';
 import 'reader_fit_tile.dart';
 import 'reader_section_label.dart';
+import '../../../core/localization/strings/reader_pdf_strings.dart';
 
 /// The "page scale" section of [CbzSettingsSheet] — only meaningful
 /// page-at-a-time, since in continuous scroll every page already fills the
@@ -19,7 +20,7 @@ class CbzPageScaleSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ReaderSectionLabel(ReaderStrings.pdfFitLabel),
+        ReaderSectionLabel(ReaderPdfStrings.pdfFitLabel),
         const SizedBox(height: 10),
         Row(
           children: [

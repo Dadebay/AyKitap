@@ -18,7 +18,8 @@ class Tariff {
   bool get hasDiscount => actualPrice != null && actualPrice! > price;
 
   /// Rounded percentage saved off [actualPrice], 0 when [hasDiscount] is false.
-  int get discountPercent => hasDiscount ? (((actualPrice! - price) / actualPrice!) * 100).round() : 0;
+  int get discountPercent =>
+      hasDiscount ? (((actualPrice! - price) / actualPrice!) * 100).round() : 0;
 
   factory Tariff.fromJson(Map<String, dynamic> json) => Tariff(
         id: json['id'] as int,

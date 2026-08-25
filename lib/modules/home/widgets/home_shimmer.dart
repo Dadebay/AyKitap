@@ -58,11 +58,13 @@ class HomeShimmer extends StatelessWidget {
     );
   }
 
-  Widget _block({required double width, required double height, required double radius}) {
+  Widget _block(
+      {required double width, required double height, required double radius}) {
     return Container(
       width: width,
       height: height,
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(radius)),
+      decoration: BoxDecoration(
+          color: Colors.white, borderRadius: BorderRadius.circular(radius)),
     );
   }
 }
@@ -81,7 +83,10 @@ class BannerShimmer extends StatelessWidget {
       child: Shimmer.fromColors(
         baseColor: AppColors.card,
         highlightColor: AppColors.surface,
-        child: Container(height: 168, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+        child: Container(
+            height: 168,
+            decoration: BoxDecoration(
+                color: Colors.white, borderRadius: BorderRadius.circular(20))),
       ),
     );
   }

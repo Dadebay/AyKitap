@@ -40,7 +40,7 @@ extension _PdfEpubBuilder on PdfReflowService {
           '<item id="$id" href="$id.xhtml" media-type="application/xhtml+xml"/>');
       spineItems.writeln('<itemref idref="$id"/>');
       navItems.writeln(
-        '<li><a href="$id.xhtml">${_escapeXml('${ReaderStrings.pdfGoToPageShort} ${start + 1}–$end')}</a></li>',
+        '<li><a href="$id.xhtml">${_escapeXml('${ReaderPdfStrings.pdfGoToPageShort} ${start + 1}–$end')}</a></li>',
       );
     }
 

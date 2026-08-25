@@ -56,20 +56,32 @@ class OwnBookSpineCover extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(4)),
-                child: Text(badge, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
+                decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(4)),
+                child: Text(badge,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800)),
               ),
               Text(
                 book.title,
                 maxLines: 4,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700, height: 1.2),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    height: 1.2),
               ),
             ],
           ),
         ),
       ),
     );
-    return wrapAspectRatio ? AspectRatio(aspectRatio: 0.62, child: content) : content;
+    return wrapAspectRatio
+        ? AspectRatio(aspectRatio: 0.62, child: content)
+        : content;
   }
 }

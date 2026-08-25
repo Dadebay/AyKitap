@@ -14,6 +14,11 @@ import 'home_screen_widget_service.dart';
 class LastReadBook {
   final int bookId;
   final String title;
+
+  /// Comma-joined author names ([LibraryBook.authorNames]), kept only so the
+  /// home-screen widgets can show who wrote the book without a catalogue
+  /// round-trip. Null for records persisted before this field existed.
+  final String? author;
   final String? image;
   final String path;
   final String format;
@@ -23,6 +28,7 @@ class LastReadBook {
   const LastReadBook({
     required this.bookId,
     required this.title,
+    this.author,
     required this.image,
     required this.path,
     required this.format,
@@ -34,6 +40,7 @@ class LastReadBook {
       LastReadBook(
         bookId: bookId,
         title: title,
+        author: author,
         image: image,
         path: path ?? this.path,
         format: format ?? this.format,
@@ -44,6 +51,7 @@ class LastReadBook {
   factory LastReadBook.fromJson(Map<String, dynamic> json) => LastReadBook(
         bookId: json['book_id'] as int,
         title: json['title'] as String? ?? '',
+        author: json['author'] as String?,
         image: json['image'] as String?,
         path: json['path'] as String? ?? '',
         format: json['format'] as String? ?? '',
@@ -54,6 +62,7 @@ class LastReadBook {
   Map<String, dynamic> toJson() => {
         'book_id': bookId,
         'title': title,
+        if (author != null) 'author': author,
         if (image != null) 'image': image,
         'path': path,
         'format': format,
@@ -98,9 +107,11 @@ class LastReadBookStore extends ChangeNotifier {
   }) async {
     await load();
     final existingPage = _book?.bookId == book.id ? _book!.page : 0;
+    final authorNames = book.authorNames;
     _book = LastReadBook(
       bookId: book.id,
       title: book.name,
+      author: authorNames.isEmpty ? null : authorNames,
       image: book.image,
       path: path,
       format: format.toLowerCase(),
@@ -140,6 +151,7 @@ class LastReadBookStore extends ChangeNotifier {
     await HomeScreenWidgetService.syncBook(
       bookId: current?.bookId,
       title: current?.title,
+      author: current?.author,
       page: current?.page ?? 0,
       pageCount: current?.pageCount,
       coverUrl: includeCover && current?.image != null

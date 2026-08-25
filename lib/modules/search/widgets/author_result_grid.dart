@@ -9,7 +9,8 @@ class AuthorResultGrid extends StatelessWidget {
   final List<AuthorSearchResult> authors;
   final EdgeInsets padding;
 
-  const AuthorResultGrid({super.key, required this.authors, required this.padding});
+  const AuthorResultGrid(
+      {super.key, required this.authors, required this.padding});
 
   @override
   Widget build(BuildContext context) {

@@ -68,6 +68,7 @@ void main() async {
   unawaited(HomeScreenWidgetService.sync(
     bookId: lastRead?.bookId,
     title: lastRead?.title,
+    author: lastRead?.author,
     page: lastRead?.page ?? 0,
     pageCount: lastRead?.pageCount,
     streak: StreakService.instance.currentStreak,

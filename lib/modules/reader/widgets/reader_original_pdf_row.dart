@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import '../../../core/localization/strings/reader_strings.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/strings/reader_pdf_strings.dart';
 
 /// The "view original PDF pages" row — same card shape as the page-transition
 /// row but a one-shot action rather than a row that opens a submenu: tapping
@@ -37,7 +37,7 @@ class ReaderOriginalPdfRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      ReaderStrings.pdfOriginalViewLabel,
+                      ReaderPdfStrings.pdfOriginalViewLabel,
                       style: TextStyle(
                           color: AppColors.white,
                           fontSize: 14,
@@ -45,7 +45,7 @@ class ReaderOriginalPdfRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      ReaderStrings.pdfOriginalViewHint,
+                      ReaderPdfStrings.pdfOriginalViewHint,
                       style: TextStyle(color: AppColors.grey2, fontSize: 11.5),
                     ),
                   ],

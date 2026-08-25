@@ -7,6 +7,7 @@ class PromoBanner {
   final String websiteImage;
   final String mobileImage;
   final String? link;
+
   /// When present, tapping the banner should open this book's detail page
   /// ([CatalogBookDetailScreen]) instead of (or in addition to) [link].
   final int? bookId;

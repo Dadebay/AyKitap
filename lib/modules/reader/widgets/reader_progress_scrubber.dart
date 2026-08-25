@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_motion.dart';
 
 /// The page scrubber shared by [ReaderBottomBar] and [PdfBottomBar]: a page
 /// number, a slider, and the total page count.
@@ -88,36 +89,54 @@ class _ReaderProgressScrubberState extends State<ReaderProgressScrubber> {
   Widget build(BuildContext context) {
     final drag = _dragValue;
     final value = (drag ?? widget.progress).clamp(0.0, 1.0);
-    final displayedPage = drag == null ? widget.currentPage : _pageFor(drag);
+    final reduceMotion = AppMotion.reduceMotion(context);
 
-    return Row(
-      children: [
-        Text('$displayedPage',
-            style: TextStyle(color: widget.labelColor, fontSize: 11)),
-        Expanded(
-          child: SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 2,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-              activeTrackColor: widget.activeColor,
-              inactiveTrackColor: widget.inactiveTrackColor,
-              thumbColor: widget.activeColor,
-              overlayColor: widget.overlayColor,
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: value, end: value),
+      duration: drag != null || reduceMotion
+          ? Duration.zero
+          : AppMotion.readerProgress,
+      curve: AppMotion.easeOut,
+      builder: (context, animatedValue, child) {
+        final displayedPage =
+            drag == null ? widget.currentPage : _pageFor(drag);
+        return Row(
+          children: [
+            AnimatedSwitcher(
+              duration: reduceMotion ? Duration.zero : AppMotion.quick,
+              child: Text(
+                '$displayedPage',
+                key: ValueKey(displayedPage),
+                style: TextStyle(color: widget.labelColor, fontSize: 11),
+              ),
             ),
-            child: Slider(
-              value: value,
-              // Cheap — just repaints the thumb and the page-number label.
-              onChanged: (v) => setState(() => _dragValue = v),
-              // The one point the real (expensive) page jump fires: once,
-              // when the reader lifts their finger (or on a plain tap).
-              onChangeEnd: _onChangeEnd,
+            Expanded(
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 2,
+                  thumbShape:
+                      const RoundSliderThumbShape(enabledThumbRadius: 5),
+                  overlayShape:
+                      const RoundSliderOverlayShape(overlayRadius: 12),
+                  activeTrackColor: widget.activeColor,
+                  inactiveTrackColor: widget.inactiveTrackColor,
+                  thumbColor: widget.activeColor,
+                  overlayColor: widget.overlayColor,
+                ),
+                child: Slider(
+                  value: animatedValue.clamp(0.0, 1.0),
+                  // Cheap — just repaints the thumb and page-number label.
+                  onChanged: (v) => setState(() => _dragValue = v),
+                  // The expensive real page jump fires only on release.
+                  onChangeEnd: _onChangeEnd,
+                ),
+              ),
             ),
-          ),
-        ),
-        Text('${widget.totalPages}',
-            style: TextStyle(color: widget.labelColor, fontSize: 11)),
-      ],
+            Text('${widget.totalPages}',
+                style: TextStyle(color: widget.labelColor, fontSize: 11)),
+          ],
+        );
+      },
     );
   }
 }

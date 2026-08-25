@@ -3,12 +3,21 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/strings/splash_strings.dart';
 
-const kSplashGradient = [Color(0xFFFFC876), Color(0xFFF77E68), Color(0xFFB44BE8)];
+const kSplashGradient = [
+  Color(0xFFFFC876),
+  Color(0xFFF77E68),
+  Color(0xFFB44BE8)
+];
 
 /// The pulsing gradient halo behind the app icon, springing in on
 /// [entrance] while [ambient] drives its endless breathing pulse.
 class SplashLogo extends StatelessWidget {
-  const SplashLogo({super.key, required this.entrance, required this.ambient, required this.logoScale, required this.logoFade});
+  const SplashLogo(
+      {super.key,
+      required this.entrance,
+      required this.ambient,
+      required this.logoScale,
+      required this.logoFade});
 
   final Animation<double> entrance;
   final Animation<double> ambient;
@@ -36,7 +45,11 @@ class SplashLogo extends StatelessWidget {
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
-                      colors: [Color(0xFFF77E68), Color(0xFFB44BE8), Colors.transparent],
+                      colors: [
+                        Color(0xFFF77E68),
+                        Color(0xFFB44BE8),
+                        Colors.transparent
+                      ],
                       stops: [0.0, 0.55, 1.0],
                     ),
                   ),
@@ -54,7 +67,8 @@ class SplashLogo extends StatelessWidget {
                       borderRadius: BorderRadius.circular(28),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFB44BE8).withValues(alpha: 0.4 * logoFade.value),
+                          color: const Color(0xFFB44BE8)
+                              .withValues(alpha: 0.4 * logoFade.value),
                           blurRadius: 40,
                           spreadRadius: 2,
                         ),
@@ -86,11 +100,13 @@ class SplashWordmark extends StatelessWidget {
       builder: (context, child) {
         return Opacity(
           opacity: animation.value,
-          child: Transform.translate(offset: Offset(0, 16 * (1 - animation.value)), child: child),
+          child: Transform.translate(
+              offset: Offset(0, 16 * (1 - animation.value)), child: child),
         );
       },
       child: ShaderMask(
-        shaderCallback: (rect) => const LinearGradient(colors: kSplashGradient).createShader(rect),
+        shaderCallback: (rect) =>
+            const LinearGradient(colors: kSplashGradient).createShader(rect),
         child: Text(
           SplashStrings.wordmark,
           style: const TextStyle(
@@ -114,10 +130,12 @@ class SplashTagline extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: animation,
-      builder: (context, child) => Opacity(opacity: animation.value, child: child),
+      builder: (context, child) =>
+          Opacity(opacity: animation.value, child: child),
       child: Text(
         SplashStrings.tagline,
-        style: TextStyle(color: AppColors.grey2, fontSize: 14, letterSpacing: 0.3),
+        style:
+            TextStyle(color: AppColors.grey2, fontSize: 14, letterSpacing: 0.3),
       ),
     );
   }
@@ -149,7 +167,12 @@ class SplashLoader extends StatelessWidget {
                     child: Container(
                       width: 48,
                       decoration: const BoxDecoration(
-                        gradient: LinearGradient(colors: [Colors.transparent, Color(0xFFF77E68), Color(0xFFB44BE8), Colors.transparent]),
+                        gradient: LinearGradient(colors: [
+                          Colors.transparent,
+                          Color(0xFFF77E68),
+                          Color(0xFFB44BE8),
+                          Colors.transparent
+                        ]),
                       ),
                     ),
                   ),
@@ -171,8 +194,10 @@ class SplashFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: animation,
-      builder: (context, child) => Opacity(opacity: animation.value * 0.6, child: child),
-      child: Text(SplashStrings.version, style: TextStyle(color: AppColors.grey3, fontSize: 11)),
+      builder: (context, child) =>
+          Opacity(opacity: animation.value * 0.6, child: child),
+      child: Text(SplashStrings.version,
+          style: TextStyle(color: AppColors.grey3, fontSize: 11)),
     );
   }
 }

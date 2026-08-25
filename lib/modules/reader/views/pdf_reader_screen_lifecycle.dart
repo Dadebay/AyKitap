@@ -3,6 +3,12 @@ part of 'pdf_reader_screen.dart';
 /// Screen open/close plumbing: restoring saved settings and page on open,
 /// the app-lifecycle-driven streak ping, and switching to the reflowed text
 /// reader when the reader picks that option from the settings sheet.
+/// Slider position a text PDF opens at when nothing has been saved — see
+/// [_PdfReaderScreenState._marginCrop]. Two thirds of the way up
+/// [PdfMarginCropBox.maxFraction], so roughly 8% comes off each side: enough
+/// to close a typical book's gutter without reaching the text block.
+const double _defaultMarginCrop = 0.65;
+
 extension _PdfReaderScreenLifecycle on _PdfReaderScreenState {
   void _handleAppLifecycleState(AppLifecycleState state) {
     switch (state) {
@@ -66,6 +72,19 @@ extension _PdfReaderScreenLifecycle on _PdfReaderScreenState {
             (_viewMode == PdfViewMode.scroll));
     _fitPolicy =
         (bookFitWidth ?? defaultFitWidth) ? PdfFitMode.width : PdfFitMode.page;
+    // Margin trimming, per book first (margins are a property of the book,
+    // not of the reader — a novel set with generous gutters needs more of it
+    // than a densely typeset one) and falling back to the app-wide choice.
+    //
+    // An image book opens with none: a scan or a manga page is printed to the
+    // edge, so there is no blank margin to reclaim and cropping would take
+    // the artwork instead. Everything else opens with a modest default trim
+    // rather than at zero — a text PDF essentially always carries a print
+    // margin, and leaving it there is the empty strip down each side this
+    // setting exists to close.
+    _marginCrop = prefs.getDouble('book_${_bookId}_pdf_margin_crop') ??
+        prefs.getDouble('reader_pdf_margin_crop') ??
+        (widget.imageOnly ? 0.0 : _defaultMarginCrop);
     _brightnessController.apply(_brightness);
     if (mounted) _setState(() {});
   }

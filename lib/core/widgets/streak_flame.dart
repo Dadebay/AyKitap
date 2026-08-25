@@ -9,12 +9,14 @@ class StreakFlame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final animate = !(MediaQuery.maybeOf(context)?.disableAnimations ?? false);
     return SizedBox(
       width: size,
       height: size,
       child: Lottie.asset(
         'assets/animations/streak.json',
-        repeat: true,
+        animate: animate,
+        repeat: animate,
         fit: BoxFit.contain,
       ),
     );
