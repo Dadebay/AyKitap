@@ -162,11 +162,14 @@ extension _SearchScreenControls on _SearchScreenState {
           // moved, and left the user no way back to a genre from there.
           // Instead the chips stay put and [_toggleGenre] switches the
           // toggle back to Kitap, where the tap actually means something.
-          for (final genre in _genres ?? const []) ...[
-            QuickChip(
-                label: genre.name,
-                selected: _selectedGenreId == genre.id,
-                onTap: () => _toggleGenre(genre)),
+          for (final (i, genre) in (_genres ?? const []).indexed) ...[
+            StaggerFadeIn(
+              index: i,
+              child: QuickChip(
+                  label: genre.name,
+                  selected: _selectedGenreId == genre.id,
+                  onTap: () => _toggleGenre(genre)),
+            ),
             const SizedBox(width: 8),
           ],
         ],

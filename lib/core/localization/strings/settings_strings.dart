@@ -24,6 +24,15 @@ class SettingsStrings {
       ru: 'Связаться с нами',
       tr: 'Bizimle iletişime geçin',
       en: 'Contact us');
+  static String get storeSubscription => t(
+      tk: 'Store abunalygy',
+      ru: 'Подписка через магазин',
+      tr: 'Mağaza aboneliği',
+      en: 'Store subscription');
+  static String get storeSubscriptionActive =>
+      t(tk: 'Işjeň', ru: 'Активна', tr: 'Aktif', en: 'Active');
+  static String get storeSubscriptionInactive =>
+      t(tk: 'Işjeň däl', ru: 'Не активна', tr: 'Aktif değil', en: 'Not active');
   static String get logout =>
       t(tk: 'Çykmak', ru: 'Выйти', tr: 'Çıkış yap', en: 'Log out');
   static String get logoutTitle => t(

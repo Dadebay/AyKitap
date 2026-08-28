@@ -165,7 +165,35 @@ extension _SearchScreenBody on _SearchScreenState {
       );
     }
     final books = _discoverBooks ?? const [];
-    if (books.isEmpty) return const SizedBox.shrink();
+    // Not a legitimate "empty catalogue" state — the discover grid has no
+    // filters applied, so an empty result here means the fetch raced or
+    // glitched rather than that there's genuinely nothing to show. Offering
+    // retry (instead of the blank space this used to render) is what
+    // switching to Author mode and back already did by accident, since
+    // [_loadDiscoverAuthors] retries on its own — this closes the same gap
+    // for the case where Book mode was never left in the first place.
+    if (books.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(SearchStrings.noResults,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: _loadDiscoverBooks,
+                child: Text(SearchStrings.retry,
+                    style: TextStyle(
+                        color: AppColors.primary, fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return SearchResultGrid(
       books: books,
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),

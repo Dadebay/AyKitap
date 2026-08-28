@@ -1,26 +1,19 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import '../../core/navigation/app_navigator.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/services/account_service.dart';
-import '../../core/services/analytics_service.dart';
-import '../../core/services/auth_session.dart';
 import '../../core/services/device_fingerprint.dart';
-import '../../core/services/firebase_messaging_service.dart';
 import '../../core/localization/strings/auth_strings.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/gradient_icon_badge.dart';
 import '../../core/widgets/primary_button.dart';
-import 'name_entry_screen.dart';
+import 'auth_completion.dart';
 import 'provider/auth_provider.dart';
 import 'widgets/other_device_dialog.dart';
 import 'widgets/otp_code_row.dart';
-import 'widgets/welcome_bonus_dialog.dart';
 
 /// OTP tassyklamak — TZ section 2.1/2.3, plus the "bir hasap — bir telefon"
 /// device-lock confirmation from 2.2 when a second device tries to log in.
@@ -102,41 +95,9 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
       // same as if verifyLogin above had never been called.
       if (confirmed != true) return;
     }
-
-    await AuthSession.saveToken(result.accessToken, phone: widget.phone);
-    await AuthSession.saveUserId(result.user.id);
-    AnalyticsService.instance.logLogin();
-    // Boot-time token fetch in FirebaseMessagingService.init() ran before
-    // this login existed, so its own sync was a no-op — push it now instead
-    // of waiting for the next onTokenRefresh event.
-    unawaited(FirebaseMessagingService.instance.syncCurrentTokenIfLoggedIn());
-
-    // A brand-new account comes back with `username: null` — that's the
-    // backend's own signal that this is a signup rather than a login, so
-    // there's no name on file yet to skip this step for. Mandatory: no
-    // back arrow, no skip.
-    final username = result.user.username;
-    final isNewAccount = username == null || username.isEmpty;
-    if (isNewAccount) {
-      if (!mounted) return;
-      final name = await context.push<String>(const NameEntryScreen());
-      if (name != null) await AuthSession.saveName(name);
-    } else {
-      await AuthSession.saveName(username);
-    }
     if (!mounted) return;
-    // Only a genuine signup gets the welcome-bonus celebration — an
-    // existing user logging back in already knows about (and has likely
-    // already spent) whichever balance the backend credited them at
-    // signup, so re-showing this every login would just be noise.
-    if (isNewAccount) {
-      await context.read<AccountService>().refresh();
-      if (!mounted) return;
-      final balance = context.read<AccountService>().balanceManat;
-      if (balance != null && balance > 0) {
-        await WelcomeBonusDialog.show(context, amount: '$balance');
-      }
-    }
+
+    await completeBackendLogin(context, result, phone: widget.phone);
     if (mounted) context.pop(true);
   }
 

@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../core/localization/strings/book_detail_strings.dart';
 import '../../../core/models/library_book.dart';
+import '../../../core/navigation/app_hero_tags.dart';
 import '../../../core/navigation/app_navigator.dart';
+import '../../../core/network/api_config.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/pressable_scale.dart';
 import '../../book_detail/catalog_book_detail_screen.dart';
 import 'book_cover_thumb.dart';
 
@@ -17,10 +20,17 @@ class RankedListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final image = book.image;
+    final heroTag = AppHeroTags.catalogBookCover(book.id);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
-      child: GestureDetector(
-        onTap: () => context.push(CatalogBookDetailScreen(bookId: book.id)),
+      child: PressableScale(
+        onTap: () => context.pushHero(CatalogBookDetailScreen(
+          bookId: book.id,
+          heroTag: heroTag,
+          initialCoverUrl: image != null && image.isNotEmpty
+              ? ApiConfig.resolveImageUrl(image)
+              : null,
+        )),
         // No fill — the row sits directly on the page background; only the
         // cover's own shadow (see [BookCoverThumb]) gives it depth.
         child: Padding(
@@ -35,7 +45,7 @@ class RankedListTile extends StatelessWidget {
                           fontSize: 16,
                           fontWeight: FontWeight.w800))),
               const SizedBox(width: 10),
-              BookCoverThumb(imageUrl: image),
+              BookCoverThumb(imageUrl: image, heroTag: heroTag),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(

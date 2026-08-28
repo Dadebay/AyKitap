@@ -13,9 +13,12 @@ import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/gradient_icon_badge.dart';
+import '../../core/widgets/or_divider.dart';
 import '../../core/widgets/primary_button.dart';
+import 'international_login_screen.dart';
 import 'otp_verify_screen.dart';
 import 'provider/auth_provider.dart';
+import 'widgets/auth_provider_button.dart';
 
 /// Hasap Açmak / Giriş — TZ section 2.1, 2.3.
 /// A single phone-number entry screen serves both registration and login:
@@ -114,6 +117,13 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     }
   }
 
+  Future<void> _openOtherMethods() async {
+    final loggedIn = await context.push<bool>(const InternationalLoginScreen());
+    if (loggedIn == true && mounted) {
+      context.pop(true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
@@ -187,37 +197,52 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
-                // Demo-only: lets you preview the "logged in on another device"
-                // dialog (TZ 2.2) without a real second session.
-
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
                 PrimaryButton(
                     label: AuthStrings.sendCodeButton,
                     loading: auth.isLoading,
                     onPressed: _isValid ? _sendCode : null),
                 const SizedBox(height: 14),
-                RichText(
-                  textAlign: TextAlign.center,
-                  text: TextSpan(
-                    style: TextStyle(
-                        color: AppColors.grey3,
-                        fontFamily: 'GilroyRegular',
-                        fontSize: 11.5),
-                    children: [
-                      TextSpan(text: AuthStrings.termsPrefix),
-                      TextSpan(
-                        text: AuthStrings.termsLink,
-                        style: TextStyle(
-                            color: AppColors.primary,
-                            fontFamily: 'GilroyRegular',
-                            fontWeight: FontWeight.w700,
-                            decoration: TextDecoration.underline),
-                        recognizer: _termsTap,
-                      ),
-                      TextSpan(text: AuthStrings.termsSuffix),
-                    ],
+                // Column above is left-aligned (crossAxisAlignment.start), so
+                // without this the RichText shrink-wraps to its own text
+                // width and sits at the left edge — textAlign.center only
+                // centers text *within* the widget's box, which does nothing
+                // once that box is already exactly as wide as the text.
+                SizedBox(
+                  width: double.infinity,
+                  child: RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      style: TextStyle(
+                          color: AppColors.grey3,
+                          fontFamily: 'GilroyRegular',
+                          fontSize: 11.5),
+                      children: [
+                        TextSpan(text: AuthStrings.termsPrefix),
+                        TextSpan(
+                          text: AuthStrings.termsLink,
+                          style: TextStyle(
+                              color: AppColors.primary,
+                              fontFamily: 'GilroyRegular',
+                              fontWeight: FontWeight.w700,
+                              decoration: TextDecoration.underline),
+                          recognizer: _termsTap,
+                        ),
+                        TextSpan(text: AuthStrings.termsSuffix),
+                      ],
+                    ),
                   ),
+                ),
+                const SizedBox(height: 28),
+                OrDivider(label: AuthStrings.orDivider),
+                const SizedBox(height: 16),
+                AuthProviderButton(
+                  icon: HugeIcon(
+                      icon: HugeIcons.strokeRoundedLoginCircle02,
+                      color: AppColors.white,
+                      size: 20),
+                  label: AuthStrings.otherMethodsLink,
+                  onPressed: _openOtherMethods,
                 ),
               ],
             ),

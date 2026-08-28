@@ -92,6 +92,17 @@ extension ReaderProviderThemeCss on ReaderProvider {
       'body': {
         'font-family': fontName,
         'line-height': '$_lineSpacing',
+        // epub.js sets its own column-gap inline on this same body element
+        // whenever spread is active (Contents.columns) — like the padding
+        // this class's own doc comment describes, an inline style outranks
+        // a plain stylesheet rule, so this needs `!important` to actually
+        // win and widen the gutter to the real hinge's width. Omitted while
+        // spread is off: with a single column the property has nothing to
+        // gap, and epub.js never clears old theme rules (see this class's
+        // doc comment), so there's no stale value to worry about once
+        // spread turns back on — [ReaderProviderLayout.updateWindowSizeClass]
+        // always re-pushes the theme in the same call that flips spread.
+        if (_spreadActive) 'column-gap': '${_spreadGutter}px !important',
       },
       // Manga: fill the column at the panel's own aspect ratio. The height cap
       // is what letterboxes a tall page and opens a band of background under

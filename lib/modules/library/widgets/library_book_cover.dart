@@ -3,12 +3,15 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:iconly/iconly.dart';
 import 'package:provider/provider.dart';
 import '../../../core/models/library_book.dart';
+import '../../../core/navigation/app_hero_tags.dart';
 import '../../../core/navigation/app_navigator.dart';
 import '../../../core/network/api_config.dart';
 import '../../../core/services/book_access_service.dart';
 import '../../../core/services/subscription_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/book_cover_hero.dart';
 import '../../../core/widgets/network_cover_image.dart';
+import '../../../core/widgets/pressable_scale.dart';
 import '../../book_detail/catalog_book_detail_screen.dart';
 
 /// A shelf cover for a real [LibraryBook] (`GET /books/all`, or a locally
@@ -19,6 +22,12 @@ class LibraryBookCover extends StatelessWidget {
   final bool showProgress;
   final bool canRemoveFromPurchased;
   final VoidCallback? onPurchasedBookRemoved;
+
+  /// Which shelf this cover is drawn on (`reading`/`finished`/`downloaded`/
+  /// `purchased`/`favorites`/…) — [LibraryScreen] keeps every tab alive at
+  /// once, so the same book can have more than one [Hero] mounted
+  /// simultaneously and the tag has to disambiguate by shelf, not just id.
+  final String heroShelf;
 
   /// Draws a lock over the cover when the book can't currently be opened —
   /// only meaningful on the downloaded shelf, where a file can outlive the
@@ -41,6 +50,7 @@ class LibraryBookCover extends StatelessWidget {
   const LibraryBookCover({
     super.key,
     required this.book,
+    required this.heroShelf,
     this.showProgress = false,
     this.canRemoveFromPurchased = false,
     this.onPurchasedBookRemoved,
@@ -54,6 +64,7 @@ class LibraryBookCover extends StatelessWidget {
   Widget build(BuildContext context) {
     final progress = showProgress ? book.progressFraction : null;
     final image = book.image;
+    final heroTag = AppHeroTags.libraryShelfBookCover(heroShelf, book.id);
     // Watched, not read off the singletons: [BookAccessService.canRead] is a
     // function of *both* notifiers — the purchased set here, and
     // `SubscriptionService.isActive` inside it — so a completed purchase or
@@ -64,14 +75,18 @@ class LibraryBookCover extends StatelessWidget {
     final access = context.watch<BookAccessService>();
     context.watch<SubscriptionService>();
     final locked = showLockWhenNoAccess && !access.canRead(book.id);
-    return GestureDetector(
+    return PressableScale(
       onLongPress: onLongPress,
       onTap: onTap ??
           () async {
-            final removed = await context.push<bool>(
+            final removed = await context.pushHero<bool>(
               CatalogBookDetailScreen(
                 bookId: book.id,
                 canRemoveFromPurchased: canRemoveFromPurchased,
+                heroTag: heroTag,
+                initialCoverUrl: image != null && image.isNotEmpty
+                    ? ApiConfig.resolveImageUrl(image)
+                    : null,
               ),
             );
             if (removed == true) onPurchasedBookRemoved?.call();
@@ -82,11 +97,13 @@ class LibraryBookCover extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             Positioned.fill(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(3),
+              child: BookCoverHero(
+                tag: heroTag,
+                style: BookCoverStyle(borderRadius: 3),
                 child: image != null && image.isNotEmpty
                     ? NetworkCoverImage(
                         url: ApiConfig.resolveImageUrl(image),
+                        decodeCacheWidth: 650,
                         placeholder: (_) => _CoverPlaceholder())
                     : _CoverPlaceholder(),
               ),

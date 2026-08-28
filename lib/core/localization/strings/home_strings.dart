@@ -49,4 +49,18 @@ class HomeStrings {
         tr: 'Yenile',
         en: 'Retry',
       );
+
+  static String get offlineLibraryReady => t(
+        tk: 'Offline kitaphanaňyz taýýar',
+        ru: 'Ваша офлайн-библиотека готова',
+        tr: 'Çevrimdışı kitaplığınız hazır',
+        en: 'Your offline library is ready',
+      );
+
+  static String get connectionRestored => t(
+        tk: 'Baglanyşyk dikeldildi',
+        ru: 'Соединение восстановлено',
+        tr: 'Bağlantı yeniden kuruldu',
+        en: 'You\'re back online',
+      );
 }

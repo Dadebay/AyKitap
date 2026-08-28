@@ -40,6 +40,7 @@ part 'book_open_flow_actions.dart';
 class BookOpenFlow {
   final BuildContext context;
   final BookDetail book;
+  final String? heroTag;
 
   /// Fired after anything that could change the access verdict (a login, a
   /// completed purchase) so the CTA row can re-resolve.
@@ -48,6 +49,7 @@ class BookOpenFlow {
   const BookOpenFlow({
     required this.context,
     required this.book,
+    this.heroTag,
     this.onAccessChanged,
   });
 

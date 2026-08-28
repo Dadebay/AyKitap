@@ -24,6 +24,7 @@ import '../filter/controller/filter_controller.dart'
         kDefaultSortBy,
         kDefaultYearRange;
 import '../filter/filter_screen.dart';
+import '../home/widgets/stagger_fade_in.dart';
 import 'widgets/author_result_grid.dart';
 import 'widgets/quick_chip.dart';
 import 'widgets/search_result_grid.dart';

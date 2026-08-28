@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/localization/strings/author_strings.dart';
 import '../../../core/models/library_book.dart';
+import '../../../core/navigation/app_hero_tags.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../home/widgets/catalog_book_card.dart';
 import 'author_books_sort.dart';
@@ -51,6 +52,7 @@ class AuthorBooksGridSection extends StatelessWidget {
           ),
           itemBuilder: (context, i) => CatalogBookCard(
               book: sortedBooks[i],
+              heroTag: AppHeroTags.catalogBookCover(sortedBooks[i].id),
               width: double.infinity,
               coverHeight: 170,
               margin: EdgeInsets.zero),

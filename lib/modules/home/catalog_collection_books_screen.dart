@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../core/models/library_book.dart';
+import '../../core/navigation/app_hero_tags.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_back_button.dart';
 import 'widgets/catalog_book_card.dart';
 import 'widgets/ranked_collection_view.dart';
+import 'widgets/stagger_fade_in.dart';
 
 /// "Ählisini gör" / "see more" destination for one real [Collection]'s full
 /// book list — the real-catalogue counterpart to `CollectionBooksScreen`
@@ -13,6 +15,10 @@ import 'widgets/ranked_collection_view.dart';
 ///
 /// [ranked] switches to [RankedCollectionView] — see its own doc comment.
 class CatalogCollectionBooksScreen extends StatelessWidget {
+  /// Shared by the grid delegate and the entrance stagger, so the two can't
+  /// drift out of sync and start cascading against the real row layout.
+  static const _crossAxisCount = 3;
+
   final String title;
   final List<LibraryBook> books;
 
@@ -50,16 +56,26 @@ class CatalogCollectionBooksScreen extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
           itemCount: books.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
+            crossAxisCount: _crossAxisCount,
             mainAxisSpacing: 20,
             crossAxisSpacing: 12,
             childAspectRatio: 0.5,
           ),
-          itemBuilder: (context, i) => CatalogBookCard(
-              book: books[i],
-              width: double.infinity,
-              coverHeight: 170,
-              margin: EdgeInsets.zero),
+          // Staggered by *row* (`i ~/ _crossAxisCount`), not by raw index:
+          // the three cards sharing a row read as one unit, so cascading
+          // them individually looks like a stutter rather than an
+          // entrance. [StaggerFadeIn] clamps the delay it derives from
+          // this, so a long collection still finishes entering promptly
+          // instead of trickling in for the length of the list.
+          itemBuilder: (context, i) => StaggerFadeIn(
+            index: i ~/ _crossAxisCount,
+            child: CatalogBookCard(
+                book: books[i],
+                heroTag: AppHeroTags.catalogBookCover(books[i].id),
+                width: double.infinity,
+                coverHeight: 170,
+                margin: EdgeInsets.zero),
+          ),
         ),
       ),
     );

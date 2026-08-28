@@ -3,8 +3,10 @@ import 'package:flutter/foundation.dart';
 import '../models/streak.dart';
 import '../navigation/root_navigator.dart';
 import '../network/api_exception.dart';
+import '../widgets/streak_goal_celebration.dart';
 import '../widgets/streak_reward_dialog.dart';
 import 'account_service.dart';
+import 'analytics_service.dart';
 import 'home_screen_widget_service.dart';
 import 'streak_api_service.dart';
 
@@ -85,6 +87,23 @@ class StreakService extends ChangeNotifier {
     _pendingPages = 0;
     _pendingBookId = null;
   }
+
+  /// Test-only seed for [_overview] — lets a test set up a baseline
+  /// `today.goalMet` before exercising [debugApplyReportForTesting], with no
+  /// network call. Never called from production code.
+  @visibleForTesting
+  void debugSeedOverviewForTesting(StreakOverview overview) {
+    _overview = overview;
+    _loaded = true;
+  }
+
+  /// Test-only hook into the same false → true detection [_report] runs
+  /// after a real `POST /streaks/report` response — lets a widget test
+  /// exercise the goal-completion celebration without a network call.
+  /// Never called from production code.
+  @visibleForTesting
+  void debugApplyReportForTesting(StreakReportResult result) =>
+      _applyReport(result);
 
   /// Fetches `GET /streaks/me` once; later calls no-op until [refresh] is
   /// called explicitly. Safe for every screen that needs streak data to

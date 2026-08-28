@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/strings/home_strings.dart';
 import '../../../core/services/streak_service.dart';
-import '../../../core/widgets/icon_circle_button.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/streak_flame.dart';
 
 /// The top-of-Home row: "Welcome, {name}" + the current streak pill +

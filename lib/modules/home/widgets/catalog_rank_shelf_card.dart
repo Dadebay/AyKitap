@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import '../../../core/localization/strings/home_strings.dart';
 import '../../../core/models/collection.dart';
 import '../../../core/models/library_book.dart';
+import '../../../core/navigation/app_hero_tags.dart';
 import '../../../core/navigation/app_navigator.dart';
 import '../../../core/network/api_config.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/book_cover_hero.dart';
 import '../../../core/widgets/network_cover_image.dart';
-import '../../../core/localization/strings/home_strings.dart';
+import '../../../core/widgets/pressable_scale.dart';
 import '../../book_detail/catalog_book_detail_screen.dart';
 import '../catalog_collection_books_screen.dart';
 
@@ -27,7 +30,7 @@ class CatalogRankShelfCard extends StatelessWidget {
     final bannerImage = (ownImage != null && ownImage.isNotEmpty)
         ? ownImage
         : (books.isNotEmpty ? books.first.image : null);
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
           color: AppColors.card, borderRadius: BorderRadius.circular(20)),
       child: Column(
@@ -95,7 +98,8 @@ class CatalogRankShelfCard extends StatelessWidget {
             child: Column(
               children: [
                 for (int i = 0; i < top.length; i++) ...[
-                  _RankedBookTile(rank: i + 1, book: top[i]),
+                  _RankedBookTile(
+                      rank: i + 1, book: top[i], collectionId: collection.id),
                   if (i != top.length - 1) const SizedBox(height: 12),
                 ],
                 if (books.length > top.length)
@@ -109,7 +113,7 @@ class CatalogRankShelfCard extends StatelessWidget {
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
                       ),
-                      onPressed: () => context.push(
+                      onPressed: () => context.pushFade(
                           CatalogCollectionBooksScreen(
                               title: collection.name,
                               books: books,
@@ -133,13 +137,22 @@ class CatalogRankShelfCard extends StatelessWidget {
 class _RankedBookTile extends StatelessWidget {
   final int rank;
   final LibraryBook book;
-  const _RankedBookTile({required this.rank, required this.book});
+  final int collectionId;
+  const _RankedBookTile(
+      {required this.rank, required this.book, required this.collectionId});
 
   @override
   Widget build(BuildContext context) {
     final image = book.image;
-    return GestureDetector(
-      onTap: () => context.push(CatalogBookDetailScreen(bookId: book.id)),
+    final heroTag = AppHeroTags.homeCollectionBookCover(collectionId, book.id);
+    return PressableScale(
+      onTap: () => context.pushHero(CatalogBookDetailScreen(
+        bookId: book.id,
+        heroTag: heroTag,
+        initialCoverUrl: image != null && image.isNotEmpty
+            ? ApiConfig.resolveImageUrl(image)
+            : null,
+      )),
       child: Row(
         children: [
           SizedBox(
@@ -153,14 +166,13 @@ class _RankedBookTile extends StatelessWidget {
           SizedBox(
             width: 40,
             height: 56,
-            child: Container(
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(6)),
+            child: BookCoverHero(
+              tag: heroTag,
+              style: BookCoverStyle(borderRadius: 6),
               child: image != null && image.isNotEmpty
                   ? NetworkCoverImage(
                       url: ApiConfig.resolveImageUrl(image),
+                      decodeCacheWidth: 650,
                       placeholder: (_) => const SizedBox.shrink())
                   : const SizedBox.shrink(),
             ),

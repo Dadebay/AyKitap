@@ -50,6 +50,11 @@ extension _HomeScreenSections on _HomeScreenState {
 
   Widget _buildGenreShelfTile(Collection collection) {
     switch (collection.cardType) {
+      case CollectionCardType.card4:
+        return SizedBox(
+            width: 360,
+            child: CatalogNumberedBookSection(
+                collection: collection, compact: true));
       case CollectionCardType.card2:
         return Container(
             padding: const EdgeInsets.only(bottom: 20),
@@ -70,7 +75,16 @@ extension _HomeScreenSections on _HomeScreenState {
   /// `card_type` picks between a plain book row, a ranked-shelf card, or a
   /// big series-style card. Unknown/empty cases collapse to nothing rather
   /// than showing an empty header.
-  Widget _buildCollectionEntry(BuildContext context, Collection collection) {
+  ///
+  /// [sectionDelay] is this collection's own [StaggerFadeIn] entrance delay
+  /// (the caller already wraps the whole entry in one) — threaded through
+  /// to whichever card-row builder needs to hand it to its own *nested*
+  /// [StaggerFadeIn]s as [StaggerFadeIn.extraDelay], so the cards inside a
+  /// row cascade in step with the row's own reveal instead of racing ahead
+  /// of it. See [StaggerFadeIn.extraDelay]'s doc comment for why that
+  /// matters.
+  Widget _buildCollectionEntry(
+      BuildContext context, Collection collection, Duration sectionDelay) {
     if (collection.type == CollectionType.author) {
       final authors = collection.authors ?? const [];
       if (authors.isEmpty) return const SizedBox.shrink();
@@ -78,6 +92,8 @@ extension _HomeScreenSections on _HomeScreenState {
     }
     if (collection.books.isEmpty) return const SizedBox.shrink();
     switch (collection.cardType) {
+      case CollectionCardType.card4:
+        return CatalogNumberedBookSection(collection: collection);
       case CollectionCardType.card2:
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
@@ -90,11 +106,12 @@ extension _HomeScreenSections on _HomeScreenState {
               height: 380, child: CatalogSeriesCard(collection: collection)),
         );
       case CollectionCardType.card1:
-        return _buildCatalogBookSection(context, collection);
+        return _buildCatalogBookSection(context, collection, sectionDelay);
     }
   }
 
-  Widget _buildCatalogBookSection(BuildContext context, Collection collection) {
+  Widget _buildCatalogBookSection(
+      BuildContext context, Collection collection, Duration sectionDelay) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -102,7 +119,7 @@ extension _HomeScreenSections on _HomeScreenState {
           title: collection.name,
           subtitle: collection.subTitle,
           seeAllLabel: HomeStrings.seeAll,
-          onSeeAll: () => context.push(CatalogCollectionBooksScreen(
+          onSeeAll: () => context.pushFade(CatalogCollectionBooksScreen(
               title: collection.name, books: collection.books)),
         ),
         SizedBox(
@@ -111,7 +128,20 @@ extension _HomeScreenSections on _HomeScreenState {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: collection.books.length,
-            itemBuilder: (_, i) => CatalogBookCard(book: collection.books[i]),
+            itemBuilder: (_, i) => StaggerFadeIn(
+              index: i,
+              extraDelay: sectionDelay,
+              // Slides in from the right — the direction this row scrolls
+              // toward — rather than the default upward slide.
+              slideFrom: const Offset(24, 0),
+              child: CatalogBookCard(
+                book: collection.books[i],
+                heroTag: AppHeroTags.homeCollectionBookCover(
+                  collection.id,
+                  collection.books[i].id,
+                ),
+              ),
+            ),
           ),
         ),
       ],

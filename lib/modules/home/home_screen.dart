@@ -3,22 +3,27 @@ import 'package:provider/provider.dart';
 import '../../core/localization/strings/home_strings.dart';
 import '../../core/models/collection.dart';
 import '../../core/models/library_book.dart';
+import '../../core/navigation/app_hero_tags.dart';
 import '../../core/navigation/app_navigator.dart';
 import '../../core/services/auth_session.dart';
 import '../../core/services/home_data_service.dart';
 import '../../core/services/streak_service.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_motion.dart';
 import '../../core/widgets/section_header.dart';
 import '../streak/streak_screen.dart';
 import 'catalog_collection_books_screen.dart';
 import 'widgets/banner_carousel.dart';
 import 'widgets/catalog_author_card.dart';
 import 'widgets/catalog_book_card.dart';
+import 'widgets/catalog_numbered_book_section.dart';
 import 'widgets/catalog_rank_shelf_card.dart';
 import 'widgets/catalog_series_card.dart';
+import 'widgets/home_connection_banner.dart';
 import 'widgets/home_header.dart';
 import 'widgets/home_reload_state.dart';
 import 'widgets/home_shimmer.dart';
+import 'widgets/stagger_fade_in.dart';
 
 part 'home_screen_sections.dart';
 
@@ -59,44 +64,83 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final homeData = context.watch<HomeDataService>();
     final collections = homeData.collections;
+    final groups =
+        collections == null ? null : _groupByQueuePosition(collections);
+    final reduceMotion = AppMotion.reduceMotion(context);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: HomeHeader(
-              name: _name,
-              onStreakTap: () => context.push(const StreakScreen()),
+      body: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: HomeHeader(
+                  name: _name,
+                  onStreakTap: () => context.push(const StreakScreen()),
+                ),
+              ),
+              const SliverToBoxAdapter(child: BannerCarousel()),
+              const SliverToBoxAdapter(child: SizedBox(height: 4)),
+              if (collections != null && homeData.hasNoContent)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: HomeReloadState(
+                    loading: homeData.isLoading,
+                    onReload: homeData.reload,
+                  ),
+                )
+              else
+                // Skeleton → content is the only cross-fade here: banner and
+                // header are their own slivers above and never re-animate,
+                // and each section's own entrance is [StaggerFadeIn]'s job,
+                // not this switcher's. One entrance per successful result —
+                // a manual reload replaces the whole content subtree and
+                // earns one fresh stagger; scrolling this SliverToBoxAdapter
+                // out of view and back does not, since it isn't lazy.
+                SliverToBoxAdapter(
+                  child: AnimatedSwitcher(
+                    duration:
+                        reduceMotion ? Duration.zero : AppMotion.crossfade,
+                    switchInCurve: AppMotion.easeOut,
+                    switchOutCurve: AppMotion.easeOut,
+                    child: collections == null
+                        ? const HomeShimmer(key: ValueKey('home-shimmer'))
+                        : KeyedSubtree(
+                            key: const ValueKey('home-content'),
+                            child: Column(
+                              children: [
+                                for (var i = 0; i < groups!.length; i++)
+                                  StaggerFadeIn(
+                                    key: ValueKey(
+                                      '${groups[i].first.queuePosition}-'
+                                      '${groups[i].first.id}',
+                                    ),
+                                    index: i,
+                                    child: groups[i].length > 1
+                                        ? _buildGenreShelfRow(
+                                            context, groups[i])
+                                        : _buildCollectionEntry(
+                                            context,
+                                            groups[i].first,
+                                            StaggerFadeIn.delayFor(i)),
+                                  ),
+                              ],
+                            ),
+                          ),
+                  ),
+                ),
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
+          ),
+          Positioned(
+            top: MediaQuery.paddingOf(context).top + 74,
+            left: 16,
+            right: 16,
+            child: HomeConnectionBanner(
+              onReconnected: homeData.refreshInBackground,
             ),
           ),
-          const SliverToBoxAdapter(child: BannerCarousel()),
-          const SliverToBoxAdapter(child: SizedBox(height: 4)),
-          if (collections == null)
-            const SliverToBoxAdapter(child: HomeShimmer())
-          else if (homeData.hasNoContent)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: HomeReloadState(
-                loading: homeData.isLoading,
-                onReload: homeData.reload,
-              ),
-            )
-          else
-            // "Täze gelenler", "Hepdelik iň köp okalanlar", "Rus Ýazarlar",
-            // ... — one stacked straight from `GET /collections/all`, in
-            // whatever order/count the backend sends. Consecutive entries
-            // that share the same `queue_position` (e.g. "Biznes / Maliýe",
-            // "Şahsy Ösüş", "Psihologiýa", "Liderlik" all at 41) are meant to
-            // sit side by side as one horizontal row instead of each getting
-            // its own stacked section — see [_groupByQueuePosition].
-            for (final group in _groupByQueuePosition(collections))
-              SliverToBoxAdapter(
-                child: group.length > 1
-                    ? _buildGenreShelfRow(context, group)
-                    : _buildCollectionEntry(context, group.first),
-              ),
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
     );

@@ -6,7 +6,7 @@ import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
@@ -22,7 +22,7 @@ import java.io.FileOutputStream
 /// Also backs the `aykitap://book/<id>` deep link (same ACTION_VIEW intent,
 /// distinguished by scheme): the raw URI is handed to DeepLinkService on the
 /// Dart side, which parses it and pushes the matching book detail screen.
-class MainActivity : FlutterActivity() {
+class MainActivity : FlutterFragmentActivity() {
     private val fileChannelName = "com.aykitap.aykitap/incoming_file"
     private val deepLinkChannelName = "com.aykitap.aykitap/deep_link"
     private var fileChannel: MethodChannel? = null

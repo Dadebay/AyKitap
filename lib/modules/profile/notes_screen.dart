@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../core/models/user_note.dart';
+import '../../core/navigation/app_hero_tags.dart';
 import '../../core/navigation/app_navigator.dart';
+import '../../core/network/api_config.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/services/user_notes_api_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -66,7 +68,14 @@ class _NotesScreenState extends State<NotesScreen> {
   // Reloading right after the push returns is the one moment this screen
   // reliably knows "the user might have just changed something".
   Future<void> _goToBook(UserNote note) async {
-    await context.push(CatalogBookDetailScreen(bookId: note.bookId));
+    final image = note.bookImage;
+    await context.pushHero(CatalogBookDetailScreen(
+      bookId: note.bookId,
+      heroTag: AppHeroTags.noteBookCover(note.id, note.bookId),
+      initialCoverUrl: image != null && image.isNotEmpty
+          ? ApiConfig.resolveImageUrl(image)
+          : null,
+    ));
     if (mounted) _load();
   }
 

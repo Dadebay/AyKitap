@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/layout/phone_safe_canvas.dart';
 import '../../core/services/deep_link_service.dart';
 import '../../core/services/incoming_file_service.dart';
+import '../../core/services/notification_permission_flow.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../core/localization/app_locale.dart';
@@ -51,12 +53,20 @@ class _MainNavScreenState extends State<MainNavScreen>
   // them to notice AppLocale changing.
   late List<Widget> _pages = _buildPages();
 
+  // Each tab is wrapped in PhoneSafeCanvas rather than the Stack as a whole:
+  // FractionalTranslation (in _buildAnimatedBody) measures its *child's* own
+  // size to compute the slide distance, and PhoneSafeCanvas's Align still
+  // reports the full available size (it only centres a narrower column
+  // *within* that space) — so the slide-in/out distance stays the true
+  // window width on a wide window, not the capped content width.
   List<Widget> _buildPages() => [
-        ProfileScreen(),
-        LibraryScreen(initialTabIndex: widget.libraryInitialTabIndex),
-        HomeScreen(),
-        ReaderTabScreen(),
-        SearchScreen(),
+        PhoneSafeCanvas(child: ProfileScreen()),
+        PhoneSafeCanvas(
+            child:
+                LibraryScreen(initialTabIndex: widget.libraryInitialTabIndex)),
+        PhoneSafeCanvas(child: HomeScreen()),
+        PhoneSafeCanvas(child: ReaderTabScreen()),
+        PhoneSafeCanvas(child: SearchScreen()),
       ];
 
   // Slides the outgoing page out and the incoming one in, matching the
@@ -82,8 +92,24 @@ class _MainNavScreenState extends State<MainNavScreen>
     // "Open with" file (Telegram, Files, mail, ...) has a Navigator to
     // push the reader into.
     IncomingFileService.instance.init();
-    // Same reasoning for a cold-start aykitap://book/<id> deep link.
+    // Same reasoning for a cold-start aykitap://book/<id> deep link — and for
+    // a tapped push campaign, which reaches DeepLinkService well before this
+    // shell exists and waits there as a pending link until now.
     DeepLinkService.instance.init();
+    _scheduleNotificationPrompt();
+  }
+
+  /// The one-time notification explanation, deliberately not on the first
+  /// frame: it must not land over the splash or the moment Home appears. See
+  /// [NotificationPermissionFlow] for why the native prompt is gated behind
+  /// it at all.
+  void _scheduleNotificationPrompt() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(NotificationPermissionFlow.settleDelay, () {
+        if (!mounted) return;
+        NotificationPermissionFlow.maybeShow(context);
+      });
+    });
   }
 
   @override

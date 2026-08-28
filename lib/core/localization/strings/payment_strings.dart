@@ -174,9 +174,22 @@ class PaymentStrings {
         tr: '$planName aboneliği etkinleştirildi',
         en: '$planName subscription activated',
       );
+  // Store (RevenueCat) purchase path — no per-tariff name to show, unlike
+  // the TMT/balance flow's [subscriptionActivated].
+  static String get plusPlanName => t(
+      tk: 'Aýkitap Plus',
+      ru: 'Aýkitap Plus',
+      tr: 'Aýkitap Plus',
+      en: 'Aýkitap Plus');
+
   // widgets/subscription_success_dialog.dart
   static String get subscriptionSuccessTitle => t(
       tk: 'Gutlaýarys!', ru: 'Поздравляем!', tr: 'Tebrikler!', en: 'Congrats!');
+  static String get subscriptionRestoredTitle => t(
+      tk: 'Satyn almalar dikeldildi',
+      ru: 'Покупки восстановлены',
+      tr: 'Satın alımlar geri yüklendi',
+      en: 'Purchases restored');
   static String get subscriptionSuccessCta => t(
       tk: 'Okap başlaýyn',
       ru: 'Начать читать',
@@ -247,6 +260,38 @@ class PaymentStrings {
       ru: 'По промокоду',
       tr: 'Promosyon koduyla',
       en: 'With a promo code');
+  static String get payWithStore => t(
+      tk: 'App Store / Google Play arkaly kart bilen',
+      ru: 'Картой через App Store/Google Play',
+      tr: 'App Store/Google Play üzerinden kartla',
+      en: 'Card via App Store/Google Play');
+
+  // widgets/store_topup_sheet.dart
+  static String get storeTopUpTitle => t(
+      tk: 'Möçberi saýlaň',
+      ru: 'Выберите сумму',
+      tr: 'Tutarı seçin',
+      en: 'Choose an amount');
+  static String get storeTopUpUnavailable => t(
+      tk: 'Häzirlikçe elýeterli däl',
+      ru: 'Пока недоступно',
+      tr: 'Şu anda kullanılamıyor',
+      en: 'Not available right now');
+  static String get storeTopUpLoadError => t(
+      tk: 'Ýüklenmedi',
+      ru: 'Не удалось загрузить',
+      tr: 'Yüklenemedi',
+      en: 'Couldn\'t load');
+  static String get storeTopUpApplied => t(
+      tk: 'Satyn alyndy — balansyňyz ýakyn wagtda dolar',
+      ru: 'Покупка выполнена — баланс скоро пополнится',
+      tr: 'Satın alındı — bakiyeniz kısa süre içinde yüklenecek',
+      en: 'Purchased — your balance will update shortly');
+  static String get storeTopUpFailed => t(
+      tk: 'Satyn alyp bolmady',
+      ru: 'Не удалось совершить покупку',
+      tr: 'Satın alma başarısız oldu',
+      en: 'Purchase failed');
 
   // balance_top_up.dart / widgets/top_up_amount_sheet.dart
   static String get topUpTitle => t(

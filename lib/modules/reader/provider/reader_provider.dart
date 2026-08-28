@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:sakura_epub/sakura_epub.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/layout/window_size_class.dart';
 import '../../../core/models/bookmark.dart';
 import '../../../core/models/reading_note.dart';
 import '../../../core/services/bookmarks_store.dart';
@@ -28,6 +29,7 @@ part 'reader_provider_appearance.dart';
 part 'reader_provider_theme_css.dart';
 part 'reader_provider_bookmarks.dart';
 part 'reader_provider_persistence.dart';
+part 'reader_provider_layout.dart';
 
 /// Drives one open EPUB (TZ §12): the WebView bridge in [epubController],
 /// reading position/progress, chapters/TOC, highlights, appearance settings
@@ -100,6 +102,11 @@ class ReaderProvider extends ChangeNotifier with WidgetsBindingObserver {
   // ── Page transition & reading direction (see reader_provider_appearance.dart) ──
   ReaderPageTransition _pageTransition = ReaderPageTransition.scroll;
   bool _leftHandMode = false;
+
+  // ── Two-page spread (see reader_provider_layout.dart) ────────────────────
+  WindowWidthClass _windowWidth = WindowWidthClass.compact;
+  Rect? _verticalHinge;
+  bool _spreadActive = false;
 
   // ── Book info (see reader_provider_lifecycle.dart / _persistence.dart) ──
   int? _bookId;

@@ -3,17 +3,29 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../../core/localization/strings/book_detail_strings.dart';
 import '../../../core/models/book_detail.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../home/widgets/stagger_fade_in.dart';
 import 'catalog_detail_stats.dart';
 
 /// Title, author link, the read/purchased/pages stat row and the
 /// format/age/year info pills — the top of [CatalogBookDetailScreen]'s
 /// content sheet, before the genres/description.
+///
+/// Its three blocks (title+author, stats, pills) each get their own
+/// [StaggerFadeIn] entrance rather than fading in as one lump, continuing
+/// the stagger sequence from [startIndex] — the caller (`_buildContentSheet`)
+/// is what keeps that numbering contiguous with [CatalogDetailDescription]'s
+/// and the CTA section's own steps below.
 class CatalogDetailHeaderInfo extends StatelessWidget {
   final BookDetail book;
   final VoidCallback onTapAuthor;
+  final int startIndex;
 
-  const CatalogDetailHeaderInfo(
-      {super.key, required this.book, required this.onTapAuthor});
+  const CatalogDetailHeaderInfo({
+    super.key,
+    required this.book,
+    required this.onTapAuthor,
+    this.startIndex = 0,
+  });
 
   static String _fmtCount(int n) {
     if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
@@ -24,79 +36,101 @@ class CatalogDetailHeaderInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(
-          book.name,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-              color: AppColors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w800),
-        ),
-        if (book.authors.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          GestureDetector(
-            onTap: onTapAuthor,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(book.authorNames,
-                    style: TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700)),
-                const SizedBox(width: 3),
-                HugeIcon(
-                    icon: HugeIcons.strokeRoundedArrowRight01,
-                    color: AppColors.primary,
-                    size: 14),
+        StaggerFadeIn(
+          index: startIndex,
+          child: Column(
+            children: [
+              Text(
+                book.name,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800),
+              ),
+              if (book.authors.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                GestureDetector(
+                  onTap: onTapAuthor,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(book.authorNames,
+                          style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700)),
+                      const SizedBox(width: 3),
+                      HugeIcon(
+                          icon: HugeIcons.strokeRoundedArrowRight01,
+                          color: AppColors.primary,
+                          size: 14),
+                    ],
+                  ),
+                ),
               ],
-            ),
+            ],
           ),
-        ],
+        ),
         const SizedBox(height: 20),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CatalogDetailMetaStat(
-                value: _fmtCount(book.readCount),
-                label: BookDetailStrings.statRead),
-            const CatalogDetailMetaDivider(),
-            CatalogDetailMetaStat(
-                value: _fmtCount(book.soldCount),
-                label: BookDetailStrings.statPurchased),
-            if (book.pageCount != null) ...[
+        StaggerFadeIn(
+          index: startIndex + 1,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CatalogDetailMetaStat(
+                  value: _fmtCount(book.readCount),
+                  label: BookDetailStrings.statRead),
               const CatalogDetailMetaDivider(),
               CatalogDetailMetaStat(
-                  value: '${book.pageCount}',
-                  label: BookDetailStrings.statPages),
+                  value: _fmtCount(book.soldCount),
+                  label: BookDetailStrings.statPurchased),
+              if (book.pageCount != null) ...[
+                const CatalogDetailMetaDivider(),
+                CatalogDetailMetaStat(
+                    value: '${book.pageCount}',
+                    label: BookDetailStrings.statPages),
+              ],
             ],
-          ],
+          ),
         ),
         if (book.bookFiles.isNotEmpty ||
             book.age != null ||
             book.year != null) ...[
           const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: [
-              if (book.bookFiles.isNotEmpty)
-                CatalogDetailInfoPill(
-                    icon: HugeIcons.strokeRoundedFile02,
-                    label: book.bookFiles.first.fileFormat.toUpperCase()),
-              if (book.age != null)
-                CatalogDetailInfoPill(
-                    icon: HugeIcons.strokeRoundedShield01,
-                    label: '${book.age}+'),
-              if (book.year != null)
-                CatalogDetailInfoPill(
-                    icon: HugeIcons.strokeRoundedCalendar03,
-                    label: '${book.year}'),
-            ],
+          StaggerFadeIn(
+            index: startIndex + 2,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: [
+                if (book.bookFiles.isNotEmpty)
+                  CatalogDetailInfoPill(
+                      icon: HugeIcons.strokeRoundedFile02,
+                      label: book.bookFiles.first.fileFormat.toUpperCase()),
+                if (book.age != null)
+                  CatalogDetailInfoPill(
+                      icon: HugeIcons.strokeRoundedShield01,
+                      label: '${book.age}+'),
+                if (book.year != null)
+                  CatalogDetailInfoPill(
+                      icon: HugeIcons.strokeRoundedCalendar03,
+                      label: '${book.year}'),
+              ],
+            ),
           ),
         ],
       ],
     );
   }
+
+  /// How many stagger steps this widget consumes — lets the caller keep
+  /// [CatalogDetailDescription]'s [startIndex] contiguous without either
+  /// widget hardcoding the other's internal block count.
+  static int stepCount(BookDetail book) =>
+      2 +
+      (book.bookFiles.isNotEmpty || book.age != null || book.year != null
+          ? 1
+          : 0);
 }

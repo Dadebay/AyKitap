@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:sakura_epub/sakura_epub.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/layout/window_size_class.dart';
 import '../../../core/localization/app_locale.dart';
 import '../../../core/localization/strings/reader_strings.dart';
 import '../../../core/localization/strings/reader_notes_strings.dart';
@@ -122,6 +123,20 @@ class _ReaderScreenState extends State<ReaderScreen> {
           .read<ReaderProvider>()
           .initialize(bookId: widget.bookId, bookTitle: widget.bookTitle);
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Registers a MediaQuery dependency (same as MediaQuery.of), so this
+    // re-runs on its own whenever the window is resized, rotated, or a
+    // fold's posture changes — window resize, rotation, a fold opening or
+    // closing. See ReaderProviderLayout.updateWindowSizeClass: it only ever
+    // calls into the already-open WebView's rendition, never rebuilds it, so
+    // this never disturbs the current reading position.
+    context
+        .read<ReaderProvider>()
+        .updateWindowSizeClass(WindowSizeClass.of(context));
   }
 
   @override

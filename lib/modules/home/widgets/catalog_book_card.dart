@@ -5,6 +5,7 @@ import '../../../core/navigation/app_navigator.dart';
 import '../../../core/network/api_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
+import '../../../core/widgets/book_cover_hero.dart';
 import '../../../core/widgets/network_cover_image.dart';
 import '../../../core/widgets/pressable_scale.dart';
 import '../../book_detail/catalog_book_detail_screen.dart';
@@ -17,12 +18,14 @@ class CatalogBookCard extends StatelessWidget {
   const CatalogBookCard({
     super.key,
     required this.book,
+    this.heroTag,
     this.width = 100,
     this.coverHeight = 155,
     this.margin = const EdgeInsets.only(left: 6, right: 10),
   });
 
   final LibraryBook book;
+  final String? heroTag;
   final double width;
   final double coverHeight;
   final EdgeInsetsGeometry margin;
@@ -32,21 +35,26 @@ class CatalogBookCard extends StatelessWidget {
     final image = book.image;
     final isDark = AppTheme.instance.isDark;
     return PressableScale(
-      onTap: () => context.push(CatalogBookDetailScreen(bookId: book.id)),
+      onTap: () => context.pushHero(CatalogBookDetailScreen(
+        bookId: book.id,
+        heroTag: heroTag,
+        initialCoverUrl: image != null && image.isNotEmpty
+            ? ApiConfig.resolveImageUrl(image)
+            : null,
+      )),
       child: Container(
         width: width,
         margin: margin,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
+            BookCoverHero(
+              tag: heroTag,
               width: double.infinity,
               height: coverHeight,
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                color: AppColors.card,
-                borderRadius: BorderRadius.circular(6),
-                boxShadow: [
+              style: BookCoverStyle(
+                borderRadius: 6,
+                shadows: [
                   BoxShadow(
                       color: Colors.black.withValues(alpha: 0.22),
                       blurRadius: 10,
@@ -54,8 +62,7 @@ class CatalogBookCard extends StatelessWidget {
                   isDark
                       ? BoxShadow(
                           color: Colors.white.withValues(alpha: 0.08),
-                          blurRadius: 12,
-                          offset: const Offset(0, 0))
+                          blurRadius: 12)
                       : BoxShadow(
                           color: Colors.black.withValues(alpha: 0.12),
                           blurRadius: 14,
@@ -65,6 +72,7 @@ class CatalogBookCard extends StatelessWidget {
               child: image != null && image.isNotEmpty
                   ? NetworkCoverImage(
                       url: ApiConfig.resolveImageUrl(image),
+                      decodeCacheWidth: 650,
                       placeholder: (_) => _placeholder())
                   : _placeholder(),
             ),

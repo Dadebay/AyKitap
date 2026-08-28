@@ -69,21 +69,29 @@ class HomeDataService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _loadCollections(int generation) async {
+  Future<void> _loadCollections(
+    int generation, {
+    bool preserveOnError = false,
+  }) async {
     List<Collection> result;
     try {
       result = await CollectionApiService.getCollections();
     } catch (_) {
+      if (preserveOnError) return;
       result = const [];
     }
     if (generation == _generation) collections = result;
   }
 
-  Future<void> _loadBanners(int generation) async {
+  Future<void> _loadBanners(
+    int generation, {
+    bool preserveOnError = false,
+  }) async {
     List<PromoBanner> result;
     try {
       result = await BannerApiService.getBanners();
     } catch (_) {
+      if (preserveOnError) return;
       result = const [];
     }
     if (generation == _generation) banners = result;
@@ -101,5 +109,20 @@ class HomeDataService extends ChangeNotifier {
     banners = null;
     notifyListeners();
     await load();
+  }
+
+  /// Refreshes stale Home data after connectivity returns without replacing
+  /// the usable cached shelves with a shimmer or an empty error state.
+  Future<void> refreshInBackground() async {
+    if (_loading) return;
+    _loading = true;
+    final generation = ++_generation;
+    await Future.wait([
+      _loadCollections(generation, preserveOnError: true),
+      _loadBanners(generation, preserveOnError: true),
+    ]);
+    if (generation != _generation) return;
+    _loading = false;
+    notifyListeners();
   }
 }

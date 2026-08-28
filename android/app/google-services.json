@@ -12,7 +12,20 @@
           "package_name": "com.aykitap.aykitap"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "99691215723-in6lkk6t24106m95ncfed5hn7s2olr62.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.aykitap.aykitap",
+            "certificate_hash": "abcdbc4b5193cdadc4f29c6f8b13cba5052ba4ba"
+          }
+        },
+        {
+          "client_id": "99691215723-n2q60i1d7vtud0j3nn1sl666vs8bnvan.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDUz-SIVYYd8YS6oJpNadiHYWTjhUV6qgE"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "99691215723-n2q60i1d7vtud0j3nn1sl666vs8bnvan.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "99691215723-kke4msk6o4nb2hfgtma70fgjm9mi8dui.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.aykitap.aykitap"
+              }
+            }
+          ]
         }
       }
     }

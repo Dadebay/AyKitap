@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
+import 'core/layout/app_orientation_observer.dart';
+import 'core/layout/app_orientation_policy.dart';
+import 'core/layout/window_size_class.dart';
 import 'core/localization/app_locale.dart';
 import 'core/localization/localization_delegates.dart';
 import 'core/navigation/root_navigator.dart';
@@ -23,9 +26,12 @@ import 'core/services/home_data_service.dart';
 import 'core/services/home_screen_widget_service.dart';
 import 'core/services/last_read_book_store.dart';
 import 'core/services/notes_store.dart';
+import 'core/services/onesignal_service.dart';
 import 'core/services/own_books_store.dart';
+import 'core/services/premium_access_service.dart';
 import 'core/services/purchased_books_store.dart';
 import 'core/services/reading_books_store.dart';
+import 'core/services/revenue_cat_service.dart';
 import 'core/services/streak_service.dart';
 import 'core/services/subscription_service.dart';
 import 'core/theme/theme_controller.dart';
@@ -39,7 +45,18 @@ void main() async {
   // a visible reload. A bigger budget keeps decoded covers resident.
   PaintingBinding.instance.imageCache.maximumSize = 3000;
   PaintingBinding.instance.imageCache.maximumSizeBytes = 200 << 20;
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  // Locks portrait immediately, before the first frame — there's no
+  // MediaQuery yet to read a real window size from, so this primes
+  // AppOrientationPolicy with the same compact/no-reader default it starts
+  // with anyway. AppOrientationObserver (in this widget's `builder`) takes
+  // over from here once the tree is up, so this is the *only* direct
+  // SystemChrome.setPreferredOrientations call left outside that policy —
+  // see app_orientation_policy.dart.
+  AppOrientationPolicy.instance.updateWindow(const WindowSizeClass(
+    width: WindowWidthClass.compact,
+    size: Size.zero,
+    verticalHinge: null,
+  ));
   // Hide Android's 3-button navigation bar entirely (keep the status bar).
   // A swipe up from the bottom edge still reveals it temporarily.
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
@@ -60,6 +77,20 @@ void main() async {
   if (AnalyticsService.instance.isEnabled) {
     unawaited(FirebaseMessagingService.instance.init());
   }
+  // The second push provider (engagement campaigns only — see
+  // OneSignalService's doc comment). Deliberately outside the Firebase gate
+  // above and never awaited: OneSignal being unreachable, or its app id
+  // missing, must not delay the first frame or touch the FCM path. Identity
+  // is re-bound right after, and survives init not having finished yet.
+  unawaited(OneSignalService.instance
+      .initialize()
+      .then((_) => OneSignalService.instance.loginCurrentUser()));
+  // Awaited (unlike OneSignal above): whether the reader has Plus needs to
+  // be correct by the time the first screen that gates on it builds, not
+  // sometime after the first frame. Configuring the SDK is local/fast — no
+  // store round-trip — so this doesn't meaningfully delay boot.
+  await RevenueCatService.instance.init();
+  unawaited(RevenueCatService.instance.loginCurrentUser());
   // Keep native home-screen widgets useful from their first render, even
   // before the user opens the Reader tab in this app session.
   await LastReadBookStore.instance.load();
@@ -119,6 +150,10 @@ void main() async {
             value: HomeDataService.instance),
         ChangeNotifierProvider<LastReadBookStore>.value(
             value: LastReadBookStore.instance),
+        ChangeNotifierProvider<RevenueCatService>.value(
+            value: RevenueCatService.instance),
+        ChangeNotifierProvider<PremiumAccessService>.value(
+            value: PremiumAccessService.instance),
       ],
       child: const AykitapApp(),
     ),
@@ -159,11 +194,14 @@ class AykitapApp extends StatelessWidget {
         // takes part in hit testing, so nothing below it behaves
         // differently. This is what lets [AppActivityService] tell "being
         // read" from "left open on the nightstand".
-        return Listener(
-          behavior: HitTestBehavior.translucent,
-          onPointerDown: (_) => AppActivityService.instance.noteInteraction(),
-          onPointerMove: (_) => AppActivityService.instance.noteInteraction(),
-          child: GlobalSafeAreaWrapper(child: child ?? const SizedBox.shrink()),
+        return AppOrientationObserver(
+          child: Listener(
+            behavior: HitTestBehavior.translucent,
+            onPointerDown: (_) => AppActivityService.instance.noteInteraction(),
+            onPointerMove: (_) => AppActivityService.instance.noteInteraction(),
+            child:
+                GlobalSafeAreaWrapper(child: child ?? const SizedBox.shrink()),
+          ),
         );
       },
       home: const SplashScreen(),

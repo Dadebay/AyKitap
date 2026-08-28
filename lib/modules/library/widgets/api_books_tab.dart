@@ -2,6 +2,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import '../../../core/localization/strings/library_strings.dart';
 import '../../../core/models/library_book.dart';
+import '../../../core/navigation/app_hero_tags.dart';
 import '../../../core/navigation/app_navigator.dart';
 import '../../../core/network/api_config.dart';
 import '../../../core/network/api_exception.dart';
@@ -27,6 +28,11 @@ part 'api_books_tab_actions.dart';
 class ApiBooksTab extends StatefulWidget {
   final Future<List<LibraryBook>> Function() fetcher;
   final String emptyLabel;
+
+  /// Which shelf this is (`reading`/`finished`/`purchased`/`favorites`) —
+  /// scopes this tab's [LibraryBookCover] Hero tags so a book that appears
+  /// on more than one kept-alive shelf tab at once doesn't collide.
+  final String heroShelf;
   final bool showProgress;
   final bool allowRemovingPurchasedBooks;
 
@@ -60,6 +66,7 @@ class ApiBooksTab extends StatefulWidget {
     super.key,
     required this.fetcher,
     required this.emptyLabel,
+    required this.heroShelf,
     this.showProgress = false,
     this.allowRemovingPurchasedBooks = false,
     this.syncsPurchasedAccess = false,
@@ -157,6 +164,7 @@ class _ApiBooksTabState extends State<ApiBooksTab>
           itemBuilder: (context, i) => LibraryBookCover(
             key: ValueKey(books[i].id),
             book: books[i],
+            heroShelf: widget.heroShelf,
             showProgress: widget.showProgress,
             canRemoveFromPurchased: widget.allowRemovingPurchasedBooks,
             onPurchasedBookRemoved: _load,

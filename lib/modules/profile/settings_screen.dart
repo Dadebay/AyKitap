@@ -1,16 +1,28 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
+import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../core/services/account_service.dart';
+import '../../core/services/analytics_service.dart';
 import '../../core/services/book_access_service.dart';
 import '../../core/services/subscription_service.dart';
 import '../../core/services/auth_api_service.dart';
 import '../../core/services/auth_session.dart';
+import '../../core/services/notification_permission_flow.dart';
+import '../../core/services/firebase_auth_service.dart';
+import '../../core/services/onesignal_service.dart';
+import '../../core/services/revenue_cat_service.dart';
 import '../../core/localization/app_locale.dart';
+import '../../core/localization/strings/notification_strings.dart';
+import '../../core/localization/strings/payment_strings.dart';
 import '../../core/localization/strings/settings_strings.dart';
 import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/app_snackbar.dart';
+import '../payment/widgets/subscription_success_dialog.dart';
 import 'widgets/contact_us_sheet.dart';
 import 'widgets/language_sheet.dart';
 import 'widgets/settings_confirm_dialog.dart';
@@ -29,6 +41,27 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  // Read from prefs + the SDK rather than held only in the widget: the OS can
+  // change the answer while the app is backgrounded (permission revoked in
+  // system settings), so this is re-read on every entry to the screen.
+  bool _notificationsEnabled = false;
+  bool _notificationsBusy = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshNotificationState();
+  }
+
+  Future<void> _refreshNotificationState() async {
+    final enabled = await NotificationPermissionFlow.isEnabled();
+    if (!mounted) return;
+    setState(() {
+      _notificationsEnabled = enabled;
+      _notificationsBusy = false;
+    });
+  }
+
   AppLanguage _languageFor(AppLanguageCode code) =>
       kSettingsLanguages.firstWhere((l) => l.code == code);
 
@@ -50,7 +83,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (_) =>
           LanguageSheet(languages: kSettingsLanguages, selected: current),
     );
-    if (result != null) await AppLocale.instance.setLanguage(result.code);
+    if (result != null) {
+      await AppLocale.instance.setLanguage(result.code);
+      // `app_language` is a OneSignal segmentation tag, so a campaign written
+      // per language keeps targeting correctly after a switch. Fire-and-forget
+      // — a failed tag sync must never surface here.
+      unawaited(OneSignalService.instance.syncTags());
+    }
+  }
+
+  Future<void> _setNotifications(bool enabled) async {
+    setState(() => _notificationsBusy = true);
+    final settled = await NotificationPermissionFlow.setEnabled(enabled);
+    if (!mounted) return;
+    setState(() {
+      _notificationsEnabled = settled;
+      _notificationsBusy = false;
+    });
+    // Only worth a message when switching *on* didn't take. Turning it off
+    // always works, and confirming an action the switch already shows would
+    // just be noise.
+    if (enabled && !settled) {
+      context.showAppSnackBar(
+        // A second denial is final on both platforms: the OS stops showing
+        // the prompt, and `fallbackToSettings` has already sent the user to
+        // the system page. All that's left is to say where to look.
+        NotificationStrings.openSystemSettingsHint,
+        isError: true,
+      );
+    }
   }
 
   // Both dialogs below end in the exact same place: neither actually calls
@@ -68,6 +129,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // for whoever logs in next.
     await BookAccessService.instance.clear();
     await SubscriptionService.instance.clear();
+    // Same for the engagement provider: identity dropped and every tag this
+    // app wrote removed, so a different account signing in on this device
+    // can't inherit the previous one's segmentation.
+    await OneSignalService.instance.logout();
+    // Same reasoning as the OneSignal call above, for store purchases: drop
+    // the App User ID binding so the next account on this device starts
+    // anonymous rather than inheriting this one's entitlement.
+    await RevenueCatService.instance.logout();
+    // Clears any Firebase session too (email/Google/Apple login) — a no-op
+    // if this account signed in via phone/OTP and never touched Firebase.
+    await FirebaseAuthService.instance.signOut();
     if (!mounted) return;
     Navigator.pop(context); // close the dialog
     Navigator.pop(context, 'logout'); // leave the settings screen logged out
@@ -107,10 +179,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  static const _storeProductId = 'store_paywall';
+
+  void _logStoreStep(String step, {num? value}) => unawaited(
+        AnalyticsService.instance.logPurchaseStep(
+          step: step,
+          productType: 'subscription',
+          productId: _storeProductId,
+          source: 'store',
+          value: value,
+        ),
+      );
+
+  // Not-yet-subscribed taps the store paywall; already-subscribed opens the
+  // Customer Center instead, since RevenueCat's own paywall is meant to
+  // sell, not to manage an existing plan.
+  Future<void> _openStoreSubscription() async {
+    final revenueCat = context.read<RevenueCatService>();
+    if (revenueCat.isPlusActive) {
+      await revenueCat.presentCustomerCenter();
+      return;
+    }
+    unawaited(
+        AnalyticsService.instance.logPaywallViewed(source: 'settings_screen'));
+    _logStoreStep('started');
+    final result = await revenueCat.presentPaywallIfNeeded();
+    // The native paywall runs its own modal flow — this screen can be
+    // popped or backgrounded while it's up, so this is the one `mounted`
+    // check that actually matters here (the dialog below has its own).
+    if (!mounted) return;
+    switch (result) {
+      case PaywallResult.purchased:
+        // presentPaywallIfNeeded already refreshed CustomerInfo for this
+        // result — only celebrate if the entitlement actually came back
+        // active, not just because the store reported a purchase.
+        if (!revenueCat.isPlusActive) return;
+        _logStoreStep('completed');
+        await SubscriptionSuccessDialog.show(
+            context, PaymentStrings.plusPlanName);
+      case PaywallResult.restored:
+        if (!revenueCat.isPlusActive) return;
+        _logStoreStep('restored');
+        await SubscriptionSuccessDialog.show(
+            context, PaymentStrings.plusPlanName,
+            restored: true);
+      case PaywallResult.cancelled:
+        _logStoreStep('cancelled');
+      case PaywallResult.error:
+        _logStoreStep('failed');
+      case PaywallResult.notPresented:
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final darkTheme = context.watch<AppTheme>().isDark;
     final language = _languageFor(context.watch<AppLocale>().current);
+    final isPlusActive = context.watch<RevenueCatService>().isPlusActive;
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -153,11 +279,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ]),
             const SizedBox(height: 16),
             SettingsGroup(children: [
+              SwitchTile(
+                icon: _notificationsEnabled
+                    ? HugeIcons.strokeRoundedNotification02
+                    : HugeIcons.strokeRoundedNotificationOff02,
+                iconColor: AppColors.primary,
+                label: NotificationStrings.settingsLabel,
+                value: _notificationsEnabled
+                    ? NotificationStrings.statusOn
+                    : NotificationStrings.settingsSubtitleOff,
+                switchValue: _notificationsEnabled,
+                onChanged: _setNotifications,
+                control: AppSwitch(
+                  value: _notificationsEnabled,
+                  enabled: !_notificationsBusy,
+                  onChanged: _setNotifications,
+                ),
+              ),
               NavTile(
                   icon: HugeIcons.strokeRoundedCustomerService01,
                   label: SettingsStrings.contactUs,
                   value: '',
                   onTap: () => ContactUsSheet.show(context)),
+              NavTile(
+                icon: HugeIcons.strokeRoundedCrown02,
+                label: SettingsStrings.storeSubscription,
+                value: isPlusActive
+                    ? SettingsStrings.storeSubscriptionActive
+                    : SettingsStrings.storeSubscriptionInactive,
+                onTap: _openStoreSubscription,
+              ),
             ]),
             if (widget.isLoggedIn) ...[
               const SizedBox(height: 16),

@@ -71,9 +71,48 @@ class AnalyticsService {
   }
 
   Future<void> logBookOpened(
-      {required String id, required String format}) async {
+      {required String id,
+      required String format,
+      String source = 'unknown'}) async {
     await logEvent('book_opened',
         parameters: {'book_id': id, 'format': format});
+    await logEvent('reader_opened', parameters: {
+      'book_id': id,
+      'format': format,
+      'source': source,
+    });
+  }
+
+  Future<void> logPaywallViewed({required String source}) => logEvent(
+        'paywall_viewed',
+        parameters: {'source': source},
+      );
+
+  Future<void> logPurchaseStep({
+    required String step,
+    required String productType,
+    required String productId,
+    required String source,
+    num? value,
+  }) {
+    return logEvent('purchase_$step', parameters: {
+      'product_type': productType,
+      'product_id': productId,
+      'source': source,
+      if (value != null) 'value': value,
+    });
+  }
+
+  Future<void> logReadingGoalCompleted({
+    required int pages,
+    required int minutes,
+    required int streak,
+  }) {
+    return logEvent('reading_goal_completed', parameters: {
+      'pages': pages,
+      'minutes': minutes,
+      'streak': streak,
+    });
   }
 
   Future<void> logPurchase({
@@ -85,7 +124,8 @@ class AnalyticsService {
         currency: currency, value: value, parameters: {'book_id': bookId});
   }
 
-  Future<void> logLogin() async => _analytics?.logLogin(loginMethod: 'phone');
+  Future<void> logLogin({String loginMethod = 'phone'}) async =>
+      _analytics?.logLogin(loginMethod: loginMethod);
 
   /// Lets Analytics segment every report by UI language, which the device
   /// locale wouldn't capture — the app's language is picked in Settings and

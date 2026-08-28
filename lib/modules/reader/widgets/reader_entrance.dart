@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/navigation/app_hero_tags.dart';
 import '../../../core/theme/app_motion.dart';
 import '../../../core/widgets/network_cover_image.dart';
 
@@ -124,6 +125,7 @@ class _ReaderEntranceState extends State<_ReaderEntrance>
               },
               child: Hero(
                 tag: widget.heroTag!,
+                createRectTween: AppHeroTags.straightRectTween,
                 flightShuttleBuilder: (
                   flightContext,
                   animation,

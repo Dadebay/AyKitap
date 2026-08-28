@@ -6,13 +6,60 @@ part of 'catalog_book_detail_screen.dart';
 /// controls on top.
 extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
   Widget _buildBody() {
-    if (_loading || _error != null) {
+    if (_loading) {
+      final initialCoverUrl = widget.initialCoverUrl;
+      if (initialCoverUrl != null && initialCoverUrl.isNotEmpty) {
+        // [SizedBox.expand] is load-bearing: every child below is
+        // `Positioned` except the back button, and a `StackFit.loose` Stack
+        // sizes itself to its largest *non-positioned* child — so without
+        // this the Stack collapsed to the back button's 50px, `left: 0,
+        // right: 0` resolved to 50px, and the cover's Hero landed flush
+        // left. It only snapped to center once the loaded branch's
+        // full-width ListView took over, which read as the cover flying
+        // left and then sliding back.
+        return SizedBox.expand(
+          child: Stack(
+            children: [
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: _CatalogBookDetailScreenState._headerHeight,
+                child: CatalogDetailHeaderArt(
+                  imageUrl: initialCoverUrl,
+                  heroTag: _heroTag,
+                ),
+              ),
+              Positioned(
+                top: _CatalogBookDetailScreenState._headerHeight + 24,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: SizedBox.square(
+                    dimension: 22,
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                      strokeWidth: 2.2,
+                    ),
+                  ),
+                ),
+              ),
+              _buildBackButton(context),
+            ],
+          ),
+        );
+      }
       return Stack(
         children: [
-          if (_loading)
-            Center(child: CircularProgressIndicator(color: AppColors.primary))
-          else
-            NetworkErrorState(onRetry: _load),
+          Center(child: CircularProgressIndicator(color: AppColors.primary)),
+          _buildBackButton(context),
+        ],
+      );
+    }
+    if (_error != null) {
+      return Stack(
+        children: [
+          NetworkErrorState(onRetry: _load),
           _buildBackButton(context),
         ],
       );
@@ -31,7 +78,7 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
             height: _CatalogBookDetailScreenState._headerHeight,
             child: CatalogDetailHeaderArt(
               imageUrl: imageUrl,
-              heroTag: AppHeroTags.catalogBookCover(book.id),
+              heroTag: _heroTag,
             )),
         ListView(
           padding: EdgeInsets.zero,
@@ -70,6 +117,8 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
   }
 
   Widget _buildContentSheet(BookDetail book) {
+    final headerSteps = CatalogDetailHeaderInfo.stepCount(book);
+    final descriptionSteps = CatalogDetailDescription.stepCount(book);
     return ClipRRect(
       borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(38), topRight: Radius.circular(38)),
@@ -87,6 +136,13 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+          // Each block below (title, stats, pills, genres, synopsis, CTA)
+          // fades/slides in on its own beat rather than as one lump — see
+          // [CatalogDetailHeaderInfo]'s doc comment. `headerSteps` keeps
+          // the description's and the CTA's stagger index contiguous with
+          // the header's without either widget hardcoding the other's
+          // internal block count (which varies with what the book has —
+          // no pills, no genres, no description, etc.).
           child: Column(
             children: [
               CatalogDetailHeaderInfo(
@@ -98,16 +154,20 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
                 onToggleExpanded: () => _setState(
                     () => _descriptionExpanded = !_descriptionExpanded),
                 onTapGenre: _openGenre,
+                startIndex: headerSteps,
               ),
-              CatalogDetailCtaSection(
-                book: book,
-                access: _access,
-                canRemoveFromPurchased: widget.canRemoveFromPurchased,
-                removingFromPurchased: _removingFromPurchased,
-                onRemoveFromPurchased: () => _removeFromPurchased(book),
-                onRead: _onRead,
-                onBuy: _onBuy,
-                onCancelDownload: _cancelDownload,
+              StaggerFadeIn(
+                index: headerSteps + descriptionSteps,
+                child: CatalogDetailCtaSection(
+                  book: book,
+                  access: _access,
+                  canRemoveFromPurchased: widget.canRemoveFromPurchased,
+                  removingFromPurchased: _removingFromPurchased,
+                  onRemoveFromPurchased: () => _removeFromPurchased(book),
+                  onRead: _onRead,
+                  onBuy: _onBuy,
+                  onCancelDownload: _cancelDownload,
+                ),
               ),
             ],
           ),

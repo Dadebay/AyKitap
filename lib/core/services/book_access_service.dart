@@ -7,6 +7,7 @@ import 'account_service.dart';
 import 'auth_session.dart';
 import 'book_api_service.dart';
 import 'book_list_api_service.dart';
+import 'premium_access_service.dart';
 import 'subscription_service.dart';
 
 /// What the app is allowed to do with a book right now, in the order the
@@ -63,11 +64,15 @@ class BookAccessService extends ChangeNotifier {
   /// The offline half of [resolve]: can this book be opened right now,
   /// without asking the backend anything? Used by the reading flow once a
   /// file is already on disk, and by the downloaded shelf's lock badge.
+  ///
+  /// [PremiumAccessService.isPremium] — not [SubscriptionService] directly —
+  /// is the subscription check, so a store (RevenueCat) subscriber reads the
+  /// same as a wallet one.
   bool canRead(int bookId) =>
-      isPurchased(bookId) || SubscriptionService.instance.isActive;
+      isPurchased(bookId) || PremiumAccessService.instance.isPremium;
 
   /// Full evaluation for [book]'s CTA row. Reads only cached state — the
-  /// token, the purchased set, [SubscriptionService], and the last known
+  /// token, the purchased set, the merged premium status, and the last known
   /// balance — so it never blocks on a request.
   Future<BookAccess> resolve(BookDetail book) async {
     await load();
@@ -75,7 +80,7 @@ class BookAccessService extends ChangeNotifier {
 
     if (!await AuthSession.isLoggedIn()) return BookAccess.needsLogin;
     if (isPurchased(book.id)) return BookAccess.purchased;
-    if (SubscriptionService.instance.isActive) return BookAccess.subscription;
+    if (PremiumAccessService.instance.isPremium) return BookAccess.subscription;
 
     final price = book.price ?? 0;
     // A free book has nothing to buy — treat it as already owned rather

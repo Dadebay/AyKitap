@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/localization/strings/book_detail_strings.dart';
 import '../../../core/localization/strings/library_strings.dart';
 import '../../../core/models/library_book.dart';
+import '../../../core/navigation/app_hero_tags.dart';
 import '../../../core/navigation/app_navigator.dart';
 import '../../../core/network/api_config.dart';
 import '../../../core/services/book_access_service.dart';
@@ -63,6 +64,7 @@ class _DownloadedTabState extends State<DownloadedTab>
         itemCount: books.length,
         itemBuilder: (context, i) => LibraryBookCover(
           book: books[i],
+          heroShelf: 'downloaded',
           // Downloaded ≠ still readable: a book read on a subscription that
           // has since lapsed keeps its file but not its access, so the
           // cover carries a lock and opening it hits the normal gate.
@@ -80,11 +82,20 @@ class _DownloadedTabState extends State<DownloadedTab>
   /// Falls back to the detail page when the file is gone or access has
   /// lapsed, so the user lands somewhere that can explain why.
   Future<void> _openDownloaded(LibraryBook book) async {
+    final image = book.image;
+    final coverUrl = image != null && image.isNotEmpty
+        ? ApiConfig.resolveImageUrl(image)
+        : null;
+    final heroTag = AppHeroTags.libraryShelfBookCover('downloaded', book.id);
     await DownloadedFilesStore.instance.load();
     final entry = DownloadedFilesStore.instance.best(book.id);
     if (entry == null || !BookAccessService.instance.canRead(book.id)) {
       if (!mounted) return;
-      await context.push<bool>(CatalogBookDetailScreen(bookId: book.id));
+      await context.pushHero<bool>(CatalogBookDetailScreen(
+        bookId: book.id,
+        heroTag: heroTag,
+        initialCoverUrl: coverUrl,
+      ));
       return;
     }
     if (!mounted) return;
@@ -101,6 +112,8 @@ class _DownloadedTabState extends State<DownloadedTab>
       bookId: book.id,
       title: book.name,
       pageCount: book.pageCount,
+      coverUrl: coverUrl,
+      heroTag: heroTag,
     );
   }
 

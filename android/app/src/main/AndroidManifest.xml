@@ -8,6 +8,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
+            android:usesCleartextTraffic="true"
             android:taskAffinity=""
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
@@ -64,6 +65,16 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="aykitap" />
+            </intent-filter>
+            <!-- RevenueCat's per-app custom URL scheme (dashboard: Apps >
+                 Aykitap Play Store > Custom URL Scheme) — lets dashboard
+                 features like Paywall Preview deep-link back into this exact
+                 app. Not handled in Dart; the RevenueCat SDK/OS resolves it. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="rc-9ed5639f14" />
             </intent-filter>
         </activity>
         <receiver

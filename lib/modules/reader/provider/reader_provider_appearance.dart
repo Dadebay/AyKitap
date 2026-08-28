@@ -85,7 +85,12 @@ extension ReaderProviderAppearance on ReaderProvider {
     // layer in epubView.js plays the chosen tween on each turn; the theme is
     // re-pushed only because it's rebuilt from the mode we just changed.
     epubController.setPageTransition(mode: transition.name);
-    epubController.updateTheme(theme: _buildEpubTheme());
+    // Scroll opts out of spread regardless of window shape — see
+    // ReaderProviderLayout._recomputeSpread — so switching to or from it can
+    // flip spread even though the window itself hasn't changed. Pushes its
+    // own setSpread/updateTheme, so the plain updateTheme call this method
+    // already made for the transition-mode CSS is folded into it instead.
+    _recomputeSpread();
     _notify();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('reader_page_transition', transition.index);

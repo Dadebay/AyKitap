@@ -86,6 +86,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                             .where((b) => !b.isFinished)
                             .toList(),
                     emptyLabel: LibraryStrings.emptyReading,
+                    heroShelf: 'reading',
                     showProgress: true,
                     // Finishing a book moves it off this shelf onto
                     // "Bitirdiklerim", so both tabs watch the same signal.
@@ -105,6 +106,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                       finished: true,
                     ),
                     emptyLabel: LibraryStrings.emptyFinished,
+                    heroShelf: 'finished',
                     showProgress: true,
                     refreshOn: FinishedBooksSyncService.instance,
                     removal: ShelfRemoval.finished,
@@ -115,6 +117,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                   ApiBooksTab(
                     fetcher: () => BookListApiService.listBooks(bought: true),
                     emptyLabel: LibraryStrings.emptyPurchased,
+                    heroShelf: 'purchased',
                     allowRemovingPurchasedBooks: true,
                     syncsPurchasedAccess: true,
                     removal: ShelfRemoval.purchased,
@@ -122,6 +125,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                   ApiBooksTab(
                     fetcher: () => BookListApiService.listBooks(wantsTo: true),
                     emptyLabel: LibraryStrings.emptyFavorites,
+                    heroShelf: 'favorites',
                     refreshOn: FavoritesSyncService.instance,
                     removal: ShelfRemoval.favorite,
                   ),

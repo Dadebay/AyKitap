@@ -24,15 +24,21 @@ extension _ReaderViewEpubViewer on _ReaderScreenState {
       displaySettings: EpubDisplaySettings(
         flow: EpubFlow.paginated,
         snap: true,
-        // One column of text, whatever the screen's width. The default is
-        // EpubSpread.auto, which is what put the book into a two-page spread
-        // as soon as the reader was rotated (epub.js sets divisor = 2 once the
-        // viewport is wider than its minSpreadWidth) — a book split down the
-        // middle into two narrow columns, rather than the single full-width
-        // column that landscape is being used for in the first place.
-        // 'none' pins epub.js's divisor to 1, so rotating just makes the one
-        // column wider.
-        spread: EpubSpread.none,
+        // epub.js's own default is EpubSpread.auto, which is what used to put
+        // the book into a two-page spread as soon as the reader was rotated
+        // (epub.js sets divisor = 2 once the viewport is wider than its
+        // minSpreadWidth) — a book split down the middle into two narrow
+        // columns, rather than the single wider column landscape is meant to
+        // give a fixed-width page. So spread is never left to epub.js's own
+        // heuristic; it's driven entirely by ReaderProviderLayout instead,
+        // which turns it on only for a genuinely wide window or an actual
+        // foldable hinge — a plain rotated phone stays single-column exactly
+        // as before. [ReaderProvider.isSpreadActive] is already correct by
+        // this build (this screen's `didChangeDependencies` runs before its
+        // first `build`), so the book opens directly in the right layout
+        // rather than opening single-column and visibly relayouting once
+        // `onEpubLoaded` fires.
+        spread: provider.isSpreadActive ? EpubSpread.always : EpubSpread.none,
         theme: provider.currentEpubTheme,
         // sakura_epub applies this as `${fontSize}px`, while the provider keeps
         // it as a double for its slider — round on the way in. This only seeds
