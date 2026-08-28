@@ -50,7 +50,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
   Future<void> _openBanner(PromoBanner banner) async {
     final bookId = banner.bookId;
     if (bookId != null) {
-      context.push(CatalogBookDetailScreen(bookId: bookId));
+      context.pushFade(CatalogBookDetailScreen(bookId: bookId));
       return;
     }
     final link = banner.link;

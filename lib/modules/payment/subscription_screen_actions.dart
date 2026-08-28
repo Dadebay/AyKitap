@@ -37,6 +37,13 @@ extension _SubscriptionScreenActions on _SubscriptionScreenState {
     if (_processing || tariffs == null || tariffs.isEmpty) return;
     final tariff = tariffs[_selected];
 
+    unawaited(AnalyticsService.instance.logPurchaseStep(
+      step: 'started',
+      productType: 'subscription',
+      productId: '${tariff.id}',
+      source: 'backend_balance',
+      value: tariff.price,
+    ));
     _setState(() => _processing = true);
     bool ok;
     try {
@@ -44,6 +51,13 @@ extension _SubscriptionScreenActions on _SubscriptionScreenState {
           .read<SubscriptionService>()
           .subscribe(tariffId: tariff.id, priceManat: tariff.price);
     } on ApiException catch (e) {
+      unawaited(AnalyticsService.instance.logPurchaseStep(
+        step: 'failed',
+        productType: 'subscription',
+        productId: '${tariff.id}',
+        source: 'backend_balance',
+        value: tariff.price,
+      ));
       if (!mounted) return;
       _setState(() => _processing = false);
       context.showAppSnackBar(e.message, isError: true);
@@ -53,9 +67,23 @@ extension _SubscriptionScreenActions on _SubscriptionScreenState {
     _setState(() => _processing = false);
 
     if (ok) {
+      unawaited(AnalyticsService.instance.logPurchaseStep(
+        step: 'completed',
+        productType: 'subscription',
+        productId: '${tariff.id}',
+        source: 'backend_balance',
+        value: tariff.price,
+      ));
       await SubscriptionSuccessDialog.show(
           context, subscriptionPlanLabel(tariff));
     } else {
+      unawaited(AnalyticsService.instance.logPurchaseStep(
+        step: 'blocked',
+        productType: 'subscription',
+        productId: '${tariff.id}',
+        source: 'insufficient_balance',
+        value: tariff.price,
+      ));
       await _showInsufficientBalanceDialog();
     }
   }
@@ -74,6 +102,9 @@ extension _SubscriptionScreenActions on _SubscriptionScreenState {
   }
 
   Future<void> _choosePaymentMethod() async {
+    // showStore stays false here — a subscription is always priced in TMT
+    // from the balance, so this checkout only ever offers promo code/bank;
+    // the store branch is balance-top-up-only (see startBalanceTopUp).
     final choice = await PaymentMethodSheet.show(context);
     if (choice == null || !mounted) return;
     switch (choice) {
@@ -81,6 +112,8 @@ extension _SubscriptionScreenActions on _SubscriptionScreenState {
         await _payWithPromoCode();
       case PaymentMethodChoice.bankCard:
         await _payWithBank();
+      case PaymentMethodChoice.store:
+        break;
     }
   }
 

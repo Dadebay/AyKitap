@@ -6,9 +6,7 @@ import 'pdf_appearance_sliders.dart';
 import 'pdf_color_mode_section.dart';
 import 'pdf_layout_section.dart';
 import 'pdf_text_view_row.dart';
-import 'reader_section_label.dart';
 import 'reader_sheet_header.dart';
-import 'reader_slider_row.dart';
 
 /// How the PDF page is coloured on screen. Unlike reflowable EPUB text, a PDF
 /// page is a fixed picture, so each mode reaches the page differently:

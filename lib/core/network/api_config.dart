@@ -3,6 +3,8 @@
 /// environments never means hunting for a hardcoded host in a call site.
 class ApiConfig {
   ApiConfig._();
+  // static const String baseUrl = 'http://127.0.0.1:4000/api/v1';
+  // static const String fallbackBaseUrl = 'http://127.0.0.1:4000/api/v1';
 
   static const String baseUrl = 'https://aykitap.com.tm/api/v1';
 
@@ -13,11 +15,11 @@ class ApiConfig {
   static const String fallbackBaseUrl = '<PRIVATE_API_ENDPOINT>';
 
   /// Uploaded files (`/public/...` paths from `/users/me`'s `image`,
-  /// `/banners`'s `mobile_image`/`website_image`, ...) are served by the
-  /// same domain but on a separate port — the domain doesn't proxy this
-  /// host without it.
+  /// `/banners`'s `mobile_image`/`website_image`, ...) are proxied by nginx
+  /// on this same domain — confirmed serving the real MinIO-backed file
+  /// (matching `ETag`) on 443 with no port needed. `:9000` (the media
+  /// server's own port) has no TLS listener at all over https.
   static const String mediaBaseUrl = 'https://aykitap.com.tm';
-  // static const String mediaBaseUrl = '<PRIVATE_MEDIA_ENDPOINT>';
 
   /// Backend responses return either an already-absolute URL or a bare
   /// storage path on [mediaBaseUrl] — this makes call sites safe to hand

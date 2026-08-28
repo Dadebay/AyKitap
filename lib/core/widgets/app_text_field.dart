@@ -24,10 +24,12 @@ class AppTextField extends StatefulWidget {
     this.onSubmitted,
     this.prefix,
     this.leadingIcon,
+    this.suffix,
     this.style,
     this.maxLines = 1,
     this.maxLength,
     this.autofocus = false,
+    this.obscureText = false,
     this.textCapitalization = TextCapitalization.none,
   }) : assert(prefix == null || leadingIcon == null,
             'use either prefix or leadingIcon, not both');
@@ -49,10 +51,18 @@ class AppTextField extends StatefulWidget {
   /// icon on the name-entry field), mutually exclusive with [prefix].
   final List<List<dynamic>>? leadingIcon;
 
+  /// A static trailing widget (e.g. the show/hide toggle on a password
+  /// field).
+  final Widget? suffix;
+
   final TextStyle? style;
   final int maxLines;
   final int? maxLength;
   final bool autofocus;
+
+  /// Masks input — for a password field. [maxLines] should stay 1 whenever
+  /// this is true; obscuring a multi-line field isn't meaningful.
+  final bool obscureText;
   final TextCapitalization textCapitalization;
 
   @override
@@ -112,7 +122,8 @@ class _AppTextFieldState extends State<AppTextField> {
               keyboardType: widget.keyboardType,
               inputFormatters: widget.inputFormatters,
               textCapitalization: widget.textCapitalization,
-              maxLines: widget.maxLines,
+              maxLines: widget.obscureText ? 1 : widget.maxLines,
+              obscureText: widget.obscureText,
               maxLength: widget.maxLength,
               style: widget.style ??
                   TextStyle(color: AppColors.white, fontSize: 16),
@@ -127,6 +138,7 @@ class _AppTextFieldState extends State<AppTextField> {
               onSubmitted: widget.onSubmitted,
             ),
           ),
+          if (widget.suffix != null) widget.suffix!,
         ],
       ),
     );

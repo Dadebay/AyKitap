@@ -1,11 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../../core/localization/strings/series_strings.dart';
 import '../../../core/models/collection.dart';
 import '../../../core/navigation/app_navigator.dart';
 import '../../../core/network/api_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/network_cover_image.dart';
-import '../../../core/localization/strings/series_strings.dart';
+import '../../../core/widgets/pressable_scale.dart';
 import '../catalog_collection_books_screen.dart';
 
 /// The `card_type: "card_3"` visual for one [Collection] — same big
@@ -23,8 +24,8 @@ class CatalogSeriesCard extends StatelessWidget {
     final coverImage = (ownImage != null && ownImage.isNotEmpty)
         ? ownImage
         : (collection.books.isNotEmpty ? collection.books.first.image : null);
-    return GestureDetector(
-      onTap: () => context.push(CatalogCollectionBooksScreen(
+    return PressableScale(
+      onTap: () => context.pushFade(CatalogCollectionBooksScreen(
           title: collection.name, books: collection.books)),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),

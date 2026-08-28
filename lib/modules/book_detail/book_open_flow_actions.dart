@@ -160,6 +160,6 @@ extension _BookOpenFlowActions on BookOpenFlow {
         coverUrl: book.image == null || book.image!.isEmpty
             ? null
             : ApiConfig.resolveImageUrl(book.image!),
-        heroTag: AppHeroTags.catalogBookCover(book.id),
+        heroTag: heroTag ?? AppHeroTags.catalogBookCover(book.id),
       );
 }

@@ -100,9 +100,19 @@ extension _SearchScreenQuery on _SearchScreenState {
         _searchError = null;
         _headerCollapsed = false;
       });
-      // Nothing typed yet — Author mode falls through to its own discover
-      // grid (see [_loadDiscoverAuthors]), same as Book mode already does.
-      if (mode == _SearchMode.author) _loadDiscoverAuthors();
+      // Nothing typed yet — each mode falls through to its own discover
+      // grid. Author mode retries on every switch back to it as long as
+      // [_discoverAuthors] is still null (see [_loadDiscoverAuthors]'s own
+      // cache check) — Book mode's [_discoverBooks] only ever got the one
+      // shot at `initState`, so a transient failure/empty response on that
+      // very first load previously had no way back short of restarting the
+      // app, even though tapping over to Author and back looked like it
+      // should retry the same way.
+      if (mode == _SearchMode.author) {
+        _loadDiscoverAuthors();
+      } else if (_discoverBooks == null || _discoverBooks!.isEmpty) {
+        _loadDiscoverBooks();
+      }
     }
   }
 

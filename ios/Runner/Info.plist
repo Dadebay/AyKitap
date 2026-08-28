@@ -24,6 +24,12 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<!-- OneSignal's default group name is group.<bundle-id>.onesignal. Aýkitap
+	     already owns one shared container for its home-screen widget, so point
+	     OneSignal at that entitled container instead of letting it probe a
+	     second, unentitled group. -->
+	<key>OneSignal_app_groups_key</key>
+	<string>group.com.aykitap.aykitap</string>
 	<!-- Lists Aýkitap in the "Open with" sheet for PDFs/EPUBs tapped in
 	     other apps (Telegram, Mail, Files, ...). Handled in
 	     SceneDelegate.swift. -->
@@ -90,6 +96,18 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>aykitap</string>
+			</array>
+		</dict>
+		<!-- RevenueCat's per-app custom URL scheme (dashboard: Apps > Aykitap
+		     (App Store) > Custom URL Scheme) — lets dashboard features like
+		     Paywall Preview deep-link back into this exact app. Not handled
+		     in Dart; the RevenueCat SDK/OS itself resolves it. -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.revenuecat.aykitap</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>rc-51992f1ae5</string>
 			</array>
 		</dict>
 	</array>

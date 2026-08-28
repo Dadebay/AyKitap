@@ -11,6 +11,13 @@ class AuthEndpoints {
   static const String verifyLogin = '/users/verify-login';
   static const String logout = '/users/logout';
 
+  /// POST — trades a Firebase ID token (email/password, Google or Apple)
+  /// for an Aýkitap session, same `{accessToken, user}` response shape as
+  /// [verifyLogin]. Backend contract per the Faz B spec in
+  /// `OPUS_MASTER_REVENUECAT_FIREBASE_TASK.md`; not live until that phase
+  /// ships, so calls here 404 until then.
+  static const String firebaseLogin = '/users/firebase-login';
+
   /// PATCH — partial update of the signed-in user (e.g. `{"username": ...}`).
   static const String updateProfile = '/users';
 

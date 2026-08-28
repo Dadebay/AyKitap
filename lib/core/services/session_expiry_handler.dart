@@ -4,6 +4,7 @@ import '../navigation/root_navigator.dart';
 import 'account_service.dart';
 import 'auth_session.dart';
 import 'book_access_service.dart';
+import 'onesignal_service.dart';
 import 'subscription_service.dart';
 import '../../modules/auth/phone_login_screen.dart';
 
@@ -41,6 +42,9 @@ class SessionExpiryHandler {
       AccountService.instance.clear();
       await BookAccessService.instance.clear();
       await SubscriptionService.instance.clear();
+      // ...and the engagement provider's identity and tags, so campaigns
+      // segmented on this account stop reaching the device.
+      await OneSignalService.instance.logout();
       final navigator = rootNavigatorKey.currentState;
       if (navigator == null) return;
       await navigator

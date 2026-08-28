@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/own_book.dart';
 import '../theme/app_gradients.dart';
+import 'pressable_scale.dart';
 
 /// Placeholder "spine" cover for a user-imported file — there's no real
 /// artwork for these, just a format badge and the filename-derived title.
@@ -42,7 +43,7 @@ class OwnBookSpineCover extends StatelessWidget {
       OwnBookFormat.cbz => 'CBZ',
       OwnBookFormat.epub => 'EPUB',
     };
-    final content = GestureDetector(
+    final content = PressableScale(
       onTap: onTap,
       onLongPress: onLongPress,
       child: ClipRRect(

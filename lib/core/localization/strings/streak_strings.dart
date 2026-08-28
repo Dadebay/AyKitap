@@ -93,6 +93,20 @@ class StreakStrings {
   static String get thisWeek =>
       t(tk: 'Bu hepde', ru: 'На этой неделе', tr: 'Bu hafta', en: 'This week');
 
+  static String get goalCompletedTitle => t(
+        tk: 'Şu günki maksat tamamlandy!',
+        ru: 'Цель на сегодня выполнена!',
+        tr: 'Bugünkü hedef tamamlandı!',
+        en: 'Today\'s goal is complete!',
+      );
+
+  static String goalCompletedBody(int minutes, int pages) => t(
+        tk: '$minutes minut • $pages sahypa',
+        ru: '$minutes мин • $pages страниц',
+        tr: '$minutes dk • $pages sayfa',
+        en: '$minutes min • $pages pages',
+      );
+
   /// Built from `GET /streaks/me`'s `goal_min_minutes` + `reward_rules`
   /// rather than hard-coded — the admin can change either, and the old
   /// static "15 min / 30 days / 10 manat" copy would silently go stale the

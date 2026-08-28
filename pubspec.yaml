@@ -86,10 +86,20 @@ dependencies:
   firebase_analytics: ^12.4.5
 
   #==================== PUSH NOTIFICATIONS ====================#
+  # Two push providers, deliberately: see OneSignalService's doc comment for
+  # the split. Firebase carries account/purchase/security traffic the backend
+  # sends directly; OneSignal carries engagement campaigns. Neither replaces
+  # the other, and OneSignal being unreachable must never affect Firebase.
   firebase_messaging: ^16.0.2
+  onesignal_flutter: ^5.6.8
   flutter_local_notifications: ^19.0.0
   screen_brightness: ^2.1.11
   home_widget: ^0.9.3
+  purchases_flutter: ^10.9.1
+  purchases_ui_flutter: ^10.9.1
+  firebase_auth: ^6.6.0
+  google_sign_in: ^7.2.0
+  sign_in_with_apple: ^8.1.0
 
 dev_dependencies:
   flutter_test:

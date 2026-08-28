@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/models/library_book.dart';
+import '../../core/navigation/app_hero_tags.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/services/book_list_api_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -93,6 +94,7 @@ class _CatalogGenreBooksScreenState extends State<CatalogGenreBooksScreen> {
             childAspectRatio: 0.50),
         itemBuilder: (context, index) => CatalogBookCard(
             book: books[index],
+            heroTag: AppHeroTags.catalogBookCover(books[index].id),
             width: double.infinity,
             coverHeight: 170,
             margin: EdgeInsets.zero),

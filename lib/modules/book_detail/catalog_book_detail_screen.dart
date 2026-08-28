@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -9,6 +11,7 @@ import '../../core/navigation/app_hero_tags.dart';
 import '../../core/navigation/app_navigator.dart';
 import '../../core/network/api_config.dart';
 import '../../core/network/api_exception.dart';
+import '../../core/services/analytics_service.dart';
 import '../../core/services/book_access_service.dart';
 import '../../core/services/book_api_service.dart';
 import '../../core/services/book_list_api_service.dart';
@@ -22,6 +25,7 @@ import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/icon_circle_button.dart';
 import '../../core/widgets/network_error_state.dart';
 import '../author/catalog_author_detail_screen.dart';
+import '../home/widgets/stagger_fade_in.dart';
 import '../reader/utils/catalog_book_opener.dart';
 import 'book_open_flow.dart';
 import 'catalog_genre_books_screen.dart';
@@ -53,6 +57,8 @@ part 'catalog_book_detail_body.dart';
 class CatalogBookDetailScreen extends StatefulWidget {
   final int bookId;
   final bool canRemoveFromPurchased;
+  final String? heroTag;
+  final String? initialCoverUrl;
 
   /// Present only for a locally cached "Okuduklarım" book. If the detail
   /// request cannot reach the backend, this allows a downloaded file to open
@@ -64,6 +70,8 @@ class CatalogBookDetailScreen extends StatefulWidget {
     required this.bookId,
     this.canRemoveFromPurchased = false,
     this.offlineBook,
+    this.heroTag,
+    this.initialCoverUrl,
   });
 
   @override
@@ -90,6 +98,9 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
   static const _headerHeight = 400.0;
   static const _sheetOverlap = 30.0;
 
+  String get _heroTag =>
+      widget.heroTag ?? AppHeroTags.catalogBookCover(widget.bookId);
+
   @override
   void initState() {
     super.initState();
@@ -110,8 +121,47 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
   BookOpenFlow _flow(BookDetail book) => BookOpenFlow(
         context: context,
         book: book,
+        heroTag: _heroTag,
         onAccessChanged: _resolveAccess,
       );
+
+  Future<void> _waitForRouteTransition() async {
+    final animation = ModalRoute.of(context)?.animation;
+    if (animation == null || animation.isCompleted) return;
+
+    final completer = Completer<void>();
+    void listener(AnimationStatus status) {
+      if (status != AnimationStatus.completed &&
+          status != AnimationStatus.dismissed) {
+        return;
+      }
+      animation.removeStatusListener(listener);
+      if (!completer.isCompleted) completer.complete();
+    }
+
+    animation.addStatusListener(listener);
+    await completer.future;
+  }
+
+  Future<void> _loadFavoriteStatus() async {
+    try {
+      final favorites = await BookListApiService.listBooks(wantsTo: true);
+      if (!mounted) return;
+      final isFavorite =
+          favorites.any((favorite) => favorite.id == widget.bookId);
+      if (isFavorite != _isFavorite) {
+        setState(() => _isFavorite = isFavorite);
+      }
+    } on ApiException {
+      // Secondary state must never delay or replace the usable detail page.
+    }
+  }
+
+  Future<void> _refreshAccess() async {
+    await _resolveAccess();
+    await BookAccessService.instance.refreshPurchased();
+    await _resolveAccess();
+  }
 
   Future<void> _load() async {
     setState(() {
@@ -120,32 +170,28 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
     });
     try {
       final book = await BookApiService.getBookById(widget.bookId);
-      // `GET /books/:id` doesn't include a per-user favorite flag. The
-      // user's `wants_to` list is the backend source of truth for the heart
-      // state when this detail screen is opened again.
-      var isFavorite = false;
-      try {
-        final favoriteBooks = await BookListApiService.listBooks(wantsTo: true);
-        isFavorite =
-            favoriteBooks.any((favorite) => favorite.id == widget.bookId);
-      } on ApiException {
-        // The book detail remains useful if this secondary status lookup
-        // fails; leave the heart in its default, unfilled state.
-      }
+      // Keep the loading header stable for the complete Hero flight. A fast
+      // response used to replace it with the full detail tree mid-flight,
+      // forcing layout and paint work into the transition frames.
+      await _waitForRouteTransition();
       if (!mounted) return;
       setState(() {
         _book = book;
-        _isFavorite = isFavorite;
         _isFinished = (book.progress ?? 0) >= 100;
         _loading = false;
       });
-      // Cheap and cache-first, so the CTA has a verdict almost immediately;
-      // the purchased list is re-synced in the background in case it
-      // changed on another device.
-      await _resolveAccess();
-      await BookAccessService.instance.refreshPurchased();
-      await _resolveAccess();
+      // Reaching this screen at all is the user having selected a book —
+      // whichever shelf, grid or deep link they tapped it from. Fired here,
+      // once per successful load, instead of at every tap site upstream.
+      unawaited(AnalyticsService.instance
+          .logSelectBook(id: '${widget.bookId}', title: book.name));
+      // These secondary states update independently after useful content is
+      // visible; neither belongs on the route-transition critical path.
+      unawaited(_loadFavoriteStatus());
+      unawaited(_refreshAccess());
     } on ApiException catch (e) {
+      await _waitForRouteTransition();
+      if (!mounted) return;
       final offlineBook = widget.offlineBook;
       if (offlineBook != null && await _openOfflineCopy(offlineBook)) return;
       if (!mounted) return;
@@ -179,7 +225,7 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
       coverUrl: book.image == null || book.image!.isEmpty
           ? null
           : ApiConfig.resolveImageUrl(book.image!),
-      heroTag: AppHeroTags.catalogBookCover(book.id),
+      heroTag: _heroTag,
     );
     return true;
   }

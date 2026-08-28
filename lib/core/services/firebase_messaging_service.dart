@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io' show Platform;
 
 import 'package:firebase_core/firebase_core.dart';
@@ -9,19 +10,35 @@ import '../../firebase_options.dart';
 import 'auth_api_service.dart';
 import 'auth_session.dart';
 import 'local_notifications_service.dart';
+import 'notification_dedup_service.dart';
 
 /// Push notifications — same singleton pattern as [AnalyticsService].
 /// Firebase itself is already brought up by `AnalyticsService.init()` before
 /// this runs, so [init] doesn't call [Firebase.initializeApp] again; the
 /// background handler runs in its own isolate though, which doesn't share
 /// that state, so it guards its own init.
+///
+/// This is the app's **transactional** push provider: account, purchase,
+/// security and anything else the backend sends directly, plus the
+/// `/users/fcm-token` handshake that makes those deliverable. Engagement
+/// campaigns (continue-reading, streak, Shipaton) belong to [OneSignalService]
+/// instead — see its doc comment for the full split.
+///
+/// The two providers share one Firebase project, so OneSignal's campaigns
+/// also arrive on this class's [FirebaseMessaging.onMessage] stream. They are
+/// filtered out in [_onForegroundMessage]; see [oneSignalNotificationId].
 class FirebaseMessagingService {
   FirebaseMessagingService._();
   static final FirebaseMessagingService instance = FirebaseMessagingService._();
 
+  /// Brings the messaging stack up **without** asking for permission.
+  ///
+  /// The native prompt used to fire from here, at boot, before the user had
+  /// seen anything explaining it. It is now raised once from the app shell
+  /// (see `NotificationPermissionFlow`) and only ever through OneSignal, so
+  /// the two SDKs can't each raise a prompt of their own.
   Future<void> init() async {
     await LocalNotificationsService.instance.init();
-    await _requestPermission();
     // Firebase deliberately suppresses notification banners while an iOS app
     // is open unless these presentation options are set. This is independent
     // of the user's notification permission.
@@ -101,28 +118,60 @@ class FirebaseMessagingService {
     }
   }
 
-  Future<void> _requestPermission() async {
-    final settings = await FirebaseMessaging.instance.requestPermission();
-    _debugPrintColored(
-      'Push permission: ${settings.authorizationStatus.name}',
-      settings.authorizationStatus == AuthorizationStatus.authorized ||
-              settings.authorizationStatus == AuthorizationStatus.provisional
-          ? _AnsiColor.cyan
-          : _AnsiColor.red,
-    );
+  /// The OneSignal notification id carried by [data], or null when this
+  /// payload didn't come from OneSignal.
+  ///
+  /// Every OneSignal notification carries a `custom` field holding a JSON
+  /// object with an `i` key — the OneSignal notification id. Their own
+  /// documentation calls that key required: without it their SDKs won't
+  /// process the notification, fire click events, or record analytics. So
+  /// this is a structural property of their payload, not a guess about its
+  /// text — no substring sniffing, which would break the moment a campaign's
+  /// wording changed.
+  ///
+  /// FCM flattens every data value to a string in transit, hence the decode;
+  /// an already-decoded map is accepted too so the check doesn't depend on
+  /// which layer handed the payload over.
+  @visibleForTesting
+  static String? oneSignalNotificationId(Map<String, dynamic> data) {
+    final raw = data['custom'];
+    Object? decoded = raw;
+    if (raw is String) {
+      try {
+        decoded = jsonDecode(raw);
+      } on FormatException {
+        return null;
+      }
+    }
+    if (decoded is! Map) return null;
+    final id = decoded['i'];
+    return (id is String && id.isNotEmpty) ? id : null;
   }
 
   void _onForegroundMessage(RemoteMessage message) {
+    // OneSignal delivers through this same Firebase project, so its
+    // engagement campaigns land on this stream as well — and the OneSignal
+    // SDK already presents them itself. Re-showing one here is exactly the
+    // double banner the two-provider setup has to avoid.
+    if (oneSignalNotificationId(message.data) != null) return;
+
     final notification = message.notification;
     // iOS now presents the remote message itself (configured in [init]). A
     // second local notification here would create duplicate banners.
-    if (notification != null && !Platform.isIOS) {
-      LocalNotificationsService.instance.showNotification(
-        notification.title,
-        notification.body,
-        message.data.toString(),
-      );
+    if (notification == null || Platform.isIOS) return;
+
+    // FCM can redeliver a message id (a retry, or a reconnect replaying the
+    // queue). One banner per message, whatever the transport does.
+    final messageId = message.messageId;
+    if (messageId != null &&
+        !NotificationDedupService.instance.claim('fcm-show:$messageId')) {
+      return;
     }
+    LocalNotificationsService.instance.showNotification(
+      notification.title,
+      notification.body,
+      message.data.toString(),
+    );
   }
 
   void _onMessageOpenedApp(RemoteMessage message) {

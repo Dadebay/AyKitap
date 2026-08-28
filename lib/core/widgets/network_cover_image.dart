@@ -15,6 +15,9 @@ class NetworkCoverImage extends StatelessWidget {
   final double? width;
   final double? height;
 
+  /// Forces a blurred full-screen copy to reuse the already-decoded cover.
+  final int? decodeCacheWidth;
+
   /// Which part of the source survives a [BoxFit.cover] crop — worth moving
   /// off center for portraits, where the face sits above the middle.
   final Alignment alignment;
@@ -25,6 +28,7 @@ class NetworkCoverImage extends StatelessWidget {
     this.fit = BoxFit.cover,
     this.width,
     this.height,
+    this.decodeCacheWidth,
     this.alignment = Alignment.center,
   });
 
@@ -44,23 +48,17 @@ class NetworkCoverImage extends StatelessWidget {
       builder: (context, constraints) {
         final boxWidth = finite(width) ?? finite(constraints.maxWidth);
         final boxHeight = finite(height) ?? finite(constraints.maxHeight);
-        // Only ever hand the decoder ONE dimension. `ResizeImage` (which is
-        // what memCacheWidth/Height build under the hood) resizes to exactly
-        // the sizes it is given, so passing both squashes the source's aspect
-        // ratio — a portrait photo in a square avatar box came out visibly
-        // stretched sideways, and no BoxFit could undo it because the
-        // distortion already happened at decode time. With one dimension the
-        // other scales proportionally; picking the larger side is what keeps
-        // BoxFit.cover from decoding below the size it actually paints at.
-        int px(double v) => (v * dpr).round();
-        int? cacheWidth;
+        int px(double value) => (value * dpr).round();
+        int? cacheWidth = decodeCacheWidth;
         int? cacheHeight;
-        if (boxWidth != null && boxHeight != null) {
-          cacheWidth = px(math.max(boxWidth, boxHeight));
-        } else if (boxWidth != null) {
-          cacheWidth = px(boxWidth);
-        } else if (boxHeight != null) {
-          cacheHeight = px(boxHeight);
+        if (cacheWidth == null) {
+          if (boxWidth != null && boxHeight != null) {
+            cacheWidth = px(math.max(boxWidth, boxHeight));
+          } else if (boxWidth != null) {
+            cacheWidth = px(boxWidth);
+          } else if (boxHeight != null) {
+            cacheHeight = px(boxHeight);
+          }
         }
         return CachedNetworkImage(
           imageUrl: url,

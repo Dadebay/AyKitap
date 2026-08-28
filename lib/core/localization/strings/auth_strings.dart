@@ -52,6 +52,89 @@ class AuthStrings {
   static String get termsSuffix => t(
       tk: ' razylaşýarsyňyz.', ru: '.', tr: ' kabul etmiş olursunuz.', en: '.');
 
+  // ── International login (Firebase: email/password, Google, Apple) ─────
+  static String get otherMethodsLink => t(
+      tk: 'Başga usul bilen dowam et',
+      ru: 'Продолжить другим способом',
+      tr: 'Başka bir yöntemle devam et',
+      en: 'Continue with another method');
+  static String get internationalLoginTitle =>
+      t(tk: 'Giriş', ru: 'Вход', tr: 'Giriş yap', en: 'Sign in');
+  static String get internationalLoginSubtitle => t(
+        tk: 'E-poçta, Google ýa-da Apple bilen giriň.',
+        ru: 'Войдите через email, Google или Apple.',
+        tr: 'E-posta, Google veya Apple ile giriş yap.',
+        en: 'Sign in with email, Google, or Apple.',
+      );
+  static String get continueWithGoogle => t(
+      tk: 'Google bilen dowam et',
+      ru: 'Продолжить через Google',
+      tr: 'Google ile devam et',
+      en: 'Continue with Google');
+  static String get continueWithApple => t(
+      tk: 'Apple bilen dowam et',
+      ru: 'Продолжить через Apple',
+      tr: 'Apple ile devam et',
+      en: 'Continue with Apple');
+  static String get orDivider =>
+      t(tk: 'ýa-da', ru: 'или', tr: 'veya', en: 'or');
+  static String get emailLabel =>
+      t(tk: 'E-poçta', ru: 'Эл. почта', tr: 'E-posta', en: 'Email');
+  static String get passwordLabel =>
+      t(tk: 'Parol', ru: 'Пароль', tr: 'Şifre', en: 'Password');
+  static String get emailSignInButton =>
+      t(tk: 'Girmek', ru: 'Войти', tr: 'Giriş yap', en: 'Sign in');
+  static String get emailRegisterButton => t(
+      tk: 'Hasap döret',
+      ru: 'Создать аккаунт',
+      tr: 'Hesap oluştur',
+      en: 'Create account');
+  static String get emailTogglePrefixHaveAccount => t(
+      tk: 'Hasabyňyz barmy? ',
+      ru: 'Уже есть аккаунт? ',
+      tr: 'Zaten hesabın var mı? ',
+      en: 'Already have an account? ');
+  static String get emailTogglePrefixNoAccount => t(
+      tk: 'Hasabyňyz ýokmy? ',
+      ru: 'Ещё нет аккаунта? ',
+      tr: 'Hesabın yok mu? ',
+      en: 'Don\'t have an account? ');
+  static String get emailToggleToSignIn =>
+      t(tk: 'Gir', ru: 'Войти', tr: 'Giriş yap', en: 'Sign in');
+  static String get emailToggleToRegister =>
+      t(tk: 'Döret', ru: 'Создать', tr: 'Oluştur', en: 'Create one');
+
+  static String get firebaseErrorInvalidEmail => t(
+      tk: 'E-poçta salgysy nädogry.',
+      ru: 'Неверный адрес электронной почты.',
+      tr: 'E-posta adresi geçersiz.',
+      en: 'That email address looks invalid.');
+  static String get firebaseErrorWrongPassword => t(
+      tk: 'E-poçta ýa-da parol nädogry.',
+      ru: 'Неверный email или пароль.',
+      tr: 'E-posta veya şifre hatalı.',
+      en: 'Incorrect email or password.');
+  static String get firebaseErrorUserNotFound => t(
+      tk: 'Bu e-poçta bilen hasap tapylmady.',
+      ru: 'Аккаунт с таким email не найден.',
+      tr: 'Bu e-posta ile bir hesap bulunamadı.',
+      en: 'No account found with that email.');
+  static String get firebaseErrorEmailInUse => t(
+      tk: 'Bu e-poçta eýýäm ulanylýar.',
+      ru: 'Этот email уже используется.',
+      tr: 'Bu e-posta zaten kullanılıyor.',
+      en: 'That email is already in use.');
+  static String get firebaseErrorWeakPassword => t(
+      tk: 'Parol gaty ýönekeý — azyndan 6 nyşan giriziň.',
+      ru: 'Слишком простой пароль — минимум 6 символов.',
+      tr: 'Şifre çok zayıf — en az 6 karakter girin.',
+      en: 'That password is too weak — use at least 6 characters.');
+  static String get firebaseErrorNetwork => t(
+      tk: 'Internet baglanyşygyny barlaň.',
+      ru: 'Проверьте подключение к интернету.',
+      tr: 'İnternet bağlantınızı kontrol edin.',
+      en: 'Check your internet connection.');
+
   // ── OTP verify ───────────────────────────────────────────────────────
   static String get otpTitle => t(
       tk: 'Kody giriziň',

@@ -23,10 +23,14 @@ class LocalNotificationsService {
     if (_initialized) return;
     _plugin = FlutterLocalNotificationsPlugin();
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    // All three deliberately false: this plugin initialises at boot, and
+    // asking here would raise the iOS permission prompt before the user has
+    // seen the in-app explanation. Permission is requested once, later, and
+    // only through OneSignal — see `NotificationPermissionFlow`.
     const iosInit = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
     await _plugin.initialize(
         const InitializationSettings(android: androidInit, iOS: iosInit));

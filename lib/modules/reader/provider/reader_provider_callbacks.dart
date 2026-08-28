@@ -42,6 +42,12 @@ extension ReaderProviderCallbacks on ReaderProvider {
     // book actually open at the size the reader chose.
     epubController.setFontSize(fontSize: _fontSize);
     epubController.updateTheme(theme: _buildEpubTheme());
+    // Whatever window/hinge state was already computed before the rendition
+    // existed (ReaderProviderLayout.updateWindowSizeClass's first call,
+    // which fires during this screen's own mount) gets its actual setSpread
+    // push here, now that there's a rendition to receive it — see that
+    // method's doc comment.
+    _recomputeSpread();
 
     // Restore reading position. A saved CFI is handed to EpubViewer as
     // initialCfi and the WebView already opened there directly — jumping

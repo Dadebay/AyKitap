@@ -18,6 +18,7 @@ extension _OfflineLibraryScreenSections on _OfflineLibraryScreenState {
           itemCount: catalogBooks.length,
           itemBuilder: (context, i) => LibraryBookCover(
             book: catalogBooks[i],
+            heroShelf: 'offline-downloaded',
             onTap: () => _openCatalogBook(catalogBooks[i]),
           ),
         ),

@@ -54,13 +54,23 @@ extension _ApiBooksTabActions on _ApiBooksTabState {
   }
 
   Future<void> _openBook(LibraryBook book) async {
+    final image = book.image;
+    final coverUrl = image != null && image.isNotEmpty
+        ? ApiConfig.resolveImageUrl(image)
+        : null;
+    final heroTag =
+        AppHeroTags.libraryShelfBookCover(widget.heroShelf, book.id);
     final results = await Connectivity().checkConnectivity();
     final isOffline =
         results.every((result) => result == ConnectivityResult.none);
     if (!isOffline) {
       if (!mounted) return;
-      await context.push<bool>(
-          CatalogBookDetailScreen(bookId: book.id, offlineBook: book));
+      await context.pushHero<bool>(CatalogBookDetailScreen(
+        bookId: book.id,
+        offlineBook: book,
+        heroTag: heroTag,
+        initialCoverUrl: coverUrl,
+      ));
       return;
     }
 
@@ -87,6 +97,8 @@ extension _ApiBooksTabActions on _ApiBooksTabState {
       bookId: book.id,
       title: book.name,
       pageCount: book.pageCount,
+      coverUrl: coverUrl,
+      heroTag: heroTag,
     );
   }
 

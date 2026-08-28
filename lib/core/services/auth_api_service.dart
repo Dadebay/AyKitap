@@ -64,6 +64,30 @@ class AuthApiService {
     }
   }
 
+  /// Trades a Firebase ID token (email/password, Google or Apple — see
+  /// [FirebaseAuthService]) for an Aýkitap session via
+  /// `POST /users/firebase-login`. Same response shape and same
+  /// null-`username`-means-new-account signal as [verifyLogin], so both
+  /// share the [completeBackendLogin] pipeline downstream.
+  static Future<VerifyLoginResult> firebaseLogin({
+    required String idToken,
+    String clientType = 'mobile',
+  }) async {
+    try {
+      final response = await DioClient.instance.post(
+        AuthEndpoints.firebaseLogin,
+        data: {'idToken': idToken, 'clientType': clientType},
+      );
+      final data = response.data['data'] as Map<String, dynamic>;
+      return VerifyLoginResult(
+        accessToken: data['accessToken'] as String,
+        user: AuthUser.fromJson(data['user'] as Map<String, dynamic>),
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   /// Sets the signed-in user's display name on the backend — called right
   /// after a first-time signup's mandatory name-entry step ([NameEntryScreen]),
   /// so the account has a `username` on the server the moment it exists

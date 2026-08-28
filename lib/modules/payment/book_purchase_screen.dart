@@ -1,7 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/localization/strings/payment_strings.dart';
 import '../../core/models/book_detail.dart';
 import '../../core/navigation/app_navigator.dart';
 import '../../core/network/api_exception.dart';
@@ -9,9 +11,9 @@ import '../../core/services/account_service.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/services/book_access_service.dart';
 import '../../core/services/book_purchase_api_service.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/app_snackbar.dart';
-import '../../core/localization/strings/payment_strings.dart';
 import 'balance_top_up.dart';
 import 'widgets/book_purchase_confirm_button.dart';
 import 'widgets/book_purchase_price_card.dart';
@@ -47,10 +49,24 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
     if (_processing) return;
     final balance = context.read<AccountService>().balanceManat;
     if (balance == null || balance < _price) {
+      unawaited(AnalyticsService.instance.logPurchaseStep(
+        step: 'blocked',
+        productType: 'book',
+        productId: '${widget.book.id}',
+        source: 'insufficient_balance',
+        value: _price,
+      ));
       await _offerTopUp(balance);
       return;
     }
 
+    unawaited(AnalyticsService.instance.logPurchaseStep(
+      step: 'started',
+      productType: 'book',
+      productId: '${widget.book.id}',
+      source: 'backend_balance',
+      value: _price,
+    ));
     setState(() => _processing = true);
     try {
       await BookPurchaseApiService.buy(widget.book.id);
@@ -61,6 +77,13 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
       if (!mounted) return;
       await context.read<BookAccessService>().markPurchased(widget.book.id);
     } on ApiException catch (e) {
+      unawaited(AnalyticsService.instance.logPurchaseStep(
+        step: 'failed',
+        productType: 'book',
+        productId: '${widget.book.id}',
+        source: 'backend_balance',
+        value: _price,
+      ));
       if (!mounted) return;
       setState(() => _processing = false);
       context.showAppSnackBar(e.message, isError: true);
@@ -74,6 +97,13 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
       value: _price.toDouble(),
       currency: 'TMT',
     );
+    unawaited(AnalyticsService.instance.logPurchaseStep(
+      step: 'completed',
+      productType: 'book',
+      productId: '${widget.book.id}',
+      source: 'backend_balance',
+      value: _price,
+    ));
     context.showAppSnackBar(PaymentStrings.purchasedSnackbar(widget.book.name));
     context.pop(true);
   }

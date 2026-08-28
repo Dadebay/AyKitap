@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../home/widgets/stagger_fade_in.dart';
 
 /// Lays [itemCount] items out across repeating wooden-shelf "compartments"
 /// of up to 3 upright covers each, matching the TZ section-7 reference
@@ -7,6 +8,10 @@ import 'package:flutter/material.dart';
 /// Not scrollable itself: the caller wraps it in whatever scroll view fits
 /// (a bare scroller for a full-tab grid, or one shared ListView alongside
 /// other header content, as in `OwnBooksTab`).
+///
+/// Staggered by shelf row (not by individual cover — three covers landing
+/// on the same wooden shelf at once reads as one unit, matching the row
+/// stagger [CatalogCollectionBooksScreen]'s grid uses for the same reason).
 class ShelfGrid extends StatelessWidget {
   final int itemCount;
   final Widget Function(BuildContext context, int index) itemBuilder;
@@ -20,11 +25,14 @@ class ShelfGrid extends StatelessWidget {
     return Column(
       children: List.generate(shelfCount, (shelfIndex) {
         final start = shelfIndex * perShelf;
-        return _ShelfRow(
-          slots: List.generate(3, (i) {
-            final idx = start + i;
-            return idx < itemCount ? itemBuilder(context, idx) : null;
-          }),
+        return StaggerFadeIn(
+          index: shelfIndex,
+          child: _ShelfRow(
+            slots: List.generate(3, (i) {
+              final idx = start + i;
+              return idx < itemCount ? itemBuilder(context, idx) : null;
+            }),
+          ),
         );
       }),
     );

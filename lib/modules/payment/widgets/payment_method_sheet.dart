@@ -3,20 +3,28 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/strings/payment_strings.dart';
 
-enum PaymentMethodChoice { promoCode, bankCard }
+enum PaymentMethodChoice { promoCode, bankCard, store }
 
 /// The first step of checkout on [SubscriptionScreen] — asks how the user
 /// wants to pay before anything is actually charged, rather than the old
 /// "tap Subscribe and it just happens" flow.
 class PaymentMethodSheet extends StatelessWidget {
-  const PaymentMethodSheet({super.key});
+  const PaymentMethodSheet({super.key, this.showStore = false});
 
-  static Future<PaymentMethodChoice?> show(BuildContext context) {
+  /// Adds the [PaymentMethodChoice.store] row — App Store/Google Play via
+  /// RevenueCat. Off by default: the local bank flow only accepts
+  /// Turkmenistan bank cards, so this only makes sense to show once the
+  /// caller has confirmed (via `RevenueCatApiService.getConfig`) that the
+  /// signed-in user is on the foreign/store billing path.
+  final bool showStore;
+
+  static Future<PaymentMethodChoice?> show(BuildContext context,
+      {bool showStore = false}) {
     return showModalBottomSheet<PaymentMethodChoice>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => const PaymentMethodSheet(),
+      builder: (_) => PaymentMethodSheet(showStore: showStore),
     );
   }
 
@@ -62,6 +70,14 @@ class PaymentMethodSheet extends StatelessWidget {
               label: PaymentStrings.payWithCard,
               onTap: () => Navigator.pop(context, PaymentMethodChoice.bankCard),
             ),
+            if (showStore) ...[
+              Divider(color: AppColors.border, height: 1),
+              _OptionRow(
+                icon: HugeIcons.strokeRoundedStore01,
+                label: PaymentStrings.payWithStore,
+                onTap: () => Navigator.pop(context, PaymentMethodChoice.store),
+              ),
+            ],
           ],
         ),
       ),

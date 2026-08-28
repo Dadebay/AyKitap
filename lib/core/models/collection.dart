@@ -8,10 +8,11 @@ enum CollectionType { book, author }
 /// Which visual [Collection] renders as on Home when [CollectionType.book]:
 /// `card_1` a title + horizontally-scrolling row of individual book cards,
 /// `card_2` a single ranked-shelf card (banner + top books), `card_3` a
-/// single big series-style image card. Unrecognized values fall back to
+/// single big series-style image card, and `card_4` a numbered horizontal
+/// bestseller row. Unrecognized values fall back to
 /// `card1` rather than throwing, so a new backend card type doesn't crash
 /// the app — it just renders as the plain row until this is taught about it.
-enum CollectionCardType { card1, card2, card3 }
+enum CollectionCardType { card1, card2, card3, card4 }
 
 /// One row from `GET /collections/all` — a themed shelf on Home
 /// ("Täze gelenler", "Hepdelik iň köp okalanlar", "Rus Ýazarlar", ...).
@@ -85,6 +86,8 @@ class Collection {
         return CollectionCardType.card2;
       case 'card_3':
         return CollectionCardType.card3;
+      case 'card_4':
+        return CollectionCardType.card4;
       default:
         return CollectionCardType.card1;
     }

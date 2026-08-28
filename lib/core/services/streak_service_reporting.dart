@@ -73,6 +73,7 @@ extension _StreakServiceReporting on StreakService {
   void _applyReport(StreakReportResult result) {
     final current = _overview;
     if (current == null) return;
+    final completedNow = !current.today.goalMet && result.today.goalMet;
     _overview = StreakOverview(
       currentStreak: result.currentStreak,
       bestStreak: result.bestStreak,
@@ -83,6 +84,21 @@ extension _StreakServiceReporting on StreakService {
       lastMonth: current.lastMonth,
       rewardRules: current.rewardRules,
     );
+    if (completedNow) {
+      unawaited(AnalyticsService.instance.logReadingGoalCompleted(
+        pages: result.today.pages,
+        minutes: result.today.minutes,
+        streak: result.currentStreak,
+      ));
+      final context = rootNavigatorKey.currentState?.overlay?.context;
+      if (context != null) {
+        StreakGoalCelebration.show(
+          context,
+          minutes: result.today.minutes,
+          pages: result.today.pages,
+        );
+      }
+    }
   }
 
   List<StreakWeekDay> _mergeToday(List<StreakWeekDay> week, StreakDay today) {

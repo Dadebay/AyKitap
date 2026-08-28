@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../core/models/user_note.dart';
+import '../../../core/navigation/app_hero_tags.dart';
 import '../../../core/network/api_config.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/book_cover_hero.dart';
 import '../../../core/widgets/network_cover_image.dart';
 import '../../../core/localization/strings/profile_strings.dart';
 
@@ -22,6 +24,7 @@ class NoteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final snippet = note.snippet;
     final image = note.bookImage;
+    final heroTag = AppHeroTags.noteBookCover(note.id, note.bookId);
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
       decoration: BoxDecoration(
@@ -90,16 +93,16 @@ class NoteCard extends StatelessWidget {
             behavior: HitTestBehavior.opaque,
             child: Row(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
+                BookCoverHero(
+                  tag: heroTag,
+                  width: 32,
+                  height: 44,
+                  style: BookCoverStyle(borderRadius: 6),
                   child: image != null && image.isNotEmpty
-                      ? SizedBox(
-                          width: 32,
-                          height: 44,
-                          child: NetworkCoverImage(
-                              url: ApiConfig.resolveImageUrl(image),
-                              placeholder: (_) => _coverPlaceholder()),
-                        )
+                      ? NetworkCoverImage(
+                          url: ApiConfig.resolveImageUrl(image),
+                          decodeCacheWidth: 650,
+                          placeholder: (_) => _coverPlaceholder())
                       : _coverPlaceholder(),
                 ),
                 const SizedBox(width: 10),

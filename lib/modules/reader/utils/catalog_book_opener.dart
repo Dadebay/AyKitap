@@ -31,7 +31,11 @@ void openCatalogBookFile(
   String? coverUrl,
   String? heroTag,
 }) {
-  AnalyticsService.instance.logBookOpened(id: '$bookId', format: format);
+  AnalyticsService.instance.logBookOpened(
+    id: '$bookId',
+    format: format,
+    source: 'catalog',
+  );
   switch (format) {
     case 'pdf':
       openPdfBook(
