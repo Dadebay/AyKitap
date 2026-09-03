@@ -101,7 +101,6 @@ class NoteCard extends StatelessWidget {
                   child: image != null && image.isNotEmpty
                       ? NetworkCoverImage(
                           url: ApiConfig.resolveImageUrl(image),
-                          decodeCacheWidth: 650,
                           placeholder: (_) => _coverPlaceholder())
                       : _coverPlaceholder(),
                 ),

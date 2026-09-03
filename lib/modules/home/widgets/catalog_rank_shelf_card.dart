@@ -20,7 +20,23 @@ import '../catalog_collection_books_screen.dart';
 /// collection with none set.
 class CatalogRankShelfCard extends StatelessWidget {
   final Collection collection;
-  const CatalogRankShelfCard({super.key, required this.collection});
+
+  /// True when the caller has already given this card a fixed height to
+  /// fill (the genre-shelf row, sized to its tallest sibling — see
+  /// [_buildGenreShelfRow]'s `rowHeight`) — pins the "see more" button to
+  /// the card's bottom edge instead of leaving it stranded under the last
+  /// tile with a bare gap underneath whenever the shelf has few books.
+  /// False (the default, standalone Home placement) sizes the card to its
+  /// own content instead, which an [Expanded] would only be able to do if
+  /// wrapped in a bounded height itself — this flag keeps that requirement
+  /// opt-in rather than forcing every call site to supply one.
+  final bool fillHeight;
+
+  const CatalogRankShelfCard({
+    super.key,
+    required this.collection,
+    this.fillHeight = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -93,39 +109,54 @@ class CatalogRankShelfCard extends StatelessWidget {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
-            child: Column(
-              children: [
-                for (int i = 0; i < top.length; i++) ...[
-                  _RankedBookTile(
-                      rank: i + 1, book: top[i], collectionId: collection.id),
-                  if (i != top.length - 1) const SizedBox(height: 12),
-                ],
-                if (books.length > top.length)
-                  Container(
-                    width: double.infinity,
-                    height: 46,
-                    margin: const EdgeInsets.only(top: 14),
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: AppColors.border),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+          Flexible(
+            fit: fillHeight ? FlexFit.tight : FlexFit.loose,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
+              child: Column(
+                children: [
+                  for (int i = 0; i < top.length; i++) ...[
+                    _RankedBookTile(
+                        rank: i + 1,
+                        book: top[i],
+                        collectionId: collection.id),
+                    if (i != top.length - 1) const SizedBox(height: 12),
+                  ],
+                  // Fills whatever slack space is left when the card is
+                  // stretched to match a taller sibling in its shelf row
+                  // (see [_buildGenreShelfTile]'s `rowHeight`) — without it
+                  // a shelf with few books left the button stranded right
+                  // under the last tile instead of pinned to the card's
+                  // bottom edge like every other row. A no-op [SizedBox]
+                  // outside that context: [Spacer] needs the [Flexible]
+                  // above it to actually be bounded, which only
+                  // [fillHeight]'s [FlexFit.tight] guarantees.
+                  if (fillHeight) const Spacer(),
+                  if (books.isNotEmpty)
+                    Container(
+                      width: double.infinity,
+                      height: 46,
+                      margin: const EdgeInsets.only(top: 14),
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: AppColors.border),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () => context.pushFade(
+                            CatalogCollectionBooksScreen(
+                                title: collection.name,
+                                books: books,
+                                ranked: true)),
+                        child: Text(HomeStrings.seeMore,
+                            style: TextStyle(
+                                color: AppColors.grey1,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700)),
                       ),
-                      onPressed: () => context.pushFade(
-                          CatalogCollectionBooksScreen(
-                              title: collection.name,
-                              books: books,
-                              ranked: true)),
-                      child: Text(HomeStrings.seeMore,
-                          style: TextStyle(
-                              color: AppColors.grey1,
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w700)),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -172,7 +203,6 @@ class _RankedBookTile extends StatelessWidget {
               child: image != null && image.isNotEmpty
                   ? NetworkCoverImage(
                       url: ApiConfig.resolveImageUrl(image),
-                      decodeCacheWidth: 650,
                       placeholder: (_) => const SizedBox.shrink())
                   : const SizedBox.shrink(),
             ),

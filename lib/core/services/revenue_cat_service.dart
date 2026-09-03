@@ -50,7 +50,7 @@ class RevenueCatService extends ChangeNotifier {
   ///  --dart-define=REVENUECAT_ANDROID_PUBLIC_KEY=goog_...`
   static const _iosApiKey = String.fromEnvironment(
     'REVENUECAT_IOS_PUBLIC_KEY',
-    defaultValue: 'appl_EZNHWohHbvIOMmdPPfixzVfSAVy',
+    defaultValue: 'appl_EZNHWohHbvIONmdPPfixzVfSAVy',
   );
   static const _androidApiKey = String.fromEnvironment(
     'REVENUECAT_ANDROID_PUBLIC_KEY',
@@ -81,6 +81,14 @@ class RevenueCatService extends ChangeNotifier {
   bool _ready = false;
   bool get isReady => _ready;
 
+  /// The in-flight (or, once successful, permanently-resolved) [init] call —
+  /// shared across every caller instead of each one starting its own
+  /// `_client.configure(...)`. `main()` fires this without awaiting it, so
+  /// nothing here can assume it's the only caller in flight; without this,
+  /// [loginCurrentUser] racing another `init()` call (or a widget rebuilding
+  /// and calling it again) could configure the SDK twice.
+  Future<void>? _initFuture;
+
   int? _pendingLoginUserId;
   bool _pendingLogout = false;
 
@@ -102,12 +110,22 @@ class RevenueCatService extends ChangeNotifier {
   }
 
   /// Configures the SDK and loads the current (anonymous, until [login] is
-  /// called) customer's info. Call once from `main()`, awaited — unlike
-  /// [OneSignalService.initialize] this isn't fire-and-forget, because
-  /// [PremiumAccessService] needs it to already reflect reality by the time
-  /// the first screen that gates on it builds.
-  Future<void> init() async {
-    if (_ready) return;
+  /// called) customer's info. `main()` fires this without awaiting it — a
+  /// store/network round-trip (`getCustomerInfo`) must never sit in front of
+  /// the first frame — so [PremiumAccessService]/UI necessarily start out
+  /// reading `isPlusActive` as false and pick up the real value once
+  /// [notifyListeners] fires here.
+  ///
+  /// Safe to call more than once (or before a previous call has resolved):
+  /// every caller shares the same [_initFuture], and [_client.configure] runs
+  /// exactly once. A failed attempt is *not* cached — [_ready] stays false,
+  /// so the next call retries instead of permanently giving up.
+  Future<void> init() {
+    if (_ready) return Future.value();
+    return _initFuture ??= _performInit();
+  }
+
+  Future<void> _performInit() async {
     try {
       await _client.configure(apiKey, debugLogging: kDebugMode);
       _client.addCustomerInfoUpdateListener(_onCustomerInfoUpdated);
@@ -119,6 +137,7 @@ class RevenueCatService extends ChangeNotifier {
       // No app id/network at boot must never crash startup — the reader
       // just won't see Plus-gated content until the SDK comes back.
       debugPrint('RevenueCat init failed | $error');
+      _initFuture = null;
     }
   }
 

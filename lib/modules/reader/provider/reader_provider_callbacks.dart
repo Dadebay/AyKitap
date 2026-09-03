@@ -12,6 +12,15 @@ extension ReaderProviderCallbacks on ReaderProvider {
   String get currentCfi => _currentCfi;
   bool get isAtLastPage => _isAtLastPage;
 
+  /// The page-scoped slice of this provider's state — see
+  /// [ReaderProgressSnapshot] — published separately from `notifyListeners`
+  /// so a page turn can update just the small widgets that read it (top bar
+  /// title, bottom bar progress/page, focus-mode labels — see
+  /// reader_view_chrome.dart) without rebuilding the rest of the reader
+  /// screen, the EpubViewer subtree included.
+  ValueListenable<ReaderProgressSnapshot> get progressListenable =>
+      _progressNotifier;
+
   /// This fires on epub.js's `displayed` event, which is emitted on *every*
   /// navigation — each chapter tap included — not once per book. Everything
   /// below is per-rendition setup, so it's guarded to run only the first time.
@@ -104,7 +113,14 @@ extension ReaderProviderCallbacks on ReaderProvider {
     }
   }
 
+  /// Every navigation inside the book funnels through here, so — unlike the
+  /// rest of this class — it deliberately does *not* call [_notify]. Rebuild-
+  /// ing the whole reader screen's `Consumer<ReaderProvider>` (and the
+  /// EpubViewer subtree underneath it) on every single page turn is what
+  /// this refactor removes; see [_updateProgressSnapshot] and
+  /// reader_view_chrome.dart for where this now actually lands.
   void onRelocated(EpubLocation location) {
+    if (_disposed) return;
     _progress = location.progress;
     _currentCfi = location.startCfi;
     _currentHref = location.href ?? '';
@@ -112,12 +128,41 @@ extension ReaderProviderCallbacks on ReaderProvider {
     // no tocHref; the file is then the whole answer.
     _currentTocHref = location.tocHref ?? _currentHref;
     _onPageChanged(location.page, location.totalPages);
-    log('📍 file=$_currentHref toc=$_currentTocHref p=$_currentPage/$_totalPages → ${currentChapterTitle ?? '—'}');
-    _notify();
+    _updateProgressSnapshot();
+    if (kDebugMode) {
+      final title = _progressNotifier.value.currentChapterTitle ?? '—';
+      log('📍 file=$_currentHref toc=$_currentTocHref p=$_currentPage/$_totalPages → $title');
+    }
 
     // Debounced save
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(seconds: 2), _saveProgress);
+  }
+
+  /// Recomputes the page-scoped slice of state (see [ReaderProgressSnapshot])
+  /// from the fields above and republishes it on [progressListenable].
+  /// [ValueNotifier.value]'s own `==` check means an identical snapshot (the
+  /// same relocation reported twice, for instance) is a no-op — no listener
+  /// fires — so equality on [ReaderProgressSnapshot] has to stay exact.
+  ///
+  /// Called from every place that can change one of these fields outside
+  /// [onRelocated] itself: chapters finishing their first load (the current
+  /// position's chapter title can only resolve once the TOC is in), a
+  /// bookmark being toggled/removed at the current position, and provider
+  /// init/reset picking up a saved or cleared position.
+  void _updateProgressSnapshot() {
+    if (_disposed) return;
+    _progressNotifier.value = ReaderProgressSnapshot(
+      progress: _progress,
+      currentPage: _currentPage,
+      totalPages: _totalPages,
+      currentCfi: _currentCfi,
+      currentHref: _currentHref,
+      currentTocHref: _currentTocHref,
+      currentChapterTitle: currentChapterTitle,
+      isAtLastPage: _isAtLastPage,
+      isBookmarked: isCurrentPageBookmarked,
+    );
   }
 
   /// Page state, folded in from each relocation. [current] and [total] are 0

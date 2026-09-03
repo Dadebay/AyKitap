@@ -87,5 +87,8 @@ extension ReaderProviderChapters on ReaderProvider {
     log('📑 Chapters loaded: ${chapters.length}');
     _chapters = chapters;
     _notify();
+    // The current position's chapter title can only resolve once the TOC is
+    // in, so republish the progress snapshot too — see _updateProgressSnapshot.
+    _updateProgressSnapshot();
   }
 }

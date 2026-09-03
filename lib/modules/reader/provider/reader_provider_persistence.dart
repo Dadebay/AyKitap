@@ -73,5 +73,6 @@ extension ReaderProviderPersistence on ReaderProvider {
     _selectionRect = null;
     _chapters = [];
     _notify();
+    _updateProgressSnapshot();
   }
 }

@@ -11,13 +11,14 @@ import '../../core/navigation/app_navigator.dart';
 import '../../core/network/api_config.dart';
 import '../../core/services/account_service.dart';
 import '../../core/services/auth_session.dart';
+import '../../core/services/premium_access_service.dart';
 import '../../core/services/streak_service.dart';
 import '../../core/services/subscription_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/streak_flame.dart';
 import '../../core/widgets/streak_week_row.dart';
 import '../auth/phone_login_screen.dart';
-import '../payment/subscription_screen.dart';
+import '../payment/open_subscription_screen.dart';
 import '../streak/streak_screen.dart';
 import 'balance_screen.dart';
 import 'book_suggestions_screen.dart';
@@ -63,7 +64,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final balance = context.watch<AccountService>().balanceManat;
-    final subscription = context.watch<SubscriptionService>();
+    // [PremiumAccessService], not [SubscriptionService] — the latter only
+    // knows the legacy wallet subscription, so a reader whose Plus came from
+    // the App Store/Play Store ([RevenueCatService]) saw this screen keep
+    // offering them a subscription they already had.
+    final premium = context.watch<PremiumAccessService>();
     return Scaffold(
       // journeyMist rather than the app-wide AppColors.bg (TZ S5) — its dark
       // build is deliberately near-identical to AppColors.bg's own dark value
@@ -102,7 +107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 12),
                   _buildSendGiftButton(context),
                   const SizedBox(height: 12),
-                  _buildSubscriptionEntry(context, subscription),
+                  _buildSubscriptionEntry(context, premium),
                   const SizedBox(height: 12),
                   _buildStreakSection(context),
                   const SizedBox(height: 12),

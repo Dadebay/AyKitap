@@ -60,13 +60,17 @@ Future<void> completeBackendLogin(
     await AuthSession.saveName(username);
   }
   if (!context.mounted) return;
+  // Every login needs this — [ProfileScreen] and friends watch
+  // [AccountService] for the balance/user record, which otherwise stays
+  // whatever it was before this login (null on a cold start) until
+  // something else happens to trigger a refresh.
+  await context.read<AccountService>().refresh();
+  if (!context.mounted) return;
   // Only a genuine signup gets the welcome-bonus celebration — an existing
   // user logging back in already knows about (and has likely already spent)
   // whichever balance the backend credited them at signup, so re-showing
   // this every login would just be noise.
   if (isNewAccount) {
-    await context.read<AccountService>().refresh();
-    if (!context.mounted) return;
     final balance = context.read<AccountService>().balanceManat;
     if (balance != null && balance > 0) {
       await WelcomeBonusDialog.show(context, amount: '$balance');

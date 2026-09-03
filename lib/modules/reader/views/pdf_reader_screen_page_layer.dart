@@ -45,6 +45,11 @@ extension _PdfReaderScreenPageLayer on _PdfReaderScreenState {
                     initialPageNumber: _initialPage + 1,
                     params: PdfViewerParams(
                       backgroundColor: bg,
+                      // Continuous pages are full-bleed. pdfrx's default
+                      // eight-pixel page margin otherwise survives even with
+                      // a zero-gap custom layout and leaves a thin gutter on
+                      // both sides. Paged mode keeps the normal separation.
+                      margin: _viewMode == PdfViewMode.scroll ? 0.0 : 8.0,
                       // A long scanned book (a few hundred image-heavy pages,
                       // common for a CamScanner/phone-photo PDF) can push the
                       // default 100MB rendered-page cache and the default

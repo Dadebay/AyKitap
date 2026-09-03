@@ -10,6 +10,7 @@ import '../../core/services/firebase_auth_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/strings/auth_strings.dart';
 import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/gradient_icon_badge.dart';
 import '../../core/widgets/or_divider.dart';
@@ -133,10 +134,14 @@ class _InternationalLoginScreenState extends State<InternationalLoginScreen> {
     debugPrint('International login backend exchange failed | '
         'status=${e.statusCode} | message=${e.message}');
     if (!mounted) return;
-    setState(() {
-      _busy = _Busy.none;
-      _error = e.message;
-    });
+    setState(() => _busy = _Busy.none);
+    // A snackbar, not the inline banner below: this is the backend session
+    // exchange failing after Firebase itself already succeeded, so there's
+    // no specific field to point the banner at — it's an unrelated app-wide
+    // failure, exactly what the snackbar is already used for everywhere
+    // else. ApiException.fromDioException already keeps this message
+    // user-facing (a 404/5xx route error, say, never reaches here verbatim).
+    context.showAppSnackBar(e.message, isError: true);
   }
 
   String _messageFor(FirebaseAuthFailure failure) {

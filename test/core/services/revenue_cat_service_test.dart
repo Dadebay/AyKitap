@@ -95,6 +95,17 @@ class _FakeRevenueCatClient implements RevenueCatClient {
   }
 }
 
+/// Fails `configure` on its first call, succeeds from the second call on —
+/// for proving a failed [RevenueCatService.init] doesn't get permanently
+/// cached and can be retried.
+class _FailingThenSucceedingClient extends _FakeRevenueCatClient {
+  @override
+  Future<void> configure(String apiKey, {required bool debugLogging}) async {
+    configureCount++;
+    if (configureCount == 1) throw Exception('no network');
+  }
+}
+
 void main() {
   group('RevenueCatService', () {
     test('uses the backend and dashboard premium entitlement identifier', () {
@@ -141,6 +152,58 @@ void main() {
       await logoutFuture;
 
       expect(client.logoutCount, 1);
+    });
+
+    test(
+        'a logout queued after a pending login never applies the stale '
+        'login — the old user\'s access does not carry over', () async {
+      final client = _FakeRevenueCatClient()
+        ..info = _customerInfo(active: {
+          RevenueCatService.entitlementId: _entitlement(),
+        });
+      final service = RevenueCatService.forTest(client);
+
+      // A login lands (e.g. a stale OTP callback for a premium account),
+      // then — before init flushes either — a logout arrives. Only the
+      // logout should reach the client; the queued login must not
+      // resurrect that account's access first.
+      final loginFuture = service.login(42);
+      final logoutFuture = service.logout();
+      await service.init();
+      await Future.wait([loginFuture, logoutFuture]);
+
+      expect(client.loggedInAs, isEmpty);
+      expect(client.logoutCount, 1);
+      expect(service.isPlusActive, isFalse);
+    });
+
+    test('concurrent init() calls configure exactly once', () async {
+      // main() fires init() without awaiting it, so nothing here can rely
+      // on being the only caller in flight — a second call (another
+      // widget's rebuild, a retry) must share the same attempt rather than
+      // configuring the SDK a second time.
+      final client = _FakeRevenueCatClient();
+      final service = RevenueCatService.forTest(client);
+
+      final first = service.init();
+      final second = service.init();
+      await Future.wait([first, second]);
+
+      expect(client.configureCount, 1);
+      expect(service.isReady, isTrue);
+    });
+
+    test('a failed init is not cached — the next call retries', () async {
+      final client = _FailingThenSucceedingClient();
+      final service = RevenueCatService.forTest(client);
+
+      await service.init();
+      expect(service.isReady, isFalse);
+      expect(client.configureCount, 1);
+
+      await service.init();
+      expect(service.isReady, isTrue);
+      expect(client.configureCount, 2);
     });
 
     test('plusExpiresAt parses the active entitlement expiration', () async {

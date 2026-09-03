@@ -46,7 +46,6 @@ class BookCoverThumb extends StatelessWidget {
           child: hasImage
               ? NetworkCoverImage(
                   url: ApiConfig.resolveImageUrl(url),
-                  decodeCacheWidth: 650,
                   placeholder: (_) => _coverPlaceholder())
               : _coverPlaceholder(),
         ),

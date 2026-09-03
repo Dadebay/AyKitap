@@ -386,7 +386,6 @@ class _BookCover extends StatelessWidget {
       child: image != null && image.isNotEmpty
           ? NetworkCoverImage(
               url: ApiConfig.resolveImageUrl(image),
-              decodeCacheWidth: 650,
               placeholder: (_) => _placeholder(),
             )
           : _placeholder(),

@@ -38,21 +38,24 @@ extension _ProfileScreenEntries on _ProfileScreenState {
   // A live entitlement is account status rather than a routine settings row,
   // so it gets the dedicated premium card. Inactive users keep the compact
   // entry that leads to the same plan screen.
+  //
+  // Reads [PremiumAccessService] so a store-billed (RevenueCat) subscription
+  // counts here exactly like a wallet one — see the merge in that service.
   Widget _buildSubscriptionEntry(
-      BuildContext context, SubscriptionService subscription) {
-    final active = subscription.isActive;
-    final expiresAt = subscription.expiresAt;
+      BuildContext context, PremiumAccessService premium) {
+    final active = premium.isPremium;
+    final expiresAt = premium.expiresAt;
     if (active && expiresAt != null) {
       return ActiveSubscriptionCard(
         expiresAt: expiresAt,
-        onTap: () => context.push(const SubscriptionScreen()),
+        onTap: () => openSubscriptionScreen(context),
       );
     }
     return ProfileEntryCard(
       leading: profileIconCircle(HugeIcons.strokeRoundedDiamond),
       title: ProfileStrings.subscription,
       subtitle: ProfileStrings.subscribeNow,
-      onTap: () => context.push(const SubscriptionScreen()),
+      onTap: () => openSubscriptionScreen(context),
     );
   }
 

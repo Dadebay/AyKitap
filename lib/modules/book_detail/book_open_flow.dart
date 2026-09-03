@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -22,7 +24,7 @@ import '../../core/widgets/app_snackbar.dart';
 import '../auth/phone_login_screen.dart';
 import '../payment/balance_top_up.dart';
 import '../payment/book_purchase_screen.dart';
-import '../payment/subscription_screen.dart';
+import '../payment/open_subscription_screen.dart';
 import '../payment/widgets/insufficient_balance_dialog.dart';
 import '../payment/widgets/subscription_required_dialog.dart';
 import '../reader/utils/catalog_book_opener.dart';
@@ -88,7 +90,7 @@ class BookOpenFlow {
         if (choice == null || !context.mounted) return;
         switch (choice) {
           case SubscriptionPromptChoice.subscribe:
-            await context.push(const SubscriptionScreen());
+            await openSubscriptionScreen(context);
             // Whether or not they actually subscribed, the CTA row's
             // verdict may have changed — same "refresh, let the reader tap
             // again" restraint [_topUp] uses below, rather than assuming

@@ -59,7 +59,8 @@ extension _HomeScreenSections on _HomeScreenState {
         return Container(
             padding: const EdgeInsets.only(bottom: 20),
             width: 320,
-            child: CatalogRankShelfCard(collection: collection));
+            child: CatalogRankShelfCard(
+                collection: collection, fillHeight: true));
       case CollectionCardType.card3:
         return SizedBox(
             width: 320, child: CatalogSeriesCard(collection: collection));

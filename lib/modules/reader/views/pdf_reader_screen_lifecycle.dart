@@ -9,6 +9,19 @@ part of 'pdf_reader_screen.dart';
 /// to close a typical book's gutter without reaching the text block.
 const double _defaultMarginCrop = 0.65;
 
+/// Scanned/image-only PDFs often include the photographed page edge inside
+/// the PDF itself. On a phone that leaves thick gutter bars even in fit-width
+/// mode, so an image book with no per-book choice starts at the widest safe
+/// crop. A choice made for this book always wins; the app-wide text-PDF value
+/// is deliberately ignored because it describes a different kind of page.
+@visibleForTesting
+double initialPdfMarginCropFor({
+  required bool imageOnly,
+  double? bookCrop,
+  double? readerCrop,
+}) =>
+    bookCrop ?? (imageOnly ? 1.0 : readerCrop ?? _defaultMarginCrop);
+
 extension _PdfReaderScreenLifecycle on _PdfReaderScreenState {
   void _handleAppLifecycleState(AppLifecycleState state) {
     switch (state) {
@@ -76,15 +89,15 @@ extension _PdfReaderScreenLifecycle on _PdfReaderScreenState {
     // not of the reader — a novel set with generous gutters needs more of it
     // than a densely typeset one) and falling back to the app-wide choice.
     //
-    // An image book opens with none: a scan or a manga page is printed to the
-    // edge, so there is no blank margin to reclaim and cropping would take
-    // the artwork instead. Everything else opens with a modest default trim
-    // rather than at zero — a text PDF essentially always carries a print
-    // margin, and leaving it there is the empty strip down each side this
-    // setting exists to close.
-    _marginCrop = prefs.getDouble('book_${_bookId}_pdf_margin_crop') ??
-        prefs.getDouble('reader_pdf_margin_crop') ??
-        (widget.imageOnly ? 0.0 : _defaultMarginCrop);
+    // Image-only files commonly carry the photographed paper edge inside the
+    // page, so their first open uses the full safe crop and fills the phone's
+    // width. A per-book slider choice still wins. Text PDFs keep using the
+    // app-wide preference and their more modest fallback.
+    _marginCrop = initialPdfMarginCropFor(
+      imageOnly: widget.imageOnly,
+      bookCrop: prefs.getDouble('book_${_bookId}_pdf_margin_crop'),
+      readerCrop: prefs.getDouble('reader_pdf_margin_crop'),
+    );
     _brightnessController.apply(_brightness);
     if (mounted) _setState(() {});
   }

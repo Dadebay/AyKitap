@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
@@ -32,6 +30,13 @@ class NetworkCoverImage extends StatelessWidget {
     this.alignment = Alignment.center,
   });
 
+  /// A decoded bitmap this large has no legitimate use at any of this
+  /// widget's call sites — comfortably above the biggest real target (a
+  /// full-bleed header backdrop on a large/high-DPR screen) while firmly
+  /// ruling out a runaway width/height/DPR combination decoding a
+  /// multi-thousand-pixel bitmap for what's ultimately a cover thumbnail.
+  static const _maxDecodeDimension = 2048;
+
   @override
   Widget build(BuildContext context) {
     final dpr = MediaQuery.of(context).devicePixelRatio;
@@ -44,21 +49,30 @@ class NetworkCoverImage extends StatelessWidget {
     // back to the incoming BoxConstraints when width/height aren't given
     // explicitly (most call sites size this via a parent Container/SizedBox).
     double? finite(double? v) => (v != null && v.isFinite) ? v : null;
+    // Rounds to device pixels and floors at 1 — a 0 or negative target
+    // (a collapsed layout mid-transition, say) would otherwise reach
+    // CachedNetworkImage as an invalid decode size — then caps at
+    // [_maxDecodeDimension] so an unusually large box/DPR combination can't
+    // decode a bitmap far bigger than any real cover/banner/avatar needs.
+    int px(double value) => (value * dpr).round().clamp(1, _maxDecodeDimension);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final boxWidth = finite(width) ?? finite(constraints.maxWidth);
         final boxHeight = finite(height) ?? finite(constraints.maxHeight);
-        int px(double value) => (value * dpr).round();
+        // Each axis is sized from its own dimension now, not from
+        // `math.max(boxWidth, boxHeight)` — that flattened a portrait
+        // cover's *height* (the larger of the two) into memCacheWidth,
+        // decoding it noticeably wider than it's ever drawn. Independent
+        // `if`s (not `else if`) so a call site that supplies both width
+        // and height gets both passed to CachedNetworkImage, not just one
+        // with the other left to scale proportionally off the source's own
+        // aspect ratio.
         int? cacheWidth = decodeCacheWidth;
         int? cacheHeight;
         if (cacheWidth == null) {
-          if (boxWidth != null && boxHeight != null) {
-            cacheWidth = px(math.max(boxWidth, boxHeight));
-          } else if (boxWidth != null) {
-            cacheWidth = px(boxWidth);
-          } else if (boxHeight != null) {
-            cacheHeight = px(boxHeight);
-          }
+          if (boxWidth != null) cacheWidth = px(boxWidth);
+          if (boxHeight != null) cacheHeight = px(boxHeight);
         }
         return CachedNetworkImage(
           imageUrl: url,

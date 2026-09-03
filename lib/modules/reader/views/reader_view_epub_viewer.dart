@@ -6,6 +6,15 @@ part of 'reader_view.dart';
 /// page, not a Flutter [GestureDetector].
 extension _ReaderViewEpubViewer on _ReaderScreenState {
   Widget _buildEpubViewer(ReaderProvider provider) {
+    // Temporary diagnostic for the "kicked out on the loading screen" crash
+    // report — see PdfOpeningScreen._resolve's comment. A native WebView
+    // renderer crash on a bad/huge EPUB kills the process before this
+    // widget's own onEpubLoadFailed ever gets a chance to fire, so this is
+    // the last line that would print before it.
+    final file = File(widget.bookPath);
+    log('🔍 [BookOpen] building EpubViewer bookId=${widget.bookId} '
+        'exists=${file.existsSync()} '
+        'sizeBytes=${file.existsSync() ? file.lengthSync() : -1}');
     // No GestureDetector here: the EPUB renders inside a WebView, which
     // consumes touch events, so a Flutter tap handler wrapped around it never
     // fires — that's why the top/bottom bars could never be revealed. Instead
@@ -103,11 +112,11 @@ extension _ReaderViewEpubViewer on _ReaderScreenState {
   /// [EpubLocation.page]); until it reports them, this falls back to a page
   /// estimated from the catalogue's page count, and to a bare percentage for
   /// imported files that have no catalogue entry.
-  String _pageLabel(ReaderProvider provider) {
-    if (provider.totalPages > 0) {
-      return '${provider.currentPage} / ${provider.totalPages}';
+  String _pageLabel(ReaderProgressSnapshot snapshot) {
+    if (snapshot.totalPages > 0) {
+      return '${snapshot.currentPage} / ${snapshot.totalPages}';
     }
-    final p = provider.progress.clamp(0.0, 1.0);
+    final p = snapshot.progress.clamp(0.0, 1.0);
     final total = widget.bookPages;
     if (total != null && total > 0) {
       return '${(p * total).round().clamp(1, total)} / $total';

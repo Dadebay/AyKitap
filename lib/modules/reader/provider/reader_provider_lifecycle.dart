@@ -71,6 +71,9 @@ extension ReaderProviderLifecycle on ReaderProvider {
     _leftHandMode = prefs.getBool('reader_left_hand') ?? false;
 
     _notify();
+    // Publish the restored page/progress (and cleared bookmark/chapter state)
+    // before the book visually opens — see _updateProgressSnapshot.
+    _updateProgressSnapshot();
 
     if (!_lifecycleObserverAdded) {
       _lifecycleObserverAdded = true;

@@ -182,6 +182,42 @@ class PaymentStrings {
       tr: 'Aýkitap Plus',
       en: 'Aýkitap Plus');
 
+  // widgets/store_plan_card.dart, store_subscription_screen.dart — the
+  // custom store paywall that replaces RevenueCat's native paywall UI.
+  static String storeMonthlyEquivalent(String priceLabel) => t(
+        tk: '$priceLabel / aý',
+        ru: '$priceLabel / мес',
+        tr: '$priceLabel / ay',
+        en: '$priceLabel/mo',
+      );
+  static String storeSubscribeCta(String priceLabel) => t(
+        tk: '$priceLabel — Dowam et',
+        ru: '$priceLabel — Продолжить',
+        tr: '$priceLabel — Devam et',
+        en: 'Continue — $priceLabel',
+      );
+  static String get storePlansUnavailable => t(
+        tk: 'Meýilnamalar häzir elýeterli däl',
+        ru: 'Планы сейчас недоступны',
+        tr: 'Planlar şu anda kullanılamıyor',
+        en: 'Plans aren\'t available right now',
+      );
+  static String get restorePurchases => t(
+      tk: 'Satyn almalary dikelt',
+      ru: 'Восстановить покупки',
+      tr: 'Satın alımları geri yükle',
+      en: 'Restore purchases');
+  static String get restoreNoActiveFound => t(
+      tk: 'Işjeň satyn alma tapylmady',
+      ru: 'Активная покупка не найдена',
+      tr: 'Aktif satın alma bulunamadı',
+      en: 'No active purchase found');
+  static String get storePurchaseFailed => t(
+      tk: 'Satyn alyp bolmady',
+      ru: 'Не удалось совершить покупку',
+      tr: 'Satın alma başarısız oldu',
+      en: 'Purchase failed');
+
   // widgets/subscription_success_dialog.dart
   static String get subscriptionSuccessTitle => t(
       tk: 'Gutlaýarys!', ru: 'Поздравляем!', tr: 'Tebrikler!', en: 'Congrats!');

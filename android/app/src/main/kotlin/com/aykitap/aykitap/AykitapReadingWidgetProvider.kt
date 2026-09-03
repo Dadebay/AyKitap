@@ -103,8 +103,16 @@ class AykitapReadingWidgetProvider : HomeWidgetProvider() {
     while (bounds.outWidth / sampleSize > 360 || bounds.outHeight / sampleSize > 540) {
       sampleSize *= 2
     }
-    BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = sampleSize })
-      ?.let(::roundedCover)
+    val decoded =
+      BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = sampleSize })
+        ?: return@runCatching null
+    // The decoded source is dead the moment the rounded copy exists. Widget
+    // updates fire often (every progress save, plus every APPWIDGET_UPDATE
+    // broadcast) and this runs in the *app's* process — leaving the
+    // intermediates for the GC piles pressure onto the same heap the PDF
+    // reader is allocating from, and a book open is exactly when the two
+    // collide. See roundedCover for the second intermediate.
+    roundedCover(decoded).also { if (it !== decoded) decoded.recycle() }
   }.getOrNull()
 
   /** RemoteViews has no way to clip an ImageView to its container's rounded
@@ -140,6 +148,9 @@ class AykitapReadingWidgetProvider : HomeWidgetProvider() {
     canvas.drawRoundRect(bounds, radius, radius, paint)
     paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
     canvas.drawBitmap(cropped, 0f, 0f, paint)
+    // `createBitmap` returns the source itself when the crop is a no-op, so
+    // only recycle a genuinely separate intermediate.
+    if (cropped !== source) cropped.recycle()
     return rounded
   }
 }

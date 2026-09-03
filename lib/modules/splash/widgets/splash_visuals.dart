@@ -76,7 +76,8 @@ class SplashLogo extends StatelessWidget {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(28),
-                      child: Image.asset('assets/logo.webp', fit: BoxFit.cover),
+                      child: Image.asset('assets/images/logo.webp',
+                          fit: BoxFit.cover),
                     ),
                   ),
                 ),
