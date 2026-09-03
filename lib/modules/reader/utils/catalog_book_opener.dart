@@ -1,3 +1,6 @@
+import 'dart:developer';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -36,6 +39,13 @@ void openCatalogBookFile(
     format: format,
     source: 'catalog',
   );
+  // Temporary diagnostic for the "kicked out on the loading screen" crash
+  // report — see PdfOpeningScreen._resolve's comment. Logged right at the
+  // format dispatch so it's clear which reader pipeline is about to run.
+  final file = File(path);
+  log('🔍 [BookOpen] openCatalogBookFile bookId=$bookId format=$format '
+      'exists=${file.existsSync()} '
+      'sizeBytes=${file.existsSync() ? file.lengthSync() : -1}');
   switch (format) {
     case 'pdf':
       openPdfBook(

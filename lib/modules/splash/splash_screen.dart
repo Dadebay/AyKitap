@@ -3,16 +3,18 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/theme_controller.dart';
+import '../../core/navigation/fade_page_route.dart';
 import '../../core/services/app_prefs.dart';
 import '../../core/services/book_access_service.dart';
 import '../../core/services/downloaded_files_store.dart';
 import '../../core/services/home_data_service.dart';
 import '../../core/services/subscription_service.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_motion.dart';
+import '../../core/theme/theme_controller.dart';
 import '../library/offline_library_screen.dart';
-import '../onboarding/onboarding_screen.dart';
 import '../main_nav/main_nav_screen.dart';
+import '../onboarding/onboarding_screen.dart';
 import 'widgets/splash_visuals.dart';
 
 /// Branded splash: the logo springs in over a pulsing gradient halo, the
@@ -22,23 +24,49 @@ import 'widgets/splash_visuals.dart';
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
+  /// The floor on total splash time for a returning user — enough for the
+  /// brand to register as an intentional moment rather than a flash, short
+  /// enough not to read as a wait. Real work (prefs read, connectivity
+  /// check, the entrance animation itself) runs in parallel with this, so
+  /// this is a floor, not something added on top of them.
+  @visibleForTesting
+  static const minSplashDelay = Duration(milliseconds: 750);
+
+  /// [minSplashDelay] under normal motion; zero under reduced motion, so
+  /// nothing artificially stretches the wait beyond whatever the real prefs
+  /// read and connectivity check already take on their own.
+  @visibleForTesting
+  static Duration splashFloorFor({required bool reduceMotion}) =>
+      reduceMotion ? Duration.zero : minSplashDelay;
+
+  /// Pure routing decision, pulled out of [_SplashScreenState._bootstrap] so
+  /// it's unit-testable without standing up [AppPrefs]/`Connectivity` (both
+  /// platform-backed) or the animation lifecycle around it.
+  @visibleForTesting
+  static Widget destinationFor(
+          {required bool isOffline, required bool onboardingSeen}) =>
+      isOffline
+          ? const OfflineLibraryScreen()
+          : (onboardingSeen ? const MainNavScreen() : const OnboardingScreen());
+
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  // One-shot entrance timeline.
-  late final AnimationController _entrance = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1600),
-  )..forward();
+  // One-shot entrance timeline. Duration set in [initState] — shortened (or
+  // skipped outright) under reduced motion, so it can't be `late final` with
+  // an inline initializer the way [_ambient] used to be.
+  late final AnimationController _entrance;
 
-  // Endless subtle motion for the halo + loader.
+  // Endless subtle motion for the halo + loader — never started at all under
+  // reduced motion (see [initState]), so this stays put at its rest frame
+  // instead of visibly animating.
   late final AnimationController _ambient = AnimationController(
     vsync: this,
     duration: const Duration(seconds: 3),
-  )..repeat();
+  );
 
   late final Animation<double> _logoScale = CurvedAnimation(
     parent: _entrance,
@@ -61,6 +89,11 @@ class _SplashScreenState extends State<SplashScreen>
     curve: const Interval(0.7, 1.0, curve: Curves.easeOut),
   );
 
+  // Guards the one-shot setup below — [didChangeDependencies] can fire more
+  // than once (any ancestor InheritedWidget changing, not just MediaQuery),
+  // but the entrance animation and _bootstrap must only ever start once.
+  bool _configured = false;
+
   @override
   void initState() {
     super.initState();
@@ -69,10 +102,40 @@ class _SplashScreenState extends State<SplashScreen>
       statusBarIconBrightness:
           AppTheme.instance.isDark ? Brightness.light : Brightness.dark,
     ));
-    _bootstrap();
   }
 
-  Future<void> _bootstrap() async {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_configured) return;
+    _configured = true;
+    // Moved here from initState: MediaQuery (via AppMotion.reduceMotion)
+    // is an InheritedWidget lookup, and this screen sits under SafeArea /
+    // MediaQuery ancestors that are themselves still partway through their
+    // own first build the moment initState runs — Flutter's own dependency
+    // machinery isn't ready for a descendant to read it that early and
+    // throws "dependOnInheritedWidgetOfExactType() ... called before
+    // initState() completed". didChangeDependencies is the framework's own
+    // documented place for exactly this: it's guaranteed to run after
+    // initState and before the first build, once dependencies are actually
+    // resolved.
+    final reduceMotion = AppMotion.reduceMotion(context);
+    // `duration` only matters for the `forward()` branch below — never read
+    // when reduced motion jumps straight to `value = 1`.
+    _entrance = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 800));
+    if (reduceMotion) {
+      // Same convention [StaggerFadeIn] uses: jump straight to the settled
+      // frame instead of animating through it.
+      _entrance.value = 1;
+    } else {
+      _entrance.forward();
+      _ambient.repeat();
+    }
+    _bootstrap(reduceMotion);
+  }
+
+  Future<void> _bootstrap(bool reduceMotion) async {
     // Kicked off, not awaited: Home's `/collections/all` + `/banners` fetch
     // starts right now, during the splash animation, so it's already done
     // (or close to it) by the time the user actually reaches Home instead
@@ -92,12 +155,15 @@ class _SplashScreenState extends State<SplashScreen>
     unawaited(DownloadedFilesStore.instance.load());
 
     // Run the prefs read, the connectivity check, and a minimum splash
-    // display time in parallel so the animation always gets to breathe,
-    // even on a fast device.
+    // display time in parallel — real work never waits behind the floor,
+    // and the floor never adds on top of real work that's already slower
+    // than it. Reduced motion drops the floor to zero: the two real reads
+    // are still awaited (this decides where to navigate), but nothing
+    // artificially stretches the wait beyond what they actually take.
     final results = await Future.wait([
       AppPrefs.isOnboardingSeen(),
       Connectivity().checkConnectivity(),
-      Future.delayed(const Duration(milliseconds: 2600)),
+      Future.delayed(SplashScreen.splashFloorFor(reduceMotion: reduceMotion)),
     ]);
     if (!mounted) return;
 
@@ -110,13 +176,10 @@ class _SplashScreenState extends State<SplashScreen>
 
     Navigator.pushReplacement(
       context,
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => isOffline
-            ? const OfflineLibraryScreen()
-            : (seen ? const MainNavScreen() : const OnboardingScreen()),
-        transitionsBuilder: (_, a, __, child) =>
-            FadeTransition(opacity: a, child: child),
-        transitionDuration: const Duration(milliseconds: 500),
+      FadePageRoute(
+        reduceMotion: reduceMotion,
+        child: SplashScreen.destinationFor(
+            isOffline: isOffline, onboardingSeen: seen),
       ),
     );
   }

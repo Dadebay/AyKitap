@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../core/localization/strings/payment_strings.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/services/account_service.dart';
 import '../../core/services/auth_api_service.dart';
@@ -8,7 +9,6 @@ import '../../core/services/payment_api_service.dart';
 import '../../core/services/revenue_cat_api_service.dart';
 import '../../core/services/revenue_cat_service.dart';
 import '../../core/widgets/app_snackbar.dart';
-import '../../core/localization/strings/payment_strings.dart';
 import 'payment_webview_screen.dart';
 import 'widgets/bank_select_sheet.dart';
 import 'widgets/payment_method_sheet.dart';
@@ -38,9 +38,15 @@ import 'widgets/top_up_amount_sheet.dart';
 /// lands once the reconcile call (or, failing that, the webhook) applies it
 /// server-side.
 Future<void> startBalanceTopUp(BuildContext context) async {
-  final showStore = await _canOfferStoreTopUp();
+  final useStore = await _mustUseStoreTopUp();
   if (!context.mounted) return;
-  final choice = await PaymentMethodSheet.show(context, showStore: showStore);
+  if (useStore) {
+    await _purchaseStoreTopUp(context);
+    if (context.mounted) await AccountService.instance.refresh();
+    return;
+  }
+
+  final choice = await PaymentMethodSheet.show(context);
   if (choice == null || !context.mounted) return;
 
   switch (choice) {
@@ -49,8 +55,9 @@ Future<void> startBalanceTopUp(BuildContext context) async {
       if (code == null || code.isEmpty || !context.mounted) return;
       try {
         await AuthApiService.redeemPromoCode(code: code);
-        if (context.mounted)
+        if (context.mounted) {
           context.showAppSnackBar(PaymentStrings.promoCodeAppliedBalance);
+        }
       } on ApiException catch (e) {
         if (!context.mounted) return;
         context.showAppSnackBar(e.message, isError: true);
@@ -73,44 +80,42 @@ Future<void> startBalanceTopUp(BuildContext context) async {
       }
 
     case PaymentMethodChoice.store:
-      final package = await StoreTopUpSheet.show(context);
-      if (package == null || !context.mounted) return;
-      try {
-        final info = await RevenueCatService.instance.purchasePackage(package);
-        if (info == null) return; // user cancelled — not an error
-        try {
-          await RevenueCatApiService.reconcile();
-        } catch (_) {
-          // Best-effort — the webhook will still credit the balance on its
-          // own if this reconcile call fails.
-        }
-        if (context.mounted) {
-          context.showAppSnackBar(PaymentStrings.storeTopUpApplied);
-        }
-      } on RevenueCatPurchaseException catch (e) {
-        if (!context.mounted) return;
-        context.showAppSnackBar(e.message ?? PaymentStrings.storeTopUpFailed,
-            isError: true);
-      }
+      await _purchaseStoreTopUp(context);
   }
 
   // Whatever the branch did, the server is the authority on the balance.
   if (context.mounted) await AccountService.instance.refresh();
 }
 
-/// Whether [PaymentMethodSheet] should offer the store branch at all —
-/// checked fresh on every top-up rather than cached, since a user's region
-/// can only really change between sessions but the config call is cheap and
-/// this keeps the gate as the single source of truth. Fails closed: no
-/// network, RevenueCat not configured, or any other error just means the
-/// store option stays hidden and the existing promo/bank flow is unaffected.
-Future<bool> _canOfferStoreTopUp() async {
+/// Whether a native user must use the store path. Foreign accounts must not
+/// fall back to Turkmen bank cards when the store offering cannot load.
+Future<bool> _mustUseStoreTopUp() async {
   if (!Platform.isIOS && !Platform.isAndroid) return false;
-  if (!RevenueCatService.instance.isReady) return false;
   try {
     final config = await RevenueCatApiService.getConfig();
     return config.isStoreIap;
   } catch (_) {
     return false;
+  }
+}
+
+Future<void> _purchaseStoreTopUp(BuildContext context) async {
+  final package = await StoreTopUpSheet.show(context);
+  if (package == null || !context.mounted) return;
+  try {
+    final info = await RevenueCatService.instance.purchasePackage(package);
+    if (info == null) return; // user cancelled — not an error
+    try {
+      await RevenueCatApiService.reconcile();
+    } catch (_) {
+      // Best-effort — the webhook will still credit the balance on its own.
+    }
+    if (context.mounted) {
+      context.showAppSnackBar(PaymentStrings.storeTopUpApplied);
+    }
+  } on RevenueCatPurchaseException catch (e) {
+    if (!context.mounted) return;
+    context.showAppSnackBar(e.message ?? PaymentStrings.storeTopUpFailed,
+        isError: true);
   }
 }

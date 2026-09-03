@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:sakura_epub/sakura_epub.dart';
@@ -18,8 +19,10 @@ import '../../../core/theme/theme_controller.dart';
 import '../utils/reader_brightness_controller.dart';
 import '../utils/reader_streak_ping.dart';
 import 'reader_enums.dart';
+import 'reader_progress_snapshot.dart';
 
 export 'reader_enums.dart';
+export 'reader_progress_snapshot.dart';
 
 part 'reader_provider_lifecycle.dart';
 part 'reader_provider_chapters.dart';
@@ -58,6 +61,13 @@ class ReaderProvider extends ChangeNotifier with WidgetsBindingObserver {
   double _progress = 0.0;
   String _currentCfi = '';
   bool _isAtLastPage = false;
+
+  /// Publishes the page-scoped slice of the state above (see
+  /// [ReaderProgressSnapshot]) on every relocation, separately from this
+  /// provider's own [notifyListeners] — see reader_provider_callbacks.dart's
+  /// `_updateProgressSnapshot` for why.
+  final ValueNotifier<ReaderProgressSnapshot> _progressNotifier =
+      ValueNotifier(const ReaderProgressSnapshot());
 
   // ── Loading state (see reader_provider_lifecycle.dart) ──────────────────
   bool _isLoading = true;
@@ -121,6 +131,13 @@ class ReaderProvider extends ChangeNotifier with WidgetsBindingObserver {
       ReaderBrightnessController();
   bool _lifecycleObserverAdded = false;
 
+  /// Set at the top of [dispose] so any callback still in flight (a relocation
+  /// the WebView fires mid-teardown, a timer that raced the cancel) becomes a
+  /// no-op instead of calling `notifyListeners`/[ValueNotifier.value] on an
+  /// already-disposed [ChangeNotifier] — see [_notify] and
+  /// reader_provider_callbacks.dart's `_updateProgressSnapshot`.
+  bool _disposed = false;
+
   /// `inactive` is skipped deliberately — it also fires for brief, non-
   /// backgrounding interruptions (a permission dialog, Control Center, an
   /// incoming call banner) that resolve back to `resumed` almost
@@ -133,7 +150,9 @@ class ReaderProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _disposed = true;
     _disposeCleanup();
+    _progressNotifier.dispose();
     super.dispose();
   }
 
@@ -143,5 +162,12 @@ class ReaderProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// part of the class hierarchy, even in the same library). This thin
   /// wrapper *is* a real instance member of the subclass, so every part file
   /// calls this instead of `notifyListeners()` directly.
-  void _notify() => notifyListeners();
+  ///
+  /// Guarded on [_disposed] so a callback that fires after this provider is
+  /// torn down (see [dispose]) no-ops instead of hitting `ChangeNotifier`'s
+  /// own disposed-use assertion.
+  void _notify() {
+    if (_disposed) return;
+    notifyListeners();
+  }
 }

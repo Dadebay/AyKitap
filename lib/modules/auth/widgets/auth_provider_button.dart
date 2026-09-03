@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:hugeicons/hugeicons.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/theme/app_colors.dart';
 
@@ -14,6 +13,15 @@ const _googleGLogo = '''
   <path fill="#34A853" d="M9 18c2.43 0 4.4673-.806 5.9564-2.1805l-2.9087-2.2581c-.8059.54-1.8368.8591-3.0477.8591-2.344 0-4.3282-1.5831-5.0359-3.7104H.9573v2.3318C2.4382 15.9832 5.4818 18 9 18z"/>
   <path fill="#FBBC05" d="M3.9641 10.71c-.18-.54-.2822-1.1168-.2822-1.71s.1023-1.17.2822-1.71V4.9582H.9573C.3477 6.1732 0 7.5477 0 9c0 1.4523.3477 2.8268.9573 4.0418L3.9641 10.71z"/>
   <path fill="#EA4335" d="M9 3.5795c1.3214 0 2.5077.4541 3.4405 1.346l2.5814-2.5814C13.4632.8918 11.4259 0 9 0 5.4818 0 2.4382 2.0168.9573 4.9582L3.9641 7.29C4.6718 5.1627 6.656 3.5795 9 3.5795z"/>
+</svg>
+''';
+
+/// Apple's own bitten-apple mark — like [_googleGLogo], Apple's Sign in with
+/// Apple guidelines call for this exact glyph rather than a stroke-icon
+/// stand-in, and HugeIcons ships no Apple brand mark to draw it from.
+const _appleLogo = '''
+<svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <path fill="#FFFFFF" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.087 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zm3.632-3.322c.842-1.014 1.409-2.427 1.257-3.831-1.211.052-2.677.805-3.549 1.818-.78.896-1.462 2.336-1.28 3.71 1.345.104 2.729-.688 3.572-1.697z"/>
 </svg>
 ''';
 
@@ -58,8 +66,7 @@ class AuthProviderButton extends StatelessWidget {
   }) {
     return AuthProviderButton(
       key: key,
-      icon: const HugeIcon(
-          icon: HugeIcons.strokeRoundedApple01, color: Colors.white, size: 20),
+      icon: SvgPicture.string(_appleLogo, width: 20, height: 20),
       label: label,
       onPressed: onPressed,
       loading: loading,

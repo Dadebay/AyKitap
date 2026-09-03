@@ -2,9 +2,8 @@
 /// Tells the client which payment surfaces the signed-in user should see: a
 /// Turkmenistan phone/country resolves to [purchaseMode] `wallet` (promo
 /// code + bank card only); everyone else resolves to `store_iap` once
-/// RevenueCat is enabled for foreign billing, or `consumption_only` while
-/// the region is still unknown (e.g. a fresh signup with no country set
-/// yet) — no purchase surface at all in that case, just login/restore/read.
+/// RevenueCat is enabled for foreign billing. A blank country does not block
+/// a non-`+993` Firebase account from using the store path.
 class RevenueCatConfig {
   final String appUserId;
   final String entitlementId;

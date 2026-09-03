@@ -3,11 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
-import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
+import '../../core/navigation/app_navigator.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../core/services/account_service.dart';
-import '../../core/services/analytics_service.dart';
 import '../../core/services/book_access_service.dart';
 import '../../core/services/subscription_service.dart';
 import '../../core/services/auth_api_service.dart';
@@ -18,11 +17,10 @@ import '../../core/services/onesignal_service.dart';
 import '../../core/services/revenue_cat_service.dart';
 import '../../core/localization/app_locale.dart';
 import '../../core/localization/strings/notification_strings.dart';
-import '../../core/localization/strings/payment_strings.dart';
 import '../../core/localization/strings/settings_strings.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/app_snackbar.dart';
-import '../payment/widgets/subscription_success_dialog.dart';
+import '../payment/store_subscription_screen.dart';
 import 'widgets/contact_us_sheet.dart';
 import 'widgets/language_sheet.dart';
 import 'widgets/settings_confirm_dialog.dart';
@@ -179,57 +177,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  static const _storeProductId = 'store_paywall';
-
-  void _logStoreStep(String step, {num? value}) => unawaited(
-        AnalyticsService.instance.logPurchaseStep(
-          step: step,
-          productType: 'subscription',
-          productId: _storeProductId,
-          source: 'store',
-          value: value,
-        ),
-      );
-
-  // Not-yet-subscribed taps the store paywall; already-subscribed opens the
-  // Customer Center instead, since RevenueCat's own paywall is meant to
-  // sell, not to manage an existing plan.
+  // Not-yet-subscribed goes to our own custom store paywall
+  // ([StoreSubscriptionScreen]); already-subscribed opens the Customer
+  // Center instead, since that screen is meant to sell, not to manage an
+  // existing plan.
   Future<void> _openStoreSubscription() async {
     final revenueCat = context.read<RevenueCatService>();
     if (revenueCat.isPlusActive) {
       await revenueCat.presentCustomerCenter();
       return;
     }
-    unawaited(
-        AnalyticsService.instance.logPaywallViewed(source: 'settings_screen'));
-    _logStoreStep('started');
-    final result = await revenueCat.presentPaywallIfNeeded();
-    // The native paywall runs its own modal flow — this screen can be
-    // popped or backgrounded while it's up, so this is the one `mounted`
-    // check that actually matters here (the dialog below has its own).
-    if (!mounted) return;
-    switch (result) {
-      case PaywallResult.purchased:
-        // presentPaywallIfNeeded already refreshed CustomerInfo for this
-        // result — only celebrate if the entitlement actually came back
-        // active, not just because the store reported a purchase.
-        if (!revenueCat.isPlusActive) return;
-        _logStoreStep('completed');
-        await SubscriptionSuccessDialog.show(
-            context, PaymentStrings.plusPlanName);
-      case PaywallResult.restored:
-        if (!revenueCat.isPlusActive) return;
-        _logStoreStep('restored');
-        await SubscriptionSuccessDialog.show(
-            context, PaymentStrings.plusPlanName,
-            restored: true);
-      case PaywallResult.cancelled:
-        _logStoreStep('cancelled');
-      case PaywallResult.error:
-        _logStoreStep('failed');
-      case PaywallResult.notPresented:
-        break;
-    }
+    await context.push(const StoreSubscriptionScreen());
   }
 
   @override

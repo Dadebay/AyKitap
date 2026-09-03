@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../core/localization/strings/reader_pdf_strings.dart';
 import '../../../core/services/pdf_reflow_service.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../provider/reader_provider.dart';
 import '../views/pdf_reader_screen.dart';
 import '../views/reader_view.dart';
 import '../widgets/reader_entrance.dart';
-import '../../../core/localization/strings/reader_pdf_strings.dart';
 
 /// Per-book override, set from the reader's own settings sheet, for a reader
 /// who switched a PDF between fixed page images and reflowed text. Read here
@@ -16,6 +17,13 @@ import '../../../core/localization/strings/reader_pdf_strings.dart';
 /// is opened. Absent (neither ever chosen) defaults to fixed — see
 /// [openPdfBook].
 String preferFixedPrefKey(int bookId) => 'book_${bookId}_pdf_prefer_fixed';
+
+/// Unknown fixed PDFs use image-safe defaults (continuous, fit-width, no
+/// automatic margin crop). A cached text verdict may opt back into the normal
+/// text-PDF defaults without opening PDFium merely to make that decision.
+@visibleForTesting
+bool imageSafePdfDefaultsFor(bool? cachedImageOnlyVerdict) =>
+    cachedImageOnlyVerdict ?? true;
 
 /// Opens a PDF straight into the fixed-page [PdfReaderScreen] — the actual
 /// PDF pages, exactly as the source file looks — by default, same as a
@@ -91,6 +99,7 @@ class PdfOpeningScreen extends StatefulWidget {
   final String? coverUrl;
 
   const PdfOpeningScreen({
+    super.key,
     required this.filePath,
     required this.title,
     required this.bookId,
@@ -113,6 +122,15 @@ class PdfOpeningScreenState extends State<PdfOpeningScreen> {
   }
 
   Future<void> _resolve() async {
+    // Hand PDFium the headroom before asking it for anything.
+    //
+    // PdfViewer is about to allocate native page/document memory. Covers from
+    // the catalogue are no longer visible, so release their decoded copies
+    // first and leave the native reader as much headroom as possible.
+    PaintingBinding.instance.imageCache
+      ..clear()
+      ..clearLiveImages();
+
     final prefs = await SharedPreferences.getInstance();
     // Fixed (the actual PDF pages) unless the reader has explicitly asked
     // for the reflowed text view before — no auto-reflow on a first open,
@@ -139,15 +157,18 @@ class PdfOpeningScreenState extends State<PdfOpeningScreen> {
             isError: true);
       }
     }
-    // Landing on the fixed pages: find out whether they're page *images* (a
-    // scan, a manga) so the reader can lay them out for pictures rather than
-    // text. Cached on disk after the first open — see [isImageOnlyPdf] — and
-    // this screen is already the place that classifies, so it costs nothing
-    // extra on reopen.
+    // Landing on fixed pages must not classify an unknown PDF here. The
+    // classifier opens the whole document in PDFium; PdfViewer then opens it
+    // again immediately. A 17MB image-heavy book exhausted native allocator
+    // size classes during that first, nonessential pass and Android killed the
+    // process before Dart could catch anything. Reuse a prior explicit-reflow
+    // verdict when one exists; otherwise choose image-safe layout defaults and
+    // let PdfViewer be the only component that opens the document.
     var imageOnly = false;
     if (epubPath == null) {
-      imageOnly = await PdfReflowService.instance
-          .isImageOnlyPdf(filePath: widget.filePath);
+      final cachedVerdict = await PdfReflowService.instance
+          .cachedImageOnlyVerdict(widget.filePath);
+      imageOnly = imageSafePdfDefaultsFor(cachedVerdict);
     }
     if (!mounted) return;
     _proceed(epubPath, imageOnly: imageOnly);

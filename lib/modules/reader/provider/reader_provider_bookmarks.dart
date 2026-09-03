@@ -24,12 +24,17 @@ extension ReaderProviderBookmarks on ReaderProvider {
       progress: _progress,
     );
     _notify();
+    // The top bar's bookmark icon reads isBookmarked off the progress
+    // snapshot (see _updateProgressSnapshot), not the ambient notifyListeners
+    // — republish it so toggling still updates that icon live.
+    _updateProgressSnapshot();
     return added;
   }
 
   Future<void> removeBookmark(String id) async {
     await BookmarksStore.instance.remove(id);
     _notify();
+    _updateProgressSnapshot();
   }
 
   void goToBookmark(String cfi) => epubController.display(cfi: cfi);

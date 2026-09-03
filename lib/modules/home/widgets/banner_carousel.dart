@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/models/promo_banner.dart';
 import '../../../core/navigation/app_navigator.dart';
@@ -30,6 +29,19 @@ class _BannerCarouselState extends State<BannerCarousel> {
   Timer? _timer;
   bool _autoAdvanceStarted = false;
 
+  /// Starts or stops the auto-advance timer to match the current banner
+  /// count — called on every rebuild (banner count can shrink as well as
+  /// grow, e.g. a background refresh dropping to 0/1 banners) rather than
+  /// only ever starting it once.
+  void _syncAutoAdvance(List<PromoBanner>? banners) {
+    final canAdvance = banners != null && banners.length > 1;
+    if (canAdvance) {
+      _startAutoAdvance();
+    } else {
+      _stopAutoAdvance();
+    }
+  }
+
   void _startAutoAdvance() {
     if (_autoAdvanceStarted) return;
     _autoAdvanceStarted = true;
@@ -38,6 +50,13 @@ class _BannerCarouselState extends State<BannerCarousel> {
       _controller.nextPage(
           duration: const Duration(milliseconds: 500), curve: Curves.easeOut);
     });
+  }
+
+  void _stopAutoAdvance() {
+    if (!_autoAdvanceStarted) return;
+    _autoAdvanceStarted = false;
+    _timer?.cancel();
+    _timer = null;
   }
 
   @override
@@ -64,21 +83,25 @@ class _BannerCarouselState extends State<BannerCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    final banners = context.watch<HomeDataService>().banners;
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOutCubic,
-      alignment: Alignment.topCenter,
-      child: banners == null
-          ? const BannerShimmer()
-          : banners.isEmpty
-              ? const SizedBox.shrink()
-              : _buildCarousel(banners),
+    return ValueListenableBuilder<List<PromoBanner>?>(
+      valueListenable: HomeDataService.instance.bannersListenable,
+      builder: (context, banners, _) {
+        _syncAutoAdvance(banners);
+        return AnimatedSize(
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: banners == null
+              ? const BannerShimmer()
+              : banners.isEmpty
+                  ? const SizedBox.shrink()
+                  : _buildCarousel(banners),
+        );
+      },
     );
   }
 
   Widget _buildCarousel(List<PromoBanner> banners) {
-    if (banners.length > 1) _startAutoAdvance();
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [

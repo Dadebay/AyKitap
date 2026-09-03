@@ -24,8 +24,9 @@ import 'package:flutter/material.dart';
 /// against the viewport instead the overhang is slightly larger,
 /// `f / (1 - 2f)`, since the page it's cropped from is the bigger of the
 /// two.) Zero returns [child] untouched — no clip layer, no changed
-/// constraints — which is what an image-only book (a scan or a manga,
-/// already printed edge to edge, with no blank margin to spare) opens with.
+/// constraints. Image-only books now start with a safe crop because phone
+/// scans commonly include the photographed paper edge; the reader can still
+/// move the per-book margin slider back to zero when artwork is edge-to-edge.
 class PdfMarginCropBox extends StatelessWidget {
   final double fraction;
   final Widget child;

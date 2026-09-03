@@ -140,7 +140,7 @@ class _CatalogDetailHeaderArtState extends State<CatalogDetailHeaderArt> {
                             BoxShadow(color: Colors.black.withValues(alpha: 0.20), blurRadius: 10, offset: const Offset(0, 4)),
                           ],
                   ),
-                  child: url != null && url.isNotEmpty ? NetworkCoverImage(url: url, decodeCacheWidth: 650, placeholder: (_) => _coverPlaceholder()) : _coverPlaceholder()),
+                  child: url != null && url.isNotEmpty ? NetworkCoverImage(url: url, placeholder: (_) => _coverPlaceholder()) : _coverPlaceholder()),
             ),
           ),
         ],

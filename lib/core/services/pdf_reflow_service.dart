@@ -84,6 +84,25 @@ class PdfReflowService {
     return null;
   }
 
+  /// Returns a classification that was already persisted by a previous,
+  /// explicit reflow attempt without opening the PDF in PDFium.
+  ///
+  /// `true` means the image-only marker exists, `false` means a generated
+  /// reflow EPUB proves the PDF had text, and `null` means this book has never
+  /// been classified. Fixed-page opening uses this cache-only lookup because
+  /// probing an unknown PDF here and then opening [PdfViewer] immediately
+  /// afterwards creates two sequential native PDFium allocations. Image-heavy
+  /// books can exhaust a budget Android process during the first allocation
+  /// before Dart gets a catchable exception.
+  Future<bool?> cachedImageOnlyVerdict(String filePath) async {
+    try {
+      final dir = await _cacheDirFor(filePath);
+      if (await File('${dir.path}/reflow.epub').exists()) return false;
+      if (await File('${dir.path}/is_image.marker').exists()) return true;
+    } catch (_) {}
+    return null;
+  }
+
   /// Whether [filePath] is an image book — a scan, a manga, a comic — rather
   /// than one with a real text layer. This is the same test
   /// [reflowEpubPathFor] uses to decide there is nothing to reflow, exposed on

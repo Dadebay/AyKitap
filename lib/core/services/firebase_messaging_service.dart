@@ -7,6 +7,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../firebase_options.dart';
+import '../utils/log_redaction.dart';
 import 'auth_api_service.dart';
 import 'auth_session.dart';
 import 'local_notifications_service.dart';
@@ -61,7 +62,8 @@ class FirebaseMessagingService {
     if (initialMessage != null) _onMessageOpenedApp(initialMessage);
 
     FirebaseMessaging.instance.onTokenRefresh.listen((token) {
-      _debugPrintColored('FCM token refreshed: $token', _AnsiColor.cyan);
+      _debugPrintColored(
+          'FCM token refreshed: ${maskSecret(token)}', _AnsiColor.cyan);
       unawaited(_syncTokenWithBackend(token));
     });
   }
@@ -102,7 +104,9 @@ class FirebaseMessagingService {
   Future<void> _printTokens() async {
     try {
       final fcmToken = await FirebaseMessaging.instance.getToken();
-      _debugPrintColored('FCM token: $fcmToken', _AnsiColor.cyan);
+      _debugPrintColored(
+          'FCM token: ${fcmToken == null ? 'null' : maskSecret(fcmToken)}',
+          _AnsiColor.cyan);
       if (fcmToken != null) unawaited(_syncTokenWithBackend(fcmToken));
     } catch (e) {
       _debugPrintColored('FCM token fetch failed: $e', _AnsiColor.red);
@@ -112,7 +116,9 @@ class FirebaseMessagingService {
       // iOS only — null on Android, and on iOS until the APNs handshake
       // completes (can take a beat right after a fresh install).
       final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
-      _debugPrintColored('APNS token: $apnsToken', _AnsiColor.magenta);
+      _debugPrintColored(
+          'APNS token: ${apnsToken == null ? 'null' : maskSecret(apnsToken)}',
+          _AnsiColor.magenta);
     } catch (e) {
       _debugPrintColored('APNS token fetch failed: $e', _AnsiColor.red);
     }
@@ -175,7 +181,7 @@ class FirebaseMessagingService {
   }
 
   void _onMessageOpenedApp(RemoteMessage message) {
-    debugPrint('Notification opened app: ${message.data}');
+    debugPrint('Notification opened app: ${redactedForLog(message.data)}');
   }
 }
 

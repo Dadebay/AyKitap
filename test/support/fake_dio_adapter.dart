@@ -22,6 +22,32 @@ void installFakeSecureStorage() {
   );
 }
 
+/// `ReaderBrightnessController` (shared by the EPUB/PDF/CBZ readers) talks to
+/// the `screen_brightness` plugin's method channel on every reader
+/// open/close. Left unmocked, an `await` on that call inside a `testWidgets`
+/// body never resolves — `AutomatedTestWidgetsFlutterBinding`'s `FakeAsync`
+/// zone only delivers an unhandled channel's rejection on a later pump, and
+/// nothing here pumps again after a `saveAndClose()`/`dispose()` call — so
+/// the test hangs until the framework's own timeout kills it, rather than
+/// failing fast the way a plain `test()` calling the same code does.
+/// Stubbing every method on the channel to a no-op response is what makes
+/// `saveAndClose`/`dispose` safe to await from a `testWidgets` test.
+void installFakeScreenBrightness() {
+  const channel = MethodChannel('github.com/aaassseee/screen_brightness');
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(
+    channel,
+    (call) async => switch (call.method) {
+      'getSystemScreenBrightness' || 'getApplicationScreenBrightness' => 1.0,
+      'hasApplicationScreenBrightnessChanged' => false,
+      'isAutoReset' => true,
+      'isAnimate' => false,
+      'canChangeSystemBrightness' => true,
+      _ => null,
+    },
+  );
+}
+
 /// Test double for [DioClient.instance]'s transport.
 ///
 /// [ReaderProvider]/[StreakService]/[ReadingProgressReporter] talk to the
@@ -44,6 +70,7 @@ class FakeDioAdapter implements HttpClientAdapter {
   /// returns it so the caller can assert on [requests] afterwards.
   static FakeDioAdapter install({Dio? dio, int statusCode = 200}) {
     installFakeSecureStorage();
+    installFakeScreenBrightness();
     final adapter = FakeDioAdapter(statusCode: statusCode);
     (dio ?? DioClient.instance).httpClientAdapter = adapter;
     return adapter;

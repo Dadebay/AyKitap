@@ -18,7 +18,18 @@ class AnalyticsService {
   static final AnalyticsService instance = AnalyticsService._();
 
   FirebaseAnalytics? _analytics;
-  List<NavigatorObserver> _observers = const <NavigatorObserver>[];
+
+  /// A stable observer instance handed to `MaterialApp` once, up front —
+  /// [init] now runs after the first frame rather than being awaited ahead
+  /// of `runApp()` (a Firebase outage must not delay it), so the real
+  /// [FirebaseAnalyticsObserver] usually doesn't exist yet at the moment
+  /// `MaterialApp` is built. This proxy is a safe no-op until [init]
+  /// resolves and calls [_DeferredNavigatorObserver.attach] on it — from
+  /// then on, every route push/pop already flowing through this same
+  /// object (it's the one actually registered on the Navigator) reaches
+  /// the real observer too, with no `MaterialApp` rebuild required to swap
+  /// it in.
+  final _observerProxy = _DeferredNavigatorObserver();
 
   /// True once Firebase actually came up. Callers don't need to check it —
   /// the log methods no-op on their own — it's here for debugging.
@@ -29,11 +40,10 @@ class AnalyticsService {
       (defaultTargetPlatform == TargetPlatform.android ||
           defaultTargetPlatform == TargetPlatform.iOS);
 
-  /// Emits `screen_view` as routes are pushed and popped. Built once in [init]
-  /// rather than per call, because `MaterialApp` rebuilds on every theme and
-  /// language change and a fresh observer each time would re-register listeners.
-  /// Empty off mobile so `navigatorObservers` can take it unconditionally.
-  List<NavigatorObserver> get navigatorObservers => _observers;
+  /// Emits `screen_view` as routes are pushed and popped. The same list
+  /// (wrapping the same proxy instance) on every call, on or off mobile —
+  /// see [_observerProxy].
+  List<NavigatorObserver> get navigatorObservers => [_observerProxy];
 
   Future<void> init() async {
     if (!_isSupportedPlatform) return;
@@ -43,9 +53,7 @@ class AnalyticsService {
       );
       final analytics = FirebaseAnalytics.instance;
       _analytics = analytics;
-      _observers = <NavigatorObserver>[
-        FirebaseAnalyticsObserver(analytics: analytics),
-      ];
+      _observerProxy.attach(FirebaseAnalyticsObserver(analytics: analytics));
     } catch (error, stack) {
       // A dead analytics pipeline must never keep the app from booting.
       debugPrint('AnalyticsService.init failed: $error\n$stack');
@@ -133,5 +141,46 @@ class AnalyticsService {
   Future<void> setLanguage(String languageCode) async {
     await _analytics?.setUserProperty(
         name: 'app_language', value: languageCode);
+  }
+}
+
+/// Forwards every call to whatever real [NavigatorObserver] is attached —
+/// nothing before [attach], every call after. See
+/// [AnalyticsService._observerProxy] for why this exists instead of
+/// swapping the observer list on `MaterialApp` directly.
+class _DeferredNavigatorObserver extends NavigatorObserver {
+  NavigatorObserver? _real;
+
+  void attach(NavigatorObserver real) => _real = real;
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _real?.didPush(route, previousRoute);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _real?.didPop(route, previousRoute);
+  }
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _real?.didRemove(route, previousRoute);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    _real?.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+  }
+
+  @override
+  void didStartUserGesture(
+      Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _real?.didStartUserGesture(route, previousRoute);
+  }
+
+  @override
+  void didStopUserGesture() {
+    _real?.didStopUserGesture();
   }
 }

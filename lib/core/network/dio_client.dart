@@ -84,10 +84,25 @@ class DioClient {
       },
     ));
 
-    if (kDebugMode) {
+    const apiLoggingRequested = bool.fromEnvironment('API_LOGGING');
+    if (shouldAttachApiLogInterceptor(
+      isDebugMode: kDebugMode,
+      requested: apiLoggingRequested,
+    )) {
       dio.interceptors.add(const ApiLogInterceptor());
     }
 
     return dio;
   }
 }
+
+/// API traffic is silent by default, including in debug builds. Developers can
+/// opt into the metadata-only [ApiLogInterceptor] with
+/// `--dart-define=API_LOGGING=true`; profile and release builds stay silent even
+/// when that flag is accidentally present.
+@visibleForTesting
+bool shouldAttachApiLogInterceptor({
+  required bool isDebugMode,
+  required bool requested,
+}) =>
+    isDebugMode && requested;

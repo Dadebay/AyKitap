@@ -59,6 +59,10 @@ extension _BookOpenFlowActions on BookOpenFlow {
     if (existing != null) {
       path = existing.path;
       format = existing.format;
+      // Temporary diagnostic for the "kicked out on the loading screen"
+      // crash report — see PdfOpeningScreen._resolve's comment.
+      log('🔍 [BookOpen] bookId=${book.id} using already-downloaded '
+          'format=$format path=$path');
     } else {
       final file = _pickFile();
       if (file == null) {
@@ -76,14 +80,26 @@ extension _BookOpenFlowActions on BookOpenFlow {
         path =
             await downloadService.ensureDownloaded(bookId: book.id, file: file);
         format = file.fileFormat.toLowerCase();
+        log('🔍 [BookOpen] bookId=${book.id} freshly downloaded '
+            'format=$format path=$path');
       } on DioException catch (e) {
         // A cancel is the user's own doing — no error to report.
-        if (e.type != DioExceptionType.cancel && context.mounted) {
+        if (e.type == DioExceptionType.cancel) return;
+        log('🔍 [BookOpen] bookId=${book.id} download failed | '
+            'status=${e.response?.statusCode} type=${e.type} '
+            'uri=${e.requestOptions.uri}');
+        if (context.mounted) {
           context.showAppSnackBar(BookDetailStrings.downloadFailed,
               isError: true);
         }
         return;
       } on ApiException catch (e) {
+        // [ApiException.fromDioException] already logs the raw status/body
+        // for its own generic fallback — this covers the other case, an
+        // ApiException [_download] throws directly (a size mismatch, an
+        // empty presigned link), which never passed through that path.
+        log('🔍 [BookOpen] bookId=${book.id} download failed | '
+            'ApiException: ${e.message} (status=${e.statusCode})');
         if (context.mounted) context.showAppSnackBar(e.message, isError: true);
         return;
       }
@@ -102,6 +118,8 @@ extension _BookOpenFlowActions on BookOpenFlow {
     if (!context.mounted) return;
     if (offerPurchasedExport) await _offerPurchasedExport(path);
     if (!context.mounted) return;
+    log('🔍 [BookOpen] bookId=${book.id} handing off to reader | '
+        'format=$format path=$path');
     _openReader(path: path, format: format);
   }
 

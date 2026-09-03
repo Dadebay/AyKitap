@@ -1,27 +1,27 @@
-# Session Snapshot — 2026-08-27 20:07
+# Session Snapshot — 2026-09-02 13:18
 
 ## Files Changed
-- .claude/launch.json
-- .claude/sessions/snapshot.md
-- .claude/sessions/token-log.md
-- android/app/google-services.json
-- android/app/src/main/AndroidManifest.xml
-- android/app/src/main/res/xml/aykitap_last_book_widget.xml
-- android/app/src/main/res/xml/aykitap_streak_widget.xml
-- ios/Podfile.lock
-- ios/Runner/GoogleService-Info.plist
-- ios/Runner/Info.plist
+- .Codex/SHIPATON_2026_REMAINING_TASKS.md
+- .Codex/completions/2026-08-25-ios-lldb-onesignal-warning.md
+- .Codex/completions/2026-08-25-ios-onesignal-app-group.md
+- .Codex/completions/2026-08-25-onesignal-orange-diagnostics.md
+- .Codex/completions/2026-08-25-revenuecat-firebase-shipaton-plan.md
+- .Codex/completions/2026-08-25-shipaton-motion-retention-pass.md
+- .Codex/completions/2026-08-27-book-detail-transition-performance.md
+- .Codex/completions/2026-08-27-card-4-numbered-book-design.md
+- .Codex/completions/2026-08-27-card-4-numbered-book-design.md.orig
+- .Codex/completions/2026-08-27-home-book-hero-jank.md
 
 ## Recent Commits
+- 826f2a5 Aug 28
 - 89125c5 OneSignal
 - b9dc9b9 Foldable start
 - 270e467 V1
 - b63dc08 befor shipaton
-- bfd8d0e Aug 24
 
 ## Token Estimate
 ~703 tokens in auto-loaded files
 
 ## Last Turn
-Hangisini istersin, yoksa şu an satın alma testine ihtiyacın yok mu, sadece debug modda mı devam edelim?
+**Android publish'e evet, engel yok** — kendi build/sign/publish akışınla devam edebilirsin. Kalan tek gerçek görev iOS'
 

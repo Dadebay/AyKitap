@@ -1,8 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- largeHeap: a reader app is unusually memory-hungry for its size —
+         PDFium maps whole books (17MB+ is normal here), Flutter's image cache
+         holds tens of MB of covers, and the epub reader carries a WebView.
+         The standard per-app heap is what a 17MB PDF was dying against: scudo
+         reported it could not populate pages for *every* size class, i.e. the
+         process could not get memory from the OS at all. -->
     <application
         android:label="Aýkitap"
         android:name="${applicationName}"
+        android:largeHeap="true"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

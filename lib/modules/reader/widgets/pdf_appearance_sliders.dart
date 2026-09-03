@@ -41,8 +41,8 @@ class PdfAppearanceSliders extends StatelessWidget {
         // A printed page carries a blank margin down each side; left alone it
         // reads on screen as two empty strips with the text squeezed between
         // them. Dragging this right trims them off so the text block reaches
-        // both edges. Zero leaves the page untouched, which is where a
-        // scanned or comic book (already printed edge to edge) starts.
+        // both edges. Zero leaves the page untouched; useful when a comic is
+        // genuinely edge-to-edge rather than a scan carrying paper borders.
         ReaderSectionLabel(ReaderPdfStrings.pdfMarginCropLabel),
         const SizedBox(height: 10),
         ReaderSliderRow(

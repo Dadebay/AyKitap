@@ -1,13 +1,15 @@
 import 'dart:async';
 import 'dart:developer';
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/localization/strings/reader_strings.dart';
-import '../../../core/localization/strings/reader_pdf_strings.dart';
+
 import '../../../core/localization/strings/reader_bookmark_strings.dart';
+import '../../../core/localization/strings/reader_pdf_strings.dart';
+import '../../../core/localization/strings/reader_strings.dart';
 import '../../../core/services/bookmarks_store.dart';
 import '../../../core/services/last_read_book_store.dart';
 import '../../../core/services/reading_progress_reporter.dart';
@@ -159,6 +161,12 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
   @override
   void initState() {
     super.initState();
+    // Temporary diagnostic — see PdfOpeningScreen._resolve's comment. If
+    // PdfOpeningScreen's own logs finished cleanly but the app still goes
+    // down right around here, the crash is in PdfViewer's (pdfrx) own
+    // PDFium mount rather than the classification pass above it.
+    log('🔍 [PdfReader] initState bookId=$_bookId path=${widget.filePath} '
+        'imageOnly=${widget.imageOnly}');
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     enableReaderLandscape();
     _restoreState();

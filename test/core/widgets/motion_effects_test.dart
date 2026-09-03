@@ -136,6 +136,40 @@ void main() {
       expect(translateY(tester), closeTo(0, 0.01));
     });
 
+    testWidgets('a rebuild after entrance has settled does not replay it',
+        (tester) async {
+      // index 2 (not 0): a real, nonzero delay, so a replay would be
+      // unmistakable — the offset would jump back to 10px and sit there
+      // for two stagger steps before easing out again, not just redo an
+      // already-instantaneous settle.
+      var rebuildCount = 0;
+      late StateSetter rebuild;
+      await tester.pumpWidget(_app(
+        StatefulBuilder(builder: (context, setState) {
+          rebuild = setState;
+          // A fresh Text instance every rebuild — same widget *type* and
+          // tree position as StaggerFadeIn's child, but a new object, the
+          // way a theme/provider-driven rebuild hands every descendant new
+          // widget instances without changing its place in the tree.
+          return StaggerFadeIn(index: 2, child: Text('build $rebuildCount'));
+        }),
+      ));
+      await tester.pumpAndSettle();
+      expect(translateY(tester), closeTo(0, 0.01));
+
+      // Simulates a small provider/theme update rebuilding this subtree —
+      // same StaggerFadeIn Element, same State, just a new child.
+      rebuildCount++;
+      rebuild(() {});
+      await tester.pump();
+
+      // Still settled — a replay would show 10px again here, since index
+      // 2's delay (90ms) hasn't elapsed and the entrance itself takes
+      // 280ms.
+      expect(translateY(tester), closeTo(0, 0.01));
+      expect(find.text('build 1'), findsOneWidget);
+    });
+
     testWidgets('keeps its post-entrance state alive in a lazy list',
         (tester) async {
       // AutomaticKeepAliveClientMixin is what stops a scroll far enough to

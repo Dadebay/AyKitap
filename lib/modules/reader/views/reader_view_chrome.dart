@@ -25,18 +25,25 @@ extension _ReaderViewChrome on _ReaderScreenState {
                 child: AnimatedOpacity(
                   opacity: provider.showControls ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 200),
-                  child: ReaderTopBar(
-                    // TZ §12.1: the centre shows the *chapter* name; the
-                    // book title stands in until a chapter resolves.
-                    title: provider.currentChapterTitle ?? widget.bookTitle,
-                    isBookmarked: provider.isCurrentPageBookmarked,
-                    pageColor: bgColor,
-                    eyeCare: provider.eyeCare,
-                    onBack: () async {
-                      await provider.saveAndClose();
-                      if (context.mounted) Navigator.of(context).pop();
-                    },
-                    onBookmark: () => _showBookmarks(context, provider),
+                  // Chapter title and bookmark status change on every page
+                  // turn (see ReaderProvider.progressListenable); scoping the
+                  // listener to just this bar keeps a relocation from
+                  // rebuilding the rest of the chrome/screen.
+                  child: ValueListenableBuilder<ReaderProgressSnapshot>(
+                    valueListenable: provider.progressListenable,
+                    builder: (context, snapshot, _) => ReaderTopBar(
+                      // TZ §12.1: the centre shows the *chapter* name; the
+                      // book title stands in until a chapter resolves.
+                      title: snapshot.currentChapterTitle ?? widget.bookTitle,
+                      isBookmarked: snapshot.isBookmarked,
+                      pageColor: bgColor,
+                      eyeCare: provider.eyeCare,
+                      onBack: () async {
+                        await provider.saveAndClose();
+                        if (context.mounted) Navigator.of(context).pop();
+                      },
+                      onBookmark: () => _showBookmarks(context, provider),
+                    ),
                   ),
                 ),
               ),
@@ -61,17 +68,22 @@ extension _ReaderViewChrome on _ReaderScreenState {
                   child: AnimatedOpacity(
                     opacity: provider.showControls ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 200),
-                    child: ReaderBottomBar(
-                      progress: provider.progress,
-                      currentPage: provider.currentPage,
-                      totalPages: provider.totalPages,
-                      pageColor: bgColor,
-                      eyeCare: provider.eyeCare,
-                      onSettings: () => _showSettings(context),
-                      onChapters: () => _showChapters(context, provider),
-                      onSearch: () => _showSearch(context, provider),
-                      onProgressChanged: (value) =>
-                          provider.epubController.toProgressPercentage(value),
+                    // Same scoping as the top bar above: progress/page are
+                    // per-relocation, so only this bar should rebuild for them.
+                    child: ValueListenableBuilder<ReaderProgressSnapshot>(
+                      valueListenable: provider.progressListenable,
+                      builder: (context, snapshot, _) => ReaderBottomBar(
+                        progress: snapshot.progress,
+                        currentPage: snapshot.currentPage,
+                        totalPages: snapshot.totalPages,
+                        pageColor: bgColor,
+                        eyeCare: provider.eyeCare,
+                        onSettings: () => _showSettings(context),
+                        onChapters: () => _showChapters(context, provider),
+                        onSearch: () => _showSearch(context, provider),
+                        onProgressChanged: (value) =>
+                            provider.epubController.toProgressPercentage(value),
+                      ),
                     ),
                   ),
                 ),
@@ -93,15 +105,18 @@ extension _ReaderViewChrome on _ReaderScreenState {
                   bottom: false,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(24, 10, 24, 0),
-                    child: Text(
-                      provider.currentChapterTitle ?? widget.bookTitle,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: focusColor,
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w500),
+                    child: ValueListenableBuilder<ReaderProgressSnapshot>(
+                      valueListenable: provider.progressListenable,
+                      builder: (context, snapshot, _) => Text(
+                        snapshot.currentChapterTitle ?? widget.bookTitle,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: focusColor,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w500),
+                      ),
                     ),
                   ),
                 ),
@@ -122,13 +137,16 @@ extension _ReaderViewChrome on _ReaderScreenState {
                   top: false,
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 12, top: 4),
-                    child: Text(
-                      _pageLabel(provider),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: focusColor,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500),
+                    child: ValueListenableBuilder<ReaderProgressSnapshot>(
+                      valueListenable: provider.progressListenable,
+                      builder: (context, snapshot, _) => Text(
+                        _pageLabel(snapshot),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: focusColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500),
+                      ),
                     ),
                   ),
                 ),

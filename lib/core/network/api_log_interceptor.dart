@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
@@ -10,7 +8,7 @@ import 'package:flutter/foundation.dart';
 enum _AnsiColor {
   cyan('\x1B[36m'), // outgoing request
   green('\x1B[32m'), // 2xx response
-  yellow('\x1B[33m'), // non-2xx response with a body (e.g. validation errors)
+  yellow('\x1B[33m'), // non-2xx response
   red('\x1B[31m'); // network/timeout failure, no response at all
 
   final String code;
@@ -20,68 +18,73 @@ enum _AnsiColor {
 const _ansiReset = '\x1B[0m';
 const _ansiBold = '\x1B[1m';
 
-/// Prints every request/response through [DioClient] as one coloured block —
-/// method + path in the request's colour, status + body on the line under
-/// it — so testing the auth endpoints against the real backend means reading
-/// the terminal, not stepping through with a debugger. Debug builds only:
-/// this is a development aid, not something that should ship.
+/// Opt-in, debug-only API timing diagnostics.
+///
+/// This deliberately logs metadata only: method, path, status/error category,
+/// and elapsed time. Headers, query strings, request/response bodies, hostnames,
+/// and exception messages can all contain personal data or credentials and are
+/// therefore never formatted or printed here.
 class ApiLogInterceptor extends Interceptor {
   const ApiLogInterceptor();
 
-  /// These catalogue-shaped responses can carry many books (each with a
-  /// description, cover, author list, ...) nested several collections deep;
-  /// logging their formatted body overwhelms the debug console and buries
-  /// every other request around it. Keep logging every other endpoint
-  /// normally.
-  static bool _shouldSkipResponseBody(RequestOptions options) =>
-      options.path == '/books/all' || options.path == '/collections/all';
+  static const _startedAtKey = '_apiLogStartedAtMicros';
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    final buffer = StringBuffer()
-      ..writeln(
-          '${_AnsiColor.cyan.code}$_ansiBold→ ${options.method} ${options.uri}$_ansiReset');
-    if (options.data != null) {
-      buffer.writeln(
-          '${_AnsiColor.cyan.code}  body: ${_prettyJson(options.data)}$_ansiReset');
-    }
-    debugPrint(buffer.toString());
+    options.extra[_startedAtKey] = DateTime.now().microsecondsSinceEpoch;
+    debugPrint(
+      '${_AnsiColor.cyan.code}$_ansiBold→ ${options.method} ${_path(options)}$_ansiReset',
+    );
     handler.next(options);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    if (_shouldSkipResponseBody(response.requestOptions)) {
-      handler.next(response);
-      return;
-    }
     final ok =
         (response.statusCode ?? 0) >= 200 && (response.statusCode ?? 0) < 300;
     final color = ok ? _AnsiColor.green : _AnsiColor.yellow;
-    final buffer = StringBuffer()
-      ..writeln(
-          '${color.code}$_ansiBold← ${response.statusCode} ${response.requestOptions.method} ${response.requestOptions.uri}$_ansiReset')
-      ..writeln('${color.code}  ${_prettyJson(response.data)}$_ansiReset');
-    debugPrint(buffer.toString());
+    final options = response.requestOptions;
+    debugPrint(
+      '${color.code}$_ansiBold← ${response.statusCode ?? 'unknown'} '
+      '${options.method} ${_path(options)} (${_elapsedMs(options)}ms)$_ansiReset',
+    );
     handler.next(response);
   }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    final buffer = StringBuffer()
-      ..writeln(
-          '${_AnsiColor.red.code}$_ansiBold✕ ${err.requestOptions.method} ${err.requestOptions.uri}$_ansiReset')
-      ..writeln(
-          '${_AnsiColor.red.code}  ${err.response != null ? '${err.response!.statusCode} ${_prettyJson(err.response!.data)}' : err.message}$_ansiReset');
-    debugPrint(buffer.toString());
+    final options = err.requestOptions;
+    final outcome = err.response?.statusCode?.toString() ?? _errorCategory(err);
+    debugPrint(
+      '${_AnsiColor.red.code}$_ansiBold✕ ${options.method} ${_path(options)} '
+      '$outcome (${_elapsedMs(options)}ms)$_ansiReset',
+    );
     handler.next(err);
   }
 
-  String _prettyJson(dynamic data) {
-    try {
-      return const JsonEncoder.withIndent('  ').convert(data);
-    } catch (_) {
-      return data.toString();
-    }
+  static String _path(RequestOptions options) {
+    final path = options.uri.path;
+    return path.isEmpty ? '/' : path;
+  }
+
+  static int _elapsedMs(RequestOptions options) {
+    final startedAt = options.extra[_startedAtKey];
+    if (startedAt is! int) return 0;
+    final elapsedMicros = DateTime.now().microsecondsSinceEpoch - startedAt;
+    return elapsedMicros <= 0 ? 0 : elapsedMicros ~/ 1000;
+  }
+
+  static String _errorCategory(DioException error) {
+    return switch (error.type) {
+      DioExceptionType.connectionTimeout ||
+      DioExceptionType.sendTimeout ||
+      DioExceptionType.receiveTimeout =>
+        'timeout',
+      DioExceptionType.connectionError => 'network_error',
+      DioExceptionType.cancel => 'cancelled',
+      DioExceptionType.badCertificate => 'bad_certificate',
+      DioExceptionType.badResponse => 'bad_response',
+      DioExceptionType.unknown => 'unknown_error',
+    };
   }
 }

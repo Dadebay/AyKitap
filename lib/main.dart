@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:aykitap/global_safe_area_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'core/layout/app_orientation_observer.dart';
 import 'core/layout/app_orientation_policy.dart';
@@ -11,22 +10,18 @@ import 'core/layout/window_size_class.dart';
 import 'core/localization/app_locale.dart';
 import 'core/localization/localization_delegates.dart';
 import 'core/navigation/root_navigator.dart';
-import 'core/network/api_config.dart';
 import 'core/services/account_service.dart';
 import 'core/services/analytics_service.dart';
 import 'core/services/app_activity_service.dart';
+import 'core/services/app_bootstrap_service.dart';
 import 'core/services/book_access_service.dart';
 import 'core/services/book_download_service.dart';
 import 'core/services/bookmarks_store.dart';
-import 'core/services/device_fingerprint.dart';
 import 'core/services/downloaded_books_store.dart';
 import 'core/services/downloaded_files_store.dart';
-import 'core/services/firebase_messaging_service.dart';
 import 'core/services/home_data_service.dart';
-import 'core/services/home_screen_widget_service.dart';
 import 'core/services/last_read_book_store.dart';
 import 'core/services/notes_store.dart';
-import 'core/services/onesignal_service.dart';
 import 'core/services/own_books_store.dart';
 import 'core/services/premium_access_service.dart';
 import 'core/services/purchased_books_store.dart';
@@ -39,12 +34,18 @@ import 'modules/splash/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Default is 1000 images / 100MB — too tight for how many book covers Home,
-  // Library and Search keep on screen at once, so returning from a detail
-  // page after viewing a few others could evict an earlier cover and force
-  // a visible reload. A bigger budget keeps decoded covers resident.
-  PaintingBinding.instance.imageCache.maximumSize = 3000;
-  PaintingBinding.instance.imageCache.maximumSizeBytes = 200 << 20;
+  // Default is 1000 images / 100MB. Covers now decode at their real
+  // per-axis display size (see NetworkCoverImage) instead of the larger of
+  // width/height, so each cached entry is a fraction of what it used to be
+  // — a bigger *count* budget than the default still helps (Home, Library
+  // and Search all keep many covers resident at once), but a bigger *byte*
+  // budget doesn't need to compensate for oversized entries anymore. 700
+  // images holds noticeably more real covers than the previous 3000-entry
+  // budget did before this fix, at under half the memory ceiling — the
+  // difference matters most on mid-range Android, where a large resident
+  // image cache is a common source of GC pauses and scroll jank.
+  PaintingBinding.instance.imageCache.maximumSize = 700;
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 80 << 20;
   // Locks portrait immediately, before the first frame — there's no
   // MediaQuery yet to read a real window size from, so this primes
   // AppOrientationPolicy with the same compact/no-reader default it starts
@@ -61,63 +62,13 @@ void main() async {
   // A swipe up from the bottom edge still reveals it temporarily.
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
       overlays: [SystemUiOverlay.top]);
-  await AppTheme.instance.load();
-  // Must precede AppLocale.load(), which sets Intl.defaultLocale to a locale
-  // whose date symbols this call is what makes available.
-  await initializeDateFormatting();
-  await AppLocale.instance.load();
-  // Awaited so the navigator observer exists by the time MaterialApp builds;
-  // it never throws, so a Firebase outage can't block startup.
-  await AnalyticsService.instance.init();
-  unawaited(
-      AnalyticsService.instance.setLanguage(AppLocale.instance.current.name));
-  // Firebase only came up on a supported platform (see AnalyticsService);
-  // push notifications ride on the same Firebase app, so gate on that too.
-  // Fire-and-forget: token/permission prompts shouldn't add latency to boot.
-  if (AnalyticsService.instance.isEnabled) {
-    unawaited(FirebaseMessagingService.instance.init());
-  }
-  // The second push provider (engagement campaigns only — see
-  // OneSignalService's doc comment). Deliberately outside the Firebase gate
-  // above and never awaited: OneSignal being unreachable, or its app id
-  // missing, must not delay the first frame or touch the FCM path. Identity
-  // is re-bound right after, and survives init not having finished yet.
-  unawaited(OneSignalService.instance
-      .initialize()
-      .then((_) => OneSignalService.instance.loginCurrentUser()));
-  // Awaited (unlike OneSignal above): whether the reader has Plus needs to
-  // be correct by the time the first screen that gates on it builds, not
-  // sometime after the first frame. Configuring the SDK is local/fast — no
-  // store round-trip — so this doesn't meaningfully delay boot.
-  await RevenueCatService.instance.init();
-  unawaited(RevenueCatService.instance.loginCurrentUser());
-  // Keep native home-screen widgets useful from their first render, even
-  // before the user opens the Reader tab in this app session.
-  await LastReadBookStore.instance.load();
-  await StreakService.instance.load();
-  final lastRead = LastReadBookStore.instance.book;
-  unawaited(HomeScreenWidgetService.sync(
-    bookId: lastRead?.bookId,
-    title: lastRead?.title,
-    author: lastRead?.author,
-    page: lastRead?.page ?? 0,
-    pageCount: lastRead?.pageCount,
-    streak: StreakService.instance.currentStreak,
-    bestStreak: StreakService.instance.bestStreak,
-    todayPages: StreakService.instance.todayPages,
-    goalMinutes: StreakService.instance.goalMinMinutes,
-    weekRead: StreakService.instance.weekRead,
-    coverUrl: lastRead?.image == null
-        ? null
-        : ApiConfig.resolveImageUrl(lastRead!.image!),
-  ));
-  // Fire-and-forget: resolve and cache the device fingerprint now so it's
-  // ready by the time the user reaches login, with no added latency there.
-  unawaited(DeviceFingerprint.get());
-  // Foreground-time tracking for the admin dashboard's "most active users".
-  // Started here rather than from a screen because it has to span the whole
-  // process, not one route — it costs a single 60s timer and one int.
-  AppActivityService.instance.init();
+  // The only startup work genuinely awaited ahead of `runApp()` — theme and
+  // locale are the two things a user would actually *see* go wrong (a flash
+  // of the wrong theme, or a frame in the wrong language) if they weren't
+  // ready yet. Everything else (analytics, push, RevenueCat, the reader's
+  // home-screen widgets, the device fingerprint, foreground-time tracking)
+  // starts only after the first frame — see [AppBootstrapService].
+  await AppBootstrapService.instance.runBeforeFirstFrame();
   runApp(
     MultiProvider(
       providers: [
@@ -158,6 +109,11 @@ void main() async {
       child: const AykitapApp(),
     ),
   );
+  // Kicked off after `runApp()`, not before — its own kick-off is
+  // synchronous work (building the `Future.wait` list below), and nothing
+  // about it should run ahead of the call that actually schedules the
+  // first frame.
+  unawaited(AppBootstrapService.instance.runAfterFirstFrame());
 }
 
 class AykitapApp extends StatelessWidget {

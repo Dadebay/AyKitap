@@ -17,11 +17,7 @@ class SearchResultGrid extends StatelessWidget {
   final EdgeInsets padding;
   final bool loadingMore;
 
-  const SearchResultGrid(
-      {super.key,
-      required this.books,
-      required this.padding,
-      required this.loadingMore});
+  const SearchResultGrid({super.key, required this.books, required this.padding, required this.loadingMore});
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +28,7 @@ class SearchResultGrid extends StatelessWidget {
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: _crossAxisCount,
-              mainAxisSpacing: 20,
+              mainAxisSpacing: 0,
               crossAxisSpacing: 12,
               childAspectRatio: 0.5,
             ),
@@ -47,12 +43,7 @@ class SearchResultGrid extends StatelessWidget {
             delegate: SliverChildBuilderDelegate(
               (_, i) => StaggerFadeIn(
                 index: i ~/ _crossAxisCount,
-                child: CatalogBookCard(
-                    book: books[i],
-                    heroTag: AppHeroTags.catalogBookCover(books[i].id),
-                    width: double.infinity,
-                    coverHeight: 170,
-                    margin: EdgeInsets.zero),
+                child: CatalogBookCard(book: books[i], heroTag: AppHeroTags.catalogBookCover(books[i].id), width: double.infinity, coverHeight: 170, margin: EdgeInsets.zero),
               ),
               childCount: books.length,
             ),
@@ -66,8 +57,7 @@ class SearchResultGrid extends StatelessWidget {
                 child: SizedBox(
                   width: 22,
                   height: 22,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: AppColors.primary),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
                 ),
               ),
             ),

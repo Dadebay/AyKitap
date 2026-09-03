@@ -110,6 +110,19 @@
 				<string>rc-51992f1ae5</string>
 			</array>
 		</dict>
+		<!-- Google Sign-In's redirect scheme — the reversed form of
+		     GoogleService-Info.plist's CLIENT_ID. Without this entry iOS has
+		     nowhere to hand the OAuth redirect back to, which is what
+		     google_sign_in_ios throws "missing support for the following URL
+		     schemes" for. -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.google.aykitap</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.99691215723-kke4msk6o4nb2hfgtma70fgjm9mi8dui</string>
+			</array>
+		</dict>
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>

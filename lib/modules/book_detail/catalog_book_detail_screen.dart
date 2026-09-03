@@ -126,6 +126,11 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
       );
 
   Future<void> _waitForRouteTransition() async {
+    // Both call sites in [_load] await a network call first — the screen can
+    // be gone by the time that resolves (user backed out while it was slow,
+    // e.g. over a flaky VPN), and `context` throws once the State is
+    // unmounted.
+    if (!mounted) return;
     final animation = ModalRoute.of(context)?.animation;
     if (animation == null || animation.isCompleted) return;
 
