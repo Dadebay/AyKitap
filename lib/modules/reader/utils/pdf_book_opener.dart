@@ -165,16 +165,26 @@ class PdfOpeningScreenState extends State<PdfOpeningScreen> {
     // verdict when one exists; otherwise choose image-safe layout defaults and
     // let PdfViewer be the only component that opens the document.
     var imageOnly = false;
+    // Only true on an actual cached verdict — never on the "no verdict yet"
+    // fallback [imageSafePdfDefaultsFor] resolves to `true` for. That
+    // fallback exists so scroll/fit-width pick a safe *guess*; margin crop
+    // needs a real answer, not a guess, or an unclassified text PDF opens
+    // pre-cropped for no reason the reader can see. See
+    // [PdfReaderScreen.confirmedImageOnly].
+    var confirmedImageOnly = false;
     if (epubPath == null) {
       final cachedVerdict = await PdfReflowService.instance
           .cachedImageOnlyVerdict(widget.filePath);
       imageOnly = imageSafePdfDefaultsFor(cachedVerdict);
+      confirmedImageOnly = cachedVerdict ?? false;
     }
     if (!mounted) return;
-    _proceed(epubPath, imageOnly: imageOnly);
+    _proceed(epubPath,
+        imageOnly: imageOnly, confirmedImageOnly: confirmedImageOnly);
   }
 
-  void _proceed(String? epubPath, {bool imageOnly = false}) {
+  void _proceed(String? epubPath,
+      {bool imageOnly = false, bool confirmedImageOnly = false}) {
     final replacement = epubPath != null
         ? ChangeNotifierProvider(
             create: (_) => ReaderProvider(),
@@ -193,6 +203,7 @@ class PdfOpeningScreenState extends State<PdfOpeningScreen> {
             bookId: widget.bookId,
             realBookId: widget.realBookId,
             imageOnly: imageOnly,
+            confirmedImageOnly: confirmedImageOnly,
           );
     setState(() => _reader = replacement);
   }

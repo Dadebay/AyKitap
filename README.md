@@ -33,11 +33,11 @@ internetsiz okamak we okaýyş statistikasy ýaly mümkinçilikleri bar.
 
 ### Kitaphana we gözleg
 - **Kitaplyk** — Okaýanlarym / Okap gutaranlarym / Ýüklenenler / Satyn Alnanlar /
-  Halaýanlarym / Öz kitaplarym
-- **Gözleg** — kitap ýa-da ýazar boýunça, žanr çipleri, doly filtr sahypasy
+  Halanlarym / Öz kitaplarym
+- **Gözleg** — kitap ýa-da Awtor boýunça, žanr çipleri, doly filtr sahypasy
   (žanr, dil, format, çap senesi, tertip), aşak aýlanyňda indiki sahypa awtomatiki
   ýüklenýär
-- **Baş sahypa** — kolleksiýalar, bannerler, žanrlar, ýazarlar
+- **Baş sahypa** — kolleksiýalar, bannerler, žanrlar, Awtorlar
 - Öz kitabyňy açmak: telefondan faýl saýlap ýa-da başga programmadan "Open with"
   arkaly (Android `MainActivity.kt`, iOS `AppDelegate.swift`)
 

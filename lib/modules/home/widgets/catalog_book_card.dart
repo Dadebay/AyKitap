@@ -38,9 +38,7 @@ class CatalogBookCard extends StatelessWidget {
       onTap: () => context.pushHero(CatalogBookDetailScreen(
         bookId: book.id,
         heroTag: heroTag,
-        initialCoverUrl: image != null && image.isNotEmpty
-            ? ApiConfig.resolveImageUrl(image)
-            : null,
+        initialCoverUrl: image != null && image.isNotEmpty ? ApiConfig.resolveImageUrl(image) : null,
       )),
       child: Container(
         width: width,
@@ -55,47 +53,20 @@ class CatalogBookCard extends StatelessWidget {
               style: BookCoverStyle(
                 borderRadius: 6,
                 shadows: [
-                  BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.22),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4)),
-                  isDark
-                      ? BoxShadow(
-                          color: Colors.white.withValues(alpha: 0.08),
-                          blurRadius: 12)
-                      : BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.12),
-                          blurRadius: 14,
-                          offset: const Offset(0, 6)),
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.22), blurRadius: 10, offset: const Offset(0, 4)),
+                  isDark ? BoxShadow(color: Colors.white.withValues(alpha: 0.08), blurRadius: 12) : BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 14, offset: const Offset(0, 6)),
                 ],
               ),
-              child: image != null && image.isNotEmpty
-                  ? NetworkCoverImage(
-                      url: ApiConfig.resolveImageUrl(image),
-                      placeholder: (_) => _placeholder())
-                  : _placeholder(),
+              child: image != null && image.isNotEmpty ? NetworkCoverImage(url: ApiConfig.resolveImageUrl(image), placeholder: (_) => _placeholder()) : _placeholder(),
             ),
             const SizedBox(height: 6),
-            Text(book.name,
-                style: TextStyle(
-                    color: AppColors.grey1,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
-            Text(book.authorNames,
-                style: TextStyle(color: AppColors.grey2, fontSize: 11),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
+            Text(book.name, style: TextStyle(color: AppColors.grey1, fontSize: 12, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(book.authorNames, style: TextStyle(color: AppColors.grey2, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
           ],
         ),
       ),
     );
   }
 
-  Widget _placeholder() => Center(
-      child: HugeIcon(
-          icon: HugeIcons.strokeRoundedBook02,
-          color: AppColors.grey3,
-          size: 22));
+  Widget _placeholder() => Center(child: HugeIcon(icon: HugeIcons.strokeRoundedBook02, color: AppColors.grey3, size: 22));
 }

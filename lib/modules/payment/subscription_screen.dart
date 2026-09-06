@@ -80,11 +80,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         backgroundColor: AppColors.journeyMist,
         leading: const AppBackButton(size: 20),
         centerTitle: true,
-        title: Text(PaymentStrings.subscriptionTitle,
-            style: TextStyle(
-                color: AppColors.journeyInk,
-                fontSize: 17,
-                fontWeight: FontWeight.w700)),
+        title: Text(PaymentStrings.subscriptionTitle, style: TextStyle(color: AppColors.journeyInk, fontSize: 17, fontWeight: FontWeight.w700)),
       ),
       body: SafeArea(
         top: false,

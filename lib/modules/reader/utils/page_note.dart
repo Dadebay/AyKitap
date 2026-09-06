@@ -73,8 +73,7 @@ Future<void> showAddPageNoteSheet(
       remoteId = created.id;
     } on ApiException {
       if (context.mounted) {
-        context.showAppSnackBar(ReaderNotesStrings.noteSaveFailedMessage,
-            isError: true);
+        context.showAppSnackBar(ReaderNotesStrings.noteSaveFailedMessage, isError: true);
       }
       return;
     }
@@ -92,6 +91,5 @@ Future<void> showAddPageNoteSheet(
     colorValue: draft.colorValue,
     remoteId: remoteId,
   );
-  if (context.mounted)
-    context.showAppSnackBar(ReaderNotesStrings.noteSavedMessage);
+  if (context.mounted) context.showAppSnackBar(ReaderNotesStrings.noteSavedMessage);
 }

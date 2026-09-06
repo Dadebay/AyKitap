@@ -1,22 +1,22 @@
 part of 'book_list_api_service.dart';
 
-/// [BookListApiService.listBooks]'s multi-language/multi-format fan-out —
-/// split out to keep that file under the 200-line limit.
+/// [BookListApiService.listBooks]'s multi-language/multi-format/multi-genre
+/// fan-out — split out to keep that file under the 200-line limit.
 ///
-/// Several languages and/or formats selected at once: `language_id` and
-/// `book_format` are both single-valued, so this runs the same query once
-/// per (language, format) combination in parallel and merges the results,
-/// keeping each book once — a book matching two of the selected formats
-/// comes back from both requests.
+/// Several languages, formats and/or genres selected at once: `language_id`,
+/// `book_format` and `genre_id` are all single-valued on the backend, so this
+/// runs the same query once per (language, format, genre) combination in
+/// parallel and merges the results, keeping each book once — a book matching
+/// two of the selected genres comes back from both requests.
 Future<List<LibraryBook>> _listBooksFanOut(
   Set<int> languageIds,
-  Set<String> bookFormats, {
+  Set<String> bookFormats,
+  Set<int> genreIds, {
   bool? myBooks,
   bool? bought,
   bool? wantsTo,
   bool? finished,
   int? authorId,
-  int? genreId,
   String? search,
   String? authors,
   int? startYear,
@@ -30,27 +30,29 @@ Future<List<LibraryBook>> _listBooksFanOut(
   // request with the param omitted — not zero requests.
   final languages = languageIds.isEmpty ? <int?>[null] : languageIds.toList();
   final formats = bookFormats.isEmpty ? <String?>[null] : bookFormats.toList();
+  final genres = genreIds.isEmpty ? <int?>[null] : genreIds.toList();
   final responses = await Future.wait([
     for (final language in languages)
       for (final format in formats)
-        BookListApiService.listBooks(
-          myBooks: myBooks,
-          bought: bought,
-          wantsTo: wantsTo,
-          finished: finished,
-          authorId: authorId,
-          genreId: genreId,
-          search: search,
-          authors: authors,
-          languageIds: language == null ? const [] : [language],
-          bookFormats: format == null ? const [] : [format],
-          startYear: startYear,
-          endYear: endYear,
-          sortBy: sortBy,
-          sortOrder: sortOrder,
-          page: page,
-          size: size,
-        )
+        for (final genre in genres)
+          BookListApiService.listBooks(
+            myBooks: myBooks,
+            bought: bought,
+            wantsTo: wantsTo,
+            finished: finished,
+            authorId: authorId,
+            search: search,
+            authors: authors,
+            languageIds: language == null ? const [] : [language],
+            bookFormats: format == null ? const [] : [format],
+            genreIds: genre == null ? const [] : [genre],
+            startYear: startYear,
+            endYear: endYear,
+            sortBy: sortBy,
+            sortOrder: sortOrder,
+            page: page,
+            size: size,
+          )
   ]);
   return _mergeSorted(responses, sortBy: sortBy, sortOrder: sortOrder);
 }

@@ -33,5 +33,24 @@ void main() {
         0.4,
       );
     });
+
+    test('a PDF nothing has been saved for is not cropped at all', () {
+      expect(initialPdfMarginCropFor(imageOnly: false), 0.0);
+    });
+
+    test('an app-wide choice of zero is honoured, not treated as unset', () {
+      expect(initialPdfMarginCropFor(imageOnly: false, readerCrop: 0.0), 0.0);
+    });
+
+    test('a per-book choice of zero survives an app-wide crop', () {
+      expect(
+        initialPdfMarginCropFor(
+          imageOnly: false,
+          bookCrop: 0.0,
+          readerCrop: 0.7,
+        ),
+        0.0,
+      );
+    });
   });
 }

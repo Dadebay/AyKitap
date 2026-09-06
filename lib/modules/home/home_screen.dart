@@ -13,7 +13,7 @@ import '../../core/widgets/section_header.dart';
 import '../streak/streak_screen.dart';
 import 'catalog_collection_books_screen.dart';
 import 'widgets/banner_carousel.dart';
-import 'widgets/catalog_author_card.dart';
+import 'widgets/catalog_author_avatar.dart';
 import 'widgets/catalog_book_card.dart';
 import 'widgets/catalog_numbered_book_section.dart';
 import 'widgets/catalog_rank_shelf_card.dart';

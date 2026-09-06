@@ -30,35 +30,42 @@ class _StreakMonthlyCardState extends State<StreakMonthlyCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(StreakStrings.monthlyReading,
-                  style: TextStyle(
-                      color: AppColors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700)),
-              Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(10)),
-                child: Row(
-                  children: [
-                    _MonthToggleChip(
-                      label: StreakStrings.thisMonth,
-                      selected: !_showLastMonth,
-                      onTap: () => setState(() => _showLastMonth = false),
-                    ),
-                    _MonthToggleChip(
-                      label: StreakStrings.lastMonth,
-                      selected: _showLastMonth,
-                      onTap: () => setState(() => _showLastMonth = true),
-                    ),
-                  ],
+          Text(StreakStrings.monthlyReading,
+              style: TextStyle(
+                  color: AppColors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(height: 10),
+          // A row beside the title (the original layout) worked for short
+          // labels ("Bu aý" / "Geçen aý") but Russian's "В этом месяце" /
+          // "В прошлом месяце" are long enough to push the toggle off the
+          // right edge of the screen with nothing there to shrink or wrap.
+          // Its own full-width row is the fix that actually scales with
+          // label length instead of just buying a few more pixels.
+          Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(10)),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _MonthToggleChip(
+                    label: StreakStrings.thisMonth,
+                    selected: !_showLastMonth,
+                    onTap: () => setState(() => _showLastMonth = false),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 3),
+                Expanded(
+                  child: _MonthToggleChip(
+                    label: StreakStrings.lastMonth,
+                    selected: _showLastMonth,
+                    onTap: () => setState(() => _showLastMonth = true),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 18),
           Row(
@@ -117,6 +124,7 @@ class _MonthToggleChip extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOut,
+        alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
           color: selected ? AppColors.primary : Colors.transparent,
@@ -124,6 +132,9 @@ class _MonthToggleChip extends StatelessWidget {
         ),
         child: Text(
           label,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: selected ? Colors.white : AppColors.grey2,
             fontSize: 12.5,

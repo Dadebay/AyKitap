@@ -9,46 +9,32 @@ class ProfileFeedbackStrings {
   ProfileFeedbackStrings._();
 
   // ── book_request_sheet.dart ─────────────────────────────────────────────
-  static String get languageTurkmen => t(
-      tk: 'Türkmen dili',
-      ru: 'Туркменский язык',
-      tr: 'Türkmence',
-      en: 'Turkmen');
-  static String get languageTurkish =>
-      t(tk: 'Türk dili', ru: 'Турецкий язык', tr: 'Türkçe', en: 'Turkish');
-  static String get languageRussian =>
-      t(tk: 'Rus dili', ru: 'Русский язык', tr: 'Rusça', en: 'Russian');
-  static String get languageEnglish => t(
-      tk: 'Iňlis dili', ru: 'Английский язык', tr: 'İngilizce', en: 'English');
-  static String get languageOther =>
-      t(tk: 'Beýleki', ru: 'Другое', tr: 'Diğer', en: 'Other');
+  static String get languageTurkmen => t(tk: 'Türkmen dili', ru: 'Туркменский язык', tr: 'Türkmence', en: 'Turkmen');
+  static String get languageTurkish => t(tk: 'Türk dili', ru: 'Турецкий язык', tr: 'Türkçe', en: 'Turkish');
+  static String get languageRussian => t(tk: 'Rus dili', ru: 'Русский язык', tr: 'Rusça', en: 'Russian');
+  static String get languageEnglish => t(tk: 'Iňlis dili', ru: 'Английский язык', tr: 'İngilizce', en: 'English');
+  static String get languageOther => t(tk: 'Beýleki', ru: 'Другое', tr: 'Diğer', en: 'Other');
   static String get bookRequestSentSuccess => t(
         tk: 'Haýyşyňyz iberildi',
         ru: 'Ваш запрос отправлен',
         tr: 'İsteğiniz gönderildi',
         en: 'Your request was sent',
       );
-  static String get bookRequestTitle => t(
-      tk: 'Kitap haýyşy',
-      ru: 'Запрос книги',
-      tr: 'Kitap talebi',
-      en: 'Book request');
+  static String get bookRequestTitle => t(tk: 'Kitap haýyşy', ru: 'Запрос книги', tr: 'Kitap talebi', en: 'Book request');
   static String get bookRequestSubtitle => t(
         tk: 'Programmada ýok kitaby haýyş ediň',
         ru: 'Запросите книгу, которой нет в приложении',
         tr: 'Uygulamada olmayan bir kitabı talep edin',
         en: 'Request a book that isn\'t in the app',
       );
-  static String get bookTitleLabel => t(
-      tk: 'Kitap ady', ru: 'Название книги', tr: 'Kitap adı', en: 'Book title');
+  static String get bookTitleLabel => t(tk: 'Kitap ady', ru: 'Название книги', tr: 'Kitap adı', en: 'Book title');
   static String get bookTitleHint => t(
         tk: 'Mysal: Ýitgi we tapyş',
         ru: 'Например: Потеря и находка',
         tr: 'Örnek: Kayıp ve Buluş',
         en: 'E.g. Lost and Found',
       );
-  static String get authorNameLabel =>
-      t(tk: 'Ýazar ady', ru: 'Имя автора', tr: 'Yazar adı', en: 'Author name');
+  static String get authorNameLabel => t(tk: 'Awtor ady', ru: 'Имя автора', tr: 'Yazar adı', en: 'Author name');
   static String get authorNameHint => t(
         tk: 'Mysal: Osman Ödäýew',
         ru: 'Например: Осман Одаев',
@@ -67,10 +53,8 @@ class ProfileFeedbackStrings {
         tr: 'Kitap hakkında ek bilgi',
         en: 'Extra info about the book',
       );
-  static String get languageLabel =>
-      t(tk: 'Dili', ru: 'Язык', tr: 'Dili', en: 'Language');
-  static String get send =>
-      t(tk: 'Iber', ru: 'Отправить', tr: 'Gönder', en: 'Send');
+  static String get languageLabel => t(tk: 'Dili', ru: 'Язык', tr: 'Dili', en: 'Language');
+  static String get send => t(tk: 'Iber', ru: 'Отправить', tr: 'Gönder', en: 'Send');
 
   // ── report_problem_sheet.dart ───────────────────────────────────────────
   static String get reportProblemTitle => t(

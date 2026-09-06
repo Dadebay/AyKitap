@@ -22,10 +22,10 @@ class AuthorStrings {
   static String get sortByDate => t(tk: 'Senesi boýunça', ru: 'По дате', tr: 'Tarihe göre', en: 'By date');
 
   // catalog_author_detail_screen.dart
-  static String get loadError => t(tk: 'Ýazar ýüklenmedi', ru: 'Не удалось загрузить автора', tr: 'Yazar yüklenemedi', en: 'Author couldn\'t load');
+  static String get loadError => t(tk: 'Awtor ýüklenmedi', ru: 'Не удалось загрузить автора', tr: 'Yazar yüklenemedi', en: 'Author couldn\'t load');
   static String get retry => t(tk: 'Gaýtadan synanyş', ru: 'Повторить', tr: 'Tekrar dene', en: 'Retry');
   static String get noBooksYetTitle => t(
-        tk: 'Bu ýazaryň entäk kitaby ýok',
+        tk: 'Bu Awtoryň entäk kitaby ýok',
         ru: 'У этого автора пока нет книг',
         tr: 'Bu yazarın henüz kitabı yok',
         en: 'This author has no books yet',

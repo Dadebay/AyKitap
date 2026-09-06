@@ -16,7 +16,7 @@ basyp saklanyňda (long-press) delete dialogy çykmaly. Berlen API-lar:
 | Okap gutaranlarym | şol bir progress API (iki tekje bir ýazgynyň iki görnüşi) |
 | Ýüklenenler | öňden bardy (lokal faýl + Save to Files sheet) — üýtgemedi |
 | Satyn Alynanlar | `DELETE /books/bought/:id` + `BookAccessService` keşi |
-| Halaýanlarym | `DELETE /books/unlike/:id` |
+| Halanlarym | `DELETE /books/unlike/:id` |
 | Öz Kitaplarym | lokal faýl `OwnBooksStore.remove` (CBZ/reflow keşleri bilen) |
 
 ## Üýtgän faýllar
@@ -39,7 +39,7 @@ basyp saklanyňda (long-press) delete dialogy çykmaly. Berlen API-lar:
 
 ## Ikinji tapgyr (dizaýneriň soragy boýunça)
 
-**1. Halaýanlarym — cover-iň sag ýokarsynda heart butony.** Bir gezek basmak
+**1. Halanlarym — cover-iň sag ýokarsynda heart butony.** Bir gezek basmak
 bilen halaýanlardan aýyrýar (dialog ýok — Book Detail-daky ýürek hem şeýle
 işleýär, toggle). `LibraryBookCover.onUnfavorite`; diňe halaýanlar tabynda
 görünýär (`removal == ShelfRemoval.favorite`-dan gelip çykýar). Badge 26px,

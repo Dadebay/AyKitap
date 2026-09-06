@@ -48,10 +48,10 @@ extension _SearchScreenSearch on _SearchScreenState {
         return;
       }
       final page = loadMore ? _searchPage + 1 : 1;
-      log('🔍 GET /books/all search="${_hasQuery ? _query : ''}" genre=$_selectedGenreId page=$page');
+      log('🔍 GET /books/all search="${_hasQuery ? _query : ''}" genres=$_selectedGenreIds page=$page');
       final results = await BookListApiService.listBooks(
         search: _hasQuery ? _query : null,
-        genreId: _selectedGenreId,
+        genreIds: _selectedGenreIds,
         languageIds: _filterLanguageIds,
         bookFormats: _filterFormats.map((f) => f.apiValue),
         startYear: _filterStartYear,

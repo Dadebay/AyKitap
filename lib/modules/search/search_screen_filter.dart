@@ -5,7 +5,7 @@ part of 'search_screen.dart';
 extension _SearchScreenFilter on _SearchScreenState {
   Future<void> _openFilter() async {
     final res = await context.push<FilterResult>(FilterScreen(
-      initialGenreId: _selectedGenreId,
+      initialGenreIds: _selectedGenreIds,
       initialLanguageIds: _filterLanguageIds,
       initialFormats: _filterFormats,
       initialYearRange: _filterYearRange,
@@ -21,13 +21,13 @@ extension _SearchScreenFilter on _SearchScreenState {
     final sortChanged = res.sortBy != _filterSort || !_sortChosenByUser;
     _setState(() {
       _filterActive = res.active;
-      // Same selection the chip row shows/sets — picking a genre inside the
+      // Same selection the chip row shows/sets — picking genres inside the
       // filter page just updates it from the other side.
-      _selectedGenreId = res.genreId;
+      _selectedGenreIds = res.genreIds;
       // A genre is a Book-mode filter (see [_toggleGenre]) — picking one on
-      // the filter page while Ýazar is showing means the same thing a chip
+      // the filter page while Awtor is showing means the same thing a chip
       // tap would.
-      if (_selectedGenreId != null) _searchMode = _SearchMode.book;
+      if (_selectedGenreIds.isNotEmpty) _searchMode = _SearchMode.book;
       _filterLanguageIds = res.languageIds;
       _filterFormats = res.formats;
       _filterStartYear = res.startYear;

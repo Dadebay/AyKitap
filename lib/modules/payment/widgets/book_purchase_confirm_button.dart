@@ -30,25 +30,15 @@ class BookPurchaseConfirmButton extends StatelessWidget {
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 0,
           ),
           onPressed: processing ? null : (enough ? onConfirm : onTopUp),
           child: processing
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                      color: Colors.white, strokeWidth: 2.4))
+              ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.4))
               : Text(
-                  enough
-                      ? PaymentStrings.confirmWithPrice(price)
-                      : PaymentStrings.topUpBalance,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700),
+                  enough ? PaymentStrings.confirmWithPrice(price) : PaymentStrings.topUpBalance,
+                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
                 ),
         ),
       ),

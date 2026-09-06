@@ -51,6 +51,29 @@ class _ReaderProgressScrubberState extends State<ReaderProgressScrubber> {
   // forever. This forces it to release after a beat regardless.
   Timer? _releaseFallback;
 
+  // The page number the label is showing, and a counter that ticks once per
+  // actual change.
+  //
+  // The AnimatedSwitcher below is keyed by the *counter*, not by the page
+  // number, because it keeps an outgoing child mounted for the whole fade and
+  // does not deduplicate that child against the incoming one. Scrolling a PDF
+  // crosses a page boundary back and forth well inside those 180ms, so the
+  // page number could return to a value whose previous label was still fading
+  // out — leaving the switcher's Stack holding two children with an identical
+  // ValueKey(page), which throws "Duplicate keys found" and takes the reader
+  // down. A counter only ever moves forward, so no two live children can
+  // collide; and because it ticks only when the number really changes, an
+  // unchanged page still keeps its key and doesn't re-animate when something
+  // unrelated rebuilds this widget.
+  late int _labelPage;
+  int _labelSeq = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _labelPage = _displayedPage;
+  }
+
   @override
   void dispose() {
     _releaseFallback?.cancel();
@@ -60,6 +83,23 @@ class _ReaderProgressScrubberState extends State<ReaderProgressScrubber> {
   int _pageFor(double value) {
     if (widget.totalPages <= 0) return widget.currentPage;
     return 1 + (value * (widget.totalPages - 1)).round();
+  }
+
+  /// While dragging, the page the thumb is sitting over; otherwise the page
+  /// the reader is really on.
+  int get _displayedPage {
+    final drag = _dragValue;
+    return drag == null ? widget.currentPage : _pageFor(drag);
+  }
+
+  /// Moves the label on to [_displayedPage], bumping [_labelSeq] only when it
+  /// genuinely changed. Call after anything that can move the label — a new
+  /// `currentPage` from the parent, or a change to [_dragValue].
+  void _syncLabel() {
+    final page = _displayedPage;
+    if (page == _labelPage) return;
+    _labelPage = page;
+    _labelSeq++;
   }
 
   @override
@@ -75,13 +115,19 @@ class _ReaderProgressScrubberState extends State<ReaderProgressScrubber> {
       _releaseFallback?.cancel();
       _dragValue = null;
     }
+    _syncLabel();
   }
 
   void _onChangeEnd(double value) {
     widget.onSeek(value);
     _releaseFallback?.cancel();
     _releaseFallback = Timer(const Duration(milliseconds: 1200), () {
-      if (mounted) setState(() => _dragValue = null);
+      if (mounted) {
+        setState(() {
+          _dragValue = null;
+          _syncLabel();
+        });
+      }
     });
   }
 
@@ -98,15 +144,13 @@ class _ReaderProgressScrubberState extends State<ReaderProgressScrubber> {
           : AppMotion.readerProgress,
       curve: AppMotion.easeOut,
       builder: (context, animatedValue, child) {
-        final displayedPage =
-            drag == null ? widget.currentPage : _pageFor(drag);
         return Row(
           children: [
             AnimatedSwitcher(
               duration: reduceMotion ? Duration.zero : AppMotion.quick,
               child: Text(
-                '$displayedPage',
-                key: ValueKey(displayedPage),
+                '$_labelPage',
+                key: ValueKey(_labelSeq),
                 style: TextStyle(color: widget.labelColor, fontSize: 11),
               ),
             ),
@@ -126,7 +170,10 @@ class _ReaderProgressScrubberState extends State<ReaderProgressScrubber> {
                 child: Slider(
                   value: animatedValue.clamp(0.0, 1.0),
                   // Cheap — just repaints the thumb and page-number label.
-                  onChanged: (v) => setState(() => _dragValue = v),
+                  onChanged: (v) => setState(() {
+                    _dragValue = v;
+                    _syncLabel();
+                  }),
                   // The expensive real page jump fires only on release.
                   onChangeEnd: _onChangeEnd,
                 ),

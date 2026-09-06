@@ -56,16 +56,19 @@ extension _SearchScreenQuery on _SearchScreenState {
 
   // Selecting/deselecting a genre chip should search right away — there's
   // no text to debounce, it's a single discrete tap — and combines with
-  // whatever's currently in the text field rather than replacing it.
+  // whatever's currently in the text field (and whichever other genre chips
+  // are already on) rather than replacing either.
   //
   // A genre is a `GET /books/all` filter and nothing else, so tapping one
-  // while the Ýazar tab is showing is unambiguously "show me books in this
+  // while the Awtor tab is showing is unambiguously "show me books in this
   // genre": the toggle slides back to Kitap along with the tap instead of
   // lighting up a chip that couldn't change a single author result.
   void _toggleGenre(Genre genre) {
     _debounce?.cancel();
     _setState(() {
-      _selectedGenreId = _selectedGenreId == genre.id ? null : genre.id;
+      _selectedGenreIds.contains(genre.id)
+          ? _selectedGenreIds.remove(genre.id)
+          : _selectedGenreIds.add(genre.id);
       _searchMode = _SearchMode.book;
     });
     if (_shouldShowResults) {
@@ -124,7 +127,7 @@ extension _SearchScreenQuery on _SearchScreenState {
     _searchRequestId++;
     _setState(() {
       _query = '';
-      _selectedGenreId = null;
+      _selectedGenreIds = {};
       _searchResults = null;
       _authorResults = null;
       _searching = false;

@@ -139,12 +139,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // if this account signed in via phone/OTP and never touched Firebase.
     await FirebaseAuthService.instance.signOut();
     if (!mounted) return;
-    Navigator.pop(context); // close the dialog
-    Navigator.pop(context, 'logout'); // leave the settings screen logged out
+    Navigator.pop(context, 'logout');
   }
 
-  void _confirmLogout() {
-    showSettingsConfirmDialog(
+  Future<void> _confirmLogout() async {
+    final confirmed = await showSettingsConfirmDialog(
       context,
       icon: HugeIcon(
           icon: HugeIcons.strokeRoundedLogout01,
@@ -156,12 +155,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: SettingsStrings.logoutBody,
       confirmLabel: SettingsStrings.logoutConfirm,
       confirmColor: AppColors.primary,
-      onConfirm: _clearSessionAndClose,
     );
+    if (confirmed == true && mounted) await _clearSessionAndClose();
   }
 
-  void _confirmDeleteAccount() {
-    showSettingsConfirmDialog(
+  Future<void> _confirmDeleteAccount() async {
+    final confirmed = await showSettingsConfirmDialog(
       context,
       icon: const HugeIcon(
           icon: HugeIcons.strokeRoundedDelete02,
@@ -173,8 +172,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: SettingsStrings.deleteAccountBody,
       confirmLabel: SettingsStrings.delete,
       confirmColor: Colors.redAccent,
-      onConfirm: _clearSessionAndClose,
     );
+    if (confirmed == true && mounted) await _clearSessionAndClose();
   }
 
   // Not-yet-subscribed goes to our own custom store paywall

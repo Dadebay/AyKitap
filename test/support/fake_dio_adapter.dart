@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:aykitap/core/network/book_endpoints.dart';
 import 'package:aykitap/core/network/streak_endpoints.dart';
 import 'package:aykitap/core/network/dio_client.dart';
 import 'package:dio/dio.dart';
@@ -83,7 +84,7 @@ class FakeDioAdapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     requests.add(options);
-    final body = jsonEncode(_responseFor(options.path));
+    final body = jsonEncode(_responseFor(options));
     return ResponseBody.fromString(
       body,
       statusCode,
@@ -93,8 +94,8 @@ class FakeDioAdapter implements HttpClientAdapter {
     );
   }
 
-  Map<String, dynamic> _responseFor(String path) {
-    if (path == StreakEndpoints.streakReport) {
+  Map<String, dynamic> _responseFor(RequestOptions options) {
+    if (options.path == StreakEndpoints.streakReport) {
       return {
         'data': {
           'today': {
@@ -107,6 +108,26 @@ class FakeDioAdapter implements HttpClientAdapter {
           'current_streak': 0,
           'best_streak': 0,
           'rewards': <Object?>[],
+        },
+      };
+    }
+    if (options.path == BookEndpoints.booksAll) {
+      // Keyed by `genre_id` (a string per the map `booksByGenre` picks its
+      // key type from) so a multi-genre fan-out test can tell which request
+      // answered which leg, and one book id (3) is shared across genres 1
+      // and 2 so the same test can prove the merge step deduplicates it
+      // rather than counting it twice.
+      final genreId = '${options.queryParameters['genre_id']}';
+      final booksByGenre = <String, List<int>>{
+        '1': [1, 3],
+        '2': [2, 3],
+      };
+      final ids = booksByGenre[genreId] ?? const [1, 2, 3];
+      return {
+        'data': {
+          'items': [
+            for (final id in ids) {'id': id, 'name': 'Book $id'}
+          ],
         },
       };
     }

@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:flutter/cupertino.dart' show CupertinoSlidingSegmentedControl;
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import '../../core/localization/app_locale.dart';
 import '../../core/localization/strings/search_strings.dart';
 import '../../core/models/author_detail.dart';
 import '../../core/models/genre.dart';
@@ -41,7 +42,7 @@ enum _SearchMode { book, author }
 
 /// The Search tab: a text field over either a pre-search "discover" grid
 /// (search_screen_discover.dart) or live results (search_screen_search.dart),
-/// with a Kitap/Ýazar mode toggle, genre chips and a full filter page
+/// with a Kitap/Awtor mode toggle, genre chips and a full filter page
 /// (search_screen_filter.dart) all narrowing the same query. Split across
 /// the `part` files above as `extension`s on the private State class, the
 /// same way [ReaderProvider] and the PDF/CBZ reader screens are.
@@ -94,7 +95,7 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _sortChosenByUser = false;
 
   // True once the grid below has been scrolled away from its top: the page
-  // title, the Kitap/Ýazar toggle and the chip row fold away so the covers
+  // title, the Kitap/Awtor toggle and the chip row fold away so the covers
   // get the whole screen, and unfold again the moment the grid is back at
   // the top. The search field itself never leaves — losing it mid-scroll
   // would mean scrolling all the way back up just to edit the query.
@@ -102,11 +103,12 @@ class _SearchScreenState extends State<SearchScreen> {
 
   // Real genres (`GET /genres/all`, top-level) for the chip row.
   List<Genre>? _genres;
-  // Single-select: tapping a genre chip selects it (deselecting whichever
-  // was selected before); tapping the already-selected one again clears it.
-  // Combined with `_query` in the same search request rather than
-  // navigating away, so text + genre can narrow results together.
-  int? _selectedGenreId;
+  // Multi-select: tapping a genre chip toggles it independently of whichever
+  // others are already selected. Combined with `_query` in the same search
+  // request rather than navigating away, so text + genres can narrow results
+  // together; more than one genre fans out into one request per genre and
+  // merges the results — see [BookListApiService.listBooks].
+  Set<int> _selectedGenreIds = {};
 
   // Which field the typed text matches — the backend treats book-title
   // search (`search=`) and author-name search (`authors=`) as two separate
@@ -170,10 +172,18 @@ class _SearchScreenState extends State<SearchScreen> {
     super.initState();
     _loadGenres();
     _loadDiscoverBooks();
+    // `GET /genres/all` returns each genre's `name` pre-translated server-side
+    // off the `Accept-Language` header [DioClient] sends (see
+    // [AppLocale.current]) — unlike `GET /book-languages`, whose response
+    // already carries all three names and needs no refetch. Genres were only
+    // ever fetched once, in initState, so switching language later left the
+    // chip row showing the old language until the app restarted.
+    AppLocale.instance.addListener(_loadGenres);
   }
 
   @override
   void dispose() {
+    AppLocale.instance.removeListener(_loadGenres);
     _controller.dispose();
     _debounce?.cancel();
     super.dispose();
@@ -189,7 +199,7 @@ class _SearchScreenState extends State<SearchScreen> {
   bool get _shouldShowResults => _searchMode == _SearchMode.author
       ? _hasQuery
       : _hasQuery ||
-          _selectedGenreId != null ||
+          _selectedGenreIds.isNotEmpty ||
           _filterLanguageIds.isNotEmpty ||
           _filterFormats.isNotEmpty ||
           _filterStartYear != null ||

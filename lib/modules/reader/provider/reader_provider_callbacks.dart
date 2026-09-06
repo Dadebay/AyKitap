@@ -18,8 +18,7 @@ extension ReaderProviderCallbacks on ReaderProvider {
   /// title, bottom bar progress/page, focus-mode labels — see
   /// reader_view_chrome.dart) without rebuilding the rest of the reader
   /// screen, the EpubViewer subtree included.
-  ValueListenable<ReaderProgressSnapshot> get progressListenable =>
-      _progressNotifier;
+  ValueListenable<ReaderProgressSnapshot> get progressListenable => _progressNotifier;
 
   /// This fires on epub.js's `displayed` event, which is emitted on *every*
   /// navigation — each chapter tap included — not once per book. Everything
@@ -177,8 +176,7 @@ extension ReaderProviderCallbacks on ReaderProvider {
     // after a load/position-restore is skipped so jumping back into a book
     // isn't logged as having read every page up to that point.
     if (_lastLoggedPage != null && current > _lastLoggedPage!) {
-      StreakService.instance
-          .recordPageRead(count: (current - _lastLoggedPage!).clamp(1, 5));
+      StreakService.instance.recordPageRead(count: (current - _lastLoggedPage!).clamp(1, 5));
     }
     _lastLoggedPage = current;
   }
@@ -189,8 +187,7 @@ extension ReaderProviderCallbacks on ReaderProvider {
     _notify();
   }
 
-  void onSelection(
-      String text, String? cfi, Rect? selectionRect, Rect? viewRect) {
+  void onSelection(String text, String? cfi, Rect? selectionRect, Rect? viewRect) {
     _selectedText = text;
     _selectedCfi = cfi;
     _selectionRect = selectionRect;

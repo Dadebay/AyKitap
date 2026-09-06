@@ -39,5 +39,15 @@ class BalanceLog {
         normalized.contains('PURCHASE');
   }
 
-  bool get isCredit => !isBookPurchase && amount >= 0;
+  /// Amounts are stored as positive integers for both money-in and money-out
+  /// events. The event is therefore authoritative for transfer direction.
+  bool get isDebit {
+    final normalized = event.toUpperCase();
+    return isBookPurchase ||
+        normalized == 'BUY_SUBSCRIPTION' ||
+        normalized == 'SEND_TO_FRIEND' ||
+        amount < 0;
+  }
+
+  bool get isCredit => !isDebit;
 }

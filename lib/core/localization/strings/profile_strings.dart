@@ -77,7 +77,7 @@ class ProfileStrings {
   static String get cancel =>
       t(tk: 'Ýatyr', ru: 'Отмена', tr: 'Vazgeç', en: 'Cancel');
   static String get notesTitle =>
-      t(tk: 'Notlar', ru: 'Заметки', tr: 'Notlar', en: 'Notes');
+      t(tk: 'Bellikler', ru: 'Заметки', tr: 'Notlar', en: 'Notes');
   static String get noNotesYetTitle => t(
       tk: 'Ilkinji belligiňizi ediň',
       ru: 'Сделайте первую заметку',
@@ -192,7 +192,7 @@ class ProfileStrings {
         en: 'For subscriptions and book purchases',
       );
   static String get topUpBalance =>
-      t(tk: 'Doldur', ru: 'Пополнить', tr: 'Yükle', en: 'Top up');
+      t(tk: 'Doldyr', ru: 'Пополнить', tr: 'Yükle', en: 'Top up');
 
   // balance_screen.dart
   static String get balanceHistoryTitle => t(
@@ -274,6 +274,8 @@ class ProfileStrings {
       tk: 'Garaşylýar', ru: 'На рассмотрении', tr: 'Beklemede', en: 'Pending');
   static String get suggestionStatusAccepted =>
       t(tk: 'Kabul edildi', ru: 'Принято', tr: 'Kabul edildi', en: 'Accepted');
+  static String get suggestionStatusCompleted =>
+      t(tk: 'Tamamlandy', ru: 'Завершено', tr: 'Tamamlandı', en: 'Completed');
   static String get suggestionStatusRejected =>
       t(tk: 'Ret edildi', ru: 'Отклонено', tr: 'Reddedildi', en: 'Rejected');
   static String get newBookRequest => t(

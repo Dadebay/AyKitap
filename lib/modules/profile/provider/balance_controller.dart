@@ -11,6 +11,7 @@ class BalanceController extends ChangeNotifier {
   List<BalanceLog>? _logs;
   List<PaymentOrder>? _orders;
   String? _error;
+  bool _disposed = false;
 
   List<BalanceLog>? get logs => _logs;
   List<PaymentOrder>? get orders => _orders;
@@ -21,22 +22,40 @@ class BalanceController extends ChangeNotifier {
   }
 
   Future<void> loadLogs() async {
+    if (_disposed) return;
     _error = null;
-    notifyListeners();
+    _notifyIfActive();
     try {
-      _logs = await BalanceLogApiService.listLogs();
+      final logs = await BalanceLogApiService.listLogs();
+      if (_disposed) return;
+      _logs = logs;
     } on ApiException catch (error) {
+      if (_disposed) return;
       _error = error.message;
     }
-    notifyListeners();
+    _notifyIfActive();
   }
 
   Future<void> loadOrders() async {
+    if (_disposed) return;
     try {
-      _orders = await PaymentApiService.getMyOrders();
+      final orders = await PaymentApiService.getMyOrders();
+      if (_disposed) return;
+      _orders = orders;
     } on ApiException {
+      if (_disposed) return;
       _orders = const [];
     }
-    notifyListeners();
+    _notifyIfActive();
+  }
+
+  void _notifyIfActive() {
+    if (!_disposed) notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }
