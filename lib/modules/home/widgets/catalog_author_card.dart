@@ -45,8 +45,7 @@ class CatalogAuthorCard extends StatelessWidget {
   /// no-photo placeholder — a named fallback reads far better than a
   /// generic person glyph repeated down a list of authors with no photo.
   String get _initials {
-    final parts =
-        name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
     if (parts.isEmpty) return '?';
     return parts.take(2).map((p) => p.characters.first).join().toUpperCase();
   }
@@ -58,8 +57,7 @@ class CatalogAuthorCard extends StatelessWidget {
       label: name,
       button: true,
       child: PressableScale(
-        onTap: () =>
-            context.push(CatalogAuthorDetailScreen(authorId: authorId)),
+        onTap: () => context.push(CatalogAuthorDetailScreen(authorId: authorId)),
         child: SizedBox(
           width: width,
           child: Material(
@@ -78,6 +76,7 @@ class CatalogAuthorCard extends StatelessWidget {
                             // Author portraits are shot with the head above
                             // the middle, so a centered crop tends to cut
                             // the top of it off.
+                            fit: BoxFit.contain,
                             alignment: const Alignment(0, -0.35),
                             placeholder: (_) => _monogram(),
                           )
@@ -89,11 +88,7 @@ class CatalogAuthorCard extends StatelessWidget {
                   name,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: AppColors.white,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      height: 1.25),
+                  style: TextStyle(color: AppColors.white, fontSize: 13.5, fontWeight: FontWeight.w700, height: 1.25),
                 ),
                 const SizedBox(height: 6),
                 _infoBadge(),
@@ -113,11 +108,7 @@ class CatalogAuthorCard extends StatelessWidget {
       child: Center(
         child: Text(
           _initials,
-          style: const TextStyle(
-              color: Colors.white,
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5),
+          style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: 0.5),
         ),
       ),
     );
@@ -125,9 +116,7 @@ class CatalogAuthorCard extends StatelessWidget {
 
   Widget _infoBadge() {
     final count = bookCount;
-    final label = count != null
-        ? AuthorStrings.booksCountLabel(count)
-        : AuthorStrings.authorLabel;
+    final label = count != null ? AuthorStrings.booksCountLabel(count) : AuthorStrings.authorLabel;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
       decoration: BoxDecoration(
@@ -137,22 +126,14 @@ class CatalogAuthorCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          HugeIcon(
-              icon: count != null
-                  ? HugeIcons.strokeRoundedBook02
-                  : HugeIcons.strokeRoundedUser,
-              color: AppColors.primary,
-              size: 12),
+          HugeIcon(icon: count != null ? HugeIcons.strokeRoundedBook02 : HugeIcons.strokeRoundedUser, color: AppColors.primary, size: 12),
           const SizedBox(width: 4),
           Flexible(
             child: Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700),
+              style: TextStyle(color: AppColors.primary, fontSize: 10.5, fontWeight: FontWeight.w700),
             ),
           ),
         ],

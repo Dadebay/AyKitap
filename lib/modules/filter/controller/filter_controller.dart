@@ -19,12 +19,12 @@ class FilterController extends ChangeNotifier {
   /// already has applied, so reopening the filter shows the current state
   /// instead of an empty form.
   FilterController({
-    int? initialGenreId,
+    Set<int> initialGenreIds = const {},
     Set<int> initialLanguageIds = const {},
     Set<BookFormatFilter> initialFormats = const {},
     RangeValues? initialYearRange,
     SortBy? initialSortBy,
-  })  : selectedGenreId = initialGenreId,
+  })  : selectedGenreIds = {...initialGenreIds},
         selectedLanguageIds = {...initialLanguageIds},
         selectedFormats = {...initialFormats},
         yearRange = initialYearRange ?? kDefaultYearRange,
@@ -39,9 +39,12 @@ class FilterController extends ChangeNotifier {
   List<Genre>? genres;
   bool genresFailed = false;
 
-  /// Single-select, same as the chip row: the backend's `genre_id` only
-  /// ever takes one value.
-  int? selectedGenreId;
+  /// Selected [Genre.id]s. The backend's `genre_id` is single-valued, so
+  /// more than one selected fans out into one `GET /books/all` request per
+  /// genre and merges the results client-side — see
+  /// [BookListApiService.listBooks]'s `genreIds`, the same fan-out
+  /// [selectedLanguageIds]/[selectedFormats] already use.
+  final Set<int> selectedGenreIds;
 
   /// Book languages from `GET /book-languages`; null until the call
   /// settles. The chips render off this rather than a hardcoded list, so a
@@ -79,13 +82,12 @@ class FilterController extends ChangeNotifier {
       .map((l) => l.label)
       .join(', ');
 
-  /// Summary line for the collapsed "Žanr" section.
-  String? get selectedGenreLabel {
-    for (final g in genres ?? const <Genre>[]) {
-      if (g.id == selectedGenreId) return g.name;
-    }
-    return null;
-  }
+  /// Summary line for the collapsed "Žanr" section — the picked genres'
+  /// names, in the order the backend returned them.
+  String get selectedGenreLabels => (genres ?? const <Genre>[])
+      .where((g) => selectedGenreIds.contains(g.id))
+      .map((g) => g.name)
+      .join(', ');
 
   Future<void> loadGenres() async {
     genresFailed = false;
@@ -115,10 +117,10 @@ class FilterController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Single-select, same toggle behaviour as Search's own genre chip row:
-  /// tapping the already-selected genre clears it instead of no-opping.
   void toggleGenre(Genre genre) {
-    selectedGenreId = selectedGenreId == genre.id ? null : genre.id;
+    selectedGenreIds.contains(genre.id)
+        ? selectedGenreIds.remove(genre.id)
+        : selectedGenreIds.add(genre.id);
     notifyListeners();
   }
 
@@ -152,7 +154,7 @@ class FilterController extends ChangeNotifier {
   }
 
   void clear() {
-    selectedGenreId = null;
+    selectedGenreIds.clear();
     selectedLanguageIds.clear();
     selectedFormats.clear();
     yearRange = kDefaultYearRange;
@@ -165,7 +167,7 @@ class FilterController extends ChangeNotifier {
   /// `sort_by`/`sort_order` — which [SearchScreen] re-runs its query with.
   FilterResult buildResult() => FilterResult(
         active: hasActiveFilters,
-        genreId: selectedGenreId,
+        genreIds: {...selectedGenreIds},
         languageIds: {...selectedLanguageIds},
         formats: {...selectedFormats},
         startYear: hasYearFilter ? yearRange.start.round() : null,

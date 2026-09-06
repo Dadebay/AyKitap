@@ -24,19 +24,21 @@ class BookListApiService {
   /// catalogue.
   ///
   /// [languageIds] are [BookLanguage.id]s from `GET /book-languages` (the
-  /// filter page's "Dil" section) and [bookFormats] are the backend's
+  /// filter page's "Dil" section), [bookFormats] are the backend's
   /// `book_format` values (`pdf`/`epub`/`cbz`, from the same page's "Format"
-  /// section). Both backend params are single-valued, so picking more than
-  /// one of either fans out into one request per combination and merges the
-  /// responses — see [_listBooksFanOut]. That means [page]/[size] apply
-  /// *per request*, not to the merged list.
+  /// section), and [genreIds] are [Genre.id]s from `GET /genres/all` (Search's
+  /// own chip row and the filter page's "Žanr" section). All three backend
+  /// params are single-valued, so picking more than one of any of them fans
+  /// out into one request per combination and merges the responses — see
+  /// [_listBooksFanOut]. That means [page]/[size] apply *per request*, not to
+  /// the merged list.
   static Future<List<LibraryBook>> listBooks({
     bool? myBooks,
     bool? bought,
     bool? wantsTo,
     bool? finished,
     int? authorId,
-    int? genreId,
+    Iterable<int> genreIds = const [],
     String? search,
     // Distinct from `search` (which the backend matches against book
     // titles): a substring matched against author *names* instead — see
@@ -67,16 +69,17 @@ class BookListApiService {
   }) async {
     final languages = languageIds.toSet();
     final formats = bookFormats.toSet();
-    if (languages.length > 1 || formats.length > 1) {
+    final genres = genreIds.toSet();
+    if (languages.length > 1 || formats.length > 1 || genres.length > 1) {
       return _listBooksFanOut(
         languages,
         formats,
+        genres,
         myBooks: myBooks,
         bought: bought,
         wantsTo: wantsTo,
         finished: finished,
         authorId: authorId,
-        genreId: genreId,
         search: search,
         authors: authors,
         startYear: startYear,
@@ -97,7 +100,7 @@ class BookListApiService {
         if (wantsTo == true) 'wants_to': true,
         if (finished == true) 'finished': true,
         if (authorId != null) 'author_id': authorId,
-        if (genreId != null) 'genre_id': genreId,
+        if (genres.isNotEmpty) 'genre_id': genres.first,
         if (search != null && search.isNotEmpty) 'search': search,
         if (authors != null && authors.isNotEmpty) 'authors': authors,
         if (languages.isNotEmpty) 'language_id': languages.first,

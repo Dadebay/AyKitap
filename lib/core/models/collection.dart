@@ -1,7 +1,7 @@
 import 'library_book.dart';
 
 /// Whether a [Collection] is a themed set of books or a themed set of
-/// authors ("Rus Ýazarlar", ...) — governs whether Home renders it as a
+/// authors ("Rus Awtorlar", ...) — governs whether Home renders it as a
 /// book row/card or an author-avatar row, independent of [CollectionCardType].
 enum CollectionType { book, author }
 
@@ -15,7 +15,7 @@ enum CollectionType { book, author }
 enum CollectionCardType { card1, card2, card3, card4 }
 
 /// One row from `GET /collections/all` — a themed shelf on Home
-/// ("Täze gelenler", "Hepdelik iň köp okalanlar", "Rus Ýazarlar", ...).
+/// ("Täze gelenler", "Hepdelik iň köp okalanlar", "Rus Awtorlar", ...).
 class Collection {
   final int id;
   final CollectionType type;
@@ -56,8 +56,7 @@ class Collection {
   });
 
   factory Collection.fromJson(Map<String, dynamic> json) {
-    final type =
-        json['type'] == 'author' ? CollectionType.author : CollectionType.book;
+    final type = json['type'] == 'author' ? CollectionType.author : CollectionType.book;
     return Collection(
       id: json['id'] as int,
       type: type,
@@ -69,14 +68,8 @@ class Collection {
       // An author-type collection's `books` array is never rendered (the
       // avatar row uses `authors` instead) — skip parsing it rather than
       // doing the work for a list nothing reads.
-      books: type == CollectionType.author
-          ? const []
-          : (json['books'] as List? ?? const [])
-              .map((e) => LibraryBook.fromJson(e as Map<String, dynamic>))
-              .toList(),
-      authors: (json['authors'] as List?)
-          ?.map((e) => LibraryBookAuthor.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      books: type == CollectionType.author ? const [] : (json['books'] as List? ?? const []).map((e) => LibraryBook.fromJson(e as Map<String, dynamic>)).toList(),
+      authors: (json['authors'] as List?)?.map((e) => LibraryBookAuthor.fromJson(e as Map<String, dynamic>)).toList(),
     );
   }
 

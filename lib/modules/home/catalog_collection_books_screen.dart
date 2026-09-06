@@ -28,15 +28,26 @@ class CatalogCollectionBooksScreen extends StatelessWidget {
   /// to the plain grid the other (non-ranked) collection cards use.
   final bool ranked;
 
+  /// The banner [CatalogRankShelfCard] resolved for this same collection —
+  /// its own uploaded image, or the top book's cover as a fallback (see
+  /// that card's own doc comment). Only meaningful when [ranked]; forwarded
+  /// as-is rather than re-derived here so this screen can't pick a
+  /// different banner than the card the user just tapped "Daha fazla" on.
+  final String? bannerImage;
+
   const CatalogCollectionBooksScreen(
       {super.key,
       required this.title,
       required this.books,
-      this.ranked = false});
+      this.ranked = false,
+      this.bannerImage});
 
   @override
   Widget build(BuildContext context) {
-    if (ranked) return RankedCollectionView(title: title, books: books);
+    if (ranked) {
+      return RankedCollectionView(
+          title: title, books: books, bannerImage: bannerImage);
+    }
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(

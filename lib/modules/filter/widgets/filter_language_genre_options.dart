@@ -67,10 +67,10 @@ class LanguageOptions extends StatelessWidget {
   }
 }
 
-/// The "Žanr" section's body — same shape as "Dil", one chip row sourced
-/// from `GET /genres/all`. Single-select: picking one here is the same
-/// [FilterController.selectedGenreId] Search's own chip row highlights. Used
-/// by [FilterQuickSections].
+/// The "Žanr" section's body — same shape and same multi-select as "Dil",
+/// one chip row sourced from `GET /genres/all`. Picking any number here is
+/// the same [FilterController.selectedGenreIds] Search's own chip row
+/// highlights. Used by [FilterQuickSections].
 class GenreOptions extends StatelessWidget {
   final FilterController c;
   const GenreOptions(this.c, {super.key});
@@ -123,7 +123,7 @@ class GenreOptions extends StatelessWidget {
       children: genres
           .map((g) => MultiChip(
                 label: g.name,
-                selected: c.selectedGenreId == g.id,
+                selected: c.selectedGenreIds.contains(g.id),
                 onTap: () => c.toggleGenre(g),
               ))
           .toList(),

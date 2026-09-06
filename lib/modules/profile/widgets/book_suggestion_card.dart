@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import '../../../core/localization/strings/profile_strings.dart';
 import '../../../core/models/book_suggestion.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/localization/strings/profile_strings.dart';
 
 class BookSuggestionCard extends StatelessWidget {
   final BookSuggestion suggestion;
@@ -150,6 +150,11 @@ class _StatusDisplay {
       case 'accepted':
         return _StatusDisplay(
             label: ProfileStrings.suggestionStatusAccepted,
+            color: const Color(0xFF3FBE6C),
+            icon: HugeIcons.strokeRoundedCheckmarkCircle01);
+      case 'completed':
+        return _StatusDisplay(
+            label: ProfileStrings.suggestionStatusCompleted,
             color: const Color(0xFF3FBE6C),
             icon: HugeIcons.strokeRoundedCheckmarkCircle01);
       case 'rejected':

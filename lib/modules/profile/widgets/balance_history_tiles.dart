@@ -17,7 +17,7 @@ class BalanceLogTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isPurchase = log.isBookPurchase;
     final color =
-        isPurchase ? const Color(0xFFE65C5C) : const Color(0xFF3FBE6C);
+        log.isDebit ? const Color(0xFFE65C5C) : const Color(0xFF3FBE6C);
     final title = isPurchase
         ? (log.bookName?.isNotEmpty == true
             ? log.bookName!

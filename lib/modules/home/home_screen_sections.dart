@@ -15,8 +15,7 @@ extension _HomeScreenSections on _HomeScreenState {
   List<List<Collection>> _groupByQueuePosition(List<Collection> collections) {
     final groups = <List<Collection>>[];
     for (final c in collections) {
-      if (groups.isNotEmpty &&
-          groups.last.first.queuePosition == c.queuePosition) {
+      if (groups.isNotEmpty && groups.last.first.queuePosition == c.queuePosition) {
         groups.last.add(c);
       } else {
         groups.add([c]);
@@ -26,12 +25,9 @@ extension _HomeScreenSections on _HomeScreenState {
   }
 
   Widget _buildGenreShelfRow(BuildContext context, List<Collection> group) {
-    final shelves = group
-        .where((c) => c.type == CollectionType.book && c.books.isNotEmpty)
-        .toList();
+    final shelves = group.where((c) => c.type == CollectionType.book && c.books.isNotEmpty).toList();
     if (shelves.isEmpty) return const SizedBox.shrink();
-    final hasRankShelf =
-        shelves.any((c) => c.cardType == CollectionCardType.card2);
+    final hasRankShelf = shelves.any((c) => c.cardType == CollectionCardType.card2);
     final rowHeight = hasRankShelf ? 460.0 : 300.0;
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 20, 0, 20),
@@ -51,22 +47,13 @@ extension _HomeScreenSections on _HomeScreenState {
   Widget _buildGenreShelfTile(Collection collection) {
     switch (collection.cardType) {
       case CollectionCardType.card4:
-        return SizedBox(
-            width: 360,
-            child: CatalogNumberedBookSection(
-                collection: collection, compact: true));
+        return SizedBox(width: 360, child: CatalogNumberedBookSection(collection: collection, compact: true));
       case CollectionCardType.card2:
-        return Container(
-            padding: const EdgeInsets.only(bottom: 20),
-            width: 320,
-            child: CatalogRankShelfCard(
-                collection: collection, fillHeight: true));
+        return Container(padding: const EdgeInsets.only(bottom: 20), width: 320, child: CatalogRankShelfCard(collection: collection, fillHeight: true));
       case CollectionCardType.card3:
-        return SizedBox(
-            width: 320, child: CatalogSeriesCard(collection: collection));
+        return SizedBox(width: 320, child: CatalogSeriesCard(collection: collection));
       case CollectionCardType.card1:
-        return SizedBox(
-            width: 320, child: CatalogSeriesCard(collection: collection));
+        return SizedBox(width: 320, child: CatalogSeriesCard(collection: collection));
     }
   }
 
@@ -84,8 +71,7 @@ extension _HomeScreenSections on _HomeScreenState {
   /// row cascade in step with the row's own reveal instead of racing ahead
   /// of it. See [StaggerFadeIn.extraDelay]'s doc comment for why that
   /// matters.
-  Widget _buildCollectionEntry(
-      BuildContext context, Collection collection, Duration sectionDelay) {
+  Widget _buildCollectionEntry(BuildContext context, Collection collection, Duration sectionDelay) {
     if (collection.type == CollectionType.author) {
       final authors = collection.authors ?? const [];
       if (authors.isEmpty) return const SizedBox.shrink();
@@ -103,16 +89,14 @@ extension _HomeScreenSections on _HomeScreenState {
       case CollectionCardType.card3:
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 30, 20, 10),
-          child: SizedBox(
-              height: 380, child: CatalogSeriesCard(collection: collection)),
+          child: SizedBox(height: 380, child: CatalogSeriesCard(collection: collection)),
         );
       case CollectionCardType.card1:
         return _buildCatalogBookSection(context, collection, sectionDelay);
     }
   }
 
-  Widget _buildCatalogBookSection(
-      BuildContext context, Collection collection, Duration sectionDelay) {
+  Widget _buildCatalogBookSection(BuildContext context, Collection collection, Duration sectionDelay) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -120,8 +104,7 @@ extension _HomeScreenSections on _HomeScreenState {
           title: collection.name,
           subtitle: collection.subTitle,
           seeAllLabel: HomeStrings.seeAll,
-          onSeeAll: () => context.pushFade(CatalogCollectionBooksScreen(
-              title: collection.name, books: collection.books)),
+          onSeeAll: () => context.pushFade(CatalogCollectionBooksScreen(title: collection.name, books: collection.books)),
         ),
         SizedBox(
           height: 200,
@@ -149,27 +132,25 @@ extension _HomeScreenSections on _HomeScreenState {
     );
   }
 
-  Widget _buildCatalogAuthorsRow(
-      Collection collection, List<LibraryBookAuthor> authors) {
+  Widget _buildCatalogAuthorsRow(Collection collection, List<LibraryBookAuthor> authors) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionHeader(title: collection.name, subtitle: collection.subTitle),
         SizedBox(
-          // Tall enough for a 130-wide card's 2:3 photo (195) plus its
-          // two-line name and badge row underneath — see
-          // [CatalogAuthorCard].
-          height: 268,
+          // Tall enough for the 88-diameter ring avatar, up to two lines of
+          // name, and the card's own vertical padding — see
+          // [CatalogAuthorAvatar].
+          height: 158,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             itemCount: authors.length,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (_, i) => CatalogAuthorCard(
+            itemBuilder: (_, i) => CatalogAuthorAvatar(
               authorId: authors[i].id,
               name: authors[i].name,
               image: authors[i].image,
-              width: 130,
             ),
           ),
         ),

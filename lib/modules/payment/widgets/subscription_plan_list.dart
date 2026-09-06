@@ -56,7 +56,6 @@ class SubscriptionPlanList extends StatelessWidget {
         ),
       );
     }
-    final bestIndex = tariffs.isEmpty ? -1 : bestSubscriptionPlanIndex(tariffs);
     return Column(
       children: tariffs.asMap().entries.map((entry) {
         final i = entry.key;
@@ -65,7 +64,11 @@ class SubscriptionPlanList extends StatelessWidget {
         return PlanCard(
           tariff: tariff,
           label: subscriptionPlanLabel(tariff),
-          best: i == bestIndex && tariff.discountPercent > 0,
+          // "Most popular" is a fixed marketing badge on the 6-month plan —
+          // independent of [bestSubscriptionPlanIndex]'s discount-based
+          // default *selection*, which stays on whichever tariff is
+          // actually cheapest per month.
+          best: tariff.monthCount == 6,
           selected: isSelected,
           onTap: () {
             if (isSelected) return;

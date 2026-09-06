@@ -1,6 +1,6 @@
 part of 'search_screen.dart';
 
-/// The search text field, the Kitap/Ýazar mode toggle and the filter/genre
+/// The search text field, the Kitap/Awtor mode toggle and the filter/genre
 /// chips row — the controls sitting above the results/discover grid.
 extension _SearchScreenControls on _SearchScreenState {
   Widget _buildSearchBar() {
@@ -48,7 +48,7 @@ extension _SearchScreenControls on _SearchScreenState {
     );
   }
 
-  // "Kitap" / "Ýazar" pill — governs whether the typed text goes to the
+  // "Kitap" / "Awtor" pill — governs whether the typed text goes to the
   // backend's `search` (title) or `authors` (author name) param.
   //
   // The stock iOS control rather than a hand-rolled one: its thumb slides
@@ -152,13 +152,13 @@ extension _SearchScreenControls on _SearchScreenState {
             ),
           ),
           const SizedBox(width: 10),
-          // Real genres (`GET /genres/all`) — tapping one selects it in
-          // place (combined with any text query) rather than navigating
-          // away; tapping the selected one again clears it.
+          // Real genres (`GET /genres/all`) — tapping one toggles it in
+          // place (combined with any text query and any other genre chips
+          // already on) rather than navigating away or replacing them.
           //
           // Shown in both modes. `GET /authors/search` takes nothing but
           // `search`, so a genre can't narrow author results — but hiding
-          // the row in Ýazar mode made it jump in and out as the toggle
+          // the row in Awtor mode made it jump in and out as the toggle
           // moved, and left the user no way back to a genre from there.
           // Instead the chips stay put and [_toggleGenre] switches the
           // toggle back to Kitap, where the tap actually means something.
@@ -167,7 +167,7 @@ extension _SearchScreenControls on _SearchScreenState {
               index: i,
               child: QuickChip(
                   label: genre.name,
-                  selected: _selectedGenreId == genre.id,
+                  selected: _selectedGenreIds.contains(genre.id),
                   onTap: () => _toggleGenre(genre)),
             ),
             const SizedBox(width: 8),

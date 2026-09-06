@@ -96,13 +96,26 @@ class PdfReaderScreen extends StatefulWidget {
   /// file path for an import, and a hash is not an id the backend would accept.
   final int? realBookId;
 
-  /// This book's pages are images (a scan, a manga/comic) rather than text —
-  /// see [PdfReflowService.isImageOnlyPdf], which [PdfOpeningScreen] resolves
-  /// before handing over. Such a book opens filling the screen's *width* and
-  /// scrolling down the page, since fitting a tall picture page to the screen's
-  /// height shrinks it to an unreadable sliver. Only the opening default is
-  /// affected — the settings sheet still switches modes freely afterwards.
+  /// This book's pages are *probably* images (a scan, a manga/comic) rather
+  /// than text — true both when a cached [PdfReflowService] verdict actually
+  /// says so, and when there is no verdict yet at all (a fixed PDF is opened
+  /// without classifying it first, to avoid double-opening a large file in
+  /// PDFium — see [PdfOpeningScreenState]). Such a book opens filling the screen's
+  /// *width* and scrolling down the page, since fitting a tall picture page
+  /// to the screen's height shrinks it to an unreadable sliver — a safe
+  /// default either way, confirmed or merely assumed. Only the opening
+  /// default is affected — the settings sheet still switches modes freely
+  /// afterwards.
   final bool imageOnly;
+
+  /// True only when a *cached verdict* actually says this book is
+  /// image-only — never when [imageOnly] is just the unclassified-PDF
+  /// fallback. Unlike the scroll/fit-width defaults [imageOnly] drives,
+  /// starting an unclassified text PDF at maximum margin crop is a visible,
+  /// specific wrong guess (it reads as "the app cropped my book"), not a
+  /// generically-safe fallback — so the aggressive crop default stays
+  /// opt-in to an actual confirmation. See [initialPdfMarginCropFor].
+  final bool confirmedImageOnly;
 
   const PdfReaderScreen({
     super.key,
@@ -111,6 +124,7 @@ class PdfReaderScreen extends StatefulWidget {
     this.bookId,
     this.realBookId,
     this.imageOnly = false,
+    this.confirmedImageOnly = false,
   });
 
   @override

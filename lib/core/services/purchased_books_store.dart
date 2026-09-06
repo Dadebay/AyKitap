@@ -9,7 +9,7 @@ import '../models/book.dart';
 /// backend to re-fetch a book by id from, and [MockData]'s seeded generators
 /// don't form a stable global registry a bare id could be looked up in later.
 /// Persisted so a purchase survives leaving and reopening [BookDetailScreen],
-/// and backs the Library "Satyn Alinanlar" tab.
+/// and backs the Library "Satyn alynanlar" tab.
 class PurchasedBooksStore extends ChangeNotifier {
   PurchasedBooksStore._();
   static final instance = PurchasedBooksStore._();
@@ -25,9 +25,7 @@ class PurchasedBooksStore extends ChangeNotifier {
     if (_loaded) return;
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getStringList(_kKey) ?? const [];
-    _books = raw
-        .map((s) => Book.fromJson(jsonDecode(s) as Map<String, dynamic>))
-        .toList();
+    _books = raw.map((s) => Book.fromJson(jsonDecode(s) as Map<String, dynamic>)).toList();
     _loaded = true;
     notifyListeners();
   }
@@ -40,7 +38,6 @@ class PurchasedBooksStore extends ChangeNotifier {
     _books = [book, ..._books];
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(
-        _kKey, _books.map((b) => jsonEncode(b.toJson())).toList());
+    await prefs.setStringList(_kKey, _books.map((b) => jsonEncode(b.toJson())).toList());
   }
 }

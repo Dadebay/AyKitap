@@ -1,6 +1,16 @@
 source 'https://cdn.cocoapods.org/'
 platform :ios, '15.0'
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+# The app never calls any OneSignal.Location API (see OneSignalClient), but
+# OneSignalXCFramework links its Location module — and the CLLocationManager
+# symbols inside it — unconditionally. That's what App Store Connect's
+# automated Info.plist scan (ITMS-90683) flags: it sees a location-permission
+# API linked into the binary and demands a purpose string for it, regardless
+# of whether the app's own code ever reaches it. onesignal_flutter's podspec
+# reads this exact env var to swap in the Location-free dependency subset
+# instead, which removes those symbols from the build rather than papering
+# over the warning with an unusable permission string.
+ENV['ONESIGNAL_DISABLE_LOCATION'] = 'true'
 install! 'cocoapods', :warn_for_unused_master_specs_repo => false
 
 project 'Runner', {

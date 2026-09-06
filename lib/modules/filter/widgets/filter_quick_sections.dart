@@ -34,9 +34,9 @@ class FilterQuickSections extends StatelessWidget {
           const _SectionDivider(),
           ExpandableFilterSection(
             title: FilterStrings.genre,
-            summary: c.selectedGenreId == null
+            summary: c.selectedGenreIds.isEmpty
                 ? FilterStrings.any
-                : (c.selectedGenreLabel ?? FilterStrings.any),
+                : c.selectedGenreLabels,
             expanded: c.expanded.contains('genre'),
             onToggle: () => c.toggleExpanded('genre'),
             child: GenreOptions(c),

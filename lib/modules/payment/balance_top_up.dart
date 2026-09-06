@@ -37,8 +37,11 @@ import 'widgets/top_up_amount_sheet.dart';
 /// branch does the same after a purchase, since the actual credit only
 /// lands once the reconcile call (or, failing that, the webhook) applies it
 /// server-side.
-Future<void> startBalanceTopUp(BuildContext context) async {
-  final useStore = await _mustUseStoreTopUp();
+Future<void> startBalanceTopUp(
+  BuildContext context, {
+  Future<bool>? storeTopUpAvailability,
+}) async {
+  final useStore = await _mustUseStoreTopUp(storeTopUpAvailability);
   if (!context.mounted) return;
   if (useStore) {
     await _purchaseStoreTopUp(context);
@@ -89,8 +92,9 @@ Future<void> startBalanceTopUp(BuildContext context) async {
 
 /// Whether a native user must use the store path. Foreign accounts must not
 /// fall back to Turkmen bank cards when the store offering cannot load.
-Future<bool> _mustUseStoreTopUp() async {
+Future<bool> _mustUseStoreTopUp(Future<bool>? storeTopUpAvailability) async {
   if (!Platform.isIOS && !Platform.isAndroid) return false;
+  if (storeTopUpAvailability != null) return storeTopUpAvailability;
   try {
     final config = await RevenueCatApiService.getConfig();
     return config.isStoreIap;

@@ -13,10 +13,10 @@ export 'filter_result.dart' show FilterResult;
 /// Filtr Sahypasy — TZ section 6, Surat 4 style: quick chips, collapsible
 /// filter sections and a sticky "Netijeleri görkez" button.
 class FilterScreen extends StatelessWidget {
-  /// The genre, languages, formats, year window and sort already applied by
+  /// The genres, languages, formats, year window and sort already applied by
   /// the caller, re-selected when the page opens so the filter shows the
   /// state that's actually in effect.
-  final int? initialGenreId;
+  final Set<int> initialGenreIds;
   final Set<int> initialLanguageIds;
   final Set<BookFormatFilter> initialFormats;
   final RangeValues? initialYearRange;
@@ -24,7 +24,7 @@ class FilterScreen extends StatelessWidget {
 
   const FilterScreen({
     super.key,
-    this.initialGenreId,
+    this.initialGenreIds = const {},
     this.initialLanguageIds = const {},
     this.initialFormats = const {},
     this.initialYearRange,
@@ -35,7 +35,7 @@ class FilterScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => FilterController(
-        initialGenreId: initialGenreId,
+        initialGenreIds: initialGenreIds,
         initialLanguageIds: initialLanguageIds,
         initialFormats: initialFormats,
         initialYearRange: initialYearRange,

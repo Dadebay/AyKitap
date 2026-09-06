@@ -6,7 +6,7 @@ import '../../../core/theme/app_colors.dart';
 /// [SettingsScreen]'s logout and "delete account" confirmations share this
 /// exact shape, differing only in colour, icon, copy and what the primary
 /// action does.
-Future<void> showSettingsConfirmDialog(
+Future<bool?> showSettingsConfirmDialog(
   BuildContext context, {
   required Widget icon,
   required double iconSize,
@@ -15,11 +15,10 @@ Future<void> showSettingsConfirmDialog(
   required String body,
   required String confirmLabel,
   required Color confirmColor,
-  required VoidCallback onConfirm,
 }) {
-  return showDialog(
+  return showDialog<bool>(
     context: context,
-    builder: (_) => AlertDialog(
+    builder: (dialogContext) => AlertDialog(
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       icon: Container(
@@ -54,7 +53,7 @@ Future<void> showSettingsConfirmDialog(
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
                     elevation: 0),
-                onPressed: onConfirm,
+                onPressed: () => Navigator.pop(dialogContext, true),
                 child: Text(confirmLabel,
                     style: const TextStyle(
                         color: Colors.white,
@@ -67,7 +66,7 @@ Future<void> showSettingsConfirmDialog(
               width: double.infinity,
               height: 44,
               child: TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(dialogContext, false),
                 child: Text(SettingsStrings.cancel,
                     style: TextStyle(color: AppColors.grey2, fontSize: 14)),
               ),

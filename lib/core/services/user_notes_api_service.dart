@@ -13,19 +13,15 @@ class UserNotesApiService {
     try {
       final response = await DioClient.instance.get(AccountEndpoints.userNotes);
       final items = response.data['data'] as List;
-      return items
-          .map((e) => UserNote.fromJson(e as Map<String, dynamic>))
-          .toList();
+      return items.map((e) => UserNote.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
   }
 
-  static Future<UserNote> createNote(
-      {required int bookId, required String note, String? snippet}) async {
+  static Future<UserNote> createNote({required int bookId, required String note, String? snippet}) async {
     try {
-      final response =
-          await DioClient.instance.post(AccountEndpoints.userNotes, data: {
+      final response = await DioClient.instance.post(AccountEndpoints.userNotes, data: {
         'book_id': bookId,
         'note': note,
         if (snippet != null) 'snippet': snippet,
@@ -36,11 +32,9 @@ class UserNotesApiService {
     }
   }
 
-  static Future<UserNote> updateNote(int noteId,
-      {String? note, String? snippet}) async {
+  static Future<UserNote> updateNote(int noteId, {String? note, String? snippet}) async {
     try {
-      final response = await DioClient.instance
-          .patch(AccountEndpoints.userNoteById(noteId), data: {
+      final response = await DioClient.instance.patch(AccountEndpoints.userNoteById(noteId), data: {
         if (note != null) 'note': note,
         if (snippet != null) 'snippet': snippet,
       });

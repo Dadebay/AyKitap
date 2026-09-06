@@ -25,7 +25,7 @@ class CatalogEndpoints {
   static String authorById(int id) => '/authors/$id';
 
   /// GET — searches authors by name (`?search=`), paginated, returning each
-  /// match's id/image/name/`book_count` directly. Backs Search's "Ýazar"
+  /// match's id/image/name/`book_count` directly. Backs Search's "Awtor"
   /// mode — dedicated author matching, unlike `BookEndpoints.booksAll`'s
   /// `authors=` param (which matches against each book's author list and
   /// hands back books, not authors).

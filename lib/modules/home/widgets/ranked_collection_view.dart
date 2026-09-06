@@ -14,12 +14,21 @@ import 'stagger_fade_in.dart';
 class RankedCollectionView extends StatelessWidget {
   final String title;
   final List<LibraryBook> books;
+
+  /// The collection's own banner, as [CatalogRankShelfCard] resolved it —
+  /// falls back to the top book's cover here too, only when the caller
+  /// didn't have one either (e.g. reached some other way than that card's
+  /// "Daha fazla").
+  final String? bannerImage;
+
   const RankedCollectionView(
-      {super.key, required this.title, required this.books});
+      {super.key, required this.title, required this.books, this.bannerImage});
 
   @override
   Widget build(BuildContext context) {
-    final bannerImage = books.isNotEmpty ? books.first.image : null;
+    final resolvedBanner = (bannerImage != null && bannerImage!.isNotEmpty)
+        ? bannerImage
+        : (books.isNotEmpty ? books.first.image : null);
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: CustomScrollView(
@@ -57,7 +66,7 @@ class RankedCollectionView extends StatelessWidget {
                   fontWeight: FontWeight.w700),
             ),
             flexibleSpace: FlexibleSpaceBar(
-                background: RankedCollectionBanner(imageUrl: bannerImage)),
+                background: RankedCollectionBanner(imageUrl: resolvedBanner)),
           ),
           SliverPadding(
             padding: const EdgeInsets.only(top: 8, bottom: 20),

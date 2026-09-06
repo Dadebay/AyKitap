@@ -4,10 +4,18 @@ part of 'pdf_reader_screen.dart';
 /// the app-lifecycle-driven streak ping, and switching to the reflowed text
 /// reader when the reader picks that option from the settings sheet.
 /// Slider position a text PDF opens at when nothing has been saved — see
-/// [_PdfReaderScreenState._marginCrop]. Two thirds of the way up
-/// [PdfMarginCropBox.maxFraction], so roughly 8% comes off each side: enough
-/// to close a typical book's gutter without reaching the text block.
-const double _defaultMarginCrop = 0.65;
+/// [_PdfReaderScreenState._marginCrop]. Zero: the page opens exactly as the
+/// file draws it, nothing trimmed.
+///
+/// This used to sit at 0.65 (about 8% off each side, tuned to close a typical
+/// book's gutter). That is a fine value to *choose*, but a poor one to assume:
+/// margins vary book to book, and a reader who never touched the slider still
+/// saw their page silently cut, which reads as the app damaging the file
+/// rather than as a setting. Cropping is now strictly opt-in — the moment the
+/// slider moves, [_setMarginCrop] saves the chosen value both against this
+/// book and app-wide, so the preference sticks from then on and this fallback
+/// stops applying.
+const double _defaultMarginCrop = 0.0;
 
 /// Scanned/image-only PDFs often include the photographed page edge inside
 /// the PDF itself. On a phone that leaves thick gutter bars even in fit-width
@@ -89,12 +97,17 @@ extension _PdfReaderScreenLifecycle on _PdfReaderScreenState {
     // not of the reader — a novel set with generous gutters needs more of it
     // than a densely typeset one) and falling back to the app-wide choice.
     //
-    // Image-only files commonly carry the photographed paper edge inside the
-    // page, so their first open uses the full safe crop and fills the phone's
-    // width. A per-book slider choice still wins. Text PDFs keep using the
-    // app-wide preference and their more modest fallback.
+    // Gated on a *confirmed* image-only verdict, not the merely-assumed
+    // [widget.imageOnly] the scroll/fit-width defaults above use — an
+    // unclassified PDF (the common case, since classification is skipped for
+    // crash-safety, see [PdfOpeningScreenState]) is far more likely to be an
+    // ordinary text book than a scan, so defaulting it to maximum crop reads
+    // as the app cropping the reader's book for no reason. Confirmed
+    // image-only files commonly carry the photographed paper edge inside the
+    // page, so their first open uses the full safe crop. A per-book slider
+    // choice still wins either way.
     _marginCrop = initialPdfMarginCropFor(
-      imageOnly: widget.imageOnly,
+      imageOnly: widget.confirmedImageOnly,
       bookCrop: prefs.getDouble('book_${_bookId}_pdf_margin_crop'),
       readerCrop: prefs.getDouble('reader_pdf_margin_crop'),
     );
