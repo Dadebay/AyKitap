@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/localization/strings/book_detail_strings.dart';
 import '../../../core/localization/strings/payment_strings.dart';
+import '../../../core/services/purchase_mode_service.dart';
 import '../../../core/theme/app_colors.dart';
 
 /// What the user picked on [SubscriptionRequiredDialog].
@@ -23,6 +24,10 @@ class SubscriptionRequiredDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // iOS App Store review compliance (APPLE_REVIEW_IOS_STORE_TOGGLE_PLAN.md
+    // §5.4): while the toggle is on, single-book purchase is never offered,
+    // so this dialog's only way forward is a subscription.
+    final hideBuy = PurchaseModeService.instance.isIOSStoreOnly;
     return AlertDialog(
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -82,26 +87,28 @@ class SubscriptionRequiredDialog extends StatelessWidget {
                     fontWeight: FontWeight.w700)),
           ),
         ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          height: 44,
-          child: OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              side: BorderSide(color: AppColors.primary, width: 1.2),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
+        if (!hideBuy) ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: BorderSide(color: AppColors.primary, width: 1.2),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+              ),
+              onPressed: () =>
+                  Navigator.pop(context, SubscriptionPromptChoice.buy),
+              child: Text(BookDetailStrings.buy,
+                  style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700)),
             ),
-            onPressed: () =>
-                Navigator.pop(context, SubscriptionPromptChoice.buy),
-            child: Text(BookDetailStrings.buy,
-                style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700)),
           ),
-        ),
+        ],
         const SizedBox(height: 8),
         SizedBox(
           width: double.infinity,

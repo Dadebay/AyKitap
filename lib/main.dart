@@ -24,6 +24,7 @@ import 'core/services/last_read_book_store.dart';
 import 'core/services/notes_store.dart';
 import 'core/services/own_books_store.dart';
 import 'core/services/premium_access_service.dart';
+import 'core/services/purchase_mode_service.dart';
 import 'core/services/purchased_books_store.dart';
 import 'core/services/reading_books_store.dart';
 import 'core/services/revenue_cat_service.dart';
@@ -105,6 +106,8 @@ void main() async {
             value: RevenueCatService.instance),
         ChangeNotifierProvider<PremiumAccessService>.value(
             value: PremiumAccessService.instance),
+        ChangeNotifierProvider<PurchaseModeService>.value(
+            value: PurchaseModeService.instance),
       ],
       child: const AykitapApp(),
     ),

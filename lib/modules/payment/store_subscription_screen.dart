@@ -3,9 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/localization/strings/payment_strings.dart';
+import '../../core/localization/strings/settings_strings.dart';
+import '../../core/models/contact_info.dart';
 import '../../core/services/analytics_service.dart';
+import '../../core/services/contact_api_service.dart';
 import '../../core/services/revenue_cat_api_service.dart';
 import '../../core/services/revenue_cat_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -39,6 +43,7 @@ class _StoreSubscriptionScreenState extends State<StoreSubscriptionScreen> {
   int _selected = 0;
   bool _processing = false;
   bool _restoring = false;
+  ContactInfo? _contact;
 
   @override
   void initState() {
@@ -46,6 +51,31 @@ class _StoreSubscriptionScreenState extends State<StoreSubscriptionScreen> {
     unawaited(AnalyticsService.instance
         .logPaywallViewed(source: 'store_subscription_screen'));
     _loadPackages();
+    _loadContact();
+  }
+
+  // Apple App Review requires a working Privacy Policy and Terms of
+  // Use/EULA link next to the purchase CTA (see
+  // APPLE_REVIEW_IOS_STORE_TOGGLE_PLAN.md §5.5) — reuses the same `/contacts`
+  // links [ContactUsSheet] already shows elsewhere in the app rather than a
+  // second, possibly-diverging copy. Silent on failure: this is a secondary
+  // row, not worth blocking or erroring the whole paywall over.
+  Future<void> _loadContact() async {
+    try {
+      final contact = await ContactApiService.getContacts();
+      if (mounted) setState(() => _contact = contact);
+    } catch (_) {
+      // Left null — the links row just doesn't render (see _buildLegalLinks).
+    }
+  }
+
+  Future<void> _openLink(String url) async {
+    final ok =
+        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      context.showAppSnackBar(SettingsStrings.contactLinkOpenError,
+          isError: true);
+    }
   }
 
   Future<void> _loadPackages() async {
@@ -225,6 +255,7 @@ class _StoreSubscriptionScreenState extends State<StoreSubscriptionScreen> {
                       ),
                     ),
                   ),
+                  _buildLegalLinks(),
                 ],
               ),
             ),
@@ -274,6 +305,37 @@ class _StoreSubscriptionScreenState extends State<StoreSubscriptionScreen> {
             onTap: () => setState(() => _selected = i),
           ),
       ],
+    );
+  }
+
+  Widget _buildLegalLinks() {
+    final contact = _contact;
+    final privacyLink = contact?.privacyLink;
+    final termsLink = contact?.userAgreementLink;
+    final hasPrivacy = privacyLink != null && privacyLink.isNotEmpty;
+    final hasTerms = termsLink != null && termsLink.isNotEmpty;
+    if (!hasPrivacy && !hasTerms) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          if (hasPrivacy)
+            _LegalLinkButton(
+              label: SettingsStrings.contactPrivacyPolicy,
+              onTap: () => _openLink(privacyLink),
+            ),
+          if (hasPrivacy && hasTerms)
+            Text('·',
+                style: TextStyle(color: AppColors.grey3, fontSize: 12)),
+          if (hasTerms)
+            _LegalLinkButton(
+              label: SettingsStrings.contactUserAgreement,
+              onTap: () => _openLink(termsLink),
+            ),
+        ],
+      ),
     );
   }
 
@@ -346,6 +408,35 @@ class _StoreSubscriptionScreenState extends State<StoreSubscriptionScreen> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LegalLinkButton extends StatelessWidget {
+  const _LegalLinkButton({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      onPressed: onTap,
+      child: Text(
+        label,
+        style: TextStyle(
+          color: AppColors.grey2,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          decoration: TextDecoration.underline,
+          decorationColor: AppColors.grey3,
         ),
       ),
     );

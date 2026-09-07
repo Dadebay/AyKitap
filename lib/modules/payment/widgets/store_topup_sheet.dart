@@ -22,6 +22,14 @@ class _StoreTopUpOption {
   const _StoreTopUpOption(this.product, this.package);
 }
 
+/// The RevenueCat offering top-up denominations are configured under —
+/// deliberately its own identifier, not `current`/`default`, so this sheet
+/// can never accidentally pick up a subscription package (or vice versa for
+/// [StoreSubscriptionScreen]) just because both happen to live in whatever
+/// offering the dashboard currently marks "current". See
+/// APPLE_REVIEW_IOS_STORE_TOGGLE_PLAN.md §5.3/§6.
+const _walletTopUpsOfferingId = 'wallet-topups';
+
 /// The store-billed step of a balance top-up — [PaymentMethodSheet]'s
 /// `store` choice leads here instead of [TopUpAmountSheet] +
 /// [BankSelectSheet], since there's no separate amount to type in: each
@@ -64,7 +72,10 @@ class _StoreTopUpSheetState extends State<StoreTopUpSheet> {
       final platform = Platform.isIOS ? 'ios' : 'android';
       final products = await RevenueCatApiService.getTopupProducts(platform);
       final offerings = await RevenueCatService.instance.getOfferings();
-      final packages = offerings?.current?.availablePackages ?? const [];
+      final packages = offerings
+              ?.getOffering(_walletTopUpsOfferingId)
+              ?.availablePackages ??
+          const [];
       final options = <_StoreTopUpOption>[];
       for (final product in products) {
         for (final package in packages) {

@@ -19,6 +19,7 @@ import '../../core/services/book_download_service.dart';
 import '../../core/services/downloaded_books_store.dart';
 import '../../core/services/downloaded_files_store.dart';
 import '../../core/services/last_read_book_store.dart';
+import '../../core/services/purchase_mode_service.dart';
 import '../../core/services/reading_books_store.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../auth/phone_login_screen.dart';
@@ -106,10 +107,21 @@ class BookOpenFlow {
   /// The "Satyn al" path. Returns true when the book ends up owned — which
   /// is also the case when it already was (a second tap while the CTA was
   /// stale), so the caller can just go on to opening it.
+  ///
+  /// Guarded at the top rather than only in [BookCtaRow] and
+  /// [SubscriptionRequiredDialog]: this is the one path that can ever reach
+  /// [BookPurchaseScreen], so blocking it here is what actually makes "no
+  /// navigation route can open it" true (APPLE_REVIEW_IOS_STORE_TOGGLE_PLAN.md
+  /// §5.4) even if some other stale CTA still calls this directly.
   Future<bool> buy({int retries = 2}) async {
     final bookAccess = context.read<BookAccessService>();
     final access = await bookAccess.resolve(book);
     if (!context.mounted) return false;
+    // Already-owned access is never revoked by the iOS-only guard below —
+    // that guard only blocks a NEW purchase, never reading back what the
+    // reader already bought (plan §5.4: "erişimi kaldırılmamalı").
+    if (access == BookAccess.purchased) return true;
+    if (PurchaseModeService.instance.isIOSStoreOnly) return false;
 
     switch (access) {
       case BookAccess.purchased:

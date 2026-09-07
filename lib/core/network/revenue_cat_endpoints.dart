@@ -14,9 +14,11 @@ class RevenueCatEndpoints {
   /// immediately rather than waiting on the webhook's own delivery.
   static const String reconcile = '/revenuecat/reconcile';
 
-  /// GET — region/currency/purchase-mode for the signed-in user
-  /// ([RevenueCatConfig]). The balance top-up sheet uses
-  /// [RevenueCatConfig.isStoreIap] to decide whether to offer the
-  /// store/card option alongside promo code and bank card.
+  /// GET — no query parameters, same response for every platform.
+  /// Region/currency/purchase-mode for the signed-in user
+  /// ([RevenueCatConfig]), including the iOS-only App Store review toggle
+  /// ([RevenueCatConfig.iosStoreIapOnlyEnabled]). See [PurchaseModeService]
+  /// for how the app turns this into an actual routing decision — nothing
+  /// else should call this directly.
   static const String config = '/revenuecat/config';
 }
