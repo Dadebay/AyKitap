@@ -26,6 +26,7 @@ AppBootstrapService _bootstrap({
   Future<void> Function()? syncHomeScreenWidgets,
   Future<void> Function()? primeDeviceFingerprint,
   void Function()? initAppActivity,
+  void Function()? initPurchaseMode,
   void Function(String context, Object error, StackTrace stackTrace)? onError,
 }) =>
     AppBootstrapService(
@@ -43,6 +44,10 @@ AppBootstrapService _bootstrap({
       syncHomeScreenWidgets: syncHomeScreenWidgets ?? _noop,
       primeDeviceFingerprint: primeDeviceFingerprint ?? _noop,
       initAppActivity: initAppActivity ?? (() {}),
+      // Defaults to a no-op rather than the real PurchaseModeService
+      // singleton — that would register a WidgetsBinding observer and hit
+      // the network from a plain unit test.
+      initPurchaseMode: initPurchaseMode ?? (() {}),
       // Surfaces an unexpectedly-swallowed error as a test failure instead
       // of silently passing — a test that expects a failure overrides this
       // itself to assert on it.

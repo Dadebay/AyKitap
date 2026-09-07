@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/localization/strings/profile_strings.dart';
 import '../../core/services/account_service.dart';
-import '../../core/services/revenue_cat_api_service.dart';
+import '../../core/services/purchase_mode_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../payment/balance_top_up.dart';
@@ -44,11 +44,12 @@ class _BalanceViewState extends State<_BalanceView> {
     super.initState();
     // The Doldur CTA needs this same region/payment-mode request. Start it
     // while the balance page is becoming visible so a likely tap does not
-    // wait for a second round trip. Errors intentionally resolve to false:
-    // the normal wallet flow remains available without showing any message.
-    _storeTopUpAvailability = RevenueCatApiService.getConfig()
-        .then((config) => config.isStoreIap)
-        .catchError((_) => false);
+    // wait for a second round trip. [PurchaseModeService.refresh] never
+    // throws — on iOS a failed request still leaves useStoreCheckout `true`
+    // rather than opening the promo/bank flow.
+    _storeTopUpAvailability = PurchaseModeService.instance
+        .refresh()
+        .then((_) => PurchaseModeService.instance.useStoreCheckout);
   }
 
   Future<void> _openTopUp() async {

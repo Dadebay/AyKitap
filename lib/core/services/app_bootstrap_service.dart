@@ -13,6 +13,7 @@ import 'firebase_messaging_service.dart';
 import 'home_screen_widget_service.dart';
 import 'last_read_book_store.dart';
 import 'onesignal_service.dart';
+import 'purchase_mode_service.dart';
 import 'revenue_cat_service.dart';
 import 'streak_service.dart';
 
@@ -48,6 +49,7 @@ class AppBootstrapService {
     Future<void> Function()? syncHomeScreenWidgets,
     Future<void> Function()? primeDeviceFingerprint,
     void Function()? initAppActivity,
+    void Function()? initPurchaseMode,
     void Function(String context, Object error, StackTrace stackTrace)? onError,
   })  : _loadTheme = loadTheme ?? (() => AppTheme.instance.load()),
         _initializeDateFormattingData =
@@ -78,6 +80,8 @@ class AppBootstrapService {
             primeDeviceFingerprint ?? (() => DeviceFingerprint.get()),
         _initAppActivity =
             initAppActivity ?? (() => AppActivityService.instance.init()),
+        _initPurchaseMode =
+            initPurchaseMode ?? (() => PurchaseModeService.instance.init()),
         _onError = onError ?? _debugPrintError;
 
   final Future<void> Function() _loadTheme;
@@ -94,6 +98,7 @@ class AppBootstrapService {
   final Future<void> Function() _syncHomeScreenWidgets;
   final Future<void> Function() _primeDeviceFingerprint;
   final void Function() _initAppActivity;
+  final void Function() _initPurchaseMode;
   final void Function(String context, Object error, StackTrace stackTrace)
       _onError;
 
@@ -146,6 +151,7 @@ class AppBootstrapService {
       _isolate('reader-home-widgets', _bootstrapReaderHomeWidgets),
       _isolate('device-fingerprint', _primeDeviceFingerprint),
       _isolate('app-activity', () async => _initAppActivity()),
+      _isolate('purchase-mode', () async => _initPurchaseMode()),
     ]);
   }
 

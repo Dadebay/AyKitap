@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/localization/strings/book_detail_strings.dart';
 import '../../../core/services/book_access_service.dart';
+import '../../../core/services/purchase_mode_service.dart';
 import '../../../core/theme/app_colors.dart';
 
 /// The book detail page's action row: `[ Oku ] [ Satyn al · 10 M ]`.
@@ -46,7 +48,12 @@ class BookCtaRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final downloading = downloadProgress != null;
-    final showBuySide = !_isFree;
+    // iOS App Store review compliance (APPLE_REVIEW_IOS_STORE_TOGGLE_PLAN.md
+    // §5.4): while the toggle is on, a single book is never sellable outside
+    // App Store IAP, so the standalone "Satyn al" CTA never appears — the
+    // reader can still reach the book through a subscription instead.
+    final isIOSStoreOnly = context.watch<PurchaseModeService>().isIOSStoreOnly;
+    final showBuySide = !_isFree && !isIOSStoreOnly;
     return Row(
       children: [
         Expanded(

@@ -37,11 +37,16 @@ class RevenueCatApiService {
     }
   }
 
-  /// Which payment surfaces the signed-in user should see. The balance
-  /// top-up sheet calls this before showing [PaymentMethodSheet] so it can
-  /// decide whether to add the store/card option alongside the always-on
-  /// promo-code and bank-card ones.
-  static Future<RevenueCatConfig> getConfig() async {
+  /// Which payment surfaces the signed-in user should see. [platform]
+  /// (`'ios'` or `'android'`) is accepted only to match
+  /// [PurchaseModeService]'s fetch-callback shape (and to give tests a seam)
+  /// — it is deliberately never sent to the backend: `/revenuecat/config`
+  /// takes no platform parameter and returns `iosStoreIapOnlyEnabled` the
+  /// same way for every caller (see APPLE_REVIEW_IOS_STORE_TOGGLE_PLAN.md
+  /// §3.3). Prefer [PurchaseModeService] over calling this directly: it is
+  /// the one place in the app that turns this response into an actual
+  /// wallet-vs-store-vs-blocked decision.
+  static Future<RevenueCatConfig> getConfig(String platform) async {
     try {
       final response = await DioClient.instance.get(RevenueCatEndpoints.config);
       return RevenueCatConfig.fromJson(

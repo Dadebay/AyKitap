@@ -6,6 +6,7 @@ import '../../core/network/api_exception.dart';
 import '../../core/services/account_service.dart';
 import '../../core/services/auth_api_service.dart';
 import '../../core/services/payment_api_service.dart';
+import '../../core/services/purchase_mode_service.dart';
 import '../../core/services/revenue_cat_api_service.dart';
 import '../../core/services/revenue_cat_service.dart';
 import '../../core/widgets/app_snackbar.dart';
@@ -91,16 +92,16 @@ Future<void> startBalanceTopUp(
 }
 
 /// Whether a native user must use the store path. Foreign accounts must not
-/// fall back to Turkmen bank cards when the store offering cannot load.
+/// fall back to Turkmen bank cards when the store offering cannot load, and
+/// (per APPLE_REVIEW_IOS_STORE_TOGGLE_PLAN.md) an iOS account must never
+/// fall back to promo code/bank card while the App Store review toggle is
+/// on — [PurchaseModeService.useStoreCheckout] already encodes both rules,
+/// including failing closed to the store surface on iOS.
 Future<bool> _mustUseStoreTopUp(Future<bool>? storeTopUpAvailability) async {
   if (!Platform.isIOS && !Platform.isAndroid) return false;
   if (storeTopUpAvailability != null) return storeTopUpAvailability;
-  try {
-    final config = await RevenueCatApiService.getConfig();
-    return config.isStoreIap;
-  } catch (_) {
-    return false;
-  }
+  await PurchaseModeService.instance.refresh();
+  return PurchaseModeService.instance.useStoreCheckout;
 }
 
 Future<void> _purchaseStoreTopUp(BuildContext context) async {

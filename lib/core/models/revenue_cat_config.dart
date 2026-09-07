@@ -12,6 +12,16 @@ class RevenueCatConfig {
   final String displayCurrency;
   final String purchaseMode;
 
+  /// iOS-only App Store review setting — see
+  /// APPLE_REVIEW_IOS_STORE_TOGGLE_PLAN.md. When `true`, iOS must sell
+  /// everything (subscriptions, wallet top-ups, and never a single-book
+  /// purchase) through App Store/RevenueCat only, regardless of
+  /// [billingRegion] or [purchaseMode] — see [PurchaseModeService].
+  /// Android never reads this field. Defaults to `true` (the backend's own
+  /// migration default, and the safe assumption on a response from a
+  /// backend that hasn't shipped the field yet).
+  final bool iosStoreIapOnlyEnabled;
+
   const RevenueCatConfig({
     required this.appUserId,
     required this.entitlementId,
@@ -19,6 +29,7 @@ class RevenueCatConfig {
     required this.billingRegion,
     required this.displayCurrency,
     required this.purchaseMode,
+    this.iosStoreIapOnlyEnabled = true,
   });
 
   /// Whether the store (RevenueCat) payment surface should be offered at
@@ -35,5 +46,6 @@ class RevenueCatConfig {
         billingRegion: json['billingRegion'] as String,
         displayCurrency: json['displayCurrency'] as String,
         purchaseMode: json['purchaseMode'] as String,
+        iosStoreIapOnlyEnabled: json['iosStoreIapOnlyEnabled'] as bool? ?? true,
       );
 }
