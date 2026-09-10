@@ -60,14 +60,16 @@ class DioClient {
         }
         // `ApiConfig.baseUrl` is a domain that doesn't resolve on every
         // network (see its doc comment) — on a connection failure, retry
-        // once against the IP-based [ApiConfig.fallbackBaseUrl] instead of
+        // once against the build-time [ApiConfig.fallbackBaseUrl] instead of
         // failing outright. Guarded by `_retriedFallbackHost` so a failure
-        // from the fallback itself doesn't loop.
+        // from the fallback itself doesn't loop. Builds without a configured
+        // fallback simply retain the primary-host behavior.
         final options = err.requestOptions;
         final isConnectionFailure =
             err.type == DioExceptionType.connectionError ||
                 err.type == DioExceptionType.connectionTimeout;
         if (isConnectionFailure &&
+            ApiConfig.hasFallbackBaseUrl &&
             options.extra['_retriedFallbackHost'] != true) {
           options.extra['_retriedFallbackHost'] = true;
           options.baseUrl = ApiConfig.fallbackBaseUrl;

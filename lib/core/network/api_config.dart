@@ -8,11 +8,12 @@ class ApiConfig {
 
   static const String baseUrl = 'https://aykitap.com.tm/api/v1';
 
-  /// `aykitap.com.tm` doesn't resolve on every network (seen in practice —
-  /// see [payment_api_service.dart]'s `activateOrder` for the same issue
-  /// with the `api.` subdomain). [DioClient] retries against this IP-based
-  /// host on a connection failure so the app still works there.
-  static const String fallbackBaseUrl = '<PRIVATE_API_ENDPOINT>';
+  /// Optional build-time fallback for networks where the primary domain does
+  /// not resolve. The private endpoint stays out of source control.
+  static const String fallbackBaseUrl =
+      String.fromEnvironment('API_FALLBACK_BASE_URL');
+
+  static bool get hasFallbackBaseUrl => fallbackBaseUrl.isNotEmpty;
 
   /// Uploaded files (`/public/...` paths from `/users/me`'s `image`,
   /// `/banners`'s `mobile_image`/`website_image`, ...) are proxied by nginx
