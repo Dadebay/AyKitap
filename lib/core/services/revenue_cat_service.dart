@@ -10,6 +10,29 @@ import 'revenue_cat_client.dart';
 
 export 'revenue_cat_client.dart' show RevenueCatPurchaseException;
 
+/// Satın alma akışının her adımını tek bir önekle basar, böylece cihaz
+/// logunda `[RC]` diye filtreleyip zincirin nerede kırıldığı görülebilir
+/// (SDK'nın kendi ayrıntılı logları ayrı akar ve okunması zordur).
+/// [OneSignalService]'in `🟠 [OneSignal]` deseniyle aynı fikir.
+void rcLog(String message) => debugPrint('💳 [RC] $message');
+
+/// Bir [CustomerInfo]'yu tek satırda özetler — asıl bakılacak şey
+/// `entitlements.active` içinde `premium` var mı yok mu.
+String _describe(CustomerInfo? info) {
+  if (info == null) return 'customerInfo=null';
+  final active = info.entitlements.active;
+  final plus = active[RevenueCatService.entitlementId];
+  return 'appUserId=${info.originalAppUserId} '
+      '| aktif haklar=${active.keys.isEmpty ? "YOK" : active.keys.join(",")} '
+      '| premium=${plus == null ? "HAYIR" : "EVET (bitiş: ${plus.expirationDate ?? "-"})"}';
+}
+
+/// Log'a key basarken tamamını yazmamak için — hangi key'in kullanıldığını
+/// ayırt etmeye yetecek kadarı görünür.
+String _maskKey(String key) => key.length <= 12
+    ? key
+    : '${key.substring(0, 9)}…${key.substring(key.length - 3)}';
+
 /// The App Store/Play Store purchase path, alongside — not replacing — the
 /// bank-card/balance flow in [SubscriptionService]/`PaymentApiService`. That
 /// flow stays the only way to pay by bank card or promo code; this one
@@ -126,22 +149,30 @@ class RevenueCatService extends ChangeNotifier {
   }
 
   Future<void> _performInit() async {
+    rcLog(
+        'init başlıyor | key=${_maskKey(apiKey)} | entitlement=$entitlementId');
     try {
       await _client.configure(apiKey, debugLogging: kDebugMode);
+      rcLog('configure OK');
       _client.addCustomerInfoUpdateListener(_onCustomerInfoUpdated);
       _customerInfo = await _client.getCustomerInfo();
+      rcLog('init customerInfo alındı | ${_describe(_customerInfo)}');
       _ready = true;
       notifyListeners();
       await _flushPending();
     } catch (error) {
       // No app id/network at boot must never crash startup — the reader
       // just won't see Plus-gated content until the SDK comes back.
-      debugPrint('RevenueCat init failed | $error');
+      rcLog('❌ init BAŞARISIZ | $error');
       _initFuture = null;
     }
   }
 
+  /// RevenueCat kendi tarafında bir değişiklik (satın alma, yenileme, iptal)
+  /// işlediğinde buradan haber veriyor — satın alma sonrası aboneliğin
+  /// gerçekten açıldığını görmek için izlenecek asıl yer burası.
   void _onCustomerInfoUpdated(CustomerInfo info) {
+    rcLog('📩 customerInfo GÜNCELLENDİ (RevenueCat push) | ${_describe(info)}');
     _customerInfo = info;
     notifyListeners();
   }
@@ -160,6 +191,54 @@ class RevenueCatService extends ChangeNotifier {
   /// bearer token or device fingerprint, since this id is visible in the
   /// RevenueCat dashboard.
   static String appUserIdFor(int userId) => 'user_$userId';
+
+  /// RevenueCat's own prefix for a device-scoped identity it made up because
+  /// nobody called [login] yet.
+  static const _anonymousIdPrefix = r'$RCAnonymousID';
+
+  /// Whether the SDK is still on that made-up identity rather than a real
+  /// `user_<id>`. A purchase made in this state lands on the anonymous id,
+  /// so the webhook reaches the backend with an `app_user_id` it cannot
+  /// match to any account and the subscription is never granted.
+  bool get isAnonymous =>
+      _customerInfo?.originalAppUserId.startsWith(_anonymousIdPrefix) ?? true;
+
+  /// Guarantees — as far as the network allows — that the SDK is configured
+  /// *and* bound to the signed-in backend account before money changes
+  /// hands.
+  ///
+  /// [init] queues a [login] that arrives before it finishes and flushes the
+  /// queue on success, but a failed init (no network, or RevenueCat
+  /// unreachable — it is DNS-blocked in Turkmenistan, see
+  /// LAUNCH_READINESS_STATUS) leaves `_ready` false and never retries, so
+  /// the queued login is simply never applied. The SDK then stays anonymous
+  /// for the rest of the session even if connectivity comes back, and any
+  /// purchase made in that window attaches to the anonymous id. Retrying
+  /// both here, right before a purchase, is what closes that window.
+  Future<void> ensureIdentified() async {
+    if (!_ready) {
+      rcLog('ensureIdentified: SDK hazır değil, init tekrar deneniyor');
+      await init();
+    }
+    if (!_ready) {
+      rcLog('⚠️ ensureIdentified: init hâlâ başarısız — anonim kalınıyor');
+      return;
+    }
+    final userId = _pendingLoginUserId ?? await AuthSession.getUserId();
+    if (userId == null) {
+      rcLog('ensureIdentified: giriş yapılmamış, anonim devam');
+      return;
+    }
+    if (!isAnonymous &&
+        _customerInfo?.originalAppUserId == appUserIdFor(userId)) {
+      rcLog('ensureIdentified: zaten ${appUserIdFor(userId)} olarak bağlı');
+      return;
+    }
+    rcLog('ensureIdentified: anonim kimlikten ${appUserIdFor(userId)} '
+        'kimliğine geçiliyor');
+    _pendingLoginUserId = null;
+    await _applyLogin(userId);
+  }
 
   Future<void> login(int userId) async {
     if (!_ready) {
@@ -194,20 +273,25 @@ class RevenueCatService extends ChangeNotifier {
   }
 
   Future<void> _applyLogin(int userId) async {
+    final appUserId = appUserIdFor(userId);
+    rcLog('login | appUserId=$appUserId');
     try {
-      _customerInfo = await _client.logIn(appUserIdFor(userId));
+      _customerInfo = await _client.logIn(appUserId);
+      rcLog('login OK | ${_describe(_customerInfo)}');
       notifyListeners();
     } catch (error) {
-      debugPrint('RevenueCat login failed | $error');
+      rcLog('❌ login BAŞARISIZ | $error');
     }
   }
 
   Future<void> _applyLogout() async {
+    rcLog('logout');
     try {
       _customerInfo = await _client.logOut();
+      rcLog('logout OK | ${_describe(_customerInfo)}');
       notifyListeners();
     } catch (error) {
-      debugPrint('RevenueCat logout failed | $error');
+      rcLog('❌ logout BAŞARISIZ | $error');
     }
   }
 
@@ -215,11 +299,13 @@ class RevenueCatService extends ChangeNotifier {
   /// management page, where a change wouldn't otherwise reach this app until
   /// the next [_onCustomerInfoUpdated] push.
   Future<void> refreshCustomerInfo() async {
+    rcLog('refreshCustomerInfo çağrıldı');
     try {
       _customerInfo = await _client.getCustomerInfo();
+      rcLog('refreshCustomerInfo OK | ${_describe(_customerInfo)}');
       notifyListeners();
     } catch (error) {
-      debugPrint('RevenueCat refreshCustomerInfo failed | $error');
+      rcLog('❌ refreshCustomerInfo BAŞARISIZ | $error');
     }
   }
 
@@ -227,10 +313,17 @@ class RevenueCatService extends ChangeNotifier {
   /// custom (non-paywall-template) plan-picker UI would list. Null on
   /// failure (no network, SDK not configured yet, no offering configured).
   Future<Offerings?> getOfferings() async {
+    rcLog('getOfferings çağrıldı');
     try {
-      return await _client.getOfferings();
+      final offerings = await _client.getOfferings();
+      final packages = offerings?.current?.availablePackages ?? const [];
+      rcLog(
+          'getOfferings OK | current=${offerings?.current?.identifier ?? "YOK"} '
+          '| ${packages.length} paket: '
+          '${packages.map((p) => "${p.packageType.name}=${p.storeProduct.identifier}@${p.storeProduct.priceString}").join(", ")}');
+      return offerings;
     } catch (error) {
-      debugPrint('RevenueCat getOfferings failed | $error');
+      rcLog('❌ getOfferings BAŞARISIZ | $error');
       return null;
     }
   }
@@ -264,22 +357,50 @@ class RevenueCatService extends ChangeNotifier {
   /// any other failure throws [RevenueCatPurchaseException] for the caller
   /// to show a message for.
   Future<CustomerInfo?> purchasePackage(Package package) async {
-    final info = await _client.purchasePackage(package);
-    if (info != null) {
+    // Anonim kimlikle yapılan satın alma backend'e eşleşmeyen bir
+    // `app_user_id` ile ulaşır ve abonelik hiç tanımlanmaz — bkz.
+    // [ensureIdentified].
+    await ensureIdentified();
+    rcLog('🛒 SATIN ALMA başlıyor | ${package.packageType.name} '
+        '| ürün=${package.storeProduct.identifier} '
+        '| fiyat=${package.storeProduct.priceString} '
+        '| kimlik=${_customerInfo?.originalAppUserId ?? "?"}'
+        '${isAnonymous ? " ⚠️ ANONİM" : ""}');
+    try {
+      final info = await _client.purchasePackage(package);
+      if (info == null) {
+        rcLog('🛒 satın alma İPTAL edildi (kullanıcı vazgeçti)');
+        return null;
+      }
+      rcLog('✅ SATIN ALMA TAMAM (RevenueCat onayladı) | ${_describe(info)}');
       _customerInfo = info;
       notifyListeners();
+      return info;
+    } catch (error) {
+      rcLog('❌ SATIN ALMA BAŞARISIZ | $error');
+      rethrow;
     }
-    return info;
   }
 
   /// Re-links this device's store purchase history to the current App User
   /// ID — the "Restore purchases" action every store review guideline
   /// requires be reachable without contacting support.
   Future<CustomerInfo?> restorePurchases() async {
-    final info = await _client.restorePurchases();
-    _customerInfo = info;
-    notifyListeners();
-    return info;
+    // Aynı sebep: geri yükleme de doğru kimliğe bağlanmalı, yoksa hak
+    // anonim kullanıcıya geri yüklenir.
+    await ensureIdentified();
+    rcLog('♻️ restorePurchases başlıyor '
+        '| kimlik=${_customerInfo?.originalAppUserId ?? "?"}');
+    try {
+      final info = await _client.restorePurchases();
+      rcLog('♻️ restorePurchases OK | ${_describe(info)}');
+      _customerInfo = info;
+      notifyListeners();
+      return info;
+    } catch (error) {
+      rcLog('❌ restorePurchases BAŞARISIZ | $error');
+      rethrow;
+    }
   }
 
   /// Presents the dashboard-configured paywall unconditionally. Prefer

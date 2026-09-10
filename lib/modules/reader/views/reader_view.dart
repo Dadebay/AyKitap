@@ -20,6 +20,7 @@ import '../provider/reader_provider.dart';
 import '../utils/eye_care.dart';
 import '../utils/pdf_book_opener.dart';
 import '../utils/reader_orientation.dart';
+import '../utils/reader_tap_gate.dart';
 import '../widgets/book_opening_overlay.dart';
 import '../widgets/bookmarks_sheet.dart';
 import '../widgets/chapter_list_sheet.dart';
@@ -91,10 +92,10 @@ class ReaderScreen extends StatefulWidget {
 }
 
 class _ReaderScreenState extends State<ReaderScreen> {
-  // Where/when the current touch began, in the WebView's normalised (0–1)
-  // space — used to tell a tap apart from a swipe or a long press.
-  Offset? _touchStart;
-  DateTime? _touchStartAt;
+  /// Tells a genuine tap (toggle the chrome) apart from a scroll or page
+  /// turn. Fed from both Flutter's pointer stream and the WebView's own
+  /// touch callbacks — see [ReaderTapGate] for why one source isn't enough.
+  final ReaderTapGate _tapGate = ReaderTapGate();
 
   // Kept separate from provider.isLoading so the overlay can finish its
   // 100% animation and hold briefly instead of vanishing the instant the
@@ -120,7 +121,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     enableReaderLandscape();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ReaderProvider>().initialize(bookId: widget.bookId, bookTitle: widget.bookTitle);
+      context
+          .read<ReaderProvider>()
+          .initialize(bookId: widget.bookId, bookTitle: widget.bookTitle);
     });
   }
 
@@ -133,12 +136,15 @@ class _ReaderScreenState extends State<ReaderScreen> {
     // closing. See ReaderProviderLayout.updateWindowSizeClass: it only ever
     // calls into the already-open WebView's rendition, never rebuilds it, so
     // this never disturbs the current reading position.
-    context.read<ReaderProvider>().updateWindowSizeClass(WindowSizeClass.of(context));
+    context
+        .read<ReaderProvider>()
+        .updateWindowSizeClass(WindowSizeClass.of(context));
   }
 
   @override
   void dispose() {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [SystemUiOverlay.top]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+        overlays: [SystemUiOverlay.top]);
     restoreAppPortraitLock();
     super.dispose();
   }
@@ -149,7 +155,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
     // switch unless it depends on [AppLocale] — watch it so the bars/labels
     // re-render in the app's current language while a book is open.
     context.watch<AppLocale>();
-    return Consumer<ReaderProvider>(builder: (context, provider, _) => _buildScaffold(context, provider));
+    return Consumer<ReaderProvider>(
+        builder: (context, provider, _) => _buildScaffold(context, provider));
   }
 
   /// `setState` is `@protected` on [State] — see [PdfReaderScreen]'s

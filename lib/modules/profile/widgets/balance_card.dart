@@ -14,9 +14,23 @@ class BalanceCard extends StatelessWidget {
   /// Null while `/users/me` hasn't answered yet — renders a placeholder
   /// instead of a misleading "0 manat".
   final int? balanceManat;
-  final VoidCallback onTopUp;
+  final VoidCallback onAction;
 
-  const BalanceCard({super.key, required this.balanceManat, required this.onTopUp});
+  /// While iOS is App-Store-only (see APPLE_REVIEW_IOS_STORE_TOGGLE_PLAN.md),
+  /// balance can no longer buy anything — no single-book purchase, and
+  /// subscriptions are bought directly through the store, not with wallet
+  /// funds. Offering "Doldur" here would lead a user to load money onto a
+  /// balance they can't spend, so the same button becomes a straight
+  /// [PaymentStrings.subscribeCta] shortcut instead — [onAction] is
+  /// [openSubscriptionScreen] rather than [startBalanceTopUp] in that case.
+  final bool useSubscribeCta;
+
+  const BalanceCard({
+    super.key,
+    required this.balanceManat,
+    required this.onAction,
+    this.useSubscribeCta = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -91,17 +105,25 @@ class BalanceCard extends StatelessWidget {
                       ),
               ),
               GestureDetector(
-                onTap: onTopUp,
+                onTap: onAction,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      HugeIcon(icon: HugeIcons.strokeRoundedAdd01, color: AppColors.primary, size: 16),
+                      HugeIcon(
+                        icon: useSubscribeCta
+                            ? HugeIcons.strokeRoundedCrown
+                            : HugeIcons.strokeRoundedAdd01,
+                        color: AppColors.primary,
+                        size: 16,
+                      ),
                       const SizedBox(width: 6),
                       Text(
-                        ProfileStrings.topUpBalance,
+                        useSubscribeCta
+                            ? PaymentStrings.subscribeCta
+                            : ProfileStrings.topUpBalance,
                         style: TextStyle(color: AppColors.primary, fontSize: 13.5, fontWeight: FontWeight.w800),
                       ),
                     ],

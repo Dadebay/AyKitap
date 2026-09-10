@@ -6,6 +6,7 @@ import '../../core/services/purchase_mode_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../payment/balance_top_up.dart';
+import '../payment/open_subscription_screen.dart';
 import 'provider/balance_controller.dart';
 import 'widgets/balance_card.dart';
 import 'widgets/balance_card_payments_list.dart';
@@ -64,6 +65,12 @@ class _BalanceViewState extends State<_BalanceView> {
   @override
   Widget build(BuildContext context) {
     final balance = context.watch<AccountService>().balanceManat;
+    // Balance can't buy anything on iOS while the App Store review toggle
+    // is on (no single-book purchase, subscriptions bought directly through
+    // the store) — see APPLE_REVIEW_IOS_STORE_TOGGLE_PLAN.md and
+    // [BalanceCard.useSubscribeCta]. Sending the user to "Doldur" there
+    // would load money onto a balance with nothing left to spend it on.
+    final iosStoreOnly = context.watch<PurchaseModeService>().isIOSStoreOnly;
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -82,7 +89,13 @@ class _BalanceViewState extends State<_BalanceView> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [
-            BalanceCard(balanceManat: balance, onTopUp: _openTopUp),
+            BalanceCard(
+              balanceManat: balance,
+              useSubscribeCta: iosStoreOnly,
+              onAction: iosStoreOnly
+                  ? () => openSubscriptionScreen(context)
+                  : _openTopUp,
+            ),
             const SizedBox(height: 20),
             BalanceHistoryTabToggle(
               selected: _selectedTab,

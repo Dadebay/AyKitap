@@ -48,10 +48,28 @@ extension ReaderProviderUiActions on ReaderProvider {
     _notify();
   }
 
-  void nextPage() => epubController.next();
-  void prevPage() => epubController.prev();
+  // Every deliberate navigation drops the restore guard first (see
+  // [cancelPositionRestore]) — from here on the reader is driving, so where
+  // they end up is theirs to keep.
+  void nextPage() {
+    cancelPositionRestore();
+    epubController.next();
+  }
+
+  void prevPage() {
+    cancelPositionRestore();
+    epubController.prev();
+  }
+
+  /// The bottom bar's scrubber. Goes through the provider rather than
+  /// straight to the controller so it clears the restore guard too.
+  void seekToProgress(double value) {
+    cancelPositionRestore();
+    epubController.toProgressPercentage(value);
+  }
 
   void goToChapter(EpubChapter chapter) {
+    cancelPositionRestore();
     final target = chapter.id.isNotEmpty && !chapter.href.contains('#')
         ? '${chapter.href}#${chapter.id}'
         : chapter.href;
@@ -59,5 +77,8 @@ extension ReaderProviderUiActions on ReaderProvider {
     epubController.display(cfi: target);
   }
 
-  void goToCfi(String cfi) => epubController.display(cfi: cfi);
+  void goToCfi(String cfi) {
+    cancelPositionRestore();
+    epubController.display(cfi: cfi);
+  }
 }

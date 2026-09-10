@@ -65,6 +65,9 @@ extension ReaderProviderPersistence on ReaderProvider {
     _currentPage = 0;
     _totalPages = 0;
     _lastLoggedPage = null;
+    _lastRelocationAt = null;
+    _restoringPosition = false;
+    _restoreTargetProgress = 0.0;
     _progress = 0.0;
     _isLoading = true;
     _showControls = true;

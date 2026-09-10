@@ -22,6 +22,12 @@ abstract final class AppHeroTags {
   static String noteBookCover(int noteId, int bookId) =>
       'note-$noteId-book-cover-$bookId';
 
+  /// A book detail page carries two related rows (same author, same genre)
+  /// and one book can legitimately appear in both — [prefix] is what keeps
+  /// their Heroes from colliding on that single route.
+  static String relatedBookCover(String prefix, int bookId) =>
+      'related-$prefix-book-cover-$bookId';
+
   /// Flutter's material arc can initially bend a shelf cover away from the
   /// centered destination. A direct rect interpolation keeps the cover's
   /// center on one continuous line and avoids the visible sideways detour.

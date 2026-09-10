@@ -165,6 +165,52 @@ void main() {
       provider.dispose();
     });
 
+    test('a pending debounced save still flushes when the app is backgrounded',
+        () async {
+      FakeDioAdapter.install();
+      final provider = ReaderProvider();
+      await provider.initialize(bookId: 21, bookTitle: 'Test');
+
+      provider.onRelocated(_location(
+          progress: 0.4, cfi: 'epubcfi(/6/6)', page: 5, totalPages: 12));
+      // Swiping the app away right after a page turn — well inside the 2s
+      // debounce. The pending timer cannot be relied on here: a suspended
+      // process can be killed before it ever fires, which is what used to
+      // lose the last pages of every session.
+      provider.didChangeAppLifecycleState(AppLifecycleState.paused);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getInt('book_21_page'), 5);
+      expect(prefs.getDouble('book_21_progress'), 0.4);
+      expect(prefs.getString('book_21_cfi'), 'epubcfi(/6/6)');
+
+      provider.dispose();
+    });
+
+    test('the position saved on background is what the book reopens at',
+        () async {
+      FakeDioAdapter.install();
+      final provider = ReaderProvider();
+      await provider.initialize(bookId: 22, bookTitle: 'Test');
+      provider.onRelocated(_location(
+          progress: 0.6, cfi: 'epubcfi(/6/14)', page: 8, totalPages: 12));
+      provider.didChangeAppLifecycleState(AppLifecycleState.detached);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      provider.dispose();
+
+      // A fresh reader for the same book — what happens after the app is
+      // killed and relaunched. savedCfi is what EpubViewer opens at.
+      final reopened = ReaderProvider();
+      await reopened.initialize(bookId: 22, bookTitle: 'Test');
+
+      expect(reopened.savedCfi, 'epubcfi(/6/14)');
+      expect(reopened.currentPage, 8);
+      expect(reopened.progress, 0.6);
+
+      reopened.dispose();
+    });
+
     test('a pending debounced save still flushes on saveAndClose', () async {
       FakeDioAdapter.install();
       final provider = ReaderProvider();
@@ -179,6 +225,100 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getInt('book_7_page'), 9);
       expect(prefs.getDouble('book_7_progress'), 0.75);
+
+      provider.dispose();
+    });
+  });
+
+  group('reopening at the saved position', () {
+    // The reported regression: left off at 11% of the book, came back to 4%,
+    // and each reopen slipped a little further. Applying the saved font
+    // size/theme/spread in onEpubLoaded reflows the book, and epub.js can
+    // report the current *section's* start instead of the page it opened at
+    // — which then got saved over the good position.
+    test('a relocation reported mid-restore never overwrites the saved spot',
+        () async {
+      FakeDioAdapter.install();
+      SharedPreferences.setMockInitialValues({
+        'book_31_progress': 0.5,
+        'book_31_page': 40,
+        'book_31_cfi': 'epubcfi(/6/20)',
+      });
+      final provider = ReaderProvider();
+      await provider.initialize(bookId: 31, bookTitle: 'Test');
+
+      // The reflow reports the section start rather than the saved page.
+      provider.onRelocated(_location(
+          progress: 0.1, cfi: 'epubcfi(/6/4)', page: 8, totalPages: 80));
+      provider.didChangeAppLifecycleState(AppLifecycleState.paused);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('book_31_cfi'), 'epubcfi(/6/20)');
+      expect(prefs.getDouble('book_31_progress'), 0.5);
+
+      provider.dispose();
+    });
+
+    test('the guard is not armed for a book with no saved position', () async {
+      FakeDioAdapter.install();
+      final provider = ReaderProvider();
+      await provider.initialize(bookId: 32, bookTitle: 'Test');
+
+      provider.onRelocated(_location(
+          progress: 0.2, cfi: 'epubcfi(/6/6)', page: 4, totalPages: 20));
+      provider.didChangeAppLifecycleState(AppLifecycleState.paused);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getDouble('book_32_progress'), 0.2);
+      expect(prefs.getString('book_32_cfi'), 'epubcfi(/6/6)');
+
+      provider.dispose();
+    });
+
+    test('the reader navigating themselves drops the guard and saves again',
+        () async {
+      FakeDioAdapter.install();
+      SharedPreferences.setMockInitialValues({
+        'book_33_progress': 0.5,
+        'book_33_page': 40,
+        'book_33_cfi': 'epubcfi(/6/20)',
+      });
+      final provider = ReaderProvider();
+      await provider.initialize(bookId: 33, bookTitle: 'Test');
+
+      // What nextPage/prevPage/goToChapter/a scrubber seek all do first.
+      provider.cancelPositionRestore();
+      provider.onRelocated(_location(
+          progress: 0.62, cfi: 'epubcfi(/6/30)', page: 50, totalPages: 80));
+      provider.didChangeAppLifecycleState(AppLifecycleState.paused);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('book_33_cfi'), 'epubcfi(/6/30)');
+      expect(prefs.getDouble('book_33_progress'), 0.62);
+
+      provider.dispose();
+    });
+
+    test('a book that fails to load releases the guard', () async {
+      FakeDioAdapter.install();
+      SharedPreferences.setMockInitialValues({
+        'book_34_progress': 0.5,
+        'book_34_cfi': 'epubcfi(/6/20)',
+      });
+      final provider = ReaderProvider();
+      await provider.initialize(bookId: 34, bookTitle: 'Test');
+
+      provider.onEpubLoadFailed();
+      provider.onRelocated(_location(
+          progress: 0.55, cfi: 'epubcfi(/6/22)', page: 44, totalPages: 80));
+      provider.didChangeAppLifecycleState(AppLifecycleState.paused);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('book_34_cfi'), 'epubcfi(/6/22)');
 
       provider.dispose();
     });

@@ -77,27 +77,23 @@ extension _ReaderViewEpubViewer on _ReaderScreenState {
       onTextSelected: provider.onTextSelected,
       onSelection: provider.onSelection,
       onDeselection: provider.onDeselection,
-      onTouchDown: (x, y) {
-        _touchStart = Offset(x, y);
-        _touchStartAt = DateTime.now();
-      },
+      onTouchDown: _tapGate.webTouchDown,
       onTouchUp: (x, y) => _onTouchUp(provider, x, y),
     );
   }
 
-  /// Toggles the reader chrome on a genuine tap. Coordinates arrive
-  /// normalised (0–1). Swipes (page turns) and long presses (text selection)
-  /// are filtered out so they don't flash the bars on every page change.
+  /// Toggles the reader chrome on a genuine tap. Swipes (scrolls and page
+  /// turns) and long presses (text selection) are filtered out by
+  /// [ReaderTapGate] so they don't flip the bars on every page change — see
+  /// that class for why the WebView's own coordinates can't decide this
+  /// alone.
   void _onTouchUp(ReaderProvider provider, double x, double y) {
-    final start = _touchStart;
-    final startedAt = _touchStartAt;
-    _touchStart = null;
-    _touchStartAt = null;
-    if (start == null || startedAt == null) return;
-
-    final moved = (Offset(x, y) - start).distance;
-    final held = DateTime.now().difference(startedAt);
-    if (moved > 0.03 || held > const Duration(milliseconds: 300)) return;
+    final isTap = _tapGate.webTouchUpIsTap(
+      x,
+      y,
+      lastRelocationAt: provider.lastRelocationAt,
+    );
+    if (!isTap) return;
 
     if (provider.hasSelection) {
       provider.clearSelection();
@@ -106,21 +102,13 @@ extension _ReaderViewEpubViewer on _ReaderScreenState {
     }
   }
 
-  /// The focus-mode page indicator: "12 / 340".
+  /// The focus-mode position indicator: "%12".
   ///
-  /// The epub engine counts the book's pages a few seconds after it opens (see
-  /// [EpubLocation.page]); until it reports them, this falls back to a page
-  /// estimated from the catalogue's page count, and to a bare percentage for
-  /// imported files that have no catalogue entry.
-  String _pageLabel(ReaderProgressSnapshot snapshot) {
-    if (snapshot.totalPages > 0) {
-      return '${snapshot.currentPage} / ${snapshot.totalPages}';
-    }
-    final p = snapshot.progress.clamp(0.0, 1.0);
-    final total = widget.bookPages;
-    if (total != null && total > 0) {
-      return '${(p * total).round().clamp(1, total)} / $total';
-    }
-    return '${(p * 100).round()}%';
-  }
+  /// A percentage rather than "page / total" for the same reason the bottom
+  /// bar's scrubber shows one — see [ReaderProgressScrubber]. An EPUB's page
+  /// numbers are derived from how much text a screen currently holds, so the
+  /// same spot in the same book reads differently between sessions; the
+  /// percentage comes from epub.js's locations and doesn't move.
+  String _pageLabel(ReaderProgressSnapshot snapshot) =>
+      '%${(snapshot.progress.clamp(0.0, 1.0) * 100).round()}';
 }

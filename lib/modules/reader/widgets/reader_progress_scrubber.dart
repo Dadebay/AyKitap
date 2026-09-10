@@ -2,8 +2,18 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_motion.dart';
 
-/// The page scrubber shared by [ReaderBottomBar] and [PdfBottomBar]: a page
-/// number, a slider, and the total page count.
+/// The progress scrubber shared by [ReaderBottomBar] and [PdfBottomBar]: a
+/// position label, a slider, and the end-of-range label.
+///
+/// A PDF or CBZ has real, fixed pages, so it reads "12 —————— 240". An EPUB
+/// does not: reflowable text has no inherent pages, so epub.js's page count
+/// is derived by measuring how much text a screen currently holds — which
+/// legitimately differs with font size, orientation, and even which screens
+/// happened to be sampled while warming up. The same book could open as
+/// 17/153 one session and the same spot read 14/131 the next, which looks
+/// broken even when the reader is exactly where they left off. So an EPUB
+/// shows the one figure that *is* stable across sessions — the percentage
+/// through the book, straight from epub.js's locations. See [showPercentage].
 ///
 /// The slider's [onSeek] is expensive — a real epub.js repagination or a
 /// PDFium/PageView page jump — so firing it on every drag frame (as a plain
@@ -22,6 +32,12 @@ class ReaderProgressScrubber extends StatefulWidget {
   final Color overlayColor;
   final ValueChanged<double> onSeek;
 
+  /// Label the position as a percentage of the book rather than as
+  /// "page / total". Set for the EPUB reader, whose page count isn't stable
+  /// enough to show — see this class's own doc comment. [currentPage] and
+  /// [totalPages] are then unused.
+  final bool showPercentage;
+
   const ReaderProgressScrubber({
     super.key,
     required this.progress,
@@ -32,6 +48,7 @@ class ReaderProgressScrubber extends StatefulWidget {
     required this.inactiveTrackColor,
     required this.overlayColor,
     required this.onSeek,
+    this.showPercentage = false,
   });
 
   @override
@@ -51,8 +68,9 @@ class _ReaderProgressScrubberState extends State<ReaderProgressScrubber> {
   // forever. This forces it to release after a beat regardless.
   Timer? _releaseFallback;
 
-  // The page number the label is showing, and a counter that ticks once per
-  // actual change.
+  // The value the label is showing (a page number, or a percentage in
+  // [ReaderProgressScrubber.showPercentage] mode), and a counter that ticks
+  // once per actual change.
   //
   // The AnimatedSwitcher below is keyed by the *counter*, not by the page
   // number, because it keeps an outgoing child mounted for the whole fade and
@@ -65,13 +83,13 @@ class _ReaderProgressScrubberState extends State<ReaderProgressScrubber> {
   // collide; and because it ticks only when the number really changes, an
   // unchanged page still keeps its key and doesn't re-animate when something
   // unrelated rebuilds this widget.
-  late int _labelPage;
+  late int _labelValue;
   int _labelSeq = 0;
 
   @override
   void initState() {
     super.initState();
-    _labelPage = _displayedPage;
+    _labelValue = _displayedValue;
   }
 
   @override
@@ -85,20 +103,33 @@ class _ReaderProgressScrubberState extends State<ReaderProgressScrubber> {
     return 1 + (value * (widget.totalPages - 1)).round();
   }
 
-  /// While dragging, the page the thumb is sitting over; otherwise the page
-  /// the reader is really on.
-  int get _displayedPage {
+  /// What the left-hand label reads: a whole percentage of the book in
+  /// [ReaderProgressScrubber.showPercentage] mode, otherwise a page number.
+  /// While dragging it follows the thumb; otherwise it follows where the
+  /// reader really is.
+  int get _displayedValue {
     final drag = _dragValue;
+    if (widget.showPercentage) {
+      return ((drag ?? widget.progress).clamp(0.0, 1.0) * 100).round();
+    }
     return drag == null ? widget.currentPage : _pageFor(drag);
   }
 
-  /// Moves the label on to [_displayedPage], bumping [_labelSeq] only when it
-  /// genuinely changed. Call after anything that can move the label — a new
-  /// `currentPage` from the parent, or a change to [_dragValue].
+  /// Whether the real navigation a released drag triggered has landed — the
+  /// cue to stop pinning the thumb to the drag position (see
+  /// [didUpdateWidget]). Percentage mode has no page number to match on, so
+  /// it compares the progress itself.
+  bool _seekLanded(double drag) => widget.showPercentage
+      ? (widget.progress - drag).abs() < 0.01
+      : widget.currentPage == _pageFor(drag);
+
+  /// Moves the label on to [_displayedValue], bumping [_labelSeq] only when
+  /// it genuinely changed. Call after anything that can move the label — new
+  /// progress/page from the parent, or a change to [_dragValue].
   void _syncLabel() {
-    final page = _displayedPage;
-    if (page == _labelPage) return;
-    _labelPage = page;
+    final value = _displayedValue;
+    if (value == _labelValue) return;
+    _labelValue = value;
     _labelSeq++;
   }
 
@@ -111,7 +142,7 @@ class _ReaderProgressScrubberState extends State<ReaderProgressScrubber> {
     // snap the thumb back to the pre-drag position for the gap between
     // release and the relocation event actually arriving.
     final drag = _dragValue;
-    if (drag != null && widget.currentPage == _pageFor(drag)) {
+    if (drag != null && _seekLanded(drag)) {
       _releaseFallback?.cancel();
       _dragValue = null;
     }
@@ -149,7 +180,7 @@ class _ReaderProgressScrubberState extends State<ReaderProgressScrubber> {
             AnimatedSwitcher(
               duration: reduceMotion ? Duration.zero : AppMotion.quick,
               child: Text(
-                '$_labelPage',
+                widget.showPercentage ? '%$_labelValue' : '$_labelValue',
                 key: ValueKey(_labelSeq),
                 style: TextStyle(color: widget.labelColor, fontSize: 11),
               ),
@@ -179,8 +210,12 @@ class _ReaderProgressScrubberState extends State<ReaderProgressScrubber> {
                 ),
               ),
             ),
-            Text('${widget.totalPages}',
-                style: TextStyle(color: widget.labelColor, fontSize: 11)),
+            // Omitted in percentage mode: the left label already says how far
+            // through the book the reader is, and a fixed "%100" on the right
+            // would only take room from the track.
+            if (!widget.showPercentage)
+              Text('${widget.totalPages}',
+                  style: TextStyle(color: widget.labelColor, fontSize: 11)),
           ],
         );
       },

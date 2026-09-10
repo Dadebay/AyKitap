@@ -187,11 +187,12 @@ function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScr
   // Apply initial theme
   updateTheme(backgroundColor, foregroundColor, customCss);
 
-  // Re-inject font CSS on every section render
+  // Re-inject font and theme CSS on every section render
   rendition.hooks.content.register(function(contents) {
     if (_currentFontFamily) {
       _injectFontCSS(contents, _currentFontFamily, _currentFontBase64, _currentFontMimeType);
     }
+    _injectThemeCSS(contents);
     _fixFullPageSvgImages(contents);
   });
 
@@ -2878,6 +2879,74 @@ function getTextFromCfi(startCfi, endCfi) {
   })
 }
 
+// Current theme foreground, kept so a freshly rendered section can be given
+// the same colours as the ones already on screen (see _injectThemeCSS).
+var _currentForegroundColor = null;
+
+// Tags whose colour the theme overrides. Deliberately a tag list rather than
+// `*`: SVG is left out, because epub.js paints highlight annotations into an
+// `<svg class="epubjs-annotations">` overlay inside this same document and
+// forcing colours there would repaint the highlights. `img` is left out too —
+// nothing to colour, and its background is what shows through a transparent
+// PNG.
+var _THEMED_TAGS = [
+  "body", "p", "div", "span", "a", "li", "dd", "dt", "td", "th",
+  "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "cite", "q",
+  "em", "strong", "b", "i", "u", "s", "small", "sub", "sup", "big",
+  "section", "article", "aside", "header", "footer", "nav", "main",
+  "figure", "figcaption", "pre", "code", "label", "caption", "font",
+  "table", "thead", "tbody", "tfoot", "tr", "ul", "ol", "dl"
+];
+
+// `:not(#…)` on an id that never exists matches everything while adding an
+// id's worth of specificity, three times over — so these rules land at
+// (3,0,1) and outrank anything a book can realistically write, including
+// `.calibre p { color: #000 !important }`. Plain tag selectors are not enough:
+// an `!important` class rule in the book's own stylesheet beats an
+// `!important` tag rule from ours.
+var _SPECIFICITY_HACK = ":not(#sakura-no-such-id):not(#sakura-no-such-id):not(#sakura-no-such-id)";
+
+function _themedSelector(tags) {
+  return tags.map(function (t) { return t + _SPECIFICITY_HACK; }).join(", ");
+}
+
+// Some books hard-code their own text colour — a stylesheet rule on
+// `p`/`span`/`div`, an old-school `<font color="#000">`, or a `style="color:…"`
+// attribute — and then a dark theme renders black text on a black page, while
+// books that leave their colours to the reader look fine.
+//
+// This can't go through `rendition.themes`: epub.js registers theme rules
+// *without* `!important` (Contents.addStylesheetRules' object form just
+// concatenates `prop:value`), and it appends them to one never-cleared
+// stylesheet per theme name, so old values linger across theme switches.
+// Injecting our own <style> per section document instead means the rules can
+// carry `!important` and the whole element is replaced — not appended to —
+// every time the theme changes.
+//
+// Element backgrounds are cleared alongside the colour so a book's own white
+// or tinted boxes can't punch light holes in a dark page. The <body>'s own
+// background stays with the epub.js theme.
+function _injectThemeCSS(contents) {
+  try {
+    var doc = contents.document;
+    if (!doc || !doc.head) return;
+    var old = doc.getElementById('sakura-theme-style');
+    if (old) old.remove();
+    if (!_currentForegroundColor) return;
+
+    var style = doc.createElement('style');
+    style.id = 'sakura-theme-style';
+    style.textContent =
+      _themedSelector(_THEMED_TAGS) + " { color: " + _currentForegroundColor + " !important; }\n" +
+      _themedSelector(_THEMED_TAGS.filter(function (t) { return t !== "body"; })) +
+      " { background-color: transparent !important; }";
+    // Appended last so it also wins on ties with the book's own stylesheets.
+    doc.head.appendChild(style);
+  } catch (e) {
+    console.error('Error injecting theme CSS:', e);
+  }
+}
+
 ///update theme
 function updateTheme(backgroundColor, foregroundColor, customCss) {
   // Line spacing reaches the rendition through customCss here, and changing it
@@ -2901,6 +2970,20 @@ function updateTheme(backgroundColor, foregroundColor, customCss) {
 
   if (Object.keys(themeObj).length > 0) {
     rules["body"] = themeObj;
+  }
+
+  // The colours don't ride along in the epub.js theme — they're injected
+  // straight into each section document by _injectThemeCSS, which can win
+  // against a book's own stylesheet (see the comment on that function).
+  _currentForegroundColor = (foregroundColor && foregroundColor !== "" && foregroundColor !== "null")
+    ? foregroundColor
+    : null;
+  if (rendition) {
+    try {
+      rendition.getContents().forEach(_injectThemeCSS);
+    } catch (e) {
+      console.error('Error applying theme colors:', e);
+    }
   }
 
   // Merge custom CSS

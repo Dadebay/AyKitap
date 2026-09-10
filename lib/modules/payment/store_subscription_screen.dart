@@ -95,6 +95,8 @@ class _StoreSubscriptionScreenState extends State<StoreSubscriptionScreen> {
             };
         return rank(a).compareTo(rank(b));
       });
+    rcLog('ekran: ${packages.length} paket listelendi'
+        '${packages.isEmpty ? " — PLAN YOK, hata gösterilecek" : ""}');
     if (!mounted) return;
     setState(() {
       _packages = packages;
@@ -118,6 +120,8 @@ class _StoreSubscriptionScreenState extends State<StoreSubscriptionScreen> {
       value: package.storeProduct.price,
     ));
     setState(() => _processing = true);
+    rcLog(
+        'ekran: checkout başlatıldı | seçili=${package.storeProduct.identifier}');
     try {
       final info = await revenueCat.purchasePackage(package);
       if (!mounted) return;
@@ -133,12 +137,25 @@ class _StoreSubscriptionScreenState extends State<StoreSubscriptionScreen> {
         ));
         return;
       }
+      rcLog('ekran: backend reconcile çağrılıyor (POST /revenuecat/reconcile)');
       try {
-        await RevenueCatApiService.reconcile();
-      } catch (_) {
+        // Kimliği de gönderiyoruz: SDK anonim kaldıysa (RevenueCat'e
+        // ulaşılamadığı için) webhook o anonim kimlikle geleceğinden,
+        // backend'in onu bu hesapla eşleştirebilmesi gerekiyor.
+        await RevenueCatApiService.reconcile(appUserId: info.originalAppUserId);
+        rcLog('ekran: backend reconcile OK');
+      } catch (error) {
         // Best-effort — the webhook still credits the entitlement on its own.
+        rcLog(
+            '⚠️ ekran: backend reconcile başarısız (webhook yine de işler) | $error');
       }
-      if (!mounted || !revenueCat.isPlusActive) return;
+      rcLog(
+          'ekran: satın alma sonrası durum | isPlusActive=${revenueCat.isPlusActive}');
+      if (!mounted || !revenueCat.isPlusActive) {
+        rcLog('⚠️ ekran: premium AÇILMADI — başarı ekranı gösterilmiyor '
+            '(mounted=$mounted, isPlusActive=${revenueCat.isPlusActive})');
+        return;
+      }
       unawaited(AnalyticsService.instance.logPurchaseStep(
         step: 'completed',
         productType: 'subscription',
@@ -146,7 +163,8 @@ class _StoreSubscriptionScreenState extends State<StoreSubscriptionScreen> {
         source: 'store',
         value: package.storeProduct.price,
       ));
-      await SubscriptionSuccessDialog.show(context, PaymentStrings.plusPlanName);
+      await SubscriptionSuccessDialog.show(
+          context, PaymentStrings.plusPlanName);
       if (mounted) Navigator.of(context).pop();
     } on RevenueCatPurchaseException catch (e) {
       if (!mounted) return;
@@ -168,7 +186,17 @@ class _StoreSubscriptionScreenState extends State<StoreSubscriptionScreen> {
     setState(() => _restoring = true);
     final revenueCat = context.read<RevenueCatService>();
     try {
-      await revenueCat.restorePurchases();
+      final info = await revenueCat.restorePurchases();
+      // Aynı sebep satın almadaki gibi: geri yüklenen hak anonim bir
+      // kimliğe bağlıysa backend'in onu bu hesapla eşleştirmesi gerekiyor.
+      if (info != null) {
+        try {
+          await RevenueCatApiService.reconcile(
+              appUserId: info.originalAppUserId);
+        } catch (error) {
+          rcLog('⚠️ ekran: restore sonrası reconcile başarısız | $error');
+        }
+      }
     } on RevenueCatPurchaseException catch (e) {
       if (!mounted) return;
       setState(() => _restoring = false);
@@ -179,8 +207,7 @@ class _StoreSubscriptionScreenState extends State<StoreSubscriptionScreen> {
     if (!mounted) return;
     setState(() => _restoring = false);
     if (revenueCat.isPlusActive) {
-      await SubscriptionSuccessDialog.show(
-          context, PaymentStrings.plusPlanName,
+      await SubscriptionSuccessDialog.show(context, PaymentStrings.plusPlanName,
           restored: true);
       if (mounted) Navigator.of(context).pop();
     } else {
@@ -327,8 +354,7 @@ class _StoreSubscriptionScreenState extends State<StoreSubscriptionScreen> {
               onTap: () => _openLink(privacyLink),
             ),
           if (hasPrivacy && hasTerms)
-            Text('·',
-                style: TextStyle(color: AppColors.grey3, fontSize: 12)),
+            Text('·', style: TextStyle(color: AppColors.grey3, fontSize: 12)),
           if (hasTerms)
             _LegalLinkButton(
               label: SettingsStrings.contactUserAgreement,

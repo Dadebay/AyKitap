@@ -81,8 +81,10 @@ extension _ReaderViewChrome on _ReaderScreenState {
                         onSettings: () => _showSettings(context),
                         onChapters: () => _showChapters(context, provider),
                         onSearch: () => _showSearch(context, provider),
-                        onProgressChanged: (value) =>
-                            provider.epubController.toProgressPercentage(value),
+                        // Through the provider, not straight to the
+                        // controller: a deliberate seek also has to drop the
+                        // opening position guard (see cancelPositionRestore).
+                        onProgressChanged: provider.seekToProgress,
                       ),
                     ),
                   ),

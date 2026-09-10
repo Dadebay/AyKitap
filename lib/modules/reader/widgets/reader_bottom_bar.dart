@@ -109,6 +109,10 @@ class ReaderBottomBar extends StatelessWidget {
               progress: progress,
               currentPage: currentPage,
               totalPages: totalPages,
+              // Reflowable text has no fixed pages, so the derived count
+              // shifts between sessions — see ReaderProgressScrubber. The
+              // percentage is the figure that actually holds still.
+              showPercentage: true,
               labelColor: labelColor,
               activeColor: accent,
               inactiveTrackColor:
