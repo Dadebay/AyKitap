@@ -143,8 +143,9 @@ bearer token, `Accept-Language`, we 401 gelende awtomatiki çykyş + login ekran
 API salgysy [`api_config.dart`](lib/core/network/api_config.dart) faýlynda:
 
 ```dart
-baseUrl      = 'http://216.250.10.88:4000/api/v1'  // API
-mediaBaseUrl = 'http://216.250.10.88:9000'         // suratlar/faýllar
+baseUrl         = '<API_BASE_URL>'
+mediaBaseUrl    = '<MEDIA_BASE_URL>'
+fallbackBaseUrl = String.fromEnvironment('API_FALLBACK_BASE_URL')
 ```
 
 ---
