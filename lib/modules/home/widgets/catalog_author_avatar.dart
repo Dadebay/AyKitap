@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../core/navigation/app_navigator.dart';
@@ -70,8 +69,16 @@ class CatalogAuthorAvatar extends StatelessWidget {
                   decoration: BoxDecoration(color: AppColors.card, shape: BoxShape.circle),
                   child: ClipOval(
                     child: hasImage
-                        ? CachedNetworkImage(
-                            imageUrl: ApiConfig.resolveImageUrl(image!),
+                        ? NetworkCoverImage(
+                            url: ApiConfig.resolveImageUrl(image!),
+                            width: _photoSize,
+                            height: _photoSize,
+                            // Decode to one dimension only so portrait photos
+                            // retain their native aspect ratio.
+                            decodeCacheWidth:
+                                (_photoSize * MediaQuery.devicePixelRatioOf(context)).round(),
+                            fit: BoxFit.contain,
+                            placeholder: (_) => _placeholder(),
                           )
                         : _placeholder(),
                   ),

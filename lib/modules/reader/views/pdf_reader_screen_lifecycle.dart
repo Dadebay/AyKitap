@@ -37,6 +37,12 @@ extension _PdfReaderScreenLifecycle on _PdfReaderScreenState {
       case AppLifecycleState.detached:
       case AppLifecycleState.hidden:
         _streakPing.flushResidual();
+        // Same reason as the EPUB reader's own flush — see
+        // ReaderProviderLifecycle._flushPendingProgressSave. _onPageChanged's
+        // 2-second debounce doesn't survive the process being suspended, so
+        // the last pages read before backgrounding never reached disk.
+        _saveTimer?.cancel();
+        unawaited(_saveProgress());
       case AppLifecycleState.resumed:
         _streakPing.start();
       case AppLifecycleState.inactive:

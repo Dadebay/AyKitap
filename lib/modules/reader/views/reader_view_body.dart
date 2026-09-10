@@ -55,14 +55,17 @@ extension _ReaderViewBody on _ReaderScreenState {
               child: SafeArea(
                 child: Padding(
                   padding: _ReaderScreenState._viewerInset,
+                  // Measures the gesture in the *screen's* coordinate frame,
+                  // which the WebView's own touch coordinates can't do while
+                  // a page transition is animating the iframe underneath the
+                  // finger — see [ReaderTapGate]. Translucent so every event
+                  // still reaches the viewer itself.
                   child: Listener(
                     behavior: HitTestBehavior.translucent,
-                    onPointerDown: (e) => debugPrint(
-                        '[FLUTTER-POINTER] down at ${e.localPosition}'),
-                    onPointerMove: (e) => debugPrint(
-                        '[FLUTTER-POINTER] move at ${e.localPosition}'),
-                    onPointerUp: (e) => debugPrint(
-                        '[FLUTTER-POINTER] up at ${e.localPosition}'),
+                    onPointerDown: (e) => _tapGate.pointerDown(e.position),
+                    onPointerMove: (e) => _tapGate.pointerMove(e.position),
+                    onPointerUp: (e) => _tapGate.pointerUp(e.position),
+                    onPointerCancel: (_) => _tapGate.pointerCancel(),
                     child: provider.loadFailed
                         ? EpubErrorView(
                             bgColor: bgColor, isDarkPage: isDarkPage)

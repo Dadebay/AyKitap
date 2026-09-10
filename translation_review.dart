@@ -717,7 +717,7 @@ final translations = <TranslationEntry>[
   TranslationEntry(file: 'reader_strings.dart', key: 'pageTransitionTitle', tk: 'Sahypa çalyşmak', ru: 'Смена страниц', tr: 'Sayfa geçişi'),
   TranslationEntry(file: 'reader_strings.dart', key: 'transitionSlide', tk: 'Süýşürme', ru: 'Листание', tr: 'Kaydırma'),
   TranslationEntry(file: 'reader_strings.dart', key: 'transitionCurl', tk: 'Sypyrmak', ru: 'Снятие', tr: 'Soyma'),
-  TranslationEntry(file: 'reader_strings.dart', key: 'transitionOverlay', tk: 'Üst gelmek', ru: 'Наложение', tr: 'Üste gelme'),
+  TranslationEntry(file: 'reader_strings.dart', key: 'transitionOverlay. ', tk: 'Üst gelmek', ru: 'Наложение', tr: 'Üste gelme'),
   TranslationEntry(file: 'reader_strings.dart', key: 'transitionScroll', tk: 'Aşaklygyna', ru: 'Вниз', tr: 'Aşağı'),
   TranslationEntry(file: 'reader_strings.dart', key: 'transitionShift', tk: 'Geçiş', ru: 'Сдвиг', tr: 'Öteleme'),
   TranslationEntry(file: 'reader_strings.dart', key: 'transitionNone', tk: 'Animasiýasyz', ru: 'Без анимации', tr: 'Animasyonsuz'),

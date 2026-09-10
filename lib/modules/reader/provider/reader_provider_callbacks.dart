@@ -12,13 +12,18 @@ extension ReaderProviderCallbacks on ReaderProvider {
   String get currentCfi => _currentCfi;
   bool get isAtLastPage => _isAtLastPage;
 
+  /// When the book last changed position — see [ReaderTapGate], which uses
+  /// it to reject a "tap" that was really the tail of a scroll or page turn.
+  DateTime? get lastRelocationAt => _lastRelocationAt;
+
   /// The page-scoped slice of this provider's state — see
   /// [ReaderProgressSnapshot] — published separately from `notifyListeners`
   /// so a page turn can update just the small widgets that read it (top bar
   /// title, bottom bar progress/page, focus-mode labels — see
   /// reader_view_chrome.dart) without rebuilding the rest of the reader
   /// screen, the EpubViewer subtree included.
-  ValueListenable<ReaderProgressSnapshot> get progressListenable => _progressNotifier;
+  ValueListenable<ReaderProgressSnapshot> get progressListenable =>
+      _progressNotifier;
 
   /// This fires on epub.js's `displayed` event, which is emitted on *every*
   /// navigation — each chapter tap included — not once per book. Everything
@@ -31,6 +36,16 @@ extension ReaderProviderCallbacks on ReaderProvider {
     if (_renditionConfigured) return;
     _renditionConfigured = true;
     log('📖 EPUB loaded — configuring rendition');
+
+    // Armed before the appearance calls below, not after them: those all go
+    // out over the WebView bridge and can throw, and the guard they exist to
+    // protect has to be released either way — a stuck guard would mean this
+    // whole session never persists its position. The delay still lands well
+    // after the reflow they trigger. See [_verifyRestoredPosition].
+    if (_restoringPosition) {
+      Future.delayed(
+          ReaderProvider._restoreSettleDelay, _verifyRestoredPosition);
+    }
 
     // Push the saved page-change style into the freshly-created rendition —
     // it only lives in the webview, so it has to be re-applied per book. No
@@ -120,6 +135,7 @@ extension ReaderProviderCallbacks on ReaderProvider {
   /// reader_view_chrome.dart for where this now actually lands.
   void onRelocated(EpubLocation location) {
     if (_disposed) return;
+    _lastRelocationAt = DateTime.now();
     _progress = location.progress;
     _currentCfi = location.startCfi;
     _currentHref = location.href ?? '';
@@ -133,10 +149,46 @@ extension ReaderProviderCallbacks on ReaderProvider {
       log('📍 file=$_currentHref toc=$_currentTocHref p=$_currentPage/$_totalPages → $title');
     }
 
-    // Debounced save
+    // Debounced save — suppressed while the book is still opening at its
+    // saved position, since a relocation reported mid-restore can be the
+    // section's start rather than where the reader actually left off. See
+    // [_restoringPosition].
+    if (_restoringPosition) return;
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(seconds: 2), _saveProgress);
   }
+
+  /// Checks where the book actually opened, once [onEpubLoaded]'s appearance
+  /// reflow has had time to settle, and re-asserts the saved position if it
+  /// was knocked backwards.
+  ///
+  /// Applying the saved font size/theme/spread re-lays-out the book, and
+  /// epub.js can redisplay the current *section's* start rather than the
+  /// exact page it opened at (the same failure mode `resizeToAvoidBottomInset:
+  /// false` guards against in reader_view_body.dart). The position that lands
+  /// then gets saved, so every reopen started a little earlier than the last
+  /// — 17/153 one session, 6/131 the next.
+  ///
+  /// Only ever corrects *backwards* drift: a reader who has already moved on
+  /// under their own steam is never dragged back.
+  void _verifyRestoredPosition() {
+    if (_disposed || !_restoringPosition) return;
+    _restoringPosition = false;
+    if (_savedCfi.isEmpty) return;
+    if (_progress + ReaderProvider._restoreDriftTolerance >=
+        _restoreTargetProgress) {
+      return;
+    }
+    log('↩️ restore drifted to ${(_progress * 100).toStringAsFixed(1)}% '
+        '(saved ${(_restoreTargetProgress * 100).toStringAsFixed(1)}%) — '
+        'reasserting saved position');
+    epubController.display(cfi: _savedCfi);
+  }
+
+  /// Stops guarding the saved position — called the moment the reader
+  /// navigates deliberately, so their own move is persisted normally instead
+  /// of being treated as restore drift and undone.
+  void cancelPositionRestore() => _restoringPosition = false;
 
   /// Recomputes the page-scoped slice of state (see [ReaderProgressSnapshot])
   /// from the fields above and republishes it on [progressListenable].
@@ -176,7 +228,8 @@ extension ReaderProviderCallbacks on ReaderProvider {
     // after a load/position-restore is skipped so jumping back into a book
     // isn't logged as having read every page up to that point.
     if (_lastLoggedPage != null && current > _lastLoggedPage!) {
-      StreakService.instance.recordPageRead(count: (current - _lastLoggedPage!).clamp(1, 5));
+      StreakService.instance
+          .recordPageRead(count: (current - _lastLoggedPage!).clamp(1, 5));
     }
     _lastLoggedPage = current;
   }
@@ -187,7 +240,8 @@ extension ReaderProviderCallbacks on ReaderProvider {
     _notify();
   }
 
-  void onSelection(String text, String? cfi, Rect? selectionRect, Rect? viewRect) {
+  void onSelection(
+      String text, String? cfi, Rect? selectionRect, Rect? viewRect) {
     _selectedText = text;
     _selectedCfi = cfi;
     _selectionRect = selectionRect;

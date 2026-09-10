@@ -4,6 +4,7 @@ import '../models/topup_product.dart';
 import '../network/api_exception.dart';
 import '../network/dio_client.dart';
 import '../network/revenue_cat_endpoints.dart';
+import 'revenue_cat_service.dart' show rcLog;
 
 /// The backend-HTTP half of the RevenueCat integration — [RevenueCatService]
 /// itself only talks to the store SDK. Kept separate the same way
@@ -29,10 +30,27 @@ class RevenueCatApiService {
   /// Best-effort — a failure here just means the balance shows the old
   /// number until the webhook lands on its own; callers should never treat
   /// this throwing as the purchase itself having failed.
-  static Future<void> reconcile() async {
+  /// [appUserId] — SDK'nın o an taşıdığı RevenueCat kimliği. Normalde bizim
+  /// `user_<id>`'miz olur ve backend bunu yok sayar; ama RevenueCat'in
+  /// identify çağrısı geçmediyse (Türkmenistan'da DNS engelli) SDK anonim
+  /// kimlikte kalır ve satın alma o kimliğe yazılır. Backend'e bildirmek,
+  /// gelen webhook'un doğru hesapla eşleşmesini sağlar ve o kimlik yüzünden
+  /// daha önce eşleşmemiş event'leri yeniden işletir.
+  static Future<void> reconcile({String? appUserId}) async {
+    rcLog('backend: POST ${RevenueCatEndpoints.reconcile} gönderiliyor'
+        '${appUserId == null ? "" : " | appUserId=$appUserId"}');
     try {
-      await DioClient.instance.post(RevenueCatEndpoints.reconcile);
+      final response = await DioClient.instance.post(
+        RevenueCatEndpoints.reconcile,
+        data: appUserId == null ? null : {'appUserId': appUserId},
+      );
+      // Backend `synced` ya da `pending` döner — `pending`, backend'in
+      // RevenueCat API'sine ulaşamadığı anlamına gelir (bkz. Türkmenistan
+      // DNS engeli), satın almanın başarısız olduğu anlamına gelmez.
+      rcLog(
+          'backend: reconcile yanıtı | ${response.data?['data'] ?? response.data}');
     } on DioException catch (e) {
+      rcLog('❌ backend: reconcile hata | ${e.message}');
       throw ApiException.fromDioException(e);
     }
   }

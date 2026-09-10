@@ -62,6 +62,38 @@ class ReaderProvider extends ChangeNotifier with WidgetsBindingObserver {
   String _currentCfi = '';
   bool _isAtLastPage = false;
 
+  /// When the book last actually moved. Read by [ReaderTapGate] to tell a
+  /// scroll or page turn apart from a tap — the WebView's own touch
+  /// coordinates can't be trusted for that while a page transition is
+  /// animating (see that class's doc comment).
+  DateTime? _lastRelocationAt;
+
+  /// True from the moment a book with a saved position starts opening until
+  /// that position is confirmed reached (or the attempt gives up).
+  ///
+  /// While set, relocations still drive the UI but are *not* persisted.
+  /// Applying the saved font size, theme and spread in [onEpubLoaded] reflows
+  /// the book, and epub.js's re-layout can report the current *section's*
+  /// start instead of the page the book actually opened at. Letting that
+  /// reach disk is what walked the saved position backwards a little further
+  /// on every reopen — the reader left off at 11% and came back to 4%.
+  /// See [_verifyRestoredPosition].
+  bool _restoringPosition = false;
+
+  /// The progress this book was last left at, snapshotted in `initialize`
+  /// before any relocation overwrites [_progress]. The target
+  /// [_verifyRestoredPosition] checks the opened position against.
+  double _restoreTargetProgress = 0.0;
+
+  /// How long to let [onEpubLoaded]'s appearance reflow settle before
+  /// checking where the book actually landed.
+  static const _restoreSettleDelay = Duration(milliseconds: 900);
+
+  /// Progress may legitimately land a hair off the saved point (the page the
+  /// CFI sits on starts slightly before it). Only a shortfall bigger than
+  /// this counts as having been knocked back.
+  static const _restoreDriftTolerance = 0.005;
+
   /// Publishes the page-scoped slice of the state above (see
   /// [ReaderProgressSnapshot]) on every relocation, separately from this
   /// provider's own [notifyListeners] — see reader_provider_callbacks.dart's

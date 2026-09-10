@@ -14,8 +14,8 @@ import '../../core/network/api_exception.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/services/book_access_service.dart';
 import '../../core/services/book_api_service.dart';
-import '../../core/services/book_list_api_service.dart';
 import '../../core/services/book_download_service.dart';
+import '../../core/services/book_list_api_service.dart';
 import '../../core/services/downloaded_files_store.dart';
 import '../../core/services/favorites_sync_service.dart';
 import '../../core/services/finished_books_sync_service.dart';
@@ -34,6 +34,7 @@ import 'widgets/catalog_detail_description.dart';
 import 'widgets/catalog_detail_header_art.dart';
 import 'widgets/catalog_detail_header_info.dart';
 import 'widgets/detail_header_controls.dart';
+import 'widgets/detail_related_sections.dart';
 
 part 'catalog_book_detail_actions.dart';
 part 'catalog_book_detail_body.dart';
@@ -237,9 +238,19 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final book = _book;
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: _buildBody(),
+      bottomNavigationBar: !_loading && _error == null && book != null
+          ? CatalogDetailBottomCta(
+              book: book,
+              access: _access,
+              onRead: _onRead,
+              onBuy: _onBuy,
+              onCancelDownload: _cancelDownload,
+            )
+          : null,
     );
   }
 

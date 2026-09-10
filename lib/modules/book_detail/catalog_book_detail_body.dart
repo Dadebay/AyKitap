@@ -136,13 +136,12 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-          // Each block below (title, stats, pills, genres, synopsis, CTA)
+          // Each block below (title, stats, pills, genres, synopsis)
           // fades/slides in on its own beat rather than as one lump — see
           // [CatalogDetailHeaderInfo]'s doc comment. `headerSteps` keeps
-          // the description's and the CTA's stagger index contiguous with
-          // the header's without either widget hardcoding the other's
-          // internal block count (which varies with what the book has —
-          // no pills, no genres, no description, etc.).
+          // the description's and the secondary section's stagger index
+          // contiguous with the header's without either widget hardcoding
+          // the other's internal block count.
           child: Column(
             children: [
               CatalogDetailHeaderInfo(
@@ -156,17 +155,16 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
                 onTapGenre: _openGenre,
                 startIndex: headerSteps,
               ),
+              // Related rows load separately and render nothing until they
+              // arrive. The primary CTA now stays fixed below this scroll.
+              ...buildDetailRelatedSections(book),
               StaggerFadeIn(
                 index: headerSteps + descriptionSteps,
                 child: CatalogDetailCtaSection(
                   book: book,
-                  access: _access,
                   canRemoveFromPurchased: widget.canRemoveFromPurchased,
                   removingFromPurchased: _removingFromPurchased,
                   onRemoveFromPurchased: () => _removeFromPurchased(book),
-                  onRead: _onRead,
-                  onBuy: _onBuy,
-                  onCancelDownload: _cancelDownload,
                 ),
               ),
             ],

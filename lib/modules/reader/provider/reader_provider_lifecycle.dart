@@ -33,6 +33,10 @@ extension ReaderProviderLifecycle on ReaderProvider {
     _savedCfi = prefs.getString('book_${bookId}_cfi') ?? '';
     _savedLocationsJson = prefs.getString('book_${bookId}_locations');
     _lastLoggedPage = null;
+    // Guard the saved position until the book has actually opened at it —
+    // see [_restoringPosition] and [_verifyRestoredPosition].
+    _restoreTargetProgress = _progress;
+    _restoringPosition = _savedCfi.isNotEmpty && _progress > 0.0;
 
     // No saved choice yet (first book ever opened): default the page to the
     // app's own light/dark setting instead of always opening white, so a dark-
@@ -98,11 +102,33 @@ extension ReaderProviderLifecycle on ReaderProvider {
       case AppLifecycleState.detached:
       case AppLifecycleState.hidden:
         _flushStreakResidual();
+        _flushPendingProgressSave();
       case AppLifecycleState.resumed:
         _startStreakPing();
       case AppLifecycleState.inactive:
         break;
     }
+  }
+
+  /// Writes the current position out *now* instead of waiting for
+  /// [onRelocated]'s 2-second debounce to elapse.
+  ///
+  /// Backgrounding the app is the one moment that debounce can't survive: the
+  /// pending timer is still counting when the process is suspended, and a
+  /// suspended app can be killed outright without ever running it — so every
+  /// page turned in the last two seconds of a session was silently lost, and
+  /// reopening the book landed on whatever page the last timer that *did*
+  /// fire had saved. Reading a book right up to the moment of swiping the app
+  /// away is the normal way to leave a reader, which is why this looked like
+  /// the position was never saved at all.
+  void _flushPendingProgressSave() {
+    _saveTimer?.cancel();
+    // Nothing on screen yet is worth more than what's already on disk: the
+    // book is still opening at the saved position, so writing the
+    // half-restored one over it would be the very regression
+    // [_restoringPosition] exists to prevent.
+    if (_restoringPosition) return;
+    unawaited(_saveProgress());
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -132,6 +158,9 @@ extension ReaderProviderLifecycle on ReaderProvider {
     _loadTimeoutTimer?.cancel();
     _loadFailed = true;
     _isLoading = false;
+    // Nothing ever opened, so there's no restore left to guard — and leaving
+    // it armed would block this session's saves for good.
+    _restoringPosition = false;
     log('❌ EPUB failed to load');
     _notify();
   }

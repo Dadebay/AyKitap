@@ -8,29 +8,19 @@ import '../../../core/services/book_download_service.dart';
 import '../../../core/theme/app_colors.dart';
 import 'book_cta_row.dart';
 
-/// The bottom of [CatalogBookDetailScreen]'s content sheet: the optional
-/// "remove from purchased" button, the read/buy CTA row, and the "no file
-/// for this book" notice.
+/// Secondary actions and notices that remain part of the scrolling content.
 class CatalogDetailCtaSection extends StatelessWidget {
   final BookDetail book;
-  final BookAccess? access;
   final bool canRemoveFromPurchased;
   final bool removingFromPurchased;
   final VoidCallback onRemoveFromPurchased;
-  final VoidCallback onRead;
-  final VoidCallback onBuy;
-  final VoidCallback onCancelDownload;
 
   const CatalogDetailCtaSection({
     super.key,
     required this.book,
-    required this.access,
     required this.canRemoveFromPurchased,
     required this.removingFromPurchased,
     required this.onRemoveFromPurchased,
-    required this.onRead,
-    required this.onBuy,
-    required this.onCancelDownload,
   });
 
   @override
@@ -66,23 +56,8 @@ class CatalogDetailCtaSection extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: 28),
-        BookCtaRow(
-          access: access,
-          priceManat: book.price,
-          // Watched at the point of use, so the subscription can't drift
-          // away from the value it feeds: this is what makes a download
-          // that's already running when this screen (re)opens — not just
-          // one this screen itself started — show its live progress instead
-          // of a plain "Oku" button.
-          downloadProgress:
-              context.watch<BookDownloadService>().progressOf(book.id),
-          onRead: onRead,
-          onBuy: onBuy,
-          onCancelDownload: onCancelDownload,
-        ),
         if (book.bookFiles.isEmpty) ...[
-          const SizedBox(height: 14),
+          const SizedBox(height: 24),
           Row(
             children: [
               HugeIcon(
@@ -100,6 +75,48 @@ class CatalogDetailCtaSection extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// The always-visible read/buy actions at the bottom of the detail screen.
+class CatalogDetailBottomCta extends StatelessWidget {
+  final BookDetail book;
+  final BookAccess? access;
+  final VoidCallback onRead;
+  final VoidCallback onBuy;
+  final VoidCallback onCancelDownload;
+
+  const CatalogDetailBottomCta({
+    super.key,
+    required this.book,
+    required this.access,
+    required this.onRead,
+    required this.onBuy,
+    required this.onCancelDownload,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      elevation: 14,
+      shadowColor: Colors.black.withValues(alpha: 0.35),
+      child: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+        child: BookCtaRow(
+          access: access,
+          priceManat: book.price,
+          // Watch here so an in-flight download keeps updating even though
+          // the CTA is no longer part of the scrolling content.
+          downloadProgress:
+              context.watch<BookDownloadService>().progressOf(book.id),
+          onRead: onRead,
+          onBuy: onBuy,
+          onCancelDownload: onCancelDownload,
+        ),
+      ),
     );
   }
 }

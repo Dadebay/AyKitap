@@ -43,7 +43,11 @@ class BookDetailStrings {
         tr: 'Tür: ${genres.join(', ')}',
         en: 'Genre: ${genres.join(', ')}',
       );
-  static String _sharePages(int pages) => t(tk: '$pages sahypa', ru: '$pages страниц', tr: '$pages sayfa', en: '$pages pages');
+  static String _sharePages(int pages) => t(
+      tk: '$pages sahypa',
+      ru: '$pages страниц',
+      tr: '$pages sayfa',
+      en: '$pages pages');
   static String get _shareCta => t(
         tk: '📲 Aýkitap-da oka!',
         ru: '📲 Читайте на Aýkitap!',
@@ -66,40 +70,74 @@ class BookDetailStrings {
     if (meta.isNotEmpty) lines.add(meta.join(' · '));
     if (synopsis != null && synopsis.trim().isNotEmpty) {
       final trimmed = synopsis.trim();
-      lines.add(trimmed.length > 140 ? '${trimmed.substring(0, 140).trimRight()}…' : trimmed);
+      lines.add(trimmed.length > 140
+          ? '${trimmed.substring(0, 140).trimRight()}…'
+          : trimmed);
     }
     lines.add(_shareCta);
     return lines.join('\n\n');
   }
 
-  static String get aboutBook => t(tk: 'Kitap barada', ru: 'О книге', tr: 'Kitap hakkında', en: 'About the book');
-  static String get genres => t(tk: 'Žanrlar', ru: 'Жанры', tr: 'Türler', en: 'Genres');
-  static String get noBooksInGenre => t(tk: 'Bu žanrda entek kitap ýok', ru: 'В этом жанре пока нет книг', tr: 'Bu türde henüz kitap yok', en: 'No books in this genre yet');
-  static String get similarBooks => t(tk: 'Meňzeş kitaplar', ru: 'Похожие книги', tr: 'Benzer kitaplar', en: 'Similar books');
+  static String get aboutBook => t(
+      tk: 'Kitap barada',
+      ru: 'О книге',
+      tr: 'Kitap hakkında',
+      en: 'About the book');
+  static String get genres =>
+      t(tk: 'Žanrlar', ru: 'Жанры', tr: 'Türler', en: 'Genres');
+  static String get noBooksInGenre => t(
+      tk: 'Bu žanrda entek kitap ýok',
+      ru: 'В этом жанре пока нет книг',
+      tr: 'Bu türde henüz kitap yok',
+      en: 'No books in this genre yet');
+  static String get similarBooks => t(
+      tk: 'Meňzeş kitaplar',
+      ru: 'Похожие книги',
+      tr: 'Benzer kitaplar',
+      en: 'Similar books');
   static String get moreByAuthor => t(
-        tk: 'Şu Awtoryň beýleki kitaplary',
+        tk: 'Awtoryň beýleki kitaplary',
         ru: 'Другие книги этого автора',
         tr: 'Bu yazarın diğer kitapları',
         en: 'More by this author',
       );
 
-  static String get statRead => t(tk: 'okaldy', ru: 'прочитано', tr: 'okundu', en: 'read');
-  static String get statPurchased => t(tk: 'satyn alyndy', ru: 'куплено', tr: 'satın alındı', en: 'purchased');
-  static String get statPages => t(tk: 'sahypa', ru: 'страниц', tr: 'sayfa', en: 'pages');
+  static String get statRead =>
+      t(tk: 'okaldy', ru: 'прочитано', tr: 'okundu', en: 'read');
+  static String get statPurchased =>
+      t(tk: 'satyn alyndy', ru: 'куплено', tr: 'satın alındı', en: 'purchased');
+  static String get statPages =>
+      t(tk: 'sahypa', ru: 'страниц', tr: 'sayfa', en: 'pages');
 
-  static String get showLess => t(tk: 'Az görkez', ru: 'Свернуть', tr: 'Daha az göster', en: 'Show less');
-  static String get readFull => t(tk: 'Doly oka', ru: 'Читать полностью', tr: 'Tamamını oku', en: 'Read full text');
+  static String get showLess =>
+      t(tk: 'Az görkez', ru: 'Свернуть', tr: 'Daha az göster', en: 'Show less');
+  static String get readFull => t(
+      tk: 'Doly oka',
+      ru: 'Читать полностью',
+      tr: 'Tamamını oku',
+      en: 'Read full text');
 
   static String get read => t(tk: 'Oka', ru: 'Читать', tr: 'Oku', en: 'Read');
-  static String get price => t(tk: 'Baha', ru: 'Цена', tr: 'Fiyat', en: 'Price');
+  static String get price =>
+      t(tk: 'Baha', ru: 'Цена', tr: 'Fiyat', en: 'Price');
   static String priceValue(int manat) => '$manat TMT';
-  static String get buy => t(tk: 'Satyn al', ru: 'Купить', tr: 'Satın al', en: 'Buy');
+  static String get buy =>
+      t(tk: 'Satyn al', ru: 'Купить', tr: 'Satın al', en: 'Buy');
 
   // catalog_book_detail_screen.dart — the real `GET /books/:id` detail page.
-  static String get catalogLoadError => t(tk: 'Kitap ýüklenmedi', ru: 'Не удалось загрузить книгу', tr: 'Kitap yüklenemedi', en: 'Book couldn\'t load');
-  static String get retry => t(tk: 'Gaýtadan synanyş', ru: 'Повторить', tr: 'Tekrar dene', en: 'Retry');
+  static String get catalogLoadError => t(
+      tk: 'Kitap ýüklenmedi',
+      ru: 'Не удалось загрузить книгу',
+      tr: 'Kitap yüklenemedi',
+      en: 'Book couldn\'t load');
+  static String get retry => t(
+      tk: 'Gaýtadan synanyş', ru: 'Повторить', tr: 'Tekrar dene', en: 'Retry');
   static String get year => t(tk: 'Ýyl', ru: 'Год', tr: 'Yıl', en: 'Year');
-  static String get ageRating => t(tk: 'Ýaş çägi', ru: 'Возрастной рейтинг', tr: 'Yaş sınırı', en: 'Age rating');
+  static String get ageRating => t(
+      tk: 'Ýaş çägi',
+      ru: 'Возрастной рейтинг',
+      tr: 'Yaş sınırı',
+      en: 'Age rating');
   static String get readingNotAvailable => t(
         tk: 'Bu kitaby okamak entek elýeterli däl',
         ru: 'Чтение этой книги пока недоступно',
@@ -108,7 +146,11 @@ class BookDetailStrings {
       );
 
   // Oku / Satyn al flow — CTA row, download progress, access gate.
-  static String get downloading => t(tk: 'Ýüklenýär…', ru: 'Загрузка…', tr: 'İndiriliyor…', en: 'Downloading…');
+  static String get downloading => t(
+      tk: 'Ýüklenýär…',
+      ru: 'Загрузка…',
+      tr: 'İndiriliyor…',
+      en: 'Downloading…');
   static String get downloadFailed => t(
         tk: 'Kitap ýüklenmedi',
         ru: 'Не удалось загрузить книгу',
@@ -121,7 +163,8 @@ class BookDetailStrings {
         tr: 'Bu kitabın okunabilir dosyası yok',
         en: 'This book has no readable file',
       );
-  static String get purchasedBadge => t(tk: 'Satyn alnan', ru: 'Куплено', tr: 'Satın alındı', en: 'Purchased');
+  static String get purchasedBadge =>
+      t(tk: 'Satyn alnan', ru: 'Куплено', tr: 'Satın alındı', en: 'Purchased');
   static String get subscriptionExpiredForBook => t(
         tk: 'Abunalygyňyz gutardy — bu kitaby okamak üçin satyn alyň ýa-da abunalygy täzeläň',
         ru: 'Подписка закончилась — купите эту книгу или продлите подписку',
@@ -158,14 +201,26 @@ class BookDetailStrings {
         tr: 'Dosyalara kaydet',
         en: 'Save to Files',
       );
-  static String get savePurchasedTitle => t(tk: 'Kitaby nirede saklamaly?', ru: 'Где сохранить книгу?', tr: 'Kitap nereye kaydedilsin?', en: 'Where should the book be saved?');
+  static String get savePurchasedTitle => t(
+      tk: 'Kitaby nirede saklamaly?',
+      ru: 'Где сохранить книгу?',
+      tr: 'Kitap nereye kaydedilsin?',
+      en: 'Where should the book be saved?');
   static String get savePurchasedBody => t(
       tk: 'Kitaby oflaýn okamak üçin programmaňyzda saklaýarys. Şeýle hem öz faýl ýeriňize ýazyp bilersiňiz.',
       ru: 'Книга уже сохранена в приложении для офлайн-чтения. Также можно сохранить копию в выбранном месте.',
       tr: 'Kitap çevrimdışı okuma için uygulamada saklanır. İsterseniz seçtiğiniz konuma bir kopyasını da kaydedebilirsiniz.',
       en: 'We keep the book in the app for offline reading. You can also save a copy to a location of your choice.');
-  static String get keepInApp => t(tk: 'Diňe programmada sakla', ru: 'Только в приложении', tr: 'Yalnızca uygulamada tut', en: 'Keep in app only');
-  static String get chooseSaveLocation => t(tk: 'Ýer saýla', ru: 'Выбрать место', tr: 'Konum seç', en: 'Choose location');
+  static String get keepInApp => t(
+      tk: 'Diňe programmada sakla',
+      ru: 'Только в приложении',
+      tr: 'Yalnızca uygulamada tut',
+      en: 'Keep in app only');
+  static String get chooseSaveLocation => t(
+      tk: 'Ýer saýla',
+      ru: 'Выбрать место',
+      tr: 'Konum seç',
+      en: 'Choose location');
   static String saveToFilesError(Object error) => t(
         tk: 'Faýl paýlaşylmady: $error',
         ru: 'Не удалось поделиться файлом: $error',
@@ -185,8 +240,10 @@ class BookDetailStrings {
         tr: '“$title” satın alınan kitaplarınızdan kaldırılsın mı?',
         en: 'Remove “$title” from your purchased books?',
       );
-  static String get cancel => t(tk: 'Ýatyr', ru: 'Отмена', tr: 'Vazgeç', en: 'Cancel');
-  static String get remove => t(tk: 'Aýyr', ru: 'Удалить', tr: 'Kaldır', en: 'Remove');
+  static String get cancel =>
+      t(tk: 'Ýatyr', ru: 'Отмена', tr: 'Vazgeç', en: 'Cancel');
+  static String get remove =>
+      t(tk: 'Aýyr', ru: 'Удалить', tr: 'Kaldır', en: 'Remove');
   static String removedFromPurchased(String title) => t(
         tk: '“$title” satyn alnanlardan aýryldy',
         ru: '«$title» удалена из купленных',
