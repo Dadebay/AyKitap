@@ -18,6 +18,12 @@ class AccountService extends ChangeNotifier {
   AuthUser? _user;
   bool _loading = false;
 
+  /// The in-flight `getMe()` call, if any — [refresh] hands every concurrent
+  /// caller this same future instead of a fresh request each. See [refresh]'s
+  /// doc comment for why a caller can't just skip its turn and read [_user]
+  /// as-is.
+  Future<void>? _inFlightRefresh;
+
   AuthUser? get user => _user;
   bool get isLoading => _loading;
 
@@ -28,8 +34,27 @@ class AccountService extends ChangeNotifier {
   /// Re-reads `/users/me`. Best-effort: on failure the last known record is
   /// kept (so a dropped connection doesn't blank out the balance) and the
   /// error is swallowed, since every caller treats this as a background sync.
-  Future<void> refresh() async {
-    if (_loading) return;
+  ///
+  /// A caller that arrives while another [refresh] is already in flight
+  /// *awaits that same call* rather than returning immediately with whatever
+  /// [_user] happened to hold before either one started. [ProfileScreen]'s
+  /// post-edit sync is exactly the caller that used to get burned by the old
+  /// short-circuit: a background refresh (e.g. a streak-reward's
+  /// [StreakServiceReporting]) racing a profile save could return instantly
+  /// with the *pre-edit* record, which then looked like "the backend
+  /// disagrees with what was just saved" and overwrote the fresh local edit
+  /// with stale data — on a slower connection (reported on iOS, not
+  /// consistently on Android) the two calls are simply more likely to
+  /// overlap.
+  Future<void> refresh() {
+    final inFlight = _inFlightRefresh;
+    if (inFlight != null) return inFlight;
+    final future = _refresh();
+    _inFlightRefresh = future;
+    return future;
+  }
+
+  Future<void> _refresh() async {
     // No `notifyListeners()` here, before the `await` below — several
     // screens call this straight from `initState` (directly, or via
     // [SubscriptionService.load]), and notifying synchronously at that
@@ -44,6 +69,7 @@ class AccountService extends ChangeNotifier {
       // Keep whatever was already loaded.
     } finally {
       _loading = false;
+      _inFlightRefresh = null;
       notifyListeners();
     }
   }

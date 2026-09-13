@@ -82,7 +82,7 @@ extension _CatalogBookDetailActions on _CatalogBookDetailScreenState {
       // page is very likely cached on disk already, so this is usually
       // instant rather than a fresh download.
       try {
-        final file = await DefaultCacheManager()
+        final file = await CoverImageCacheManager.instance
             .getSingleFile(ApiConfig.resolveImageUrl(image));
         await Share.shareXFiles([XFile(file.path)], text: text);
         return;

@@ -373,7 +373,8 @@ final translations = <TranslationEntry>[
   ),
   TranslationEntry(file: 'onboarding_strings.dart', key: 'page1Badge', tk: '50K+', ru: '50K+', tr: '50K+'),
   TranslationEntry(file: 'onboarding_strings.dart', key: 'page1BadgeLabel', tk: 'Kitap', ru: 'Книг', tr: 'Kitap'),
-  TranslationEntry(file: 'onboarding_strings.dart', key: 'page2Title', tk: 'Okamak has\\nkyn gerek', ru: 'Чтение не должно\\nбыть трудным', tr: 'Okumak bu kadar\\nzor olmamalı'),
+  TranslationEntry(
+      file: 'onboarding_strings.dart', key: 'page2Title', tk: 'Indi okamak has\naňsat we has lezzet beriji', ru: 'Теперь читать стало\nпроще и приятнее', tr: 'Artık okumak daha\nkolay ve keyifli'),
   TranslationEntry(
     file: 'onboarding_strings.dart',
     key: 'page2Subtitle',
@@ -383,7 +384,7 @@ final translations = <TranslationEntry>[
   ),
   TranslationEntry(file: 'onboarding_strings.dart', key: 'page2Badge', tk: '6', ru: '6', tr: '6'),
   TranslationEntry(file: 'onboarding_strings.dart', key: 'page2BadgeLabel', tk: 'Animasiýa', ru: 'Анимаций', tr: 'Animasyon'),
-  TranslationEntry(file: 'onboarding_strings.dart', key: 'page3Title', tk: 'Her gün okaň,\\nçempion boluň', ru: 'Читайте каждый день,\\nстаньте чемпионом', tr: 'Her gün okuyun,\\nşampiyon olun'),
+  TranslationEntry(file: 'onboarding_strings.dart', key: 'page3Title', tk: 'Her gün okaň,\nbaýrak alyň', ru: 'Читайте каждый день,\nполучайте награды', tr: 'Her gün okuyun,\nödüller kazanın'),
   TranslationEntry(
     file: 'onboarding_strings.dart',
     key: 'page3Subtitle',

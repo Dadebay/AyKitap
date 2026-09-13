@@ -26,6 +26,7 @@ import '../filter/controller/filter_controller.dart'
         kDefaultYearRange;
 import '../filter/filter_screen.dart';
 import '../home/widgets/stagger_fade_in.dart';
+import 'author_page_merge.dart';
 import 'widgets/author_result_grid.dart';
 import 'widgets/quick_chip.dart';
 import 'widgets/search_result_grid.dart';
@@ -126,8 +127,11 @@ class _SearchScreenState extends State<SearchScreen> {
   List<AuthorSearchResult>? _authorResults;
   bool _searching = false;
   String? _searchError;
-  // Book-mode result pagination — author mode isn't paged (`GET
-  // /authors/search` returns its whole 30 in one go today).
+  // Result pagination, shared by both modes — the two are mutually exclusive
+  // and switching between them re-runs the search from page 1 (see
+  // [_setSearchMode]), so one set of counters is enough. Author mode pages
+  // through `GET /authors/search` the same way book mode pages
+  // `GET /books/all`; see [mergeAuthorPage] for how its "has more" is decided.
   int _searchPage = 1;
   bool _searchHasMore = true;
   bool _searchLoadingMore = false;
@@ -158,14 +162,18 @@ class _SearchScreenState extends State<SearchScreen> {
   int _discoverRequestId = 0;
 
   // Author mode's counterpart of the fields above — a default author list
-  // shown before any name is typed, fetched once (lazily, the first time
-  // Author mode is opened) and cached rather than re-fetched on every
-  // switch back to it. `GET /authors/search` takes no genre/language/format
-  // filters, so there's nothing else to mirror from the book discover state.
+  // shown before any name is typed, fetched lazily the first time Author
+  // mode is opened and kept (rather than re-fetched) on every switch back to
+  // it, then paged as the grid is scrolled exactly like the book one.
+  // `GET /authors/search` takes no genre/language/format filters, so there's
+  // nothing else to mirror from the book discover state.
   List<AuthorSearchResult>? _discoverAuthors;
   bool _discoverAuthorsLoading = false;
   String? _discoverAuthorsError;
   int _discoverAuthorsRequestId = 0;
+  int _discoverAuthorsPage = 1;
+  bool _discoverAuthorsHasMore = true;
+  bool _discoverAuthorsLoadingMore = false;
 
   @override
   void initState() {

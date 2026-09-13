@@ -74,12 +74,16 @@ class _DigitBoxState extends State<_DigitBox> {
         focusNode: widget.focusNode,
         textAlign: TextAlign.center,
         keyboardType: TextInputType.number,
-        maxLength: 1,
+        // No `maxLength` here on purpose — that formerly truncated a pasted
+        // full code down to this one box's first digit before `onChanged`
+        // ever saw the rest (iOS's long-press "Paste" hands the whole
+        // clipboard string to whichever box is focused). [OtpVerifyScreen]'s
+        // `_onDigitChanged` now handles a multi-digit value itself and
+        // corrects each box back down to one digit.
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         style: TextStyle(
             color: AppColors.white, fontSize: 24, fontWeight: FontWeight.w800),
         decoration: InputDecoration(
-          counterText: '',
           filled: true,
           fillColor: AppColors.card,
           border: OutlineInputBorder(

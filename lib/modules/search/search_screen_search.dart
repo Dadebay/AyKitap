@@ -3,12 +3,10 @@ part of 'search_screen.dart';
 /// Runs the live search — `GET /books/all?search=` in Book mode, `GET
 /// /authors/search?search=` in Author mode — and appends load-more pages.
 extension _SearchScreenSearch on _SearchScreenState {
-  // [loadMore] fetches the next page of book results and appends it — only
-  // meaningful in Book mode; author mode still returns its whole page in
-  // one go, so [loadMore] is a no-op there. Any other call (a fresh query,
-  // a genre/filter/sort change, switching modes) replaces from page 1.
+  // [loadMore] fetches the next page of results and appends it — both modes
+  // page now. Any other call (a fresh query, a genre/filter/sort change,
+  // switching modes) replaces from page 1.
   Future<void> _runSearch({bool loadMore = false}) async {
-    if (loadMore && _searchMode == _SearchMode.author) return;
     if (loadMore) {
       if (_searchLoadingMore || !_searchHasMore) return;
     }
@@ -37,13 +35,24 @@ extension _SearchScreenSearch on _SearchScreenState {
         // `GET /authors/search` only takes `search` — genre/language/year
         // don't apply here, and [_shouldShowResults] already keeps this
         // mode from firing without typed text.
-        log('🔍 GET /authors/search search="$_query"');
-        final authors =
-            await AuthorApiService.searchAuthors(search: _query, size: 30);
+        final authorPage = loadMore ? _searchPage + 1 : 1;
+        log('🔍 GET /authors/search search="$_query" page=$authorPage');
+        final authors = await AuthorApiService.searchAuthors(
+          search: _query,
+          page: authorPage,
+          size: _SearchScreenState._pageSize,
+        );
         if (!mounted || requestId != _searchRequestId) return;
+        final (merged, added) =
+            mergeAuthorPage(loadMore ? _authorResults : null, authors);
         _setState(() {
-          _authorResults = authors;
+          _authorResults = merged;
+          _searchPage = authorPage;
+          // See [mergeAuthorPage] for why this counts new ids rather than
+          // comparing the page's length against the size asked for.
+          _searchHasMore = added > 0;
           _searching = false;
+          _searchLoadingMore = false;
         });
         return;
       }

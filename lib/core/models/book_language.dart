@@ -29,9 +29,18 @@ class BookLanguage {
       AppLanguageCode.tk => nameTk,
       AppLanguageCode.ru => nameRu,
       AppLanguageCode.tr => nameTr,
-      // The backend's `GET /book-languages` response has no `en` name yet —
-      // empty falls through to the same tk/tr/ru fallback chain below.
-      AppLanguageCode.en => '',
+      // `GET /book-languages` carries no `en` name, so English borrows the
+      // Turkish slot — the closest of the three it does return, and in
+      // practice the one holding the internationally-recognisable spellings
+      // ("Turkmen", "Russian") an English reader can actually parse. It used
+      // to resolve to '' and fall through to Türkmen below, which is how an
+      // English-language filter page came to list "Türkmençe, Iňlizce,
+      // Rusça".
+      //
+      // Worth revisiting if the endpoint ever grows a real `en` name, or if
+      // its `tr` is corrected to actual Turkish: English would then want the
+      // new `en` rather than this.
+      AppLanguageCode.en => nameTr,
     };
     if (preferred.isNotEmpty) return preferred;
     return [nameTk, nameTr, nameRu]

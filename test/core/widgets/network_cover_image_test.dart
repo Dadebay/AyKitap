@@ -5,6 +5,7 @@
 // that decoded the bitmap as wide as the cover is *tall*, noticeably
 // bigger than it's ever drawn, and let the source's own aspect ratio (not
 // the target box's) decide the resulting height.
+import 'package:aykitap/core/services/cover_image_cache_manager.dart';
 import 'package:aykitap/core/widgets/network_cover_image.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -174,6 +175,20 @@ void main() {
     ));
 
     expect(_cached(tester).fit, BoxFit.cover);
+  });
+
+  testWidgets('uses the process-wide persistent catalogue cache',
+      (tester) async {
+    await tester.pumpWidget(_app(
+      const NetworkCoverImage(url: _url, placeholder: _placeholder),
+    ));
+
+    expect(_cached(tester).cacheManager, same(CoverImageCacheManager.instance));
+    expect(CoverImageCacheManager.instance.config.maxNrOfCacheObjects, 1000);
+    expect(
+      CoverImageCacheManager.instance.config.stalePeriod,
+      const Duration(days: 180),
+    );
   });
 
   testWidgets('an explicit fit overrides the default', (tester) async {

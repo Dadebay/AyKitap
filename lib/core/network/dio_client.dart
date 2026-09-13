@@ -65,10 +65,7 @@ class DioClient {
         // from the fallback itself doesn't loop. Builds without a configured
         // fallback simply retain the primary-host behavior.
         final options = err.requestOptions;
-        final isConnectionFailure =
-            err.type == DioExceptionType.connectionError ||
-                err.type == DioExceptionType.connectionTimeout;
-        if (isConnectionFailure &&
+        if (shouldRetryOnFallbackHost(err) &&
             ApiConfig.hasFallbackBaseUrl &&
             options.extra['_retriedFallbackHost'] != true) {
           options.extra['_retriedFallbackHost'] = true;
@@ -86,6 +83,21 @@ class DioClient {
       },
     ));
 
+    // Which origin this build will actually talk to, said once at startup.
+    // It earns its own line because a failing request can't tell you: the
+    // same primary host failing behaves completely differently depending on
+    // whether `API_FALLBACK_BASE_URL` was defined for *this* build, and one
+    // platform silently recovering while another doesn't looks like a bug in
+    // the app rather than a difference in how each was launched.
+    //
+    // The fallback's value is deliberately not printed — it is kept out of
+    // source control on purpose (see [ApiConfig.fallbackBaseUrl]), and
+    // whether one exists is the part that actually aids debugging.
+    if (kDebugMode) {
+      debugPrint('🌐 API base=${ApiConfig.baseUrl} '
+          'fallback=${ApiConfig.hasFallbackBaseUrl ? 'configured' : 'none'}');
+    }
+
     const apiLoggingRequested = bool.fromEnvironment('API_LOGGING');
     if (shouldAttachApiLogInterceptor(
       isDebugMode: kDebugMode,
@@ -97,6 +109,30 @@ class DioClient {
     return dio;
   }
 }
+
+/// Whether [DioClient] should retry this failure against
+/// [ApiConfig.fallbackBaseUrl].
+///
+/// The test is "did this request ever reach a server?", not the exception
+/// type on its own. Dio reports a `SocketException` as
+/// [DioExceptionType.connectionError], but a TLS connection the *platform*
+/// refuses arrives as [DioExceptionType.unknown] carrying a
+/// `HandshakeException` and a null message — and iOS refuses connections
+/// Android accepts (stricter chain validation, and App Transport Security on
+/// top of it). Keying only off `connectionError`/`connectionTimeout` meant
+/// the fallback was skipped for precisely the platform-specific failures it
+/// was added to cover, so the primary host failing took the whole app down
+/// on one platform while the other quietly fell back and looked fine.
+///
+/// A failure that *did* carry a response is deliberately excluded: the host
+/// answered, so the problem is with the request or the server, and retrying
+/// it against a different origin would only obscure that.
+@visibleForTesting
+bool shouldRetryOnFallbackHost(DioException e) =>
+    e.response == null &&
+    (e.type == DioExceptionType.connectionError ||
+        e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.unknown);
 
 /// API traffic is silent by default, including in debug builds. Developers can
 /// opt into the metadata-only [ApiLogInterceptor] with

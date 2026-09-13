@@ -92,7 +92,8 @@ void main() {
         'Content-Type': 'application/json',
       });
 
-      expect(result['Authorization'], isNot(contains('stripe_test_secret_fixture_123456789')));
+      expect(result['Authorization'],
+          isNot(contains('stripe_test_secret_fixture_123456789')));
       expect(result['Content-Type'], 'application/json');
     });
 

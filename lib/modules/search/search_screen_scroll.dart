@@ -24,6 +24,12 @@ extension _SearchScreenScroll on _SearchScreenState {
         600) {
       if (_shouldShowResults) {
         _runSearch(loadMore: true);
+      } else if (_searchMode == _SearchMode.author) {
+        // Author mode's discover grid has its own list to extend — this used
+        // to call [_loadDiscoverBooks] whichever mode was showing, so
+        // scrolling the author tab paged the (invisible) book grid and the
+        // authors never grew past their first request.
+        _loadDiscoverAuthors(loadMore: true);
       } else {
         _loadDiscoverBooks(loadMore: true);
       }

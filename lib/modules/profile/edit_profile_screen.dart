@@ -100,6 +100,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     // Local storage above is already what the rest of the app reads from,
     // so a backend failure here (offline, ...) shouldn't trap the user on
     // this screen — it's surfaced but the edit still stands locally.
+    //
+    // [_backendSynced] is what [ProfileScreen] pops back with, and matters
+    // beyond just this screen: on `pop`, [ProfileScreen] re-reads its own
+    // `/users/me` to pick up anything edited from another device. If this
+    // PATCH failed, that GET still answers with the *pre-edit* record — and
+    // without this flag, [ProfileScreen] couldn't tell that answer apart from
+    // a genuine "someone else changed it," and would use it to silently
+    // revert the edit that was just made and saved locally above.
+    var backendSynced = true;
     try {
       await AuthApiService.updateUsername(username: finalName);
       // Only the picked-photo case has a real image to push — a preset
@@ -108,10 +117,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         await AuthApiService.updateImage(imageBase64: _avatarImage!);
       }
     } on ApiException catch (e) {
+      backendSynced = false;
       if (mounted) context.showAppSnackBar(e.message, isError: true);
     }
 
-    if (mounted) Navigator.pop(context, true);
+    if (mounted) Navigator.pop(context, backendSynced);
   }
 
   @override

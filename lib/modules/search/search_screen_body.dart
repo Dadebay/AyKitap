@@ -17,7 +17,11 @@ extension _SearchScreenBody on _SearchScreenState {
             _collapsibleHeader(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                child: Text(SearchStrings.title, style: TextStyle(color: AppColors.white, fontSize: 26, fontWeight: FontWeight.w800)),
+                child: Text(SearchStrings.title,
+                    style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800)),
               ),
             ),
             _buildSearchBar(),
@@ -63,11 +67,15 @@ extension _SearchScreenBody on _SearchScreenState {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_searchError!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+              Text(_searchError!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.grey2, fontSize: 14)),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: _runSearch,
-                child: Text(SearchStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+                child: Text(SearchStrings.retry,
+                    style: TextStyle(
+                        color: AppColors.primary, fontWeight: FontWeight.w700)),
               ),
             ],
           ),
@@ -76,7 +84,9 @@ extension _SearchScreenBody on _SearchScreenState {
     }
     final results = _searchResults ?? const [];
     final authorResults = _authorResults ?? const [];
-    final isEmpty = _searchMode == _SearchMode.author ? authorResults.isEmpty : results.isEmpty;
+    final isEmpty = _searchMode == _SearchMode.author
+        ? authorResults.isEmpty
+        : results.isEmpty;
     if (isEmpty) {
       final isDark = AppTheme.instance.isDark;
       return Center(
@@ -90,13 +100,17 @@ extension _SearchScreenBody on _SearchScreenState {
                 child: AspectRatio(
                   aspectRatio: 1,
                   child: Image.asset(
-                    isDark ? 'assets/images/search_empty_dark.webp' : 'assets/images/search_empty_light.webp',
+                    isDark
+                        ? 'assets/images/search_empty_dark.webp'
+                        : 'assets/images/search_empty_light.webp',
                     fit: BoxFit.contain,
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-              Text(SearchStrings.noResults, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 15)),
+              Text(SearchStrings.noResults,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.grey2, fontSize: 15)),
             ],
           ),
         ),
@@ -109,6 +123,7 @@ extension _SearchScreenBody on _SearchScreenState {
       return AuthorResultGrid(
         authors: authorResults,
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        loadingMore: _searchLoadingMore,
       );
     }
     // CatalogBookCard already navigates to CatalogBookDetailScreen on tap
@@ -135,11 +150,15 @@ extension _SearchScreenBody on _SearchScreenState {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_discoverError!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+              Text(_discoverError!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.grey2, fontSize: 14)),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: _loadDiscoverBooks,
-                child: Text(SearchStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+                child: Text(SearchStrings.retry,
+                    style: TextStyle(
+                        color: AppColors.primary, fontWeight: FontWeight.w700)),
               ),
             ],
           ),
@@ -161,11 +180,15 @@ extension _SearchScreenBody on _SearchScreenState {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(SearchStrings.noResults, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+              Text(SearchStrings.noResults,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.grey2, fontSize: 14)),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: _loadDiscoverBooks,
-                child: Text(SearchStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+                child: Text(SearchStrings.retry,
+                    style: TextStyle(
+                        color: AppColors.primary, fontWeight: FontWeight.w700)),
               ),
             ],
           ),
@@ -193,11 +216,15 @@ extension _SearchScreenBody on _SearchScreenState {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_discoverAuthorsError!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+              Text(_discoverAuthorsError!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.grey2, fontSize: 14)),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => _loadDiscoverAuthors(retry: true),
-                child: Text(SearchStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+                child: Text(SearchStrings.retry,
+                    style: TextStyle(
+                        color: AppColors.primary, fontWeight: FontWeight.w700)),
               ),
             ],
           ),
@@ -211,6 +238,7 @@ extension _SearchScreenBody on _SearchScreenState {
     return AuthorResultGrid(
       authors: authors,
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+      loadingMore: _discoverAuthorsLoadingMore,
     );
   }
 
@@ -224,11 +252,19 @@ extension _SearchScreenBody on _SearchScreenState {
             Container(
               width: 64,
               height: 64,
-              decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.12), shape: BoxShape.circle),
-              child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedUserSearch01, color: AppColors.primary, size: 28)),
+              decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle),
+              child: Center(
+                  child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedUserSearch01,
+                      color: AppColors.primary,
+                      size: 28)),
             ),
             const SizedBox(height: 16),
-            Text(SearchStrings.authorSearchPrompt, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14.5)),
+            Text(SearchStrings.authorSearchPrompt,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.grey2, fontSize: 14.5)),
           ],
         ),
       ),

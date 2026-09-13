@@ -8,6 +8,19 @@ extension _ProfileScreenSession on _ProfileScreenState {
   // "logged in" — re-read it instead of trusting whatever this widget's
   // in-memory state happened to be (it wouldn't survive an app restart).
   Future<void> _refreshSession() async {
+    final loggedIn = await _refreshLocalSession();
+    if (loggedIn) unawaited(_syncFromBackend());
+  }
+
+  /// Just the local half of [_refreshSession] — re-reads [AuthSession] into
+  /// state without touching the backend. Returns whether the device is
+  /// logged in, so [_refreshSession] can decide whether a backend sync is
+  /// even worth attempting.
+  ///
+  /// Split out for [_openEditProfile]: right after a save, the backend half
+  /// ([_syncFromBackend]) is only safe to run when that save is known to have
+  /// actually reached the backend — see its call site.
+  Future<bool> _refreshLocalSession() async {
     final loggedIn = await AuthSession.isLoggedIn();
     final phone = await AuthSession.getPhone();
     final name = await AuthSession.getName();
@@ -24,7 +37,7 @@ extension _ProfileScreenSession on _ProfileScreenState {
         _avatarImage = avatarImage;
       });
     }
-    if (loggedIn) unawaited(_syncFromBackend());
+    return loggedIn;
   }
 
   // Best-effort only: the locally cached values (read above) are already
@@ -67,8 +80,18 @@ extension _ProfileScreenSession on _ProfileScreenState {
   }
 
   Future<void> _openEditProfile() async {
-    final result = await context.push<bool>(const EditProfileScreen());
-    if (result == true && mounted) await _refreshSession();
+    // The bool here is [EditProfileScreen._save]'s `backendSynced`, not "did
+    // anything change" — a local edit always happened by the time that
+    // screen pops, so the name/avatar are re-read from local storage either
+    // way. What it *does* gate is the backend half: re-fetching `/users/me`
+    // right after a PATCH that's known to have failed would just read back
+    // the pre-edit record and silently revert the edit that was just made
+    // (see that screen's doc comment — this was the actual bug behind
+    // "the name reverts after saving," seen more on a flakier connection).
+    final backendSynced = await context.push<bool>(const EditProfileScreen());
+    if (backendSynced == null || !mounted) return;
+    await _refreshLocalSession();
+    if (backendSynced) unawaited(_syncFromBackend());
   }
 
   Future<void> _startLogin() async {

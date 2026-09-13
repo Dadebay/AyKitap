@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../services/cover_image_cache_manager.dart';
+
 /// A network image with disk+memory caching (via `cached_network_image`) so
 /// the same URL — a book cover, banner, or avatar — isn't re-downloaded
 /// every time its widget rebuilds, scrolls back into view, or the screen
@@ -76,6 +78,7 @@ class NetworkCoverImage extends StatelessWidget {
         }
         return CachedNetworkImage(
           imageUrl: url,
+          cacheManager: CoverImageCacheManager.instance,
           fit: fit,
           alignment: alignment,
           width: width,

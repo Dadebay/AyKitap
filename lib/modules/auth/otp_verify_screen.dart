@@ -59,6 +59,15 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
   String get _code => _controllers.map((c) => c.text).join();
 
   void _onDigitChanged(int index, String value) {
+    // A long-press paste (iOS in particular) hands the whole clipboard
+    // string to whichever box is focused, not one digit at a time — see
+    // [OtpCodeRow]'s doc comment on why that box no longer truncates it
+    // itself. Whatever box it landed in, the intent is "fill the code from
+    // the start," not "starting at this box."
+    if (value.length > 1) {
+      _fillFromPastedCode(value);
+      return;
+    }
     setState(() => _error = null);
     if (value.isNotEmpty && index < _length - 1) {
       _focusNodes[index + 1].requestFocus();
@@ -68,6 +77,22 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
     }
     if (_code.length == _length) {
       _verify();
+    }
+  }
+
+  void _fillFromPastedCode(String pasted) {
+    final digits = pasted.replaceAll(RegExp(r'\D'), '');
+    setState(() {
+      _error = null;
+      for (var i = 0; i < _length; i++) {
+        _controllers[i].text = i < digits.length ? digits[i] : '';
+      }
+    });
+    if (digits.length >= _length) {
+      FocusScope.of(context).unfocus();
+      _verify();
+    } else {
+      _focusNodes[digits.length].requestFocus();
     }
   }
 

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/localization/strings/book_detail_strings.dart';
@@ -16,6 +15,7 @@ import '../../core/services/book_access_service.dart';
 import '../../core/services/book_api_service.dart';
 import '../../core/services/book_download_service.dart';
 import '../../core/services/book_list_api_service.dart';
+import '../../core/services/cover_image_cache_manager.dart';
 import '../../core/services/downloaded_files_store.dart';
 import '../../core/services/favorites_sync_service.dart';
 import '../../core/services/finished_books_sync_service.dart';

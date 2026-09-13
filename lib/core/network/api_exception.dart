@@ -62,15 +62,38 @@ class ApiException implements Exception {
   static void _debugLogUnhandled(DioException e, int? statusCode) {
     if (!kDebugMode) return;
     final uri = e.requestOptions.uri;
-    final data = e.response?.data;
-    final body =
-        data == null ? e.message : data.toString().replaceAll('\n', ' ');
+    final detail = failureDetail(e);
     final truncated =
-        body != null && body.length > 500 ? '${body.substring(0, 500)}…' : body;
+        detail.length > 500 ? '${detail.substring(0, 500)}…' : detail;
     debugPrint(
       '\x1B[31m\x1B[1m✕ API ${e.requestOptions.method} ${uri.path} '
       '${statusCode ?? e.type.name} — $truncated\x1B[0m',
     );
+  }
+
+  /// The most specific thing available about *why* a request failed.
+  ///
+  /// The response body when the server answered at all; otherwise the
+  /// underlying exception. That last part is the one that used to be thrown
+  /// away: [DioException.message] is routinely null for a transport-level
+  /// failure, so logging it alone printed `unknown — null`, which says
+  /// nothing about what went wrong or which side to fix.
+  ///
+  /// The runtime type is included because it is the part that separates
+  /// causes needing completely different fixes — a `HandshakeException` (the
+  /// platform rejected the TLS connection; iOS is markedly stricter than
+  /// Android here, so this is a prime suspect whenever one works and the
+  /// other doesn't) versus a `SocketException` (the host never resolved, or
+  /// refused the connection) versus anything else.
+  @visibleForTesting
+  static String failureDetail(DioException e) {
+    final data = e.response?.data;
+    if (data != null) return data.toString().replaceAll('\n', ' ');
+    final error = e.error;
+    if (error != null) {
+      return '${error.runtimeType}: $error'.replaceAll('\n', ' ');
+    }
+    return e.message ?? 'no response body and no underlying error';
   }
 
   /// `message` is a plain string for most errors, but a validation failure

@@ -6,6 +6,17 @@ part of 'pdf_reader_screen.dart';
 /// (chrome — top/bottom bar, focus indicator) in pdf_reader_screen_body.dart
 /// since this is the part of the Stack whose children actually depend on
 /// [_error]/[_isLoading].
+/// Mirrors pdfrx's own default page shadow. Restated rather than left to the
+/// package default because night mode has to be able to turn it off (see
+/// where it's used), which means naming it here anyway — and this way the
+/// reader's look stays put if that default ever changes upstream.
+const _pageDropShadow = BoxShadow(
+  color: Colors.black54,
+  blurRadius: 4,
+  spreadRadius: 2,
+  offset: Offset(2, 2),
+);
+
 extension _PdfReaderScreenPageLayer on _PdfReaderScreenState {
   Widget _buildPageLayer(Color bg, bool isDarkSurface, bool nightMode) {
     return Stack(
@@ -44,7 +55,28 @@ extension _PdfReaderScreenPageLayer on _PdfReaderScreenState {
                         'pdf_${_fitPolicy.name}_${_viewMode.name}_$_initialPage'),
                     initialPageNumber: _initialPage + 1,
                     params: PdfViewerParams(
-                      backgroundColor: bg,
+                      // The gutter behind the pages — and it is painted
+                      // *inside* the night filter above, so it has to be
+                      // given the colour that survives inversion rather than
+                      // the one it should end up being.
+                      //
+                      // Night mode aims at pure black rather than [bg]'s
+                      // near-black: the page itself inverts from white paper
+                      // to #000, so anything else here leaves the page
+                      // floating as a slightly different shade on its own
+                      // background. The chrome around the viewer keeps [bg]
+                      // (it sits outside the filter) — only what butts up
+                      // against the page has to match it.
+                      backgroundColor: nightMode
+                          ? PdfNightModeFilter.preInverted(Colors.black)
+                          : bg,
+                      // The shadow is there to lift a white page off a light
+                      // gutter. Night mode has neither — page and gutter are
+                      // both #000 — so it has nothing left to separate, and
+                      // the filter renders `Colors.black54` as a *white* glow
+                      // around every page, which is exactly what it looked
+                      // like.
+                      pageDropShadow: nightMode ? null : _pageDropShadow,
                       // Continuous pages are full-bleed. pdfrx's default
                       // eight-pixel page margin otherwise survives even with
                       // a zero-gap custom layout and leaves a thin gutter on
@@ -77,42 +109,19 @@ extension _PdfReaderScreenPageLayer on _PdfReaderScreenState {
                           : PanAxis.free,
                       // pdfrx's naming is the opposite of what it sounds like
                       // here: `alternativeFitZoom` fits *one page* (both axes)
-                      // into the viewport — that's [PdfFitMode.page], "the
-                      // whole page has to be on screen". `coverZoom` scales to
-                      // the *document*'s full laid-out bounding box (all pages
-                      // — see [_layoutPages]'s `documentSize`); for scroll
-                      // mode's tall single-column strip that bounding box is
-                      // far taller than it is wide, so covering it collapses
-                      // to fitting the width — that's [PdfFitMode.width]. A
-                      // prior migration from flutter_pdfview matched these to
-                      // the wrong [PdfFitMode], which showed every PDF letter-
-                      // boxed (whole page, margins left/right) regardless of
-                      // which fit the reader had picked.
+                      // into the viewport, while `coverZoom` scales to the
+                      // *document*'s full laid-out bounding box (all pages —
+                      // see [_layoutPages]'s `documentSize`). Which of the two
+                      // is right depends on the shape that box takes in each
+                      // mode, not on [_fitPolicy] — see [pdfInitialZoom].
                       sizeDelegateProvider: PdfViewerSizeDelegateProviderLegacy(
-                        // Continuous scroll has no "whole page visible, no
-                        // scrolling" state the way paged mode does — a page
-                        // there is always followed by more page below, so
-                        // "fit page" would only mean shrinking it to letterbox
-                        // inside the viewport (visible margins left/right,
-                        // exactly the "stuck in the middle" look this is meant
-                        // to avoid). So scroll mode always covers to the full
-                        // width regardless of [_fitPolicy]; only paged mode
-                        // still honors the whole-page choice.
-                        // Asking for more than `coverZoom` here does nothing:
-                        // pdfrx jumps to the initial page right after this and
-                        // recomputes the zoom as
-                        // `viewportWidth / (pageWidth + 2 * params.margin)`,
-                        // capped at whatever was set here — so the page is
-                        // always fit to its *full* width and can never be
-                        // pushed past the edges from this callback. Closing
-                        // the page's blank print margins is [PdfMarginCropBox]'s
-                        // job instead; this callback only picks *which* fit.
                         calculateInitialZoom: (document, controller,
                                 alternativeFitZoom, coverZoom) =>
-                            (_fitPolicy == PdfFitMode.width ||
-                                    _viewMode == PdfViewMode.scroll)
-                                ? coverZoom
-                                : alternativeFitZoom,
+                            pdfInitialZoom(
+                          viewMode: _viewMode,
+                          fitPageZoom: alternativeFitZoom,
+                          coverZoom: coverZoom,
+                        ),
                       ),
                       onViewerReady: (document, controller) => _setState(() {
                         _totalPages = document.pages.length;

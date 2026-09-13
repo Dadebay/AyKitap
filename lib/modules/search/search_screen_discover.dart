@@ -95,33 +95,72 @@ extension _SearchScreenDiscover on _SearchScreenState {
 
   /// Author mode's discover fetch — `GET /authors/search` with an empty
   /// `search`, confirmed against the live backend to return a real default
-  /// list rather than erroring. Fetched once, lazily, the first time Author
-  /// mode is opened (see [_setSearchMode]) and cached in [_discoverAuthors]
-  /// rather than re-fetched on every switch back to that tab; [_retry] is
-  /// the one path that forces a fresh call after a failure.
-  Future<void> _loadDiscoverAuthors({bool retry = false}) async {
-    if (_discoverAuthorsLoading) return;
-    if (_discoverAuthors != null && !retry) return;
+  /// list rather than erroring. Fetched lazily the first time Author mode is
+  /// opened (see [_setSearchMode]) and kept in [_discoverAuthors] rather than
+  /// re-fetched on every switch back to that tab; [retry] is the one path
+  /// that forces a fresh call after a failure.
+  ///
+  /// [loadMore] appends the next page as the grid is scrolled — the same
+  /// infinite scroll the book grid has always had. Without it this tab
+  /// stopped at whatever its first request returned, which is why it looked
+  /// like the catalogue held only a screenful of authors.
+  Future<void> _loadDiscoverAuthors({
+    bool retry = false,
+    bool loadMore = false,
+  }) async {
+    if (loadMore) {
+      // Nothing to extend yet, or nothing left to extend it with.
+      if (_discoverAuthors == null ||
+          _discoverAuthorsLoading ||
+          _discoverAuthorsLoadingMore ||
+          !_discoverAuthorsHasMore) {
+        return;
+      }
+    } else {
+      if (_discoverAuthorsLoading) return;
+      if (_discoverAuthors != null && !retry) return;
+    }
     final requestId = ++_discoverAuthorsRequestId;
-    _setState(() {
-      _discoverAuthorsLoading = true;
-      _discoverAuthorsError = null;
-    });
+    if (loadMore) {
+      _setState(() => _discoverAuthorsLoadingMore = true);
+    } else {
+      _setState(() {
+        _discoverAuthorsLoading = true;
+        _discoverAuthorsError = null;
+        _discoverAuthorsPage = 1;
+        _discoverAuthorsHasMore = true;
+        // See [_searchLoadingMore]'s reset in [_runSearch] — a stale
+        // load-more superseded by this fresh call would otherwise leave the
+        // footer spinning forever.
+        _discoverAuthorsLoadingMore = false;
+      });
+    }
+    final page = loadMore ? _discoverAuthorsPage + 1 : 1;
     try {
       final authors = await AuthorApiService.searchAuthors(
         sortBy: 'created_at',
         sortOrder: 'ASC',
+        page: page,
         size: _SearchScreenState._pageSize,
       );
       if (!mounted || requestId != _discoverAuthorsRequestId) return;
+      final (merged, added) =
+          mergeAuthorPage(loadMore ? _discoverAuthors : null, authors);
       _setState(() {
-        _discoverAuthors = authors;
+        _discoverAuthors = merged;
+        _discoverAuthorsPage = page;
+        _discoverAuthorsHasMore = added > 0;
         _discoverAuthorsLoading = false;
+        _discoverAuthorsLoadingMore = false;
       });
     } on ApiException catch (e) {
       if (!mounted || requestId != _discoverAuthorsRequestId) return;
       _setState(() {
-        _discoverAuthorsError = e.message;
+        if (loadMore) {
+          _discoverAuthorsLoadingMore = false;
+        } else {
+          _discoverAuthorsError = e.message;
+        }
         _discoverAuthorsLoading = false;
       });
     }

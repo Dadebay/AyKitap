@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../core/localization/strings/home_strings.dart';
 import '../../../core/models/collection.dart';
@@ -62,10 +61,11 @@ class CatalogRankShelfCard extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   bannerImage != null && bannerImage.isNotEmpty
-                      ? CachedNetworkImage(
-                          fit: BoxFit.cover,
+                      ? NetworkCoverImage(
                           alignment: Alignment.bottomCenter,
-                          imageUrl: ApiConfig.resolveImageUrl(bannerImage),
+                          url: ApiConfig.resolveImageUrl(bannerImage),
+                          placeholder: (_) =>
+                              Container(color: AppColors.surface),
                         )
                       : Container(color: AppColors.surface),
                   // Scrim so the white text stays legible over the photo.
@@ -216,7 +216,7 @@ class _RankedBookTile extends StatelessWidget {
             height: 56,
             child: BookCoverHero(
               tag: heroTag,
-              style: BookCoverStyle(borderRadius: 6),
+              style: const BookCoverStyle(borderRadius: 6),
               child: image != null && image.isNotEmpty
                   ? NetworkCoverImage(
                       url: ApiConfig.resolveImageUrl(image),
