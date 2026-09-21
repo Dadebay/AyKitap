@@ -5,13 +5,37 @@ part of 'search_screen.dart';
 /// see search_screen_search.dart).
 extension _SearchScreenQuery on _SearchScreenState {
   Future<void> _loadGenres() async {
+    final language = AppLocale.instance.current;
+    // Draw the last known chips for this language first, so the row has
+    // content before the network answers — and keeps it if the answer never
+    // comes. Skipped once this language's chips are already on screen (the
+    // `AppLocale` listener re-runs this on every switch).
+    if (_genresLanguage != language) {
+      final cached = await SearchDiscoverCache.readGenres(language);
+      // A language switched again mid-read would make this row the wrong one.
+      if (!mounted || AppLocale.instance.current != language) return;
+      if (cached != null && cached.isNotEmpty) {
+        _setState(() {
+          _genres = cached;
+          _genresLanguage = language;
+        });
+      }
+    }
     try {
       final genres = await GenreApiService.getGenres();
-      if (mounted) _setState(() => _genres = genres);
+      if (!mounted || AppLocale.instance.current != language) return;
+      _setState(() {
+        _genres = genres;
+        _genresLanguage = language;
+      });
+      unawaited(SearchDiscoverCache.writeGenres(language, genres));
     } on ApiException {
-      // Best-effort: a broken genre row just doesn't show rather than
-      // blocking the rest of the search page.
-      if (mounted) _setState(() => _genres = const []);
+      if (!mounted) return;
+      // Whatever is already up — this language's cached chips, or the
+      // previous language's — beats an empty row, which is what this used to
+      // fall back to unconditionally and is exactly the reported symptom.
+      // Empty is only right when there is genuinely nothing to show.
+      if (_genres == null) _setState(() => _genres = const []);
     }
   }
 

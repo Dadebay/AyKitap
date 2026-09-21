@@ -11,10 +11,10 @@ class OnboardingStrings {
   // ── Page 1 ───────────────────────────────────────────────────────────
   static String get page1Title => t(tk: '50,000+ kitap\nbir ýerde', ru: '50 000+ книг\nв одном месте', tr: '50.000+ kitap\nbir arada', en: '50,000+ books\nin one place');
   static String get page1Subtitle => t(
-        tk: 'Türkmen, rus we iňlis dillerinde\nýüzlerçe kitap sizi garaşýar.',
-        ru: 'Сотни книг на туркменском, русском\nи английском языках ждут вас.',
-        tr: 'Türkmence, Rusça ve İngilizce\nyüzlerce kitap sizi bekliyor.',
-        en: 'Hundreds of books in Turkmen, Russian\nand English are waiting for you.',
+        tk: 'Türkmen, Rus, İňlis we başgada dürli dillerde \ müňlerçe kitap size garaşýar.',
+        ru: 'Тысячи книг на туркменском, русском,\\английском и других языках ждут вас.',
+        tr: 'Türkçe, Rusça, İngilizce\\ve diğer dillerde binlerce kitap sizi bekliyor.',
+        en: 'Thousands of books in Turkmen, Russian,\\English, and other languages are waiting for you.',
       );
   static String get page1Badge => t(tk: '50K+', ru: '50K+', tr: '50K+', en: '50K+');
   static String get page1BadgeLabel => t(tk: 'Kitap', ru: 'Книг', tr: 'Kitap', en: 'Books');

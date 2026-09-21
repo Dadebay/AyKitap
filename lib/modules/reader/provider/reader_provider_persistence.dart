@@ -69,6 +69,9 @@ extension ReaderProviderPersistence on ReaderProvider {
     _restoringPosition = false;
     _restoreTargetProgress = 0.0;
     _progress = 0.0;
+    // Back to "nothing read off disk yet", so a provider reused for the next
+    // book doesn't hand the viewer the previous book's saved position.
+    _initialized = false;
     _isLoading = true;
     _showControls = true;
     _selectedText = '';

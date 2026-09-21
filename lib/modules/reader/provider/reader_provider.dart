@@ -89,10 +89,18 @@ class ReaderProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// checking where the book actually landed.
   static const _restoreSettleDelay = Duration(milliseconds: 900);
 
-  /// Progress may legitimately land a hair off the saved point (the page the
-  /// CFI sits on starts slightly before it). Only a shortfall bigger than
-  /// this counts as having been knocked back.
-  static const _restoreDriftTolerance = 0.005;
+  /// How far off the saved point the book may come to rest before
+  /// [_verifyRestoredPosition] re-asserts the saved CFI.
+  ///
+  /// Deliberately small. The old value (0.005, half a percent of the whole
+  /// book) was wider than a screen of text in anything longer than a couple
+  /// of hundred pages, so a book that opened one screen off — the reported
+  /// symptom — sat inside the tolerance and was never corrected. A screen is
+  /// the unit that matters here: landing on the wrong one is exactly what the
+  /// reader notices. This is narrow enough to catch that while still
+  /// absorbing the sub-screen difference between a CFI and the start of the
+  /// page it sits on.
+  static const _restoreDriftTolerance = 0.0005;
 
   /// Publishes the page-scoped slice of the state above (see
   /// [ReaderProgressSnapshot]) on every relocation, separately from this
@@ -102,6 +110,16 @@ class ReaderProvider extends ChangeNotifier with WidgetsBindingObserver {
       ValueNotifier(const ReaderProgressSnapshot());
 
   // ── Loading state (see reader_provider_lifecycle.dart) ──────────────────
+  /// Whether `initialize` has finished reading this book's saved position,
+  /// appearance settings and font off disk.
+  ///
+  /// The viewer is not built until it has: everything that decides where the
+  /// book opens — the saved CFI, the font, the type size, the theme, the
+  /// spread — is read asynchronously, while `EpubViewer` reads them once, at
+  /// the moment its WebView finishes loading. Building it earlier is a race
+  /// on which of the two wins, and losing it means opening a book at the
+  /// wrong place or in the wrong typeface.
+  bool _initialized = false;
   bool _isLoading = true;
   bool _isProgressSaving = false;
   bool _renditionConfigured = false;
@@ -156,6 +174,11 @@ class ReaderProvider extends ChangeNotifier with WidgetsBindingObserver {
   Timer? _saveTimer;
   String _savedCfi = '';
   String? _savedLocationsJson;
+
+  /// The reader font, base64-encoded, read from assets in `initialize` so it
+  /// can be handed to `EpubViewer.initialFontBase64` and be in place for the
+  /// book's *first* layout. See [ReaderProviderThemeCss._loadReaderFontBase64].
+  String? _readerFontBase64;
 
   // ── Streak ping & brightness (see reader_provider_lifecycle.dart / _appearance.dart) ──
   final ReaderStreakPing _streakPing = ReaderStreakPing();

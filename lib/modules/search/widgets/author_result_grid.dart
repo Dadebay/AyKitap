@@ -16,16 +16,23 @@ class AuthorResultGrid extends StatelessWidget {
   final EdgeInsets padding;
   final bool loadingMore;
 
+  /// Owned by [SearchScreen] rather than by this widget, because the
+  /// infinite-scroll trigger has to read the position *outside* a scroll
+  /// notification — see `_maybeLoadMore`.
+  final ScrollController? controller;
+
   const AuthorResultGrid({
     super.key,
     required this.authors,
     required this.padding,
     this.loadingMore = false,
+    this.controller,
   });
 
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(
+      controller: controller,
       slivers: [
         SliverPadding(
           padding: padding,

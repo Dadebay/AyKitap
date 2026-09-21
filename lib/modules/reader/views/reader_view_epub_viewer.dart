@@ -29,6 +29,13 @@ extension _ReaderViewEpubViewer on _ReaderScreenState {
       // Skips epub.js's multi-second locations scan on reopen — see
       // ReaderProvider.savedLocationsJson.
       initialLocations: provider.savedLocationsJson,
+      // The reader's font, handed over *with* the book rather than pushed in
+      // once it has rendered. A typeface repaginates the text, and pagination
+      // is what decides which screen [initialCfi] lands on — see
+      // ReaderProviderThemeCss._loadReaderFontBase64.
+      initialFontFamily: provider.readerFontCssName,
+      initialFontBase64: provider.readerFontBase64,
+      initialFontMimeType: provider.readerFontMimeType,
       onLocationsGenerated: provider.onLocationsGenerated,
       displaySettings: EpubDisplaySettings(
         flow: EpubFlow.paginated,

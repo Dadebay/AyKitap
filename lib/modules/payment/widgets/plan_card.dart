@@ -26,12 +26,22 @@ class PlanCard extends StatelessWidget {
 
   static const _duration = Duration(milliseconds: 220);
 
-  String get _monthlyPrice {
-    final monthly = tariff.price / tariff.monthCount;
-    final num amount = monthly == monthly.roundToDouble()
-        ? monthly.toInt()
-        : double.parse(monthly.toStringAsFixed(1));
-    return PaymentStrings.monthlyEquivalent(amount);
+  /// The plan's price in its own natural unit: per month for a plan of a
+  /// month or more, per week for anything shorter.
+  ///
+  /// Both rates come from the plan's length in days, not from `month_count`
+  /// — the latter is null on a day-based plan, which made this divide by
+  /// null. For every month-aligned plan the two agree exactly (their
+  /// `day_count` is `month_count × 30`), so those figures are unchanged.
+  String get _rateLabel {
+    final perWeek = tariff.isShorterThanAMonth;
+    final rate = perWeek ? tariff.pricePerWeek : tariff.pricePerMonth;
+    final num amount = rate == rate.roundToDouble()
+        ? rate.toInt()
+        : double.parse(rate.toStringAsFixed(1));
+    return perWeek
+        ? PaymentStrings.weeklyEquivalent(amount)
+        : PaymentStrings.monthlyEquivalent(amount);
   }
 
   @override
@@ -146,7 +156,7 @@ class PlanCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 5),
                       Text(
-                        _monthlyPrice,
+                        _rateLabel,
                         style: TextStyle(
                           color: AppColors.grey2,
                           fontSize: 11.5,

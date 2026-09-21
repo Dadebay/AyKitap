@@ -18,10 +18,8 @@ class PaymentApiService {
     try {
       final response = await DioClient.instance.get(PaymentEndpoints.tariffs);
       final list = response.data['data'] as List;
-      final tariffs =
-          list.map((e) => Tariff.fromJson(e as Map<String, dynamic>)).toList();
-      tariffs.sort((a, b) => a.monthCount.compareTo(b.monthCount));
-      return tariffs;
+      return visibleTariffsInOrder(
+          list.map((e) => Tariff.fromJson(e as Map<String, dynamic>)));
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

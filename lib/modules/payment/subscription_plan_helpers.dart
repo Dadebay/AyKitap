@@ -14,8 +14,19 @@ int bestSubscriptionPlanIndex(List<Tariff> tariffs) {
 
 /// The plan-length label [SubscriptionScreen] shows on each [PlanCard] and
 /// in the success dialog.
+///
+/// Plans that divide into whole months are named from `month_count`. A plan
+/// measured in days carries no `month_count` at all (see [Tariff]), so it is
+/// named from its length in days instead — otherwise the 7-day plan read as
+/// "null aýlyk".
 String subscriptionPlanLabel(Tariff tariff) {
-  switch (tariff.monthCount) {
+  final months = tariff.monthCount;
+  if (months == null) {
+    return tariff.dayCount == 7
+        ? PaymentStrings.planWeekly
+        : PaymentStrings.planDaysGeneric(tariff.lengthInDays);
+  }
+  switch (months) {
     case 1:
       return PaymentStrings.planMonthly;
     case 3:
@@ -25,6 +36,6 @@ String subscriptionPlanLabel(Tariff tariff) {
     case 12:
       return PaymentStrings.planYearly;
     default:
-      return PaymentStrings.planMonthsGeneric(tariff.monthCount);
+      return PaymentStrings.planMonthsGeneric(months);
   }
 }

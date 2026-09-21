@@ -14,6 +14,7 @@ import '../../core/services/analytics_service.dart';
 import '../../core/services/author_api_service.dart';
 import '../../core/services/book_list_api_service.dart';
 import '../../core/services/genre_api_service.dart';
+import '../../core/services/search_discover_cache.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_controller.dart';
 import '../filter/controller/filter_controller.dart'
@@ -27,6 +28,7 @@ import '../filter/controller/filter_controller.dart'
 import '../filter/filter_screen.dart';
 import '../home/widgets/stagger_fade_in.dart';
 import 'author_page_merge.dart';
+import 'search_result_diagnostics.dart';
 import 'widgets/author_result_grid.dart';
 import 'widgets/quick_chip.dart';
 import 'widgets/search_result_grid.dart';
@@ -104,6 +106,12 @@ class _SearchScreenState extends State<SearchScreen> {
 
   // Real genres (`GET /genres/all`, top-level) for the chip row.
   List<Genre>? _genres;
+
+  /// Which language [_genres] was fetched (or read from cache) for. The names
+  /// are translated server-side, so this is what tells a chip row that is
+  /// merely *stale* from one that is simply in the wrong language — see
+  /// [_loadGenres], which the [AppLocale] listener re-runs on every switch.
+  AppLanguageCode? _genresLanguage;
   // Multi-select: tapping a genre chip toggles it independently of whichever
   // others are already selected. Combined with `_query` in the same search
   // request rather than navigating away, so text + genres can narrow results
@@ -189,9 +197,20 @@ class _SearchScreenState extends State<SearchScreen> {
     AppLocale.instance.addListener(_loadGenres);
   }
 
+  // One per grid *kind* rather than one shared controller: book and author
+  // grids are different widget types, so switching modes mounts the new
+  // scroll view before the old one is unmounted, and a single controller
+  // would briefly be attached to two positions at once — which asserts.
+  // Within a kind the element is reused (results and discover are the same
+  // widget), so the position simply carries over.
+  final ScrollController _bookGridScroll = ScrollController();
+  final ScrollController _authorGridScroll = ScrollController();
+
   @override
   void dispose() {
     AppLocale.instance.removeListener(_loadGenres);
+    _bookGridScroll.dispose();
+    _authorGridScroll.dispose();
     _controller.dispose();
     _debounce?.cancel();
     super.dispose();

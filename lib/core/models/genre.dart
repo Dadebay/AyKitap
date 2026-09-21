@@ -19,4 +19,14 @@ class Genre {
         position: json['position'] as int?,
         name: json['name'] as String? ?? '',
       );
+
+  /// Round-trips back through [Genre.fromJson] — the same wire shape, so the
+  /// cached copy ([SearchDiscoverCache]) and a fresh response parse
+  /// identically. Only the chip row reads these back.
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        if (parentId != null) 'parent_id': parentId,
+        if (position != null) 'position': position,
+        'name': name,
+      };
 }

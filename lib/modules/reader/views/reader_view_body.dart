@@ -69,7 +69,15 @@ extension _ReaderViewBody on _ReaderScreenState {
                     child: provider.loadFailed
                         ? EpubErrorView(
                             bgColor: bgColor, isDarkPage: isDarkPage)
-                        : _buildEpubViewer(provider),
+                        // Held back until `initialize` has read the saved
+                        // position, font and appearance off disk — EpubViewer
+                        // reads all of those exactly once, so building it any
+                        // earlier races that read. The opening overlay covers
+                        // this gap, which is a few milliseconds of prefs and
+                        // one asset load. See ReaderProvider.isInitialized.
+                        : provider.isInitialized
+                            ? _buildEpubViewer(provider)
+                            : const SizedBox.shrink(),
                   ),
                 ),
               ),

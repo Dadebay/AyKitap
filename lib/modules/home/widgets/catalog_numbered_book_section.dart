@@ -37,8 +37,15 @@ class CatalogNumberedBookSection extends StatelessWidget {
     if (books.isEmpty) return const SizedBox.shrink();
 
     final screenWidth = MediaQuery.sizeOf(context).width;
+    // Sized against the plain book row this section sits next to on Home,
+    // whose covers are 100×155 ([CatalogBookCard]'s defaults). At 0.56 of the
+    // screen a card's cover came out around 179×269 — nearly twice the
+    // neighbouring covers in both directions, which read as a different
+    // screen rather than as a featured shelf. 0.36 lands it a shade above
+    // them (~115×173), enough to mark the shelf as the ranked one while the
+    // numerals, not the size, carry that weight.
     final itemWidth =
-        compact ? 150.0 : (screenWidth * 0.56).clamp(196.0, 232.0).toDouble();
+        compact ? 150.0 : (screenWidth * 0.36).clamp(140.0, 165.0).toDouble();
     final coverHeight = itemWidth * 0.78 * 1.5;
     final listHeight = coverHeight + (compact ? 45 : 54);
 

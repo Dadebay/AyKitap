@@ -367,9 +367,9 @@ final translations = <TranslationEntry>[
   TranslationEntry(
     file: 'onboarding_strings.dart',
     key: 'page1Subtitle',
-    tk: 'Türkmen, rus we iňlis dillerinde\\nýüzlerçe kitap sizi garaşýar.',
-    ru: 'Сотни книг на туркменском, русском\\nи английском языках ждут вас.',
-    tr: 'Türkmence, Rusça ve İngilizce\\nyüzlerce kitap sizi bekliyor.',
+    tk: 'Türkmen, Rus, İňlis we başgada dürli dillerde\\müňlerçe kitap size garaşýar.',
+    ru: 'Тысячи книг на туркменском, русском\\английском и других языках ждут вас.',
+    tr: 'Türkçe, Rusça, İngilizce\\ve diğer farklı dillerde binlerce kitap sizi bekliyor.',
   ),
   TranslationEntry(file: 'onboarding_strings.dart', key: 'page1Badge', tk: '50K+', ru: '50K+', tr: '50K+'),
   TranslationEntry(file: 'onboarding_strings.dart', key: 'page1BadgeLabel', tk: 'Kitap', ru: 'Книг', tr: 'Kitap'),

@@ -26,41 +26,40 @@ class EpubChapter {
   Map<String, dynamic> toJson() => _$EpubChapterToJson(this);
 }
 
-
 List<EpubChapter> parseChapterList(dynamic result) {
-    if (result == null) return [];
+  if (result == null) return [];
 
-    final List<dynamic> resultList = (result is List) ? result : [result];
+  final List<dynamic> resultList = (result is List) ? result : [result];
 
-    return resultList.map((item) {
-      return EpubChapter.fromJson(_deepConvertMap(item));
-    }).toList();
+  return resultList.map((item) {
+    return EpubChapter.fromJson(_deepConvertMap(item));
+  }).toList();
+}
+
+Map<String, dynamic> _deepConvertMap(dynamic item) {
+  if (item is! Map) return {};
+
+  return Map<String, dynamic>.fromEntries(
+    item.entries.map((entry) {
+      final key = entry.key.toString();
+      final value = entry.value;
+
+      if (value is List) {
+        return MapEntry(key, value.map(_deepConvertValue).toList());
+      } else if (value is Map) {
+        return MapEntry(key, _deepConvertMap(value));
+      } else {
+        return MapEntry(key, value);
+      }
+    }),
+  );
+}
+
+dynamic _deepConvertValue(dynamic value) {
+  if (value is Map) {
+    return _deepConvertMap(value);
+  } else if (value is List) {
+    return value.map(_deepConvertValue).toList();
   }
-
-  Map<String, dynamic> _deepConvertMap(dynamic item) {
-    if (item is! Map) return {};
-
-    return Map<String, dynamic>.fromEntries(
-      item.entries.map((entry) {
-        final key = entry.key.toString();
-        final value = entry.value;
-
-        if (value is List) {
-          return MapEntry(key, value.map(_deepConvertValue).toList());
-        } else if (value is Map) {
-          return MapEntry(key, _deepConvertMap(value));
-        } else {
-          return MapEntry(key, value);
-        }
-      }),
-    );
-  }
-
-  dynamic _deepConvertValue(dynamic value) {
-    if (value is Map) {
-      return _deepConvertMap(value);
-    } else if (value is List) {
-      return value.map(_deepConvertValue).toList();
-    }
-    return value;
-  }
+  return value;
+}

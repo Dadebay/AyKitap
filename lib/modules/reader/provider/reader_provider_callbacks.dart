@@ -52,11 +52,12 @@ extension ReaderProviderCallbacks on ReaderProvider {
     // setFlow: every mode (scroll/Prokrutka included) reads paginated now.
     epubController.setPageTransition(mode: _pageTransition.name);
 
-    // The chosen body font is a WebView @font-face, so it also has to be
-    // (re)injected each time a book's rendition is created. Once is enough:
-    // epubView.js caches the face and its rendition.hooks.content hook
-    // re-injects it into every section as that section renders.
-    _applyReaderFont();
+    // No font call here any more. It used to live at this point, and that is
+    // precisely what put a reopened book a screen either side of where it was
+    // left: the book had already rendered and displayed at its saved CFI, and
+    // injecting a typeface with different metrics repaginated it underneath
+    // that CFI. The font now travels to the WebView with the book itself
+    // (EpubViewer.initialFontBase64), so the first layout is the final one.
 
     // Font size and line spacing reach the rendition through
     // EpubDisplaySettings, which loadBook reads exactly once — and that read
@@ -169,18 +170,21 @@ extension ReaderProviderCallbacks on ReaderProvider {
   /// then gets saved, so every reopen started a little earlier than the last
   /// — 17/153 one session, 6/131 the next.
   ///
-  /// Only ever corrects *backwards* drift: a reader who has already moved on
-  /// under their own steam is never dragged back.
+  /// Corrects drift in *either* direction. It used to only pull the book
+  /// forwards again, on the reasoning that a reader who had moved on should
+  /// never be dragged back — but that case is already covered, and covered
+  /// better, by [cancelPositionRestore]: every deliberate move disarms this
+  /// check before it can run. What the one-sided version left uncorrected was
+  /// a restore that overshot, which reads to the reader exactly like the
+  /// undershoot does — the page they left off on is not the page they get.
   void _verifyRestoredPosition() {
     if (_disposed || !_restoringPosition) return;
     _restoringPosition = false;
     if (_savedCfi.isEmpty) return;
-    if (_progress + ReaderProvider._restoreDriftTolerance >=
-        _restoreTargetProgress) {
-      return;
-    }
-    log('↩️ restore drifted to ${(_progress * 100).toStringAsFixed(1)}% '
-        '(saved ${(_restoreTargetProgress * 100).toStringAsFixed(1)}%) — '
+    final drift = (_progress - _restoreTargetProgress).abs();
+    if (drift <= ReaderProvider._restoreDriftTolerance) return;
+    log('↩️ restore drifted to ${(_progress * 100).toStringAsFixed(2)}% '
+        '(saved ${(_restoreTargetProgress * 100).toStringAsFixed(2)}%) — '
         'reasserting saved position');
     epubController.display(cfi: _savedCfi);
   }

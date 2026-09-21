@@ -6,6 +6,7 @@ import '../provider/reader_provider.dart';
 import 'page_transition_section.dart';
 import 'reader_appearance_levels_row.dart';
 import 'reader_font_tile.dart';
+import 'reader_landscape_row.dart';
 import 'reader_original_pdf_row.dart';
 import 'reader_section_label.dart';
 import 'reader_sheet_header.dart';
@@ -101,6 +102,10 @@ class ReaderSettingsSheet extends StatelessWidget {
 
                       // ── Page transition (TZ §12.2) — opens its own sheet ─
                       const PageTransitionRow(),
+
+                      // ── Read with the phone turned sideways ────────────
+                      const SizedBox(height: 10),
+                      const ReaderLandscapeRow(),
 
                       // ── Fall back to the original PDF pages ────────────
                       // Only for a book that's actually a PDF reflowed into

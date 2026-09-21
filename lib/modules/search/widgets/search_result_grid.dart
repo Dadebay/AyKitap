@@ -17,15 +17,22 @@ class SearchResultGrid extends StatelessWidget {
   final EdgeInsets padding;
   final bool loadingMore;
 
+  /// Owned by [SearchScreen] rather than by this widget, because the
+  /// infinite-scroll trigger has to read the position *outside* a scroll
+  /// notification — see `_maybeLoadMore`.
+  final ScrollController? controller;
+
   const SearchResultGrid(
       {super.key,
       required this.books,
       required this.padding,
-      required this.loadingMore});
+      required this.loadingMore,
+      this.controller});
 
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(
+      controller: controller,
       slivers: [
         SliverPadding(
           padding: padding,

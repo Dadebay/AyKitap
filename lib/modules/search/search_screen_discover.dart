@@ -64,6 +64,18 @@ extension _SearchScreenDiscover on _SearchScreenState {
         _discoverLoadingMore = false;
       });
     }
+    // Paint the last grid this device saw before waiting on the network.
+    // [_buildDiscover] shows its shimmer only while `_discoverBooks` is null,
+    // and its error state likewise, so filling it in here is all it takes for
+    // a cold open — or a failed one — to show books instead of nothing.
+    if (!loadMore && _discoverBooks == null) {
+      final cached = await SearchDiscoverCache.readBooks();
+      if (!mounted || requestId != _discoverRequestId) return;
+      if (cached != null && cached.isNotEmpty) {
+        _setState(() => _discoverBooks = cached);
+      }
+    }
+
     final page = loadMore ? _discoverPage + 1 : 1;
     try {
       final books = await BookListApiService.listBooks(
@@ -73,6 +85,17 @@ extension _SearchScreenDiscover on _SearchScreenState {
         size: _SearchScreenState._pageSize,
       );
       if (!mounted || requestId != _discoverRequestId) return;
+      // The grid a reader lands on without typing anything — which is where
+      // the "the books look the same / these keep coming back" reports
+      // actually come from, so the same two diagnostics the typed search has
+      // (see [_runSearch]) have to cover it too. Run over the *accumulated*
+      // list, not just this page: a book that arrives again three pages down
+      // is exactly the case a per-page check would miss.
+      final accumulated =
+          loadMore ? [...?_discoverBooks, ...books] : List.of(books);
+      logLookalikeResults(query: '(discover)', page: page, books: accumulated);
+      logWatchedTitleSightings(
+          query: '(discover)', page: page, books: accumulated);
       _setState(() {
         _discoverBooks = loadMore ? [...?_discoverBooks, ...books] : books;
         _discoverPage = page;
@@ -80,6 +103,17 @@ extension _SearchScreenDiscover on _SearchScreenState {
         _discoverLoading = false;
         _discoverLoadingMore = false;
       });
+      // See [_scheduleLoadMoreCheck]: appending rows fires no scroll
+      // notification, so without this the grid stopped paging at the bottom
+      // until the reader scrolled up and back down.
+      _scheduleLoadMoreCheck();
+      // Only the first page is worth keeping: it's what the next cold open
+      // needs to draw immediately, and re-caching each scrolled page would
+      // grow the entry without making that first paint any better. Replaces
+      // the previous entry outright — the server's page 1 is the authority on
+      // what still exists, so a book it no longer returns is gone from the
+      // cache too.
+      if (!loadMore) unawaited(SearchDiscoverCache.writeBooks(books));
     } on ApiException catch (e) {
       if (!mounted || requestId != _discoverRequestId) return;
       _setState(() {
@@ -153,6 +187,7 @@ extension _SearchScreenDiscover on _SearchScreenState {
         _discoverAuthorsLoading = false;
         _discoverAuthorsLoadingMore = false;
       });
+      _scheduleLoadMoreCheck();
     } on ApiException catch (e) {
       if (!mounted || requestId != _discoverAuthorsRequestId) return;
       _setState(() {

@@ -133,12 +133,27 @@ function _resetPageMetrics() {
   _lastComputedPage = 0;
 }
 
-function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScriptedContent, direction, useCustomSwipe, backgroundColor, foregroundColor, fontSize, clearSelectionOnNav, selectAnnotationRangeParam, customCss, savedLocations) {
+function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScriptedContent, direction, useCustomSwipe, backgroundColor, foregroundColor, fontSize, clearSelectionOnNav, selectAnnotationRangeParam, customCss, savedLocations, fontFamily, fontBase64, fontMimeType) {
   // Reset flags for new book
   initialXPathProcessed = false;
   xpathDisplayInProgress = false;
   initialPositionLoading = false;
   _resetPageMetrics();
+
+  // The reader's font, set before anything renders.
+  //
+  // The content hook registered below injects whatever is in these globals
+  // into each section as it renders, so seeding them here means the book's
+  // first layout is already in the final typeface. Pushing the font in
+  // afterwards (setFontFamily) instead repaginates a book that has already
+  // been displayed — and since pagination decides which screen a CFI lands
+  // on, that is what left `cfi` resolving to the screen before or after the
+  // one the reader actually left off on.
+  if (fontFamily) {
+    _currentFontFamily = fontFamily;
+    _currentFontBase64 = fontBase64 || null;
+    _currentFontMimeType = fontMimeType || 'font/truetype';
+  }
   // Store the clearSelectionOnPageChange setting
   clearSelectionOnPageChange = clearSelectionOnNav !== undefined ? clearSelectionOnNav : true;
   // Store the selectAnnotationRange setting

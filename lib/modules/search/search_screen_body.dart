@@ -124,6 +124,7 @@ extension _SearchScreenBody on _SearchScreenState {
         authors: authorResults,
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
         loadingMore: _searchLoadingMore,
+        controller: _authorGridScroll,
       );
     }
     // CatalogBookCard already navigates to CatalogBookDetailScreen on tap
@@ -132,6 +133,7 @@ extension _SearchScreenBody on _SearchScreenState {
       books: results,
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 60),
       loadingMore: _searchLoadingMore,
+      controller: _bookGridScroll,
     );
   }
 
@@ -199,6 +201,7 @@ extension _SearchScreenBody on _SearchScreenState {
       books: books,
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       loadingMore: _discoverLoadingMore,
+      controller: _bookGridScroll,
     );
   }
 
@@ -239,6 +242,7 @@ extension _SearchScreenBody on _SearchScreenState {
       authors: authors,
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       loadingMore: _discoverAuthorsLoadingMore,
+      controller: _authorGridScroll,
     );
   }
 

@@ -12,21 +12,49 @@ extension ReaderProviderThemeCss on ReaderProvider {
   // an @font-face. The css/asset names line up so the injected face and the
   // theme's `font-family` rule refer to the same family.
 
-  Future<void> _applyReaderFont() async {
-    final family = _fontFamily;
-    final asset = _fontAsset(family);
+  /// The font family name the injected face and the theme's `font-family`
+  /// rule both refer to, and the encoded face itself — handed to
+  /// `EpubViewer.initialFontFamily`/`initialFontBase64` so the book's first
+  /// layout already uses it. Null until [_loadReaderFontBase64] has run.
+  String get readerFontCssName => _fontCssName(_fontFamily);
+  String? get readerFontBase64 => _readerFontBase64;
+  String get readerFontMimeType => _fontAsset(_fontFamily).endsWith('.otf')
+      ? 'font/opentype'
+      : 'font/truetype';
+
+  /// Reads the chosen font off the asset bundle and caches it as base64.
+  ///
+  /// Called from `initialize`, i.e. before the viewer is built — a typeface
+  /// has its own metrics, so one arriving *after* the book has rendered
+  /// repaginates it, and pagination is what decides which screen a saved CFI
+  /// falls on. Loading it up front is what lets a book reopen on exactly the
+  /// screen it was left on rather than the one before or after.
+  Future<void> _loadReaderFontBase64() async {
     try {
-      final data = await rootBundle.load(asset);
-      final b64 = base64Encode(data.buffer.asUint8List());
-      epubController.setFontFamily(
-        fontFamily: _fontCssName(family),
-        fontBase64: b64,
-        fontMimeType:
-            asset.endsWith('.otf') ? 'font/opentype' : 'font/truetype',
-      );
+      final data = await rootBundle.load(_fontAsset(_fontFamily));
+      _readerFontBase64 = base64Encode(data.buffer.asUint8List());
     } catch (e) {
-      log('❌ Font apply error: $e');
+      // A missing/corrupt font asset is not worth failing the open over —
+      // the book renders in the WebView's own default face instead.
+      log('❌ Font load error: $e');
+      _readerFontBase64 = null;
     }
+  }
+
+  /// Pushes the font into a rendition that is *already* on screen — the
+  /// reader changing font mid-book. The repagination this causes is expected
+  /// there; it is only a problem during the opening sequence, which is why
+  /// the initial font travels with the viewer instead (see
+  /// [_loadReaderFontBase64]).
+  Future<void> _applyReaderFont() async {
+    await _loadReaderFontBase64();
+    final b64 = _readerFontBase64;
+    if (b64 == null) return;
+    epubController.setFontFamily(
+      fontFamily: readerFontCssName,
+      fontBase64: b64,
+      fontMimeType: readerFontMimeType,
+    );
   }
 
   EpubTheme _buildEpubTheme() {
@@ -124,6 +152,25 @@ extension ReaderProviderThemeCss on ReaderProvider {
         'max-width': '100%',
         'max-height': manga ? 'none' : '96vh',
         'width': manga ? '100%' : 'auto',
+        // The one property that keeps a cover from stretching, and the
+        // reason it has to be stated rather than left out.
+        //
+        // Calibre wraps a cover as `<svg width="100%" height="100%"
+        // viewBox="0 0 W H" preserveAspectRatio="none">`. Those percentage
+        // attributes hand the element the whole flex box below, and
+        // `preserveAspectRatio="none"` then maps the viewBox onto it
+        // *non-uniformly* — so the artwork takes the shape of the viewport
+        // rather than its own. Portrait hid it (a phone's box is roughly a
+        // cover's shape already); landscape made it obvious, a 2:3 cover
+        // drawn wide and flat.
+        //
+        // With both axes auto the viewBox supplies the intrinsic ratio, the
+        // max-* pair scales it down without distorting it, and the box ends
+        // up the same shape as the viewBox — at which point
+        // `preserveAspectRatio="none"` is mapping a ratio onto itself and
+        // has nothing left to stretch. `img` has carried this since the
+        // start, which is why picture pages using <img> never showed it.
+        'height': 'auto',
         'display': 'block',
         'margin-left': manga ? '0' : 'auto',
         'margin-right': manga ? '0' : 'auto',

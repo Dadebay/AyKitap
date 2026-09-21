@@ -10,9 +10,9 @@ abstract class EpubDataLoader {
 /// File system epub loader implementation
 class FileEpubLoader implements EpubDataLoader {
   final File file;
-  
+
   FileEpubLoader(this.file);
-  
+
   @override
   Future<Uint8List> loadData() {
     return file.readAsBytes();
@@ -23,9 +23,9 @@ class FileEpubLoader implements EpubDataLoader {
 class UrlEpubLoader implements EpubDataLoader {
   final String url;
   final Map<String, String>? headers;
-  
+
   UrlEpubLoader(this.url, {this.headers});
-  
+
   @override
   Future<Uint8List> loadData() async {
     try {
@@ -45,9 +45,9 @@ class UrlEpubLoader implements EpubDataLoader {
 /// Asset epub loader implementation
 class AssetEpubLoader implements EpubDataLoader {
   final String assetPath;
-  
+
   AssetEpubLoader(this.assetPath);
-  
+
   @override
   Future<Uint8List> loadData() async {
     final byteData = await rootBundle.load(assetPath);

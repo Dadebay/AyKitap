@@ -72,10 +72,9 @@ class _StoreTopUpSheetState extends State<StoreTopUpSheet> {
       final platform = Platform.isIOS ? 'ios' : 'android';
       final products = await RevenueCatApiService.getTopupProducts(platform);
       final offerings = await RevenueCatService.instance.getOfferings();
-      final packages = offerings
-              ?.getOffering(_walletTopUpsOfferingId)
-              ?.availablePackages ??
-          const [];
+      final packages =
+          offerings?.getOffering(_walletTopUpsOfferingId)?.availablePackages ??
+              const [];
       final options = <_StoreTopUpOption>[];
       for (final product in products) {
         for (final package in packages) {

@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import 'cbz_gutter_swatch.dart';
 import 'cbz_page_scale_section.dart';
 import 'reader_fit_tile.dart';
+import 'reader_landscape_row.dart';
 import 'reader_section_label.dart';
 import 'reader_sheet_header.dart';
 import 'reader_slider_row.dart';
@@ -173,6 +174,11 @@ class CbzSettingsSheet extends StatelessWidget {
                     min: 0.0,
                     onChanged: onEyeCareChanged,
                   ),
+
+                  const SizedBox(height: 22),
+
+                  // ── Read with the phone turned sideways ───────────────────────
+                  const ReaderLandscapeRow(),
                 ],
               ),
             ),

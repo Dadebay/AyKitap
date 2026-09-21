@@ -64,6 +64,11 @@ class PaymentStrings {
   /// cover — keeps a future/unexpected tariff length from the backend from
   /// showing up with no label at all.
   static String planMonthsGeneric(int months) => t(tk: '$months aýlyk', ru: '$months месяцев', tr: '$months aylık', en: '$months months');
+
+  /// Plans shorter than a month carry no `month_count` at all and are
+  /// labelled from `day_count` instead — see [subscriptionPlanLabel].
+  static String get planWeekly => t(tk: 'Hepdelik', ru: 'Недельный', tr: 'Haftalık', en: 'Weekly');
+  static String planDaysGeneric(int days) => t(tk: '$days günlük', ru: '$days дней', tr: '$days günlük', en: '$days days');
   static String get tariffsLoadError => t(
         tk: 'Planlar ýüklenmedi',
         ru: 'Не удалось загрузить планы',
@@ -85,16 +90,17 @@ class PaymentStrings {
         en: 'You can read every book for as long as your subscription is active.',
       );
   static String get chooseYourPlan => t(
-        tk: 'Özüňize laýyk plany saýlaň',
-        ru: 'Выберите подходящий план',
-        tr: 'Size uygun planı seçin',
-        en: 'Choose the plan for you',
+        tk: 'Özüňize laýyk meýilnamany saýlaň',
+        ru: 'Выберите подходящий вариант',
+        tr: 'Size uygun seçeneği seçin',
+        en: 'Choose the option that suits you',
       );
+
   static String get chooseYourPlanSubtitle => t(
-        tk: 'Uzak möhletli plan bilen has köp tygşytlaň',
-        ru: 'Экономьте больше с долгосрочным планом',
-        tr: 'Uzun dönemli planla daha fazla tasarruf edin',
-        en: 'Save more with a longer plan',
+        tk: 'Uzak möhletli meýilnamany bilen has köp tygşytlaň',
+        ru: 'Экономьте больше, выбирая долгосрочный вариант',
+        tr: 'Uzun vadeli seçeneği tercih ederek daha fazla tasarruf edin',
+        en: 'Save more with a long-term option',
       );
   static String get benefitAllBooks => t(tk: 'Ähli kitaplar', ru: 'Все книги', tr: 'Tüm kitaplar', en: 'Every book');
   static String get benefitNoExtraPurchase => t(
@@ -114,6 +120,15 @@ class PaymentStrings {
         ru: '$amount TMT в месяц',
         tr: 'Aylık $amount TMT',
         en: '$amount TMT/month',
+      );
+
+  /// The same line for a plan shorter than a month, which a monthly rate
+  /// would misdescribe — see [Tariff.isShorterThanAMonth].
+  static String weeklyEquivalent(num amount) => t(
+        tk: 'Hepdede $amount TMT',
+        ru: '$amount TMT в неделю',
+        tr: 'Haftalık $amount TMT',
+        en: '$amount TMT/week',
       );
   static String planSelectedMock(String planName) => t(
         tk: '$planName plan saýlandy (mock)',

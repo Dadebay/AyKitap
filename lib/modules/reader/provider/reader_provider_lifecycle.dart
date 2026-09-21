@@ -5,6 +5,8 @@ part of 'reader_provider.dart';
 /// from the rest of [ReaderProvider] because every method here is about the
 /// reader's own lifecycle rather than what's on screen once it's open.
 extension ReaderProviderLifecycle on ReaderProvider {
+  /// See [ReaderProvider._initialized] — the viewer waits on this.
+  bool get isInitialized => _initialized;
   bool get isLoading => _isLoading;
   bool get isProgressSaving => _isProgressSaving;
   bool get loadFailed => _loadFailed;
@@ -18,6 +20,7 @@ extension ReaderProviderLifecycle on ReaderProvider {
     _bookTitle = bookTitle;
     _isLoading = true;
     _loadFailed = false;
+    _initialized = false;
     // A new book gets a new rendition, so its setup has to run again.
     _renditionConfigured = false;
     _notify();
@@ -73,7 +76,15 @@ extension ReaderProviderLifecycle on ReaderProvider {
     _pageTransition = ReaderPageTransition.values[
         savedTransition.clamp(0, ReaderPageTransition.values.length - 1)];
     _leftHandMode = prefs.getBool('reader_left_hand') ?? false;
+    // Read before the viewer is built, so the font travels with the book
+    // rather than being pushed in after it has already rendered — see
+    // [_loadReaderFontBase64]. This is what keeps a reopened book on the
+    // exact screen it was left on.
+    await _loadReaderFontBase64();
 
+    // Everything the viewer reads once at load time is now in place, so it
+    // is safe to build — see [ReaderProvider._initialized].
+    _initialized = true;
     _notify();
     // Publish the restored page/progress (and cleared bookmark/chapter state)
     // before the book visually opens — see _updateProgressSnapshot.

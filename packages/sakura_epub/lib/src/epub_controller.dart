@@ -75,8 +75,7 @@ class EpubController {
     webViewController?.evaluateJavascript(source: 'previous()');
   }
 
-  Completer<EpubLocation> currentLocationCompleter =
-      Completer<EpubLocation>();
+  Completer<EpubLocation> currentLocationCompleter = Completer<EpubLocation>();
 
   ///Returns current location of epub viewer
   Future<EpubLocation> getCurrentLocation() async {

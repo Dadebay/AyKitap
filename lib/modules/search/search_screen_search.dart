@@ -54,6 +54,10 @@ extension _SearchScreenSearch on _SearchScreenState {
           _searching = false;
           _searchLoadingMore = false;
         });
+        // The page has landed; if the grid is still sitting at its end
+        // (nobody scrolled while it was in flight, or it was too short to
+        // scroll at all) fetch the next one — see [_scheduleLoadMoreCheck].
+        _scheduleLoadMoreCheck();
         return;
       }
       final page = loadMore ? _searchPage + 1 : 1;
@@ -71,6 +75,24 @@ extension _SearchScreenSearch on _SearchScreenState {
         size: _SearchScreenState._pageSize,
       );
       if (!mounted || requestId != _searchRequestId) return;
+      // Reported as "the results keep showing the same book". A scan of the
+      // whole catalogue found no repeated ids, so this says nothing on a
+      // clean page and speaks up only when a page really does carry one book
+      // twice — with the query that produced it. See [logLookalikeResults].
+      final accumulated =
+          loadMore ? [...?_searchResults, ...results] : List.of(results);
+      logLookalikeResults(
+        query: _hasQuery ? _query : '',
+        page: page,
+        books: accumulated,
+      );
+      // Where the specific titles a reader named turn up, and at which
+      // position — see [logWatchedTitleSightings].
+      logWatchedTitleSightings(
+        query: _hasQuery ? _query : '',
+        page: page,
+        books: accumulated,
+      );
       _setState(() {
         _searchResults = loadMore ? [...?_searchResults, ...results] : results;
         _searchPage = page;
@@ -78,6 +100,7 @@ extension _SearchScreenSearch on _SearchScreenState {
         _searching = false;
         _searchLoadingMore = false;
       });
+      _scheduleLoadMoreCheck();
     } on ApiException catch (e) {
       if (!mounted || requestId != _searchRequestId) return;
       _setState(() {

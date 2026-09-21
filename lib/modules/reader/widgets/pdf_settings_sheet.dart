@@ -6,6 +6,7 @@ import 'pdf_appearance_sliders.dart';
 import 'pdf_color_mode_section.dart';
 import 'pdf_layout_section.dart';
 import 'pdf_text_view_row.dart';
+import 'reader_landscape_row.dart';
 import 'reader_sheet_header.dart';
 
 /// How the PDF page is coloured on screen. Unlike reflowable EPUB text, a PDF
@@ -154,6 +155,11 @@ class PdfSettingsSheet extends StatelessWidget {
                     onBrightnessChanged: onBrightnessChanged,
                     onEyeCareChanged: onEyeCareChanged,
                   ),
+
+                  const SizedBox(height: 22),
+
+                  // ── Read with the phone turned sideways ───────────────────────
+                  const ReaderLandscapeRow(),
 
                   // ── Back to the reflowable text view ───────────────────────────
                   if (onSwitchToTextView != null) ...[

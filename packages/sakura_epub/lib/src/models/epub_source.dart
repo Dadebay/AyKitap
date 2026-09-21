@@ -3,8 +3,6 @@ import 'dart:typed_data';
 
 import 'package:sakura_epub/src/epub_data_loader.dart';
 
-
-
 /// Epub file source
 class EpubSource {
   // final Uint8List epubData;
