@@ -20,7 +20,7 @@ extension _CatalogBookDetailActions on _CatalogBookDetailScreenState {
     // Buying is nearly always followed by wanting to read it — carry
     // straight on into the download instead of making the user tap "Oku".
     if (bought && mounted) {
-      await _flow(book).read(offerPurchasedExport: true);
+      await _flow(book).read();
     }
   }
 

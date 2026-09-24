@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:intl/intl.dart';
 
+import '../../../core/localization/app_date_format.dart';
 import '../../../core/localization/strings/profile_strings.dart';
 import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/theme_controller.dart';
@@ -205,7 +205,7 @@ class _ActiveSubscriptionCardState extends State<ActiveSubscriptionCard> {
                                 icon: HugeIcons.strokeRoundedCalendar03,
                                 label: ProfileStrings.subscriptionExpiryLabel,
                                 value:
-                                    DateFormat.yMMMd().format(widget.expiresAt),
+                                    AppDateFormat.date(widget.expiresAt),
                                 foreground: titleColor,
                                 muted: mutedColor,
                                 background: surfaceColor,

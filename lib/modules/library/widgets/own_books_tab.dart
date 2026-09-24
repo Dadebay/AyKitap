@@ -17,6 +17,7 @@ import '../../reader/views/cbz_reader_screen.dart';
 import '../../reader/views/reader_view.dart';
 import 'shelf_delete.dart';
 import 'shelf_grid.dart';
+import '../../main_nav/widgets/wheel_nav_bar.dart';
 
 class OwnBooksTab extends StatefulWidget {
   const OwnBooksTab({super.key});
@@ -98,7 +99,9 @@ class _OwnBooksTabState extends State<OwnBooksTab> {
   Widget build(BuildContext context) {
     final books = context.watch<OwnBooksStore>().books;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+      // See [WheelNavBar.clearance] — the wheel is drawn over this content.
+      padding:
+          EdgeInsets.fromLTRB(20, 24, 20, WheelNavBar.clearance(context) + 16),
       children: [
         GestureDetector(
           onTap: _pickFile,

@@ -182,8 +182,11 @@ class ReaderProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // ── Streak ping & brightness (see reader_provider_lifecycle.dart / _appearance.dart) ──
   final ReaderStreakPing _streakPing = ReaderStreakPing();
-  final ReaderBrightnessController _brightnessController =
-      ReaderBrightnessController();
+  // Changed from the notification panel rather than the settings sheet's
+  // slider — routed into the same setter, so it is applied and saved
+  // identically. See [ReaderBrightnessController].
+  late final ReaderBrightnessController _brightnessController =
+      ReaderBrightnessController(onExternalChange: setBrightness);
   bool _lifecycleObserverAdded = false;
 
   /// Set at the top of [dispose] so any callback still in flight (a relocation

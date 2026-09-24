@@ -7,7 +7,8 @@ class AuthorDetail {
   final String? image;
   final String? bio;
 
-  const AuthorDetail({required this.id, required this.name, this.image, this.bio});
+  const AuthorDetail(
+      {required this.id, required this.name, this.image, this.bio});
 
   factory AuthorDetail.fromJson(Map<String, dynamic> json) => AuthorDetail(
         id: json['id'] as int,
@@ -27,15 +28,18 @@ class AuthorSearchResult {
   final String? image;
   final int bookCount;
 
-  const AuthorSearchResult({required this.id, required this.name, this.image, this.bookCount = 0});
+  const AuthorSearchResult(
+      {required this.id, required this.name, this.image, this.bookCount = 0});
 
-  factory AuthorSearchResult.fromJson(Map<String, dynamic> json) => AuthorSearchResult(
+  factory AuthorSearchResult.fromJson(Map<String, dynamic> json) =>
+      AuthorSearchResult(
         id: json['id'] as int,
         name: json['name'] as String? ?? '',
         image: json['image'] as String?,
         // The backend sends this as a numeric-looking string (`"6"`), not a
         // JSON number — `num.tryParse` handles both just in case that ever
         // changes.
-        bookCount: num.tryParse(json['book_count']?.toString() ?? '')?.toInt() ?? 0,
+        bookCount:
+            num.tryParse(json['book_count']?.toString() ?? '')?.toInt() ?? 0,
       );
 }

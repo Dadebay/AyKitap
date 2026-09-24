@@ -53,6 +53,22 @@ class _BalanceViewState extends State<_BalanceView> {
         .then((_) => PurchaseModeService.instance.useStoreCheckout);
   }
 
+  /// Pull-to-refresh: re-reads both halves of this page, because they come
+  /// from different places and either one can be the stale one. The balance
+  /// at the top is [AccountService]'s `/users/me`; the list below is
+  /// [BalanceController]'s own history/card-payments fetch.
+  ///
+  /// Worth having here in particular: money can arrive from outside this
+  /// device — another reader sending a gift — and nothing pushes that to the
+  /// app, so a manual re-read is the only way to see it without closing and
+  /// reopening the app.
+  Future<void> _refresh() async {
+    await Future.wait([
+      context.read<AccountService>().refresh(),
+      context.read<BalanceController>().load(),
+    ]);
+  }
+
   Future<void> _openTopUp() async {
     await startBalanceTopUp(
       context,
@@ -86,28 +102,38 @@ class _BalanceViewState extends State<_BalanceView> {
       ),
       body: SafeArea(
         top: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          children: [
-            BalanceCard(
-              balanceManat: balance,
-              useSubscribeCta: iosStoreOnly,
-              onAction: iosStoreOnly
-                  ? () => openSubscriptionScreen(context)
-                  : _openTopUp,
-            ),
-            const SizedBox(height: 20),
-            BalanceHistoryTabToggle(
-              selected: _selectedTab,
-              historyLabel: ProfileStrings.balanceHistoryTitle,
-              cardPaymentsLabel: ProfileStrings.cardPaymentsTitle,
-              onChanged: (tab) => setState(() => _selectedTab = tab),
-            ),
-            const SizedBox(height: 16),
-            _selectedTab == BalanceTab.history
-                ? const BalanceHistoryList()
-                : const BalanceCardPaymentsList(),
-          ],
+        child: RefreshIndicator(
+          onRefresh: _refresh,
+          color: AppColors.primary,
+          backgroundColor: AppColors.card,
+          child: ListView(
+            // The list is often shorter than the screen (an empty history,
+            // a single row), and without this the pull gesture is rejected
+            // outright on exactly those pages — which are the ones most
+            // likely to be waiting on a refresh.
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            children: [
+              BalanceCard(
+                balanceManat: balance,
+                useSubscribeCta: iosStoreOnly,
+                onAction: iosStoreOnly
+                    ? () => openSubscriptionScreen(context)
+                    : _openTopUp,
+              ),
+              const SizedBox(height: 20),
+              BalanceHistoryTabToggle(
+                selected: _selectedTab,
+                historyLabel: ProfileStrings.balanceHistoryTitle,
+                cardPaymentsLabel: ProfileStrings.cardPaymentsTitle,
+                onChanged: (tab) => setState(() => _selectedTab = tab),
+              ),
+              const SizedBox(height: 16),
+              _selectedTab == BalanceTab.history
+                  ? const BalanceHistoryList()
+                  : const BalanceCardPaymentsList(),
+            ],
+          ),
         ),
       ),
     );

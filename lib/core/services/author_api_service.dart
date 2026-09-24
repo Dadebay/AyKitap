@@ -11,8 +11,10 @@ class AuthorApiService {
 
   static Future<AuthorDetail> getAuthorById(int id) async {
     try {
-      final response = await DioClient.instance.get(CatalogEndpoints.authorById(id));
-      return AuthorDetail.fromJson(response.data['data'] as Map<String, dynamic>);
+      final response =
+          await DioClient.instance.get(CatalogEndpoints.authorById(id));
+      return AuthorDetail.fromJson(
+          response.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -34,7 +36,8 @@ class AuthorApiService {
     String? sortOrder,
   }) async {
     try {
-      final response = await DioClient.instance.get(CatalogEndpoints.authorsSearch, queryParameters: {
+      final response = await DioClient.instance
+          .get(CatalogEndpoints.authorsSearch, queryParameters: {
         'search': search,
         'page': page,
         'size': size,
@@ -42,7 +45,9 @@ class AuthorApiService {
         if (sortOrder != null) 'sort_order': sortOrder,
       });
       final list = response.data['data'] as List;
-      return list.map((e) => AuthorSearchResult.fromJson(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => AuthorSearchResult.fromJson(e as Map<String, dynamic>))
+          .toList();
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

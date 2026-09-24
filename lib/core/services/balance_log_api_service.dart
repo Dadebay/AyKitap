@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../models/balance_log.dart';
 import '../network/account_endpoints.dart';
 import '../network/api_exception.dart';
@@ -13,14 +14,34 @@ class BalanceLogApiService {
       final response =
           await DioClient.instance.get(AccountEndpoints.balanceLogs);
       final data = response.data['data'] as List;
+      _debugLog('server returned ${data.length} row(s)');
       final logs = data
           .map((item) => BalanceLog.fromJson(item as Map<String, dynamic>))
           .toList();
       logs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return removeMirroredIncomingGiftLogs(logs);
+      for (final log in logs) {
+        _debugLog('  • id=${log.id} ${log.event} ${log.amount} TMT '
+            '${log.createdAt.toIso8601String()}');
+      }
+      final visible = removeMirroredIncomingGiftLogs(logs);
+      final hidden = logs.length - visible.length;
+      _debugLog('showing ${visible.length} row(s)'
+          '${hidden > 0 ? ' ($hidden hidden as a mirrored sent-gift row)' : ''}');
+      return visible;
     } on DioException catch (e) {
+      _debugLog('load failed: status=${e.response?.statusCode} '
+          'body=${e.response?.data}');
       throw ApiException.fromDioException(e);
     }
+  }
+
+  /// Temporary, for diagnosing why a gift *received* from another reader
+  /// isn't appearing in this list. Prints what the endpoint actually returns
+  /// for the signed-in account, and what this class then hides — the two
+  /// things a screenshot of the page can't tell apart. Debug builds only,
+  /// and only this account's own rows: no token, no phone number.
+  static void _debugLog(String message) {
+    if (kDebugMode) debugPrint('💰 BalanceLogs: $message');
   }
 }
 

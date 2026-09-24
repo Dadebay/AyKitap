@@ -1,16 +1,11 @@
-<!-- minHeight is sized to the card's own ~122dp of content rather than the
-     old 132dp: the layout no longer stretches to fill the cell, so anything
-     above the content height only ever showed as dead space. That dead
-     space is invisible while the widget just sits on the home screen (it's
-     transparent, so it matches the wallpaper behind it) but launchers still
-     draw their drag/resize highlight around the *full* grid-cell allocation
-     — which is what made the widget visibly grow while being long-pressed
-     even though the card itself never changed size. targetCellHeight=1
-     (down from 2) asks for the smallest cell footprint most launchers'
-     default row height can still cover, closing most of that gap; some
-     mismatch is unavoidable since Android's grid can't allocate a
-     fractional cell, but a launcher's row is generally taller than this
-     card either way, never shorter, so the content is never clipped. -->
+<!-- minHeight/minResizeHeight are the streak card's own content height: the
+     smallest the launcher may ever hand this widget, so nothing is
+     clipped. The layout now fills whatever cell it is given instead of
+     wrapping at the top, so a taller row no longer leaves transparent
+     dead space under the card in the placement/resize highlight; the
+     card itself is exactly the area the widget occupies.
+     targetCellHeight=1 still asks for the most compact default
+     placement most launchers' row height can cover. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="250dp"
     android:minHeight="124dp"

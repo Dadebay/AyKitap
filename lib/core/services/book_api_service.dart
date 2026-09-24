@@ -1,7 +1,8 @@
 import 'package:dio/dio.dart';
+import '../../modules/library/purchase_diagnostics.dart';
 import '../models/book_detail.dart';
-import '../network/book_endpoints.dart';
 import '../network/api_exception.dart';
+import '../network/book_endpoints.dart';
 import '../network/dio_client.dart';
 
 /// Talks to the real `/books/*` endpoints — book listing/search lives in
@@ -23,7 +24,11 @@ class BookApiService {
   static Future<BookDetail> getBookById(int id) async {
     try {
       final response = await DioClient.instance.get(BookEndpoints.bookById(id));
-      return BookDetail.fromJson(response.data['data'] as Map<String, dynamic>);
+      final data = response.data['data'] as Map<String, dynamic>;
+      // Temporary: is there a book_translate_id in here at all? See
+      // [logBookDetailRawJson].
+      logBookDetailRawJson(id, data);
+      return BookDetail.fromJson(data);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

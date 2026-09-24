@@ -9,7 +9,8 @@ enum PaymentMethodChoice { promoCode, bankCard, store }
 /// wants to pay before anything is actually charged, rather than the old
 /// "tap Subscribe and it just happens" flow.
 class PaymentMethodSheet extends StatelessWidget {
-  const PaymentMethodSheet({super.key, this.showStore = false});
+  const PaymentMethodSheet(
+      {super.key, this.showStore = false, this.showBankCard = true});
 
   /// Adds the [PaymentMethodChoice.store] row — App Store/Google Play via
   /// RevenueCat. Off by default: the local bank flow only accepts
@@ -18,13 +19,22 @@ class PaymentMethodSheet extends StatelessWidget {
   /// signed-in user is on the foreign/store billing path.
   final bool showStore;
 
-  static Future<PaymentMethodChoice?> show(BuildContext context,
-      {bool showStore = false}) {
+  /// The Turkmenistan bank-card row. Dropped on the store billing path,
+  /// where the cards it accepts are exactly the ones that user does not
+  /// have — a promo code, which needs no card at all, is still offered.
+  final bool showBankCard;
+
+  static Future<PaymentMethodChoice?> show(
+    BuildContext context, {
+    bool showStore = false,
+    bool showBankCard = true,
+  }) {
     return showModalBottomSheet<PaymentMethodChoice>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => PaymentMethodSheet(showStore: showStore),
+      builder: (_) =>
+          PaymentMethodSheet(showStore: showStore, showBankCard: showBankCard),
     );
   }
 
@@ -64,12 +74,15 @@ class PaymentMethodSheet extends StatelessWidget {
               onTap: () =>
                   Navigator.pop(context, PaymentMethodChoice.promoCode),
             ),
-            Divider(color: AppColors.border, height: 1),
-            _OptionRow(
-              icon: HugeIcons.strokeRoundedCreditCard,
-              label: PaymentStrings.payWithCard,
-              onTap: () => Navigator.pop(context, PaymentMethodChoice.bankCard),
-            ),
+            if (showBankCard) ...[
+              Divider(color: AppColors.border, height: 1),
+              _OptionRow(
+                icon: HugeIcons.strokeRoundedCreditCard,
+                label: PaymentStrings.payWithCard,
+                onTap: () =>
+                    Navigator.pop(context, PaymentMethodChoice.bankCard),
+              ),
+            ],
             if (showStore) ...[
               Divider(color: AppColors.border, height: 1),
               _OptionRow(

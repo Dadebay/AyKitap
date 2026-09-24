@@ -46,7 +46,9 @@ class BookEndpoints {
   /// change wants to skip the follow-up [bookFile] call right after buying.
   /// 400 with `{"message": "You do not have enough balance", ...}` when the
   /// balance falls short.
-  static String buyBook(int bookId) => '/users/buy-book/$bookId';
+  /// The path segment is a **book file** id (`bookFiles[].id`), not a book
+  /// id — see [BookPurchaseApiService].
+  static String buyBook(int bookFileId) => '/users/buy-book/$bookFileId';
 
   /// GET — a presigned download link for one book file. The `?filename=`
   /// value is the `file_key` straight off `GET /books/:id`'s `bookFiles[]`

@@ -30,6 +30,12 @@ extension _ApiBooksTabActions on _ApiBooksTabState {
     try {
       final books = await widget.fetcher();
       if (widget.syncsPurchasedAccess) {
+        // Read before replacePurchased overwrites it — the comparison is the
+        // whole point. See [logPurchasedShelf].
+        logPurchasedShelf(
+          books: books,
+          cachedIds: BookAccessService.instance.purchasedIds,
+        );
         await BookAccessService.instance
             .replacePurchased(books.map((b) => b.id));
       }

@@ -7,12 +7,18 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Color
 import android.net.Uri
+import android.util.Log
 import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetProvider
 
 /** Profile-style weekly streak widget. Widget launchers do not run continuous
  * animations, so the flame uses a glow treatment and refreshes with real data. */
 class AykitapStreakWidgetProvider : HomeWidgetProvider() {
+  private companion object {
+    const val TAG = "AykitapStreakWidget"
+    val DAY_LABELS = arrayOf("M", "T", "W", "T", "F", "S", "S")
+  }
+
   override fun onUpdate(
     context: Context,
     appWidgetManager: AppWidgetManager,
@@ -26,11 +32,53 @@ class AykitapStreakWidgetProvider : HomeWidgetProvider() {
     val weekRead = widgetData.getString("week_read", "0000000") ?: "0000000"
 
     appWidgetIds.forEach { id ->
+      val options = appWidgetManager.getAppWidgetOptions(id)
+      val widgetWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250).toFloat()
+      val widgetHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 124)
+      val titleMaxWidth = (widgetWidth - 140f).coerceAtLeast(100f)
+      Log.i(
+        TAG,
+        "update id=$id size=${widgetWidth.toInt()}x$widgetHeight " +
+          "titleMax=${titleMaxWidth.toInt()} bitmapFont=true",
+      )
       val views = RemoteViews(context.packageName, R.layout.aykitap_streak_widget).apply {
-        setTextViewText(R.id.streak_title, if (streak == 1) "1 day streak" else "$streak day streak")
-        setTextViewText(R.id.streak_best, "Best: $bestStreak days")
-        setTextViewText(R.id.streak_today_pages_count, "$todayPages")
-        bindWeek(weekRead, todayWeekday)
+        setGilroyText(
+          context,
+          R.id.streak_title,
+          if (streak == 1) "1 day streak" else "$streak day streak",
+          textSizeSp = 17f,
+          color = Color.parseColor("#211D2B"),
+          bold = true,
+          maxWidthDp = titleMaxWidth,
+        )
+        setGilroyText(
+          context,
+          R.id.streak_best,
+          "Best: $bestStreak days",
+          textSizeSp = 10.5f,
+          color = Color.parseColor("#746D7D"),
+          maxWidthDp = titleMaxWidth,
+        )
+        setGilroyText(
+          context,
+          R.id.streak_today_pages_count,
+          "$todayPages",
+          textSizeSp = 18f,
+          color = Color.parseColor("#D95F14"),
+          bold = true,
+          maxWidthDp = 42f,
+        )
+        setGilroyText(
+          context,
+          R.id.streak_pages_label,
+          "PAGES",
+          textSizeSp = 7.5f,
+          color = Color.parseColor("#B4703F"),
+          bold = true,
+          maxWidthDp = 42f,
+          letterSpacingEm = 0.12f,
+        )
+        bindWeek(context, weekRead, todayWeekday)
 
         val intent = Intent(
           Intent.ACTION_VIEW,
@@ -50,7 +98,7 @@ class AykitapStreakWidgetProvider : HomeWidgetProvider() {
     }
   }
 
-  private fun RemoteViews.bindWeek(weekRead: String, todayWeekday: Int) {
+  private fun RemoteViews.bindWeek(context: Context, weekRead: String, todayWeekday: Int) {
     val circles = intArrayOf(
       R.id.streak_day_1_circle, R.id.streak_day_2_circle, R.id.streak_day_3_circle,
       R.id.streak_day_4_circle, R.id.streak_day_5_circle, R.id.streak_day_6_circle,
@@ -65,6 +113,17 @@ class AykitapStreakWidgetProvider : HomeWidgetProvider() {
       val met = weekRead.getOrNull(index) == '1'
       val today = index + 1 == todayWeekday
       setTextViewText(circleId, if (met) "🔥" else if (today) "•" else "")
+      // Render labels in-process; Android 16 drops resource Typefaces while
+      // serializing RemoteViews for the launcher.
+      setGilroyText(
+        context,
+        labels[index],
+        DAY_LABELS[index],
+        textSizeSp = 9f,
+        color = Color.parseColor(if (today) "#8D4DFF" else "#8B8491"),
+        bold = true,
+        maxWidthDp = 18f,
+      )
       setInt(
         circleId,
         "setBackgroundResource",
@@ -75,10 +134,6 @@ class AykitapStreakWidgetProvider : HomeWidgetProvider() {
         },
       )
       setTextColor(circleId, if (today) Color.parseColor("#8D4DFF") else Color.WHITE)
-      setTextColor(
-        labels[index],
-        Color.parseColor(if (today) "#8D4DFF" else "#8B8491"),
-      )
     }
   }
 }

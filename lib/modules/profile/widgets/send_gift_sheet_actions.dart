@@ -29,6 +29,7 @@ extension _SendGiftSheetActions on _SendGiftSheetState {
       selection: TextSelection.collapsed(offset: formatted.length),
     );
     _userCheckDebounce?.cancel();
+    _setState(() => _submitError = null);
     if (digits.length < SendGiftSheet._digitsNeeded) {
       _setState(() => _userCheckStatus = GiftUserCheckStatus.idle);
       return;
@@ -56,7 +57,24 @@ extension _SendGiftSheetActions on _SendGiftSheetState {
   Future<void> _submit() async {
     final amount = _amount;
     if (!_canSubmit || amount == null) return;
-    _setState(() => _sending = true);
+
+    // Caught here rather than left to the backend's 400: the balance is
+    // already on the device, and a rejected send is otherwise a round trip
+    // that ends in an error the reader can't see (see [_submitError]).
+    // Skipped while the balance is still unknown — null means /users/me
+    // hasn't answered yet, not that the account is empty — in which case the
+    // server stays the authority, as it does anyway for a balance that went
+    // stale (spent on another device between this read and the send).
+    final balance = context.read<AccountService>().balanceManat;
+    if (balance != null && amount > balance) {
+      _setState(() => _submitError = GiftStrings.insufficientBalance(balance));
+      return;
+    }
+
+    _setState(() {
+      _sending = true;
+      _submitError = null;
+    });
     try {
       await GiftApiService.sendToFriend(
           phone: _apiPhone, amount: amount.toDouble());
@@ -71,8 +89,25 @@ extension _SendGiftSheetActions on _SendGiftSheetState {
       Navigator.pop(context, true);
     } on ApiException catch (e) {
       if (!mounted) return;
-      _setState(() => _sending = false);
-      context.showAppSnackBar(e.message, isError: true);
+      _setState(() {
+        _sending = false;
+        _submitError = _giftErrorMessage(e);
+      });
     }
+  }
+
+  /// The backend's own `message` is shown as-is for everything except the
+  /// one error it words in English regardless of the reader's language:
+  /// `You do not have enough balance`. There is no error *code* to match on
+  /// — that message is the only signal the endpoint gives — so the match is
+  /// on the text, kept loose enough to survive casing and punctuation, and
+  /// falling through to the server's wording if it ever changes.
+  String _giftErrorMessage(ApiException e) {
+    final normalized = e.message.toLowerCase();
+    if (e.statusCode == 400 && normalized.contains('enough balance')) {
+      final balance = context.read<AccountService>().balanceManat;
+      if (balance != null) return GiftStrings.insufficientBalance(balance);
+    }
+    return e.message;
   }
 }

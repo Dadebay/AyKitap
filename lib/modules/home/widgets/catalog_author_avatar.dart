@@ -44,7 +44,8 @@ class CatalogAuthorAvatar extends StatelessWidget {
       label: name,
       button: true,
       child: PressableScale(
-        onTap: () => context.push(CatalogAuthorDetailScreen(authorId: authorId)),
+        onTap: () =>
+            context.push(CatalogAuthorDetailScreen(authorId: authorId)),
         child: Container(
           width: width,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
@@ -52,8 +53,18 @@ class CatalogAuthorAvatar extends StatelessWidget {
             color: AppColors.card,
             borderRadius: BorderRadius.circular(15),
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.08), blurRadius: 12, offset: const Offset(0, 4)),
-              isDark ? BoxShadow(color: Colors.white.withValues(alpha: 0.05), blurRadius: 10) : BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4, offset: const Offset(0, 1)),
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4)),
+              isDark
+                  ? BoxShadow(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      blurRadius: 10)
+                  : BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1)),
             ],
           ),
           child: Column(
@@ -63,10 +74,12 @@ class CatalogAuthorAvatar extends StatelessWidget {
                 width: diameter,
                 height: diameter,
                 padding: const EdgeInsets.all(2.4),
-                decoration: const BoxDecoration(shape: BoxShape.circle, gradient: AppGradients.coralPurple),
+                decoration: const BoxDecoration(
+                    shape: BoxShape.circle, gradient: AppGradients.coralPurple),
                 child: Container(
                   padding: const EdgeInsets.all(2.4),
-                  decoration: BoxDecoration(color: AppColors.card, shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                      color: AppColors.card, shape: BoxShape.circle),
                   child: ClipOval(
                     child: hasImage
                         ? NetworkCoverImage(
@@ -75,8 +88,9 @@ class CatalogAuthorAvatar extends StatelessWidget {
                             height: _photoSize,
                             // Decode to one dimension only so portrait photos
                             // retain their native aspect ratio.
-                            decodeCacheWidth:
-                                (_photoSize * MediaQuery.devicePixelRatioOf(context)).round(),
+                            decodeCacheWidth: (_photoSize *
+                                    MediaQuery.devicePixelRatioOf(context))
+                                .round(),
                             fit: BoxFit.contain,
                             placeholder: (_) => _placeholder(),
                           )
@@ -90,7 +104,11 @@ class CatalogAuthorAvatar extends StatelessWidget {
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w700, height: 1.2),
+                style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    height: 1.2),
               ),
             ],
           ),
@@ -101,6 +119,10 @@ class CatalogAuthorAvatar extends StatelessWidget {
 
   Widget _placeholder() => ColoredBox(
         color: AppColors.card,
-        child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedUser, color: AppColors.grey3, size: 28)),
+        child: Center(
+            child: HugeIcon(
+                icon: HugeIcons.strokeRoundedUser,
+                color: AppColors.grey3,
+                size: 28)),
       );
 }

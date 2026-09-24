@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../core/navigation/app_navigator.dart';
 import '../../core/services/purchase_mode_service.dart';
 import 'store_subscription_screen.dart';
 import 'subscription_screen.dart';
@@ -32,25 +31,51 @@ bool _isOpening = false;
 Future<void> openSubscriptionScreen(BuildContext context) async {
   if (_isOpening) return;
   _isOpening = true;
+  // Captured before the first await: this still works if the widget that was
+  // tapped is gone by the time [refresh] answers, which is what used to
+  // strand the spinner below (the old code returned early on
+  // `!context.mounted`, leaving a non-dismissible barrier over the app with
+  // no route ever pushed — "Abuna" looked dead while Settings, which pushes
+  // its screen directly and skips all of this, kept working).
+  final navigator = Navigator.of(context, rootNavigator: true);
   // Immediate feedback for the [refresh] round-trip below — a cold
   // RevenueCat SDK (fetching remote config, offerings and store product
   // details, as seen in the debug logs) can take a couple of seconds, and
   // this screen would otherwise sit there looking untouched the whole time.
+  BuildContext? spinnerContext;
   unawaited(showDialog<void>(
     context: context,
     barrierDismissible: false,
     barrierColor: Colors.black26,
-    builder: (_) =>
-        const Center(child: CircularProgressIndicator(color: Colors.white)),
+    builder: (dialogContext) {
+      spinnerContext = dialogContext;
+      return const Center(
+          child: CircularProgressIndicator(color: Colors.white));
+    },
   ));
   final purchaseMode = PurchaseModeService.instance;
-  await purchaseMode.refresh();
-  _isOpening = false;
-  if (!context.mounted) return;
-  Navigator.of(context, rootNavigator: true).pop();
-  await context.push(
-    purchaseMode.useStoreCheckout
+  try {
+    // Bounded on purpose. [DioClient] allows 15s to connect and 15s to
+    // receive, and retries once against the fallback host — so on a bad
+    // connection this await could hold the spinner for the better part of a
+    // minute, which is indistinguishable from the button not working. The
+    // config is only a routing hint: [refresh] never throws and keeps its
+    // last-known answer (store-only on iOS), so giving up early costs a
+    // possibly-stale route, not correctness.
+    await purchaseMode.refresh().timeout(
+          const Duration(seconds: 5),
+          onTimeout: () {},
+        );
+  } finally {
+    // Always, on every path — a latch that sticks disables every "subscribe"
+    // entry point in the app until it is restarted.
+    _isOpening = false;
+    final spinner = spinnerContext;
+    if (spinner != null && spinner.mounted) Navigator.of(spinner).pop();
+  }
+  await navigator.push(MaterialPageRoute(
+    builder: (_) => purchaseMode.useStoreCheckout
         ? const StoreSubscriptionScreen()
         : const SubscriptionScreen(),
-  );
+  ));
 }

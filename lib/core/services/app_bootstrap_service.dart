@@ -8,6 +8,7 @@ import '../network/api_config.dart';
 import '../theme/theme_controller.dart';
 import 'analytics_service.dart';
 import 'app_activity_service.dart';
+import 'balance_alert_service.dart';
 import 'device_fingerprint.dart';
 import 'firebase_messaging_service.dart';
 import 'home_screen_widget_service.dart';
@@ -50,6 +51,7 @@ class AppBootstrapService {
     Future<void> Function()? primeDeviceFingerprint,
     void Function()? initAppActivity,
     void Function()? initPurchaseMode,
+    Future<void> Function()? initBalanceAlerts,
     void Function(String context, Object error, StackTrace stackTrace)? onError,
   })  : _loadTheme = loadTheme ?? (() => AppTheme.instance.load()),
         _initializeDateFormattingData =
@@ -82,6 +84,8 @@ class AppBootstrapService {
             initAppActivity ?? (() => AppActivityService.instance.init()),
         _initPurchaseMode =
             initPurchaseMode ?? (() => PurchaseModeService.instance.init()),
+        _initBalanceAlerts =
+            initBalanceAlerts ?? (() => BalanceAlertService.instance.init()),
         _onError = onError ?? _debugPrintError;
 
   final Future<void> Function() _loadTheme;
@@ -99,6 +103,7 @@ class AppBootstrapService {
   final Future<void> Function() _primeDeviceFingerprint;
   final void Function() _initAppActivity;
   final void Function() _initPurchaseMode;
+  final Future<void> Function() _initBalanceAlerts;
   final void Function(String context, Object error, StackTrace stackTrace)
       _onError;
 
@@ -152,6 +157,10 @@ class AppBootstrapService {
       _isolate('device-fingerprint', _primeDeviceFingerprint),
       _isolate('app-activity', () async => _initAppActivity()),
       _isolate('purchase-mode', () async => _initPurchaseMode()),
+      // Reads /users/me, so it belongs after the first frame with the rest
+      // of the network work rather than ahead of it — the announcement it
+      // may raise is a dialog over an app that is already running.
+      _isolate('balance-alerts', _initBalanceAlerts),
     ]);
   }
 

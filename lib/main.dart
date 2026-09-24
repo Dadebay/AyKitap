@@ -16,6 +16,7 @@ import 'core/services/app_activity_service.dart';
 import 'core/services/app_bootstrap_service.dart';
 import 'core/services/book_access_service.dart';
 import 'core/services/book_download_service.dart';
+import 'core/services/book_open_history.dart';
 import 'core/services/bookmarks_store.dart';
 import 'core/services/downloaded_books_store.dart';
 import 'core/services/downloaded_files_store.dart';
@@ -102,6 +103,10 @@ void main() async {
             value: HomeDataService.instance),
         ChangeNotifierProvider<LastReadBookStore>.value(
             value: LastReadBookStore.instance),
+        // Watched by the Kitaplygym shelves, which re-sort themselves the
+        // moment a book's reader is opened — see [BookOpenHistory].
+        ChangeNotifierProvider<BookOpenHistory>.value(
+            value: BookOpenHistory.instance),
         ChangeNotifierProvider<RevenueCatService>.value(
             value: RevenueCatService.instance),
         ChangeNotifierProvider<PremiumAccessService>.value(

@@ -25,6 +25,10 @@ extension _BookOpenFlowActions on BookOpenFlow {
     // both feed the very next access decision.
     await context.read<AccountService>().refresh();
     await context.read<BookAccessService>().refreshPurchased();
+    // Ödeme yüzeyi de bu oturuma göre yeniden çözülmeli — bkz.
+    // auth_completion.dart'taki aynı çağrının gerekçesi.
+    if (!context.mounted) return false;
+    await context.read<PurchaseModeService>().refresh();
     if (!context.mounted) return false;
     onAccessChanged?.call();
     return true;
@@ -43,7 +47,7 @@ extension _BookOpenFlowActions on BookOpenFlow {
 
   /// Owned or subscribed: get the file onto the device (skipping the
   /// network entirely if it's already there) and push the reader.
-  Future<void> _downloadAndOpen({bool offerPurchasedExport = false}) async {
+  Future<void> _downloadAndOpen() async {
     final filesStore = context.read<DownloadedFilesStore>();
     final downloadService = context.read<BookDownloadService>();
     final downloadedBooksStore = context.read<DownloadedBooksStore>();
@@ -116,56 +120,21 @@ extension _BookOpenFlowActions on BookOpenFlow {
       format: format,
     );
     if (!context.mounted) return;
-    if (offerPurchasedExport) await _offerPurchasedExport(path);
-    if (!context.mounted) return;
+    // No second, user-visible copy is written. A catalogue book is licensed
+    // reading inside this app, not a file the reader owns: the only copy is
+    // the app's own, under Application Support, where the device's file
+    // browser cannot reach it. This used to drop a copy into the shared
+    // Downloads collection on first open, which put a DRM-free file of a
+    // paid book one tap away from any other app.
     log('🔍 [BookOpen] bookId=${book.id} handing off to reader | '
         'format=$format path=$path');
     _openReader(path: path, format: format);
   }
 
-  /// The app-private copy is always kept for offline reading. A newly bought
-  /// book can additionally be handed to the operating system's Files picker,
-  /// where the reader chooses the final folder (Files, Downloads, Drive...).
-  Future<void> _offerPurchasedExport(String path) async {
-    final saveOutsideApp = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(BookDetailStrings.savePurchasedTitle),
-        content: Text(BookDetailStrings.savePurchasedBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(BookDetailStrings.keepInApp),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(BookDetailStrings.chooseSaveLocation),
-          ),
-        ],
-      ),
-    );
-    if (saveOutsideApp != true || !context.mounted) return;
-    try {
-      await Share.shareXFiles([XFile(path)],
-          fileNameOverrides: [path.split('/').last]);
-    } catch (error) {
-      if (context.mounted)
-        context.showAppSnackBar(BookDetailStrings.saveToFilesError(error));
-    }
-  }
-
   /// The best format this book is available in — same priority the local
   /// store uses ([DownloadedFilesStore.formatPriority]: epub reflows best,
   /// cbz least).
-  BookFile? _pickFile() {
-    if (book.bookFiles.isEmpty) return null;
-    for (final format in DownloadedFilesStore.formatPriority) {
-      for (final file in book.bookFiles) {
-        if (file.fileFormat.toLowerCase() == format) return file;
-      }
-    }
-    return book.bookFiles.first;
-  }
+  BookFile? _pickFile() => preferredBookFile(book.bookFiles);
 
   void _openReader({required String path, required String format}) =>
       openCatalogBookFile(

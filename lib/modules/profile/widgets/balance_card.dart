@@ -45,7 +45,10 @@ class BalanceCard extends StatelessWidget {
           colors: [AppColors.primary, AppColors.primaryDark],
         ),
         boxShadow: [
-          BoxShadow(color: AppColors.primary.withValues(alpha: 0.3), blurRadius: 18, offset: const Offset(0, 8)),
+          BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.3),
+              blurRadius: 18,
+              offset: const Offset(0, 8)),
         ],
       ),
       child: Column(
@@ -56,8 +59,14 @@ class BalanceCard extends StatelessWidget {
               Container(
                 width: 36,
                 height: 36,
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
-                child: const Center(child: HugeIcon(icon: HugeIcons.strokeRoundedWallet01, color: Colors.white, size: 18)),
+                decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle),
+                child: const Center(
+                    child: HugeIcon(
+                        icon: HugeIcons.strokeRoundedWallet01,
+                        color: Colors.white,
+                        size: 18)),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -66,12 +75,17 @@ class BalanceCard extends StatelessWidget {
                   children: [
                     Text(
                       ProfileStrings.balanceTitle,
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.85),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       ProfileStrings.balanceSubtitle,
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11.5),
+                      style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.7),
+                          fontSize: 11.5),
                     ),
                   ],
                 ),
@@ -101,14 +115,21 @@ class BalanceCard extends StatelessWidget {
                       )
                     : Text(
                         PaymentStrings.manat(balance),
-                        style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800, height: 1.1),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            height: 1.1),
                       ),
               ),
               GestureDetector(
                 onTap: onAction,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14)),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -124,7 +145,10 @@ class BalanceCard extends StatelessWidget {
                         useSubscribeCta
                             ? PaymentStrings.subscribeCta
                             : ProfileStrings.topUpBalance,
-                        style: TextStyle(color: AppColors.primary, fontSize: 13.5, fontWeight: FontWeight.w800),
+                        style: TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w800),
                       ),
                     ],
                   ),

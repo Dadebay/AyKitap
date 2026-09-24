@@ -3,7 +3,6 @@ import 'dart:developer';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../core/localization/strings/book_detail_strings.dart';
 import '../../core/models/book_detail.dart';
@@ -14,6 +13,7 @@ import '../../core/network/api_config.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/services/account_service.dart';
 import '../../core/services/auth_session.dart';
+import '../../core/services/book_file_picker.dart';
 import '../../core/services/book_access_service.dart';
 import '../../core/services/book_download_service.dart';
 import '../../core/services/downloaded_books_store.dart';
@@ -63,15 +63,14 @@ class BookOpenFlow {
   /// or purchase the verdict is re-resolved, and a backend that keeps
   /// answering "needsPurchase" must not turn that into an endless loop of
   /// checkout screens.
-  Future<void> read(
-      {int retries = 2, bool offerPurchasedExport = false}) async {
+  Future<void> read({int retries = 2}) async {
     final bookAccess = context.read<BookAccessService>();
     final access = await bookAccess.resolve(book);
     if (!context.mounted) return;
 
     switch (access) {
       case BookAccess.purchased:
-        await _downloadAndOpen(offerPurchasedExport: offerPurchasedExport);
+        await _downloadAndOpen();
       case BookAccess.subscription:
         await _downloadAndOpen();
 

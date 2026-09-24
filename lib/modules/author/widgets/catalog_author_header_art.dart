@@ -46,10 +46,14 @@ class CatalogAuthorHeaderArt extends StatelessWidget {
                       // Tinted with [AppColors.bg] rather than plain black so
                       // the filler settles toward the page behind it in both
                       // themes instead of turning a light UI's hero muddy.
-                      child: Container(color: AppColors.bg.withValues(alpha: 0.45)),
+                      child: Container(
+                          color: AppColors.bg.withValues(alpha: 0.45)),
                     ),
                   ),
-                  NetworkCoverImage(url: url, fit: BoxFit.contain, placeholder: (_) => const SizedBox.shrink()),
+                  NetworkCoverImage(
+                      url: url,
+                      fit: BoxFit.contain,
+                      placeholder: (_) => const SizedBox.shrink()),
                 ],
               )
             : _avatarPlaceholder(),
@@ -59,6 +63,10 @@ class CatalogAuthorHeaderArt extends StatelessWidget {
 
   Widget _avatarPlaceholder() => Container(
         color: AppColors.card,
-        child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedUser, color: AppColors.grey3, size: 48)),
+        child: Center(
+            child: HugeIcon(
+                icon: HugeIcons.strokeRoundedUser,
+                color: AppColors.grey3,
+                size: 48)),
       );
 }

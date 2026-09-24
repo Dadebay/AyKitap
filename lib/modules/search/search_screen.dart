@@ -32,6 +32,7 @@ import 'search_result_diagnostics.dart';
 import 'widgets/author_result_grid.dart';
 import 'widgets/quick_chip.dart';
 import 'widgets/search_result_grid.dart';
+import '../main_nav/widgets/wheel_nav_bar.dart';
 
 part 'search_screen_body.dart';
 part 'search_screen_controls.dart';

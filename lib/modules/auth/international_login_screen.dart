@@ -16,6 +16,7 @@ import '../../core/widgets/gradient_icon_badge.dart';
 import '../../core/widgets/or_divider.dart';
 import '../../core/widgets/primary_button.dart';
 import 'auth_completion.dart';
+import 'suggested_display_name.dart';
 import 'widgets/auth_provider_button.dart';
 
 /// The "another method" door alongside the +993 phone/OTP flow
@@ -52,10 +53,19 @@ class _InternationalLoginScreenState extends State<InternationalLoginScreen> {
   bool get _emailValid => _emailController.text.contains('@');
   bool get _passwordValid => _passwordController.text.length >= 6;
 
-  Future<void> _finishLogin(String idToken, String loginMethod) async {
+  Future<void> _finishLogin(
+    String idToken,
+    String loginMethod, {
+    String? suggestedName,
+  }) async {
     final result = await AuthApiService.firebaseLogin(idToken: idToken);
     if (!mounted) return;
-    await completeBackendLogin(context, result, loginMethod: loginMethod);
+    await completeBackendLogin(
+      context,
+      result,
+      loginMethod: loginMethod,
+      suggestedName: suggestedName,
+    );
     if (mounted) context.pop(true);
   }
 
@@ -72,7 +82,12 @@ class _InternationalLoginScreenState extends State<InternationalLoginScreen> {
           ? FirebaseAuthService.instance.registerWithEmail
           : FirebaseAuthService.instance.signInWithEmail;
       final result = await signIn(email, password);
-      await _finishLogin(result.idToken, 'email');
+      await _finishLogin(
+        result.idToken,
+        'email',
+        suggestedName: suggestedDisplayName(
+            displayName: result.displayName, email: result.email),
+      );
     } on FirebaseAuthClientException catch (e) {
       _handleFirebaseError(e);
     } on ApiException catch (e) {
@@ -88,7 +103,12 @@ class _InternationalLoginScreenState extends State<InternationalLoginScreen> {
     });
     try {
       final result = await FirebaseAuthService.instance.signInWithGoogle();
-      await _finishLogin(result.idToken, 'google');
+      await _finishLogin(
+        result.idToken,
+        'google',
+        suggestedName: suggestedDisplayName(
+            displayName: result.displayName, email: result.email),
+      );
     } on FirebaseAuthClientException catch (e) {
       _handleFirebaseError(e);
     } on ApiException catch (e) {
@@ -104,7 +124,14 @@ class _InternationalLoginScreenState extends State<InternationalLoginScreen> {
     });
     try {
       final result = await FirebaseAuthService.instance.signInWithApple();
-      await _finishLogin(result.idToken, 'apple');
+      await _finishLogin(
+        result.idToken,
+        'apple',
+        // App Store guideline 4: never ask for what Sign in with Apple
+        // already handed over. See [suggestedDisplayName].
+        suggestedName: suggestedDisplayName(
+            displayName: result.displayName, email: result.email),
+      );
     } on FirebaseAuthClientException catch (e) {
       _handleFirebaseError(e);
     } on ApiException catch (e) {

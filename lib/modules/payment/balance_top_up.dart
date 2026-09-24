@@ -5,6 +5,7 @@ import '../../core/localization/strings/payment_strings.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/services/account_service.dart';
 import '../../core/services/auth_api_service.dart';
+import '../../core/services/balance_alert_service.dart';
 import '../../core/services/payment_api_service.dart';
 import '../../core/services/purchase_mode_service.dart';
 import '../../core/services/revenue_cat_api_service.dart';
@@ -42,10 +43,41 @@ Future<void> startBalanceTopUp(
   BuildContext context, {
   Future<bool>? storeTopUpAvailability,
 }) async {
+  // Two of the three routes below hand off to another app on the way (Play's
+  // billing activity, the bank's payment page), so coming back is a
+  // `resumed` that [BalanceAlertService] would otherwise read as money
+  // arriving from nowhere — and announce over the success UI the reader is
+  // already looking at. Armed here rather than at each success branch so a
+  // route that credits without one still can't trip it.
+  BalanceAlertService.instance.ignoreNextIncrease();
   final useStore = await _mustUseStoreTopUp(storeTopUpAvailability);
   if (!context.mounted) return;
   if (useStore) {
-    await _purchaseStoreTopUp(context);
+    // The store path used to go straight to the store sheet, which is why a
+    // reader on it saw no promo code anywhere in the app — it lives in
+    // [PaymentMethodSheet], and that sheet was skipped. A promo code needs
+    // no bank card, so there is no reason the store path can't offer it; the
+    // bank-card row is the only one that genuinely doesn't apply, and it is
+    // dropped instead.
+    //
+    // Gated on the admin panel's "Diňe App Store tölegleri" switch, which is
+    // what [PurchaseModeService.isIOSStoreOnly] carries: while it is on, iOS
+    // sells through App Store alone and nothing else may be offered (see the
+    // panel's own 3.1.1 warning). Off — and on Android, where the switch has
+    // no effect at all — the promo code is shown.
+    if (PurchaseModeService.instance.isIOSStoreOnly) {
+      await _purchaseStoreTopUp(context);
+      if (context.mounted) await AccountService.instance.refresh();
+      return;
+    }
+    final storeChoice = await PaymentMethodSheet.show(context,
+        showStore: true, showBankCard: false);
+    if (storeChoice == null || !context.mounted) return;
+    if (storeChoice == PaymentMethodChoice.promoCode) {
+      await _redeemPromoCode(context);
+    } else {
+      await _purchaseStoreTopUp(context);
+    }
     if (context.mounted) await AccountService.instance.refresh();
     return;
   }
@@ -55,17 +87,7 @@ Future<void> startBalanceTopUp(
 
   switch (choice) {
     case PaymentMethodChoice.promoCode:
-      final code = await PromoCodeSheet.show(context);
-      if (code == null || code.isEmpty || !context.mounted) return;
-      try {
-        await AuthApiService.redeemPromoCode(code: code);
-        if (context.mounted) {
-          context.showAppSnackBar(PaymentStrings.promoCodeAppliedBalance);
-        }
-      } on ApiException catch (e) {
-        if (!context.mounted) return;
-        context.showAppSnackBar(e.message, isError: true);
-      }
+      await _redeemPromoCode(context);
 
     case PaymentMethodChoice.bankCard:
       final amount = await TopUpAmountSheet.show(context);
@@ -97,6 +119,23 @@ Future<void> startBalanceTopUp(
 /// fall back to promo code/bank card while the App Store review toggle is
 /// on — [PurchaseModeService.useStoreCheckout] already encodes both rules,
 /// including failing closed to the store surface on iOS.
+/// Asks for a code and redeems it, crediting the balance server-side.
+/// Shared by both branches above so the store path redeems exactly the way
+/// the wallet path always has.
+Future<void> _redeemPromoCode(BuildContext context) async {
+  final code = await PromoCodeSheet.show(context);
+  if (code == null || code.isEmpty || !context.mounted) return;
+  try {
+    await AuthApiService.redeemPromoCode(code: code);
+    if (context.mounted) {
+      context.showAppSnackBar(PaymentStrings.promoCodeAppliedBalance);
+    }
+  } on ApiException catch (e) {
+    if (!context.mounted) return;
+    context.showAppSnackBar(e.message, isError: true);
+  }
+}
+
 Future<bool> _mustUseStoreTopUp(Future<bool>? storeTopUpAvailability) async {
   if (!Platform.isIOS && !Platform.isAndroid) return false;
   if (storeTopUpAvailability != null) return storeTopUpAvailability;

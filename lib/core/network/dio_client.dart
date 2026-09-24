@@ -56,7 +56,10 @@ class DioClient {
       // before — this only adds the session-recovery side effect.
       onError: (err, handler) async {
         if (err.response?.statusCode == 401) {
-          unawaited(SessionExpiryHandler.instance.handleUnauthorized());
+          unawaited(SessionExpiryHandler.instance.handleUnauthorized(
+            path: err.requestOptions.path,
+            host: err.requestOptions.baseUrl,
+          ));
         }
         // `ApiConfig.baseUrl` is a domain that doesn't resolve on every
         // network (see its doc comment) — on a connection failure, retry

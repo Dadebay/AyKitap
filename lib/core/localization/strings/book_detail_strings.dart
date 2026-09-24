@@ -195,39 +195,6 @@ class BookDetailStrings {
         tr: 'İndirme silindi',
         en: 'Download deleted',
       );
-  static String get saveToFiles => t(
-        tk: 'Faýllara ýaz',
-        ru: 'Сохранить в Файлы',
-        tr: 'Dosyalara kaydet',
-        en: 'Save to Files',
-      );
-  static String get savePurchasedTitle => t(
-      tk: 'Kitaby nirede saklamaly?',
-      ru: 'Где сохранить книгу?',
-      tr: 'Kitap nereye kaydedilsin?',
-      en: 'Where should the book be saved?');
-  static String get savePurchasedBody => t(
-      tk: 'Kitaby oflaýn okamak üçin programmaňyzda saklaýarys. Şeýle hem öz faýl ýeriňize ýazyp bilersiňiz.',
-      ru: 'Книга уже сохранена в приложении для офлайн-чтения. Также можно сохранить копию в выбранном месте.',
-      tr: 'Kitap çevrimdışı okuma için uygulamada saklanır. İsterseniz seçtiğiniz konuma bir kopyasını da kaydedebilirsiniz.',
-      en: 'We keep the book in the app for offline reading. You can also save a copy to a location of your choice.');
-  static String get keepInApp => t(
-      tk: 'Diňe programmada sakla',
-      ru: 'Только в приложении',
-      tr: 'Yalnızca uygulamada tut',
-      en: 'Keep in app only');
-  static String get chooseSaveLocation => t(
-      tk: 'Ýer saýla',
-      ru: 'Выбрать место',
-      tr: 'Konum seç',
-      en: 'Choose location');
-  static String saveToFilesError(Object error) => t(
-        tk: 'Faýl paýlaşylmady: $error',
-        ru: 'Не удалось поделиться файлом: $error',
-        tr: 'Dosya paylaşılamadı: $error',
-        en: 'Couldn\'t share the file: $error',
-      );
-
   static String get removeFromPurchased => t(
         tk: 'Satyn alnanlardan aýyr',
         ru: 'Удалить из купленных',

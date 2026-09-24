@@ -72,16 +72,11 @@ extension ShelfRemovalActions on ShelfRemoval {
 /// [coverUrl] shows the actual book being deleted (with the trash badge
 /// clipped onto its corner); imported files have no artwork, so those fall
 /// back to a plain tinted icon circle.
-///
-/// [extraLabel] adds one non-destructive way out beside "cancel" — the
-/// downloaded shelf's "save the file first", which used to live in a bottom
-/// sheet in front of this dialog.
 Future<ShelfDeleteChoice> showShelfDeleteDialog(
   BuildContext context, {
   required String message,
   String? title,
   String? coverUrl,
-  String? extraLabel,
 }) async {
   final choice = await showDialog<ShelfDeleteChoice>(
     context: context,
@@ -89,28 +84,24 @@ Future<ShelfDeleteChoice> showShelfDeleteDialog(
       message: message,
       title: title,
       coverUrl: coverUrl,
-      extraLabel: extraLabel,
     ),
   );
   return choice ?? ShelfDeleteChoice.cancel;
 }
 
-/// How the delete dialog was dismissed. [extra] only ever comes back when
-/// the caller passed an `extraLabel`.
-enum ShelfDeleteChoice { cancel, delete, extra }
+/// How the delete dialog was dismissed.
+enum ShelfDeleteChoice { cancel, delete }
 
 class _ShelfDeleteDialog extends StatelessWidget {
   const _ShelfDeleteDialog({
     required this.message,
     this.title,
     this.coverUrl,
-    this.extraLabel,
   });
 
   final String message;
   final String? title;
   final String? coverUrl;
-  final String? extraLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +128,7 @@ class _ShelfDeleteDialog extends StatelessWidget {
                 style: TextStyle(
                     color: AppColors.grey1, fontSize: 13.5, height: 1.45)),
             const SizedBox(height: 24),
-            ShelfDeleteActions(extraLabel: extraLabel),
+            const ShelfDeleteActions(),
           ],
         ),
       ),

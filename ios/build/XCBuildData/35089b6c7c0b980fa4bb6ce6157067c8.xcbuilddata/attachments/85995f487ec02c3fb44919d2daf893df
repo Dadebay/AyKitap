@@ -1,0 +1,29 @@
+{
+  "" : {
+    "diagnostics" : "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/build/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/AykitapReadingWidgetHomeWidget-primary.dia",
+    "emit-module-dependencies" : "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/build/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/AykitapReadingWidgetHomeWidget-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/build/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/AykitapReadingWidgetHomeWidget-primary-emit-module.dia",
+    "pch" : "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/build/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/AykitapReadingWidgetHomeWidget-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/build/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/AykitapReadingWidgetHomeWidget-primary.swiftdeps"
+  },
+  "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/AykitapReadingWidgetHomeWidget/Widget.swift" : {
+    "const-values" : "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/build/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/Widget.swiftconstvalues",
+    "dependencies" : "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/build/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/Widget.d",
+    "diagnostics" : "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/build/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/Widget.dia",
+    "index-unit-output-path" : "/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/Widget.o",
+    "llvm-bc" : "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/build/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/Widget.bc",
+    "object" : "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/build/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/Widget.o",
+    "swift-dependencies" : "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/build/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/Widget.swiftdeps",
+    "swiftmodule" : "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/build/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/Widget~partial.swiftmodule"
+  },
+  "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/AykitapReadingWidgetHomeWidget/WidgetBundle.swift" : {
+    "const-values" : "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/build/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/WidgetBundle.swiftconstvalues",
+    "dependencies" : "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/build/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/WidgetBundle.d",
+    "diagnostics" : "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/build/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/WidgetBundle.dia",
+    "index-unit-output-path" : "/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/WidgetBundle.o",
+    "llvm-bc" : "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/build/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/WidgetBundle.bc",
+    "object" : "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/build/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/WidgetBundle.o",
+    "swift-dependencies" : "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/build/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/WidgetBundle.swiftdeps",
+    "swiftmodule" : "/Users/dadebay/Developer/apps/projects/aykitap_full/aykitap/ios/build/Runner.build/Debug-iphoneos/AykitapReadingWidgetHomeWidget.build/Objects-normal/arm64/WidgetBundle~partial.swiftmodule"
+  }
+}

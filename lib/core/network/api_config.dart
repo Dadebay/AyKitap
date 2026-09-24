@@ -10,7 +10,8 @@ class ApiConfig {
 
   /// Optional build-time fallback for networks where the primary domain does
   /// not resolve. The private endpoint stays out of source control.
-  static const String fallbackBaseUrl = String.fromEnvironment('API_FALLBACK_BASE_URL');
+  static const String fallbackBaseUrl =
+      String.fromEnvironment('API_FALLBACK_BASE_URL');
 
   static bool get hasFallbackBaseUrl => fallbackBaseUrl.isNotEmpty;
 

@@ -98,6 +98,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                     cacheLoadedBooks:
                         ReadingBooksStore.instance.mergeFromBackend,
                     openLocalWhenOffline: true,
+                    sortByLastOpened: true,
                     removal: ShelfRemoval.reading,
                   ),
                   ApiBooksTab(
@@ -109,6 +110,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                     heroShelf: 'finished',
                     showProgress: true,
                     refreshOn: FinishedBooksSyncService.instance,
+                    sortByLastOpened: true,
                     removal: ShelfRemoval.finished,
                   ),
                   // No `/books/all` filter for this — see

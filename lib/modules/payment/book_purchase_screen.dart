@@ -10,12 +10,14 @@ import '../../core/network/api_exception.dart';
 import '../../core/services/account_service.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/services/book_access_service.dart';
+import '../../core/services/book_file_picker.dart';
 import '../../core/services/book_purchase_api_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/app_snackbar.dart';
 import 'balance_top_up.dart';
 import 'widgets/book_purchase_confirm_button.dart';
+import '../library/purchase_diagnostics.dart';
 import 'widgets/book_purchase_price_card.dart';
 import 'widgets/book_purchase_summary_card.dart';
 import 'widgets/insufficient_balance_dialog.dart';
@@ -67,9 +69,32 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
       source: 'backend_balance',
       value: _price,
     ));
+    // What is actually being sold: the file the reader will open, chosen by
+    // the same format priority the reader uses — see [preferredBookFile].
+    // The endpoint takes this file's id, not the book's (see
+    // [BookPurchaseApiService]).
+    final file = preferredBookFile(widget.book.bookFiles);
+    if (file == null) {
+      // A book with no files can't be read, so it must not be charged for.
+      // Previously unreachable only by luck: the request went out keyed on
+      // the book id and the backend charged for whatever file wore that
+      // number.
+      context.showAppSnackBar(PaymentStrings.bookHasNoFileError, isError: true);
+      return;
+    }
     setState(() => _processing = true);
     try {
-      await BookPurchaseApiService.buy(widget.book.id);
+      logBookPurchase(
+          step: 'sending',
+          bookId: widget.book.id,
+          bookFileId: file.id,
+          bookName: widget.book.name);
+      await BookPurchaseApiService.buy(file.id);
+      logBookPurchase(
+          step: 'server accepted',
+          bookId: widget.book.id,
+          bookFileId: file.id,
+          bookName: widget.book.name);
       // The backend has already moved the money; this just picks up the new
       // number rather than guessing at it.
       if (!mounted) return;

@@ -8,11 +8,13 @@ import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.RectF
 import android.net.Uri
+import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetProvider
@@ -20,6 +22,7 @@ import es.antonborri.home_widget.HomeWidgetProvider
 /** The dedicated last-book widget. Tapping anywhere resumes that book. */
 class AykitapReadingWidgetProvider : HomeWidgetProvider() {
   private companion object {
+    const val TAG = "AykitapReadingWidget"
     /** Must match the cover box in `aykitap_last_book_widget.xml` (78x117dp) —
      *  the bitmap is cropped to this ratio so its rounded corners survive. */
     const val COVER_ASPECT = 78f / 117f
@@ -54,22 +57,85 @@ class AykitapReadingWidgetProvider : HomeWidgetProvider() {
     val cover = widgetData.getString("book_cover", null)?.let(::decodeWidgetCover)
 
     appWidgetIds.forEach { id ->
+      val options = appWidgetManager.getAppWidgetOptions(id)
+      val widgetWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250).toFloat()
+      val widgetHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 140)
+      val textMaxWidth = (widgetWidth - 123f).coerceAtLeast(105f)
+      Log.i(
+        TAG,
+        "update id=$id size=${widgetWidth.toInt()}x$widgetHeight " +
+          "textMax=${textMaxWidth.toInt()} bitmapFont=true",
+      )
       val views = RemoteViews(context.packageName, R.layout.aykitap_last_book_widget).apply {
-        setTextViewText(R.id.widget_eyebrow, if (hasBook) "CONTINUE READING" else "GET STARTED")
-        setTextViewText(R.id.widget_title, title)
-        setTextViewText(R.id.widget_author, author ?: "")
+        setGilroyText(
+          context,
+          R.id.widget_eyebrow,
+          if (hasBook) "CONTINUE READING" else "GET STARTED",
+          textSizeSp = 9f,
+          color = Color.parseColor("#A13B75"),
+          bold = true,
+          maxWidthDp = textMaxWidth,
+          letterSpacingEm = 0.06f,
+        )
+        setGilroyText(
+          context,
+          R.id.widget_title,
+          title,
+          textSizeSp = 16f,
+          color = Color.parseColor("#211D2B"),
+          bold = true,
+          maxWidthDp = textMaxWidth,
+        )
+        setGilroyText(
+          context,
+          R.id.widget_author,
+          author ?: "",
+          textSizeSp = 11f,
+          color = Color.parseColor("#8A5C86"),
+          bold = true,
+          maxWidthDp = textMaxWidth,
+        )
         setViewVisibility(R.id.widget_author, if (hasBook && author != null) View.VISIBLE else View.GONE)
-        setTextViewText(R.id.widget_subtitle, subtitle)
-        setTextViewText(
+        setGilroyText(
+          context,
+          R.id.widget_subtitle,
+          subtitle,
+          textSizeSp = 11f,
+          color = Color.parseColor("#746D7D"),
+          maxWidthDp = textMaxWidth,
+        )
+        setGilroyText(
+          context,
+          R.id.widget_cover_placeholder,
+          "AÝ\nKITAP",
+          textSizeSp = 11f,
+          color = Color.WHITE,
+          bold = true,
+          maxWidthDp = 58f,
+        )
+        setGilroyText(
+          context,
           R.id.widget_cta,
           if (hasBook) "Tap to continue  →" else "Browse the library  →",
+          textSizeSp = 10.5f,
+          color = Color.parseColor("#7647E8"),
+          bold = true,
+          maxWidthDp = textMaxWidth - 20f,
         )
         // A 0%-progress bar next to "choose your next book" reads as
         // clutter, not progress — only meaningful once a book is active.
         setViewVisibility(R.id.widget_progress_row, if (hasPages) View.VISIBLE else View.GONE)
         if (hasPages) {
           setProgressBar(R.id.widget_progress, 100, progress, false)
-          setTextViewText(R.id.widget_percent, "$progress%")
+          setGilroyText(
+            context,
+            R.id.widget_percent,
+            "$progress%",
+            textSizeSp = 10.5f,
+            color = Color.parseColor("#7647E8"),
+            bold = true,
+            maxWidthDp = 42f,
+          )
         }
         if (cover != null) {
           setImageViewBitmap(R.id.widget_cover, cover)

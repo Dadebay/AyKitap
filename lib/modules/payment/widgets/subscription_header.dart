@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:intl/intl.dart';
 
+import '../../../core/localization/app_date_format.dart';
 import '../../../core/localization/strings/payment_strings.dart';
 import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/theme_controller.dart';
@@ -206,7 +206,7 @@ class SubscriptionHeader extends StatelessWidget {
                           Expanded(
                             child: Text(
                               PaymentStrings.activeUntil(
-                                DateFormat.yMMMd().format(expiry),
+                                AppDateFormat.date(expiry),
                               ),
                               style: TextStyle(
                                 color: foreground,

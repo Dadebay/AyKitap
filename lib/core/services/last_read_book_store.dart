@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/library_book.dart';
 import '../network/api_config.dart';
+import 'book_open_history.dart';
 import 'home_screen_widget_service.dart';
 
 /// The one catalogue book surfaced by the Play tab. Reader-specific page
@@ -107,6 +108,11 @@ class LastReadBookStore extends ChangeNotifier {
   }) async {
     await load();
     final existingPage = _book?.bookId == book.id ? _book!.page : 0;
+    // Every path that opens a catalogue book's reader comes through here, so
+    // this is where "and when" gets recorded for the shelves to sort by —
+    // rather than at each of the five call sites, one of which would
+    // eventually be added without it. See [BookOpenHistory].
+    unawaited(BookOpenHistory.instance.recordOpened(book.id));
     final authorNames = book.authorNames;
     _book = LastReadBook(
       bookId: book.id,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 import '../../../core/localization/strings/book_detail_strings.dart';
 import '../../../core/localization/strings/library_strings.dart';
 import '../../../core/models/library_book.dart';
@@ -8,12 +7,14 @@ import '../../../core/navigation/app_hero_tags.dart';
 import '../../../core/navigation/app_navigator.dart';
 import '../../../core/network/api_config.dart';
 import '../../../core/services/book_access_service.dart';
+import '../../../core/services/book_open_history.dart';
 import '../../../core/services/downloaded_books_store.dart';
 import '../../../core/services/downloaded_files_store.dart';
 import '../../../core/services/last_read_book_store.dart';
 import '../../../core/services/subscription_service.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../book_detail/catalog_book_detail_screen.dart';
+import '../../main_nav/widgets/wheel_nav_bar.dart';
 import '../../reader/utils/catalog_book_opener.dart';
 import 'library_book_cover.dart';
 import 'library_empty_state.dart';
@@ -40,12 +41,18 @@ class _DownloadedTabState extends State<DownloadedTab>
   void initState() {
     super.initState();
     DownloadedBooksStore.instance.load();
+    BookOpenHistory.instance.load();
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final books = context.watch<DownloadedBooksStore>().books;
+    // [DownloadedBooksStore] orders by when the *file* arrived, which stops
+    // saying anything useful once a few books have been downloaded and read
+    // in a different order — so the book last actually opened comes first.
+    final books = context
+        .watch<BookOpenHistory>()
+        .sortByRecency(context.watch<DownloadedBooksStore>().books);
     // Both drive the per-cover lock: access can lapse (subscription) and
     // files can be deleted from under the shelf.
     context.watch<BookAccessService>();
@@ -59,7 +66,9 @@ class _DownloadedTabState extends State<DownloadedTab>
           sub: LibraryStrings.emptyDownloadedSub);
     }
     return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 20),
+      // Clears the wheel the Scaffold draws over this content — see
+      // [WheelNavBar.clearance].
+      padding: EdgeInsets.only(bottom: WheelNavBar.clearance(context) + 16),
       child: ShelfGrid(
         itemCount: books.length,
         itemBuilder: (context, i) => LibraryBookCover(
@@ -117,36 +126,18 @@ class _DownloadedTabState extends State<DownloadedTab>
     );
   }
 
-  /// Hands the already-downloaded file to the OS share sheet so the user
-  /// can save their own copy wherever they like (iOS Files / iCloud Drive,
-  /// Android Downloads or Drive) — the app's private copy is untouched.
-  Future<void> _saveToFiles(LibraryBook book) async {
-    await DownloadedFilesStore.instance.load();
-    final entry = DownloadedFilesStore.instance.best(book.id);
-    if (entry == null) return;
-    try {
-      await Share.shareXFiles(
-        [XFile(entry.path)],
-        fileNameOverrides: [entry.path.split('/').last],
-      );
-    } catch (e) {
-      if (mounted)
-        context.showAppSnackBar(BookDetailStrings.saveToFilesError(e));
-    }
-  }
-
   /// Frees the device storage without touching the user's library: the file
   /// goes ([DownloadedFilesStore.removeBook] deletes it from disk) and the
   /// shelf entry goes, but a purchased book is still purchased and can be
   /// downloaded again.
   ///
   /// This is the same dialog every other shelf's long-press opens. It used
-  /// to be a bottom sheet (save-to-Files / delete) with a second confirm
-  /// dialog behind it — two steps, and unlike anywhere else in the library.
-  /// The share action survives as the dialog's own alternative: purchased
-  /// books are the user's to keep, so before freeing the space they can hand
-  /// the on-disk file to the OS share sheet and pick "Save to Files" (iOS)
-  /// or a Downloads-capable target (Android) themselves.
+  /// to carry a second action that handed the on-disk file to the OS share
+  /// sheet, so the reader could keep a copy outside the app before freeing
+  /// the space. That action is gone: a catalogue book is licensed reading
+  /// inside this app, and the share sheet was a way to walk a DRM-free file
+  /// of it straight out. Deleting still leaves the book itself untouched —
+  /// it can be downloaded again at any time.
   Future<void> _confirmDeleteDownload(LibraryBook book) async {
     final image = book.image;
     final choice = await showShelfDeleteDialog(
@@ -156,18 +147,9 @@ class _DownloadedTabState extends State<DownloadedTab>
       coverUrl: image != null && image.isNotEmpty
           ? ApiConfig.resolveImageUrl(image)
           : null,
-      extraLabel: BookDetailStrings.saveToFiles,
     );
     if (!mounted) return;
-    switch (choice) {
-      case ShelfDeleteChoice.cancel:
-        return;
-      case ShelfDeleteChoice.extra:
-        await _saveToFiles(book);
-        return;
-      case ShelfDeleteChoice.delete:
-        break;
-    }
+    if (choice != ShelfDeleteChoice.delete) return;
     await DownloadedFilesStore.instance.removeBook(book.id);
     await DownloadedBooksStore.instance.remove(book.id);
     if (mounted) context.showAppSnackBar(BookDetailStrings.downloadDeleted);

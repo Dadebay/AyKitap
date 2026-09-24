@@ -1,5 +1,6 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/localization/strings/library_strings.dart';
 import '../../../core/models/library_book.dart';
 import '../../../core/navigation/app_hero_tags.dart';
@@ -7,11 +8,14 @@ import '../../../core/navigation/app_navigator.dart';
 import '../../../core/network/api_config.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/services/book_access_service.dart';
+import '../../../core/services/book_open_history.dart';
 import '../../../core/services/downloaded_files_store.dart';
 import '../../../core/services/last_read_book_store.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../book_detail/catalog_book_detail_screen.dart';
+import '../../main_nav/widgets/wheel_nav_bar.dart';
+import '../purchase_diagnostics.dart';
 import '../../reader/utils/catalog_book_opener.dart';
 import 'library_book_cover.dart';
 import 'library_empty_state.dart';
@@ -56,6 +60,17 @@ class ApiBooksTab extends StatefulWidget {
   /// mode and open the downloaded file directly.
   final bool openLocalWhenOffline;
 
+  /// Puts the book whose reader was opened most recently on this device
+  /// first (see [BookOpenHistory]).
+  ///
+  /// Opt-in rather than on everywhere: it belongs on the shelves that track
+  /// *reading* — what you were last in is what you are most likely coming
+  /// back for. "Satyn alnanlar" and "Halanlarym" are ordered by when the
+  /// book was bought or liked, which is the fact those shelves are actually
+  /// about, so reordering them by reading would answer a question nobody
+  /// asked of them.
+  final bool sortByLastOpened;
+
   /// What a long-press on one of this shelf's covers removes. Every shelf
   /// sets it — until it existed, a book could only be taken off the
   /// downloaded shelf, so there was no way to drop a finished book or a
@@ -74,6 +89,7 @@ class ApiBooksTab extends StatefulWidget {
     this.offlineFetcher,
     this.cacheLoadedBooks,
     this.openLocalWhenOffline = false,
+    this.sortByLastOpened = false,
     this.removal,
   });
 
@@ -99,6 +115,7 @@ class _ApiBooksTabState extends State<ApiBooksTab>
     super.initState();
     _loadOfflineShadow();
     _load();
+    if (widget.sortByLastOpened) BookOpenHistory.instance.load();
     widget.refreshOn?.addListener(_load);
   }
 
@@ -144,7 +161,13 @@ class _ApiBooksTabState extends State<ApiBooksTab>
         ),
       );
     }
-    final books = _books ?? const [];
+    // Sorted here rather than in [_load] so returning from the reader
+    // reorders the shelf straight away: this tab is kept alive across tab
+    // switches and doesn't re-fetch on its own, so a shelf ordered at load
+    // time would keep yesterday's order until a pull-to-refresh.
+    final books = widget.sortByLastOpened
+        ? context.watch<BookOpenHistory>().sortByRecency(_books ?? const [])
+        : _books ?? const [];
     if (books.isEmpty) return LibraryEmptyState(label: widget.emptyLabel);
     return RefreshIndicator(
       onRefresh: _load,
@@ -152,7 +175,10 @@ class _ApiBooksTabState extends State<ApiBooksTab>
       backgroundColor: AppColors.surface,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(bottom: 20),
+        // Clears the wheel the Scaffold draws over this content — see
+        // [WheelNavBar.clearance] — plus a little breathing room, so the last
+        // shelf ends above the dome instead of behind it.
+        padding: EdgeInsets.only(bottom: WheelNavBar.clearance(context) + 16),
         child: ShelfGrid(
           itemCount: books.length,
           // Keyed by book id — without it, removing an item (unfavoriting,

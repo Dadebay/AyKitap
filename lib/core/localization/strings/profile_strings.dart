@@ -226,6 +226,100 @@ class ProfileStrings {
       ru: 'Операция по балансу',
       tr: 'Bakiye işlemi',
       en: 'Balance activity');
+  /// The `event` enum on a `GET /users/balance-logs` row, as something a
+  /// reader can actually read. Every value the backend's
+  /// `UserBalanceLogEvent` can currently send is listed; an unrecognised one
+  /// (a newly added server enum reaching an older build) falls back to the
+  /// prettified raw name rather than an empty line.
+  static String balanceEventLabel(String event) {
+    switch (event.toUpperCase()) {
+      case 'DEPOSIT_BY_CARD':
+        return t(
+            tk: 'Kart arkaly dolduryldy',
+            ru: 'Пополнено картой',
+            tr: 'Kartla yüklendi',
+            en: 'Topped up by card');
+      case 'DEPOSIT_BY_TMCELL':
+        return t(
+            tk: 'TMCELL arkaly dolduryldy',
+            ru: 'Пополнено через TMCELL',
+            tr: 'TMCELL ile yüklendi',
+            en: 'Topped up via TMCELL');
+      case 'DEPOSIT_BY_PROMO':
+        return t(
+            tk: 'Promo kod bilen dolduryldy',
+            ru: 'Пополнено по промокоду',
+            tr: 'Promo kodla yüklendi',
+            en: 'Topped up with a promo code');
+      case 'DEPOSIT_BY_REVENUECAT':
+        return t(
+            tk: 'Programma dükanyndan dolduryldy',
+            ru: 'Пополнено через магазин приложений',
+            tr: 'Uygulama mağazasından yüklendi',
+            en: 'Topped up via the app store');
+      case 'BUY_BOOK':
+        return balanceBookPurchase;
+      case 'BUY_SUBSCRIPTION':
+        return t(
+            tk: 'Abunalyk satyn alyndy',
+            ru: 'Подписка оформлена',
+            tr: 'Abonelik satın alındı',
+            en: 'Subscription purchased');
+      case 'REWARD_BY_STREAK':
+        return t(
+            tk: 'Streak sowgady',
+            ru: 'Награда за серию',
+            tr: 'Seri ödülü',
+            en: 'Streak reward');
+      case 'SIGNUP_BONUS':
+        return t(
+            tk: 'Hoş geldiň sowgady',
+            ru: 'Приветственный бонус',
+            tr: 'Hoş geldin hediyesi',
+            en: 'Welcome bonus');
+      case 'SEND_TO_FRIEND':
+        return t(
+            tk: 'Dosta iberildi',
+            ru: 'Отправлено другу',
+            tr: 'Arkadaşa gönderildi',
+            en: 'Sent to a friend');
+      case 'COME_FROM_FRIEND':
+        return t(
+            tk: 'Dostdan geldi',
+            ru: 'Получено от друга',
+            tr: 'Arkadaştan geldi',
+            en: 'Received from a friend');
+      default:
+        return event.replaceAll('_', ' ');
+    }
+  }
+
+  // widgets/balance_increase_dialog.dart — announced by [BalanceAlertService]
+  // when the balance is found higher than the app last saw it, which in
+  // practice means someone sent the reader a gift while the app was closed.
+  static String get balanceIncreasedTitle => t(
+      tk: 'Balansyňyz artdy! 🎉',
+      ru: 'Баланс пополнен! 🎉',
+      tr: 'Bakiyen arttı! 🎉',
+      en: 'Your balance went up! 🎉');
+
+  /// [amount] is the difference the app actually observed, not a figure from
+  /// the server — the backend sends no "you were paid" event, so the delta is
+  /// the only thing that can honestly be stated.
+  static String balanceIncreasedBody(int amount) => t(
+        tk: 'Balansyňyza $amount TMT goşuldy. Ony kitap satyn almak ýa-da abuna ýazylmak üçin ulanyp bilersiňiz.',
+        ru: 'На ваш баланс поступило $amount TMT. Используйте их, чтобы купить книгу или оформить подписку.',
+        tr: 'Bakiyene $amount TMT eklendi. Bunu kitap satın almak ya da abonelik için kullanabilirsin.',
+        en: '$amount TMT was added to your balance. Use it to buy a book or subscribe.',
+      );
+  static String get balanceIncreasedView => t(
+      tk: 'Balansy gör',
+      ru: 'Посмотреть баланс',
+      tr: 'Bakiyeyi gör',
+      en: 'View balance');
+  static String get balanceIncreasedDismiss =>
+      t(tk: 'Ýap', ru: 'Закрыть', tr: 'Kapat', en: 'Close');
+
   static String get cardPaymentsTitle => t(
       tk: 'Kart arkaly tölegler',
       ru: 'Платежи картой',

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:intl/intl.dart';
 
+import '../../../core/localization/app_date_format.dart';
 import '../../../core/localization/strings/payment_strings.dart';
 import '../../../core/localization/strings/profile_strings.dart';
 import '../../../core/models/balance_log.dart';
@@ -18,17 +18,19 @@ class BalanceLogTile extends StatelessWidget {
     final isPurchase = log.isBookPurchase;
     final color =
         log.isDebit ? const Color(0xFFE65C5C) : const Color(0xFF3FBE6C);
-    final title = isPurchase
-        ? (log.bookName?.isNotEmpty == true
-            ? log.bookName!
-            : ProfileStrings.balanceBookPurchase)
-        : log.event.toUpperCase().contains('DEPOSIT') ||
-                log.event.toUpperCase().contains('PROMO')
-            ? ProfileStrings.balanceTopUp
-            : ProfileStrings.balanceOtherActivity;
+    // The specific thing that happened goes on the headline, the coarse
+    // category underneath it — the other way round from how this first read,
+    // where every non-purchase row was headlined "balance activity" and the
+    // raw server enum ("SEND TO FRIEND") was left showing as the subtitle in
+    // every language.
+    final title = isPurchase && log.bookName?.isNotEmpty == true
+        ? log.bookName!
+        : ProfileStrings.balanceEventLabel(log.event);
     final subtitle = isPurchase
         ? ProfileStrings.balanceBookPurchase
-        : log.event.replaceAll('_', ' ');
+        : log.isCredit
+            ? ProfileStrings.balanceTopUp
+            : ProfileStrings.balanceOtherActivity;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -55,7 +57,7 @@ class BalanceLogTile extends StatelessWidget {
           Row(children: [
             Icon(Icons.schedule_rounded, size: 15, color: AppColors.grey2),
             const SizedBox(width: 6),
-            Text(DateFormat.yMMMd().add_Hm().format(log.createdAt),
+            Text(AppDateFormat.dateTime(log.createdAt),
                 style: TextStyle(
                     color: AppColors.grey2,
                     fontSize: 12,
@@ -151,7 +153,7 @@ class PaymentOrderTile extends StatelessWidget {
                   fontSize: 14.5,
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 3),
-          Text(DateFormat.yMMMd().add_Hm().format(order.createdAt),
+          Text(AppDateFormat.dateTime(order.createdAt),
               style: TextStyle(
                   color: AppColors.grey2,
                   fontSize: 12,

@@ -1,8 +1,7 @@
-<!-- The card sits inside a transparent, full-bleed root and wraps its own
-     height rather than stretching to whatever the launcher hands the widget.
-     Stretching is what left a tall band of empty card below the week strip:
-     the content is a fixed ~122dp, so any extra cell height became dead
-     space *inside* the pink background instead of around it. -->
+<!-- One UI gives this 4x2 widget 401x208dp. Three equal flexible spaces sit
+     above, between, and below the two content bands, so the layout uses that
+     height without either leaving one large empty band or gluing content to
+     the card edges. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -10,11 +9,20 @@
     <LinearLayout
         android:id="@+id/streak_widget_container"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top"
+        android:layout_height="match_parent"
         android:background="@drawable/aykitap_widget_background"
         android:orientation="vertical"
-        android:padding="10dp">
+        android:weightSum="3"
+        android:paddingStart="10dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -42,31 +50,22 @@
                 android:layout_weight="1"
                 android:orientation="vertical">
 
-                <TextView
+                <ImageView
                     android:id="@+id/streak_title"
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:fontFamily="@font/gilroy_regular"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:text="4 day streak"
-                    android:textColor="#211D2B"
-                    android:textSize="17sp"
-                    android:textStyle="bold" />
+                    android:adjustViewBounds="true"
+                    android:contentDescription="4 day streak"
+                    android:scaleType="fitStart" />
 
-                <TextView
+                <ImageView
                     android:id="@+id/streak_best"
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:ellipsize="end"
-                    android:fontFamily="@font/gilroy_regular"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:text="Best: 12 days"
-                    android:textColor="#746D7D"
-                    android:textSize="10.5sp" />
+                    android:adjustViewBounds="true"
+                    android:contentDescription="Best: 12 days"
+                    android:scaleType="fitStart" />
             </LinearLayout>
 
             <!-- Two stacked lines, each with its own size/weight, rather than one
@@ -94,31 +93,30 @@
                 android:paddingEnd="9dp"
                 android:paddingBottom="5dp">
 
-                <TextView
+                <ImageView
                     android:id="@+id/streak_today_pages_count"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:fontFamily="@font/gilroy_regular"
-                    android:includeFontPadding="false"
-                    android:text="18"
-                    android:textColor="#D95F14"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
+                    android:adjustViewBounds="true"
+                    android:contentDescription="18"
+                    android:scaleType="fitCenter" />
 
-                <TextView
+                <ImageView
+                    android:id="@+id/streak_pages_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="1dp"
-                    android:fontFamily="@font/gilroy_regular"
-                    android:includeFontPadding="false"
-                    android:letterSpacing="0.12"
-                    android:text="PAGES"
-                    android:textAllCaps="true"
-                    android:textColor="#B4703F"
-                    android:textSize="7.5sp"
-                    android:textStyle="bold" />
+                    android:adjustViewBounds="true"
+                    android:contentDescription="PAGES"
+                    android:scaleType="fitCenter" />
             </LinearLayout>
         </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -132,13 +130,19 @@
             android:paddingEnd="5dp"
             android:paddingBottom="4dp">
 
-            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_1_circle" style="@style/AykitapStreakDayCircle" /><TextView android:id="@+id/streak_day_1_label" style="@style/AykitapStreakDayLabel" android:text="M" /></LinearLayout>
-            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_2_circle" style="@style/AykitapStreakDayCircle" /><TextView android:id="@+id/streak_day_2_label" style="@style/AykitapStreakDayLabel" android:text="T" /></LinearLayout>
-            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_3_circle" style="@style/AykitapStreakDayCircle" /><TextView android:id="@+id/streak_day_3_label" style="@style/AykitapStreakDayLabel" android:text="W" /></LinearLayout>
-            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_4_circle" style="@style/AykitapStreakDayCircle" /><TextView android:id="@+id/streak_day_4_label" style="@style/AykitapStreakDayLabel" android:text="T" /></LinearLayout>
-            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_5_circle" style="@style/AykitapStreakDayCircle" android:text="•" /><TextView android:id="@+id/streak_day_5_label" style="@style/AykitapStreakDayLabel" android:text="F" /></LinearLayout>
-            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_6_circle" style="@style/AykitapStreakDayCircle" /><TextView android:id="@+id/streak_day_6_label" style="@style/AykitapStreakDayLabel" android:text="S" /></LinearLayout>
-            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_7_circle" style="@style/AykitapStreakDayCircle" /><TextView android:id="@+id/streak_day_7_label" style="@style/AykitapStreakDayLabel" android:text="S" /></LinearLayout>
+            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_1_circle" style="@style/AykitapStreakDayCircle" /><ImageView android:id="@+id/streak_day_1_label" style="@style/AykitapStreakDayLabel" android:contentDescription="M" /></LinearLayout>
+            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_2_circle" style="@style/AykitapStreakDayCircle" /><ImageView android:id="@+id/streak_day_2_label" style="@style/AykitapStreakDayLabel" android:contentDescription="T" /></LinearLayout>
+            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_3_circle" style="@style/AykitapStreakDayCircle" /><ImageView android:id="@+id/streak_day_3_label" style="@style/AykitapStreakDayLabel" android:contentDescription="W" /></LinearLayout>
+            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_4_circle" style="@style/AykitapStreakDayCircle" /><ImageView android:id="@+id/streak_day_4_label" style="@style/AykitapStreakDayLabel" android:contentDescription="T" /></LinearLayout>
+            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_5_circle" style="@style/AykitapStreakDayCircle" android:text="•" /><ImageView android:id="@+id/streak_day_5_label" style="@style/AykitapStreakDayLabel" android:contentDescription="F" /></LinearLayout>
+            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_6_circle" style="@style/AykitapStreakDayCircle" /><ImageView android:id="@+id/streak_day_6_label" style="@style/AykitapStreakDayLabel" android:contentDescription="S" /></LinearLayout>
+            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_7_circle" style="@style/AykitapStreakDayCircle" /><ImageView android:id="@+id/streak_day_7_label" style="@style/AykitapStreakDayLabel" android:contentDescription="S" /></LinearLayout>
         </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical" />
     </LinearLayout>
 </FrameLayout>

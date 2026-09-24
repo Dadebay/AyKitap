@@ -2,12 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/localization/strings/gift_strings.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/services/account_service.dart';
 import '../../../core/services/gift_api_service.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/app_snackbar.dart';
 import 'gift_amount_section.dart';
+import 'gift_error_note.dart';
 import 'gift_hero.dart';
 import 'gift_phone_section.dart';
 import 'gift_sheet_frame.dart';
@@ -51,6 +52,14 @@ class _SendGiftSheetState extends State<SendGiftSheet>
   GiftUserCheckStatus _userCheckStatus = GiftUserCheckStatus.idle;
   Timer? _userCheckDebounce;
   bool _sending = false;
+
+  /// The last failed send, rendered inside the sheet above the button.
+  ///
+  /// Deliberately not a snackbar: this sheet is open with the keyboard up,
+  /// and [AppSnackBar] floats at the bottom of the screen behind both of
+  /// them — an "not enough balance" posted there is invisible, which is
+  /// exactly how a reader could tap Send twice and see nothing happen.
+  String? _submitError;
 
   int? get _amount {
     final parsed = int.tryParse(_amountController.text.trim());
@@ -138,7 +147,7 @@ class _SendGiftSheetState extends State<SendGiftSheet>
                       setState(() => _amountController.text = '$preset'),
                   controller: _amountController,
                   focusNode: _amountFocusNode,
-                  onChanged: () => setState(() {}),
+                  onChanged: () => setState(() => _submitError = null),
                 ),
                 const SizedBox(height: 22),
                 GiftPhoneSection(
@@ -148,6 +157,10 @@ class _SendGiftSheetState extends State<SendGiftSheet>
                   showStatus: _phoneComplete,
                   status: _userCheckStatus,
                 ),
+                if (_submitError != null) ...[
+                  const SizedBox(height: 18),
+                  GiftErrorNote(_submitError!),
+                ],
                 const SizedBox(height: 22),
                 GiftSubmitButton(
                   canSubmit: _canSubmit,

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../navigation/root_navigator.dart';
@@ -5,6 +6,7 @@ import 'account_service.dart';
 import 'auth_session.dart';
 import 'book_access_service.dart';
 import 'onesignal_service.dart';
+import 'purchase_mode_service.dart';
 import 'subscription_service.dart';
 import '../../modules/auth/phone_login_screen.dart';
 
@@ -27,7 +29,20 @@ class SessionExpiryHandler {
   // each one would push its own login screen on top of the last.
   bool _handling = false;
 
-  Future<void> handleUnauthorized() async {
+  /// [path] and [host] name the request whose 401 caused this. Logged
+  /// because a forced re-login is the most disruptive thing the app does to
+  /// a signed-in reader, and until now it left no trace of *which* call
+  /// decided the session was over — a genuinely expired token and a single
+  /// endpoint answering 401 for its own unrelated reason look identical from
+  /// the outside. [host] is included because the client fails over to a
+  /// second base URL on a connection error (see [DioClient]): a token the
+  /// primary host issued being rejected by the fallback would show up here
+  /// as a 401 from the other host.
+  Future<void> handleUnauthorized({String? path, String? host}) async {
+    if (kDebugMode) {
+      debugPrint('\x1B[31m\x1B[1m🚪 SESSION 401 — signing out because '
+          '"${path ?? "?"}" on "${host ?? "?"}" returned 401\x1B[0m');
+    }
     if (_handling) return;
     // Only a session that *was* believed valid counts — a request that
     // simply went out with no token yet (a cold-start race, a deliberately
@@ -45,6 +60,11 @@ class SessionExpiryHandler {
       // ...and the engagement provider's identity and tags, so campaigns
       // segmented on this account stop reaching the device.
       await OneSignalService.instance.logout();
+      // Ödeme yüzeyi bu hesaba özeldi; oturum gidince yeniden çözülmeli.
+      // `/revenuecat/config` artık 401 döneceği için bu çağrı iOS'u güvenli
+      // tarafa ("yalnızca App Store") geri alıyor — bir sonraki kullanıcı
+      // öncekinin açık kalmış satın alma yüzeyini devralmıyor.
+      await PurchaseModeService.instance.refresh();
       final navigator = rootNavigatorKey.currentState;
       if (navigator == null) return;
       await navigator

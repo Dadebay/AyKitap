@@ -77,6 +77,21 @@ class GiftStrings {
         tr: '$amount TMT alıcının bakiyesine aktarıldı.',
         en: '$amount TMT was transferred to the recipient\'s balance.',
       );
+  /// Shown in the sheet itself, not as a snackbar: this sheet is open over a
+  /// raised keyboard, and [AppSnackBar] floats at the bottom of the screen
+  /// with a nav-bar-sized margin, so both of them sit on top of it — the
+  /// error was being posted where nobody could see it.
+  ///
+  /// [available] is the reader's own balance, stated outright rather than
+  /// left to "insufficient": the amount is right there in the field above,
+  /// so the only thing missing is what it should have been.
+  static String insufficientBalance(num available) => t(
+        tk: 'Balansyňyz ýeterlik däl. Häzirki balansyňyz: $available TMT.',
+        ru: 'Недостаточно средств. Ваш баланс: $available TMT.',
+        tr: 'Bakiyeniz yetersiz. Mevcut bakiyeniz: $available TMT.',
+        en: 'Not enough balance. You have $available TMT.',
+      );
+
   static String get successCta =>
       t(tk: 'Gowy', ru: 'Готово', tr: 'Tamam', en: 'Done');
 }

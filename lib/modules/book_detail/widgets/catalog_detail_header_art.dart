@@ -96,7 +96,8 @@ class _CatalogDetailHeaderArtState extends State<CatalogDetailHeaderArt> {
                           child: RepaintBoundary(
                             child: NetworkCoverImage(
                               url: url,
-                              placeholder: (_) => ColoredBox(color: AppColors.card),
+                              placeholder: (_) =>
+                                  ColoredBox(color: AppColors.card),
                             ),
                           ),
                         ),
@@ -113,7 +114,11 @@ class _CatalogDetailHeaderArtState extends State<CatalogDetailHeaderArt> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Colors.transparent, AppColors.bg.withValues(alpha: 0.4), AppColors.bg],
+                colors: [
+                  Colors.transparent,
+                  AppColors.bg.withValues(alpha: 0.4),
+                  AppColors.bg
+                ],
                 stops: const [0.4, 0.82, 1.0],
               ),
             ),
@@ -132,15 +137,32 @@ class _CatalogDetailHeaderArtState extends State<CatalogDetailHeaderArt> {
                     borderRadius: 8,
                     shadows: isDark
                         ? [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.55), blurRadius: 36, spreadRadius: 2, offset: const Offset(0, 18)),
-                            BoxShadow(color: Colors.white.withValues(alpha: 0.10), blurRadius: 10, offset: const Offset(0, 4)),
+                            BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.55),
+                                blurRadius: 36,
+                                spreadRadius: 2,
+                                offset: const Offset(0, 18)),
+                            BoxShadow(
+                                color: Colors.white.withValues(alpha: 0.10),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4)),
                           ]
                         : [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 36, spreadRadius: 2, offset: const Offset(0, 18)),
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.20), blurRadius: 10, offset: const Offset(0, 4)),
+                            BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.35),
+                                blurRadius: 36,
+                                spreadRadius: 2,
+                                offset: const Offset(0, 18)),
+                            BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.20),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4)),
                           ],
                   ),
-                  child: url != null && url.isNotEmpty ? NetworkCoverImage(url: url, placeholder: (_) => _coverPlaceholder()) : _coverPlaceholder()),
+                  child: url != null && url.isNotEmpty
+                      ? NetworkCoverImage(
+                          url: url, placeholder: (_) => _coverPlaceholder())
+                      : _coverPlaceholder()),
             ),
           ),
         ],
@@ -148,5 +170,9 @@ class _CatalogDetailHeaderArtState extends State<CatalogDetailHeaderArt> {
     );
   }
 
-  Widget _coverPlaceholder() => Center(child: HugeIcon(icon: HugeIcons.strokeRoundedBook02, color: AppColors.grey3, size: 36));
+  Widget _coverPlaceholder() => Center(
+      child: HugeIcon(
+          icon: HugeIcons.strokeRoundedBook02,
+          color: AppColors.grey3,
+          size: 36));
 }

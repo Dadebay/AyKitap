@@ -5,6 +5,7 @@ import '../../core/services/deep_link_service.dart';
 import '../../core/services/incoming_file_service.dart';
 import '../../core/services/notification_permission_flow.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/widgets/update_available_sheet.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../core/localization/app_locale.dart';
 import '../home/home_screen.dart';
@@ -97,6 +98,7 @@ class _MainNavScreenState extends State<MainNavScreen>
     // shell exists and waits there as a pending link until now.
     DeepLinkService.instance.init();
     _scheduleNotificationPrompt();
+    _scheduleUpdateCheck();
   }
 
   /// The one-time notification explanation, deliberately not on the first
@@ -108,6 +110,23 @@ class _MainNavScreenState extends State<MainNavScreen>
       Future.delayed(NotificationPermissionFlow.settleDelay, () {
         if (!mounted) return;
         NotificationPermissionFlow.maybeShow(context);
+      });
+    });
+  }
+
+  /// Offers the store's newer build, if there is one — see
+  /// [UpdateAvailableSheet].
+  ///
+  /// Queued *after* the notification prompt rather than beside it: both are
+  /// sheets over Home, and two arriving together would stack one on the
+  /// other on a reader's very first launch. The delay is the notification
+  /// flow's own settle delay again, so the update sheet lands after that one
+  /// has been seen and dismissed.
+  void _scheduleUpdateCheck() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(NotificationPermissionFlow.settleDelay * 2, () {
+        if (!mounted) return;
+        UpdateAvailableSheet.maybeShow(context);
       });
     });
   }

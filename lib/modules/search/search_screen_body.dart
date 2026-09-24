@@ -4,6 +4,13 @@ part of 'search_screen.dart';
 /// shared grid builder they both use. Search-bar/mode-toggle/chips-row UI
 /// lives in search_screen_controls.dart.
 extension _SearchScreenBody on _SearchScreenState {
+  /// Both grids on this screen end above the wheel rather than behind it —
+  /// [MainNavScreen]'s Scaffold uses `extendBody`, so the bar is painted over
+  /// this content. See [WheelNavBar.clearance]; the four hardcoded bottoms
+  /// this replaced (20 and 60) were each short of it.
+  EdgeInsets _gridPadding(BuildContext context) =>
+      EdgeInsets.fromLTRB(20, 8, 20, WheelNavBar.clearance(context) + 16);
+
   Widget _buildScreen(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -122,7 +129,7 @@ extension _SearchScreenBody on _SearchScreenState {
     if (_searchMode == _SearchMode.author) {
       return AuthorResultGrid(
         authors: authorResults,
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        padding: _gridPadding(context),
         loadingMore: _searchLoadingMore,
         controller: _authorGridScroll,
       );
@@ -131,7 +138,7 @@ extension _SearchScreenBody on _SearchScreenState {
     // (like every other real-book grid in the app) — no extra wrapper here.
     return SearchResultGrid(
       books: results,
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 60),
+      padding: _gridPadding(context),
       loadingMore: _searchLoadingMore,
       controller: _bookGridScroll,
     );
@@ -199,7 +206,7 @@ extension _SearchScreenBody on _SearchScreenState {
     }
     return SearchResultGrid(
       books: books,
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+      padding: _gridPadding(context),
       loadingMore: _discoverLoadingMore,
       controller: _bookGridScroll,
     );
@@ -240,7 +247,7 @@ extension _SearchScreenBody on _SearchScreenState {
     if (authors.isEmpty) return _buildAuthorSearchPrompt();
     return AuthorResultGrid(
       authors: authors,
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+      padding: _gridPadding(context),
       loadingMore: _discoverAuthorsLoadingMore,
       controller: _authorGridScroll,
     );

@@ -1,17 +1,11 @@
-<!-- Sized to the card's own ~139dp of content now that the layout wraps
-     instead of stretching: anything taller only ever showed as empty card
-     under the CTA. minResizeHeight matches so the card can't be dragged
-     below the height its content needs. That extra allocated height is
-     invisible while the widget just sits on the home screen (it's
-     transparent, so it matches the wallpaper) but launchers still draw
-     their drag/resize highlight around the *full* grid-cell allocation —
-     which is what made the widget visibly grow while being long-pressed
-     even though the card itself never changed size. targetCellHeight=1
-     (down from 2) asks for the smallest cell footprint most launchers'
-     default row height can still cover, closing most of that gap; some
-     mismatch is unavoidable since Android's grid can't allocate a
-     fractional cell, but a launcher's row is generally taller than this
-     card either way, never shorter, so the content is never clipped. -->
+<!-- minHeight/minResizeHeight are the book card's own content height: the
+     smallest the launcher may ever hand this widget, so nothing is
+     clipped. The layout now fills whatever cell it is given instead of
+     wrapping at the top, so a taller row no longer leaves transparent
+     dead space under the card in the placement/resize highlight; the
+     card itself is exactly the area the widget occupies.
+     targetCellHeight=1 still asks for the most compact default
+     placement most launchers' row height can cover. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="250dp"
     android:minHeight="140dp"

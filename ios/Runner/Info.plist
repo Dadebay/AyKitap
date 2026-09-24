@@ -83,6 +83,13 @@
 			</dict>
 		</dict>
 	</array>
+	<!-- iOS'ta ortak bir "İndirilenler" klasörü yok. Satın alınan kitabın
+	     kullanıcıya ait kopyası uygulamanın Documents klasörüne yazılıyor;
+	     bu anahtar o klasörü Dosyalar uygulamasında "iPhone'umda → AyKitap"
+	     altında görünür kılıyor. Uygulamanın kendi çevrimdışı kopyası
+	     Application Support'ta kalıyor, yani listede görünmüyor. -->
+	<key>UIFileSharingEnabled</key>
+	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 	<!-- aykitap://book/<id> deep link — lets the website send a user

@@ -167,8 +167,11 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
 
   Timer? _saveTimer;
   final ReaderStreakPing _streakPing = ReaderStreakPing();
-  final ReaderBrightnessController _brightnessController =
-      ReaderBrightnessController();
+  // Changed from the notification panel rather than this screen's slider —
+  // routed into the same setter, so it is applied and saved identically.
+  // See [ReaderBrightnessController] for why the panel needed help at all.
+  late final ReaderBrightnessController _brightnessController =
+      ReaderBrightnessController(onExternalChange: _setBrightness);
 
   int get _bookId => widget.bookId ?? stableBookKey(widget.filePath);
 

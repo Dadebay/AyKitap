@@ -19,6 +19,7 @@ import '../../core/localization/app_locale.dart';
 import '../../core/localization/strings/notification_strings.dart';
 import '../../core/localization/strings/settings_strings.dart';
 import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/app_version_label.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../payment/store_subscription_screen.dart';
 import 'widgets/contact_us_sheet.dart';
@@ -284,9 +285,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ]),
             ],
             const SizedBox(height: 24),
-            Center(
-                child: Text(SettingsStrings.appVersion,
-                    style: TextStyle(color: AppColors.grey3, fontSize: 12))),
+            const Center(child: AppVersionLabel()),
           ],
         ),
       ),

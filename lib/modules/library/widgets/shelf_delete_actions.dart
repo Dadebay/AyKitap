@@ -4,13 +4,12 @@ import '../../../core/localization/strings/library_strings.dart';
 import '../../../core/theme/app_colors.dart';
 import 'shelf_delete.dart' show ShelfDeleteChoice;
 
-/// The delete / optional-extra / cancel button stack at the bottom of the
-/// shelf-delete confirmation dialog.
+/// The delete / cancel button stack at the bottom of the shelf-delete
+/// confirmation dialog.
 class ShelfDeleteActions extends StatelessWidget {
-  final String? extraLabel;
   static const _danger = Color(0xFFE5484D);
 
-  const ShelfDeleteActions({super.key, this.extraLabel});
+  const ShelfDeleteActions({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -35,29 +34,6 @@ class ShelfDeleteActions extends StatelessWidget {
                     fontWeight: FontWeight.w700)),
           ),
         ),
-        if (extraLabel != null) ...[
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            // Outlined, not filled: it's a real alternative to deleting
-            // (keep a copy of the file first), but the card should still
-            // read as one decision, not two competing buttons.
-            child: OutlinedButton(
-              onPressed: () => Navigator.pop(context, ShelfDeleteChoice.extra),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: AppColors.border),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-              ),
-              child: Text(extraLabel!,
-                  style: TextStyle(
-                      color: AppColors.white,
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w700)),
-            ),
-          ),
-        ],
         const SizedBox(height: 6),
         SizedBox(
           width: double.infinity,

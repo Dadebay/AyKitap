@@ -23,6 +23,19 @@ part 'wheel_nav_bar_icons.dart';
 /// The ring wraps, so spinning past either end carries on into the icons on
 /// the other side rather than stopping.
 class WheelNavBar extends StatefulWidget {
+  /// How much of the bottom of the screen this bar covers.
+  ///
+  /// [MainNavScreen]'s Scaffold sets `extendBody: true`, so the wheel is
+  /// drawn *over* each tab's content rather than above it — which means every
+  /// scrollable page has to end this far from the bottom or its last row sits
+  /// behind the dome. Reported on the library shelves, where the bottom row
+  /// of books was half-hidden however far it was scrolled.
+  ///
+  /// Kept here, next to the geometry it is made of, so a page can't drift out
+  /// of step with the bar by hardcoding a number that was right once.
+  static double clearance(BuildContext context) =>
+      _barHeight + _domeHitOverhang + MediaQuery.viewPaddingOf(context).bottom;
+
   final int selectedIndex;
   final ValueChanged<int> onTap;
 

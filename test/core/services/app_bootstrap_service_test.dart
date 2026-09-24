@@ -27,6 +27,7 @@ AppBootstrapService _bootstrap({
   Future<void> Function()? primeDeviceFingerprint,
   void Function()? initAppActivity,
   void Function()? initPurchaseMode,
+  Future<void> Function()? initBalanceAlerts,
   void Function(String context, Object error, StackTrace stackTrace)? onError,
 }) =>
     AppBootstrapService(
@@ -48,6 +49,9 @@ AppBootstrapService _bootstrap({
       // singleton — that would register a WidgetsBinding observer and hit
       // the network from a plain unit test.
       initPurchaseMode: initPurchaseMode ?? (() {}),
+      // Same reason as the branch above: the real BalanceAlertService
+      // registers a WidgetsBinding observer and reads /users/me.
+      initBalanceAlerts: initBalanceAlerts ?? _noop,
       // Surfaces an unexpectedly-swallowed error as a test failure instead
       // of silently passing — a test that expects a failure overrides this
       // itself to assert on it.
