@@ -112,7 +112,11 @@ extension _SubscriptionScreenActions on _SubscriptionScreenState {
         await _payWithPromoCode();
       case PaymentMethodChoice.bankCard:
         await _payWithBank();
+      case PaymentMethodChoice.tmcell:
       case PaymentMethodChoice.store:
+        // Neither is offered here — this sheet is opened without them (see
+        // the comment above). A subscription is paid from the balance; the
+        // ways of *filling* that balance live in [startBalanceTopUp].
         break;
     }
   }

@@ -258,9 +258,8 @@ class UpdateAvailableSheet extends StatelessWidget {
             : AppColors.card.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: highlighted
-              ? accent.withValues(alpha: 0.35)
-              : AppColors.border,
+          color:
+              highlighted ? accent.withValues(alpha: 0.35) : AppColors.border,
         ),
       ),
       child: Column(

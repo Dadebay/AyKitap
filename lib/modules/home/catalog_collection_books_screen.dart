@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/models/library_book.dart';
 import '../../core/navigation/app_hero_tags.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/natural_sort.dart';
 import '../../core/widgets/app_back_button.dart';
 import 'widgets/catalog_book_card.dart';
 import 'widgets/ranked_collection_view.dart';
@@ -42,12 +43,26 @@ class CatalogCollectionBooksScreen extends StatelessWidget {
       this.ranked = false,
       this.bannerImage});
 
+  /// A-to-Z by title, numbered volumes in numeric order — see
+  /// [compareTitlesNaturally]. The backend returns a collection in its own
+  /// order, which for a series came out as 1, 4, 2.
+  ///
+  /// Sorted on a copy: [books] is the same list the card that opened this
+  /// screen is still holding, and reordering it underneath that card would
+  /// shuffle Home's row too.
+  ///
+  /// Not applied to [ranked]: there the order *is* the content — it is a
+  /// chart, and sorting it alphabetically would destroy the ranking.
+  List<LibraryBook> get _sortedBooks =>
+      List.of(books)..sort((a, b) => compareTitlesNaturally(a.name, b.name));
+
   @override
   Widget build(BuildContext context) {
     if (ranked) {
       return RankedCollectionView(
           title: title, books: books, bannerImage: bannerImage);
     }
+    final sorted = _sortedBooks;
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -65,7 +80,7 @@ class CatalogCollectionBooksScreen extends StatelessWidget {
         top: false,
         child: GridView.builder(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-          itemCount: books.length,
+          itemCount: sorted.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: _crossAxisCount,
             mainAxisSpacing: 20,
@@ -81,8 +96,8 @@ class CatalogCollectionBooksScreen extends StatelessWidget {
           itemBuilder: (context, i) => StaggerFadeIn(
             index: i ~/ _crossAxisCount,
             child: CatalogBookCard(
-                book: books[i],
-                heroTag: AppHeroTags.catalogBookCover(books[i].id),
+                book: sorted[i],
+                heroTag: AppHeroTags.catalogBookCover(sorted[i].id),
                 width: double.infinity,
                 coverHeight: 170,
                 margin: EdgeInsets.zero),

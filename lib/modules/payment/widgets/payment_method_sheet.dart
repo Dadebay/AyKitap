@@ -3,14 +3,18 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/strings/payment_strings.dart';
 
-enum PaymentMethodChoice { promoCode, bankCard, store }
+enum PaymentMethodChoice { promoCode, bankCard, tmcell, store }
 
 /// The first step of checkout on [SubscriptionScreen] — asks how the user
 /// wants to pay before anything is actually charged, rather than the old
 /// "tap Subscribe and it just happens" flow.
 class PaymentMethodSheet extends StatelessWidget {
-  const PaymentMethodSheet(
-      {super.key, this.showStore = false, this.showBankCard = true});
+  const PaymentMethodSheet({
+    super.key,
+    this.showStore = false,
+    this.showBankCard = true,
+    this.showTmcell = false,
+  });
 
   /// Adds the [PaymentMethodChoice.store] row — App Store/Google Play via
   /// RevenueCat. Off by default: the local bank flow only accepts
@@ -24,17 +28,27 @@ class PaymentMethodSheet extends StatelessWidget {
   /// have — a promo code, which needs no card at all, is still offered.
   final bool showBankCard;
 
+  /// Adds the TMCELL balance-transfer row — see [TmcellPaymentScreen]. Off
+  /// unless the caller has confirmed both that a receiving number is
+  /// configured into the build and that this platform may offer a payment
+  /// path outside the store.
+  final bool showTmcell;
+
   static Future<PaymentMethodChoice?> show(
     BuildContext context, {
     bool showStore = false,
     bool showBankCard = true,
+    bool showTmcell = false,
   }) {
     return showModalBottomSheet<PaymentMethodChoice>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) =>
-          PaymentMethodSheet(showStore: showStore, showBankCard: showBankCard),
+      builder: (_) => PaymentMethodSheet(
+        showStore: showStore,
+        showBankCard: showBankCard,
+        showTmcell: showTmcell,
+      ),
     );
   }
 
@@ -81,6 +95,14 @@ class PaymentMethodSheet extends StatelessWidget {
                 label: PaymentStrings.payWithCard,
                 onTap: () =>
                     Navigator.pop(context, PaymentMethodChoice.bankCard),
+              ),
+            ],
+            if (showTmcell) ...[
+              Divider(color: AppColors.border, height: 1),
+              _OptionRow(
+                icon: HugeIcons.strokeRoundedSmartPhone01,
+                label: PaymentStrings.payWithTmcell,
+                onTap: () => Navigator.pop(context, PaymentMethodChoice.tmcell),
               ),
             ],
             if (showStore) ...[

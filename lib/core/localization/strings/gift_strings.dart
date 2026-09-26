@@ -77,6 +77,7 @@ class GiftStrings {
         tr: '$amount TMT alıcının bakiyesine aktarıldı.',
         en: '$amount TMT was transferred to the recipient\'s balance.',
       );
+
   /// Shown in the sheet itself, not as a snackbar: this sheet is open over a
   /// raised keyboard, and [AppSnackBar] floats at the bottom of the screen
   /// with a nav-bar-sized margin, so both of them sit on top of it — the

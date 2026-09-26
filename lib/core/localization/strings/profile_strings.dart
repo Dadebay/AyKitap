@@ -226,6 +226,7 @@ class ProfileStrings {
       ru: 'Операция по балансу',
       tr: 'Bakiye işlemi',
       en: 'Balance activity');
+
   /// The `event` enum on a `GET /users/balance-logs` row, as something a
   /// reader can actually read. Every value the backend's
   /// `UserBalanceLogEvent` can currently send is listed; an unrecognised one

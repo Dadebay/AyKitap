@@ -126,6 +126,7 @@ class StreakService extends ChangeNotifier {
     try {
       _overview = await StreakApiService.getMe();
       _loaded = true;
+      _logRewardRules();
     } on ApiException catch (e) {
       _error = e.message;
     } finally {
@@ -179,5 +180,28 @@ class StreakService extends ChangeNotifier {
   // notifyListeners() is @protected — the history/report methods in
   // streak_service_reporting.dart live in an extension, not a subclass, so
   // they call this thin wrapper instead of notifyListeners directly.
+  /// Prints the reward configuration the backend is actually running with.
+  ///
+  /// None of it is decided here: `goal_min_minutes`, every `reward_rules`
+  /// entry, and whether a milestone was crossed all come from the server
+  /// (see [StreakRewardRule] and `POST /streaks/report`'s `rewards[]`). So
+  /// "is 30 days of 15 minutes really 10 TMT?" can only be answered by
+  /// looking at what it sends — which is this line.
+  void _logRewardRules() {
+    if (!kDebugMode) return;
+    final o = _overview;
+    if (o == null) return;
+    debugPrint('\x1B[32m\x1B[1m🔥 STREAK config — daily goal: '
+        '${o.goalMinMinutes} min, ${o.rewardRules.length} reward rule(s), '
+        'current streak: ${o.currentStreak}\x1B[0m');
+    for (final r in o.rewardRules) {
+      final prize = r.rewardType == StreakRewardType.balance
+          ? '${r.amount} TMT to balance'
+          : '${r.monthCount} month(s) of subscription';
+      debugPrint('\x1B[32m\x1B[1m🔥   ${r.dayCount} days in a row → $prize'
+          '${r.isRepeating ? " (repeats)" : " (once)"}\x1B[0m');
+    }
+  }
+
   void _notify() => notifyListeners();
 }

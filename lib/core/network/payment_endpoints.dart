@@ -33,6 +33,17 @@ class PaymentEndpoints {
   /// from whatever balance this has put there.
   static const String paymentOrders = '/payments/orders';
 
+  /// GET — the TMCELL lines a balance transfer may be sent to, as the admin
+  /// panel's "TMCELL geçirmeler → Nomerler" table defines them. Public, like
+  /// [banks]: the top-up screen reads it before any purchase is made, and it
+  /// returns only the rows an admin has left active (`{id, phone}` each).
+  ///
+  /// The number matters beyond display — the backend matches an incoming
+  /// transfer to a user by which of these lines it landed on, so a build
+  /// that sends money to a number missing from this list gets no balance
+  /// credited for it.
+  static const String tmcellNumbers = '/tmcell/numbers';
+
   /// GET — the signed-in user's own bank-card top-up orders, newest first
   /// (each with its bank and amount) — [BalanceScreen]'s "card payments"
   /// section.

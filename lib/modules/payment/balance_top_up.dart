@@ -11,7 +11,9 @@ import '../../core/services/purchase_mode_service.dart';
 import '../../core/services/revenue_cat_api_service.dart';
 import '../../core/services/revenue_cat_service.dart';
 import '../../core/widgets/app_snackbar.dart';
+import '../../core/services/tmcell_numbers_api_service.dart';
 import 'payment_webview_screen.dart';
+import 'tmcell_payment_screen.dart';
 import 'widgets/bank_select_sheet.dart';
 import 'widgets/payment_method_sheet.dart';
 import 'widgets/promo_code_sheet.dart';
@@ -70,24 +72,36 @@ Future<void> startBalanceTopUp(
       if (context.mounted) await AccountService.instance.refresh();
       return;
     }
-    final storeChoice = await PaymentMethodSheet.show(context,
-        showStore: true, showBankCard: false);
+    final storeChoice = await PaymentMethodSheet.show(
+      context,
+      showStore: true,
+      showBankCard: false,
+      showTmcell: _canOfferTmcell,
+    );
     if (storeChoice == null || !context.mounted) return;
-    if (storeChoice == PaymentMethodChoice.promoCode) {
-      await _redeemPromoCode(context);
-    } else {
-      await _purchaseStoreTopUp(context);
+    switch (storeChoice) {
+      case PaymentMethodChoice.promoCode:
+        await _redeemPromoCode(context);
+      case PaymentMethodChoice.tmcell:
+        await _openTmcellPayment(context);
+      case PaymentMethodChoice.bankCard:
+      case PaymentMethodChoice.store:
+        await _purchaseStoreTopUp(context);
     }
     if (context.mounted) await AccountService.instance.refresh();
     return;
   }
 
-  final choice = await PaymentMethodSheet.show(context);
+  final choice =
+      await PaymentMethodSheet.show(context, showTmcell: _canOfferTmcell);
   if (choice == null || !context.mounted) return;
 
   switch (choice) {
     case PaymentMethodChoice.promoCode:
       await _redeemPromoCode(context);
+
+    case PaymentMethodChoice.tmcell:
+      await _openTmcellPayment(context);
 
     case PaymentMethodChoice.bankCard:
       final amount = await TopUpAmountSheet.show(context);
@@ -119,6 +133,27 @@ Future<void> startBalanceTopUp(
 /// fall back to promo code/bank card while the App Store review toggle is
 /// on — [PurchaseModeService.useStoreCheckout] already encodes both rules,
 /// including failing closed to the store surface on iOS.
+/// Whether the TMCELL balance transfer may be offered.
+///
+/// Only the App Store rule gates it: on iOS, while "Diňe App Store tölegleri"
+/// is on, nothing outside App Store billing may be shown (guideline 3.1.1).
+/// Android always passes. The receiving number is a build-time value and does
+/// not hide the row — see [TmcellPaymentConfig].
+bool get _canOfferTmcell => !PurchaseModeService.instance.isIOSStoreOnly;
+
+/// The transfer is made in the messaging app, not here, so nothing is
+/// awaited for a result — the balance arrives from the backend once TMCELL
+/// has moved the money. Coming back simply re-reads it.
+Future<void> _openTmcellPayment(BuildContext context) async {
+  // Drop the session cache so choosing this option always asks the backend
+  // again: the admin can retire a line between two visits, and a cached
+  // number outliving it would send a reader's money to a SIM nothing is
+  // watching. One request per deliberate tap is cheap.
+  TmcellNumbersApiService.invalidate();
+  await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const TmcellPaymentScreen()));
+}
+
 /// Asks for a code and redeems it, crediting the balance server-side.
 /// Shared by both branches above so the store path redeems exactly the way
 /// the wallet path always has.

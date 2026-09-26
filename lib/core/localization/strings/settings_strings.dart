@@ -83,6 +83,7 @@ class SettingsStrings {
       ru: 'Вышла новая версия',
       tr: 'Yeni sürüm çıktı',
       en: 'A new version is out');
+
   /// The version numbers themselves are no longer spelled out in a sentence:
   /// the sheet shows them as a "1.1.5 → 1.2.1" pair, which is read at a
   /// glance and does not need translating. This line says what the sentence

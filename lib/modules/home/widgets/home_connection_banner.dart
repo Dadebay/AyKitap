@@ -39,8 +39,7 @@ class _HomeConnectionBannerState extends State<HomeConnectionBanner> {
 
   void _handle(List<ConnectivityResult> results) {
     if (!mounted) return;
-    final offline =
-        results.isEmpty || results.every((r) => r == ConnectivityResult.none);
+    final offline = results.isEmpty || results.every((r) => r == ConnectivityResult.none);
 
     if (offline) {
       _hideTimer?.cancel();
@@ -107,23 +106,18 @@ class _HomeConnectionBannerState extends State<HomeConnectionBanner> {
                 shadowColor: Colors.black.withValues(alpha: 0.25),
                 borderRadius: BorderRadius.circular(16),
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   child: Row(
                     children: [
                       Icon(
-                        restored
-                            ? Icons.cloud_done_rounded
-                            : Icons.cloud_off_rounded,
+                        restored ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
                         color: restored ? Colors.white : AppColors.primary,
                         size: 20,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          restored
-                              ? HomeStrings.connectionRestored
-                              : HomeStrings.offlineLibraryReady,
+                          restored ? HomeStrings.connectionRestored : HomeStrings.offlineLibraryReady,
                           style: TextStyle(
                             color: restored ? Colors.white : AppColors.white,
                             fontSize: 13,
