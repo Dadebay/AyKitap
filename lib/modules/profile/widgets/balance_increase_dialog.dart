@@ -123,7 +123,7 @@ class BalanceIncreaseDialog extends StatelessWidget {
   void _openBalance(BuildContext context) {
     final navigator = Navigator.of(context);
     navigator.pop();
-    navigator.push(
-        MaterialPageRoute<void>(builder: (_) => const BalanceScreen()));
+    navigator
+        .push(MaterialPageRoute<void>(builder: (_) => const BalanceScreen()));
   }
 }

@@ -198,32 +198,34 @@ class _ActiveSubscriptionCardState extends State<ActiveSubscriptionCard> {
                           ],
                         ),
                         const SizedBox(height: 17),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _SubscriptionMetric(
-                                icon: HugeIcons.strokeRoundedCalendar03,
-                                label: ProfileStrings.subscriptionExpiryLabel,
-                                value:
-                                    AppDateFormat.date(widget.expiresAt),
-                                foreground: titleColor,
-                                muted: mutedColor,
-                                background: surfaceColor,
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: _SubscriptionMetric(
+                                  icon: HugeIcons.strokeRoundedCalendar03,
+                                  label: ProfileStrings.subscriptionExpiryLabel,
+                                  value: AppDateFormat.date(widget.expiresAt),
+                                  foreground: titleColor,
+                                  muted: mutedColor,
+                                  background: surfaceColor,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: _SubscriptionMetric(
-                                icon: HugeIcons.strokeRoundedClock01,
-                                label: ProfileStrings.subscription,
-                                value: ProfileStrings.subscriptionDaysLeft(
-                                    _daysLeft),
-                                foreground: titleColor,
-                                muted: mutedColor,
-                                background: surfaceColor,
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: _SubscriptionMetric(
+                                  icon: HugeIcons.strokeRoundedClock01,
+                                  label: ProfileStrings.subscription,
+                                  value: ProfileStrings.subscriptionDaysLeft(
+                                      _daysLeft),
+                                  foreground: titleColor,
+                                  muted: mutedColor,
+                                  background: surfaceColor,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 15),
                         Row(
@@ -307,7 +309,7 @@ class _SubscriptionMetric extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   value,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       color: foreground,

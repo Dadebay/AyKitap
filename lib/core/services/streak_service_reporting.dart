@@ -41,6 +41,9 @@ extension _StreakServiceReporting on StreakService {
     if (seconds > 0) _pendingSeconds += seconds;
     if (bookId != null) _pendingBookId = bookId;
     if (_pendingSeconds <= 0) return;
+    // On disk before the request, not after: the app can be killed during
+    // it, and reading that made it into the buffer must survive that.
+    unawaited(_savePending());
 
     final sendSeconds = _pendingSeconds;
     final sendPages = _pendingPages;
@@ -51,6 +54,7 @@ extension _StreakServiceReporting on StreakService {
           bookId: _pendingBookId);
       _pendingSeconds = 0;
       _pendingPages = 0;
+      unawaited(_savePending());
       _applyReport(result);
       _notify();
       unawaited(HomeScreenWidgetService.syncStreak(
@@ -63,7 +67,9 @@ extension _StreakServiceReporting on StreakService {
       if (result.rewards.isNotEmpty) unawaited(_showRewards(result.rewards));
     } on ApiException {
       // Offline or a server error: leave `_pendingSeconds`/`_pendingPages`
-      // as they are — the next successful call sends the running total.
+      // as they are — the next successful call sends the running total, and
+      // the buffer is already on disk, so closing the app doesn't lose it.
+      // [_watchConnectivity] retries as soon as there is a connection again.
     }
   }
 

@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/streak.dart';
 import '../navigation/root_navigator.dart';
 import '../network/api_exception.dart';
@@ -60,14 +62,24 @@ class StreakService extends ChangeNotifier {
   bool get historyLoading => _historyLoading;
 
   // ── Offline buffering ────────────────────────────────────────────────
-  // Session-only by design: a tick that fails to send stays here instead of
-  // being dropped, so the *next* tick's body carries the running total and
-  // nothing reported while offline is lost as long as the app stays open.
-  // Not persisted to disk — an app kill while offline does lose whatever's
-  // buffered at that point.
+  // A tick that fails to send stays here instead of being dropped, so the
+  // next successful report carries the running total.
+  //
+  // Persisted (see [_savePending]): reading offline and then closing the app
+  // used to lose everything buffered, which is exactly the case this is for
+  // — someone reads on the bus with no signal, the app is swiped away, and
+  // the reading never happened as far as the streak is concerned. Three ints
+  // on disk, rewritten about once a minute while reading.
   int _pendingSeconds = 0;
   int _pendingPages = 0;
   int? _pendingBookId;
+
+  static const _kPendingSeconds = 'streak_pending_seconds';
+  static const _kPendingPages = 'streak_pending_pages';
+  static const _kPendingBookId = 'streak_pending_book_id';
+
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _pendingRestored = false;
 
   /// Clears every field back to a fresh instance's defaults. This is the
   /// app's process-lifetime singleton, so tests that exercise it (directly or
@@ -86,6 +98,9 @@ class StreakService extends ChangeNotifier {
     _pendingSeconds = 0;
     _pendingPages = 0;
     _pendingBookId = null;
+    _pendingRestored = false;
+    _connectivitySub?.cancel();
+    _connectivitySub = null;
   }
 
   /// Test-only seed for [_overview] — lets a test set up a baseline
@@ -109,8 +124,62 @@ class StreakService extends ChangeNotifier {
   /// called explicitly. Safe for every screen that needs streak data to
   /// call without worrying about duplicate requests.
   Future<void> load() async {
+    // Before the fetch, and on every launch: whatever was buffered when the
+    // app was last closed is reading the reader has already done.
+    await _restorePending();
+    _watchConnectivity();
     if (_loaded) return;
     await refresh();
+    // Now that a token and a connection have both been proven to work, send
+    // anything that was waiting. A zero-second report is the flush: [_report]
+    // sends the accumulated total, not its argument.
+    if (_pendingSeconds > 0) unawaited(_report(seconds: 0));
+  }
+
+  /// Reads the buffer left by a previous run. Once per process — a second
+  /// call would add the same seconds again on top of whatever is already in
+  /// memory.
+  Future<void> _restorePending() async {
+    if (_pendingRestored) return;
+    _pendingRestored = true;
+    final prefs = await SharedPreferences.getInstance();
+    _pendingSeconds += prefs.getInt(_kPendingSeconds) ?? 0;
+    _pendingPages += prefs.getInt(_kPendingPages) ?? 0;
+    _pendingBookId ??= prefs.getInt(_kPendingBookId);
+    if (_pendingSeconds > 0 && kDebugMode) {
+      debugPrint('\x1B[32m\x1B[1m🔥 STREAK — restored \$_pendingSeconds s / '
+          '\$_pendingPages page(s) buffered offline\x1B[0m');
+    }
+  }
+
+  /// Sends the buffer the moment a connection comes back, instead of waiting
+  /// for the reader to open a book again — someone who read offline and then
+  /// put the phone down would otherwise not be credited until their next
+  /// reading session, which may be the next day, after the streak has
+  /// already broken.
+  void _watchConnectivity() {
+    if (_connectivitySub != null) return;
+    _connectivitySub =
+        Connectivity().onConnectivityChanged.listen((results) async {
+      final online = results.any((result) => result != ConnectivityResult.none);
+      if (!online || _pendingSeconds <= 0) return;
+      await _report(seconds: 0);
+    });
+  }
+
+  /// Mirrors the buffer to disk after every change to it.
+  Future<void> _savePending() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_pendingSeconds <= 0 && _pendingPages <= 0) {
+      await prefs.remove(_kPendingSeconds);
+      await prefs.remove(_kPendingPages);
+      await prefs.remove(_kPendingBookId);
+      return;
+    }
+    await prefs.setInt(_kPendingSeconds, _pendingSeconds);
+    await prefs.setInt(_kPendingPages, _pendingPages);
+    final bookId = _pendingBookId;
+    if (bookId != null) await prefs.setInt(_kPendingBookId, bookId);
   }
 
   Future<void> refresh() async {
@@ -168,6 +237,7 @@ class StreakService extends ChangeNotifier {
   void recordPageRead({int count = 1}) {
     if (count <= 0) return;
     _pendingPages += count;
+    unawaited(_savePending());
   }
 
   /// Call once on pause/background/close with whatever active-reading

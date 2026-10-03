@@ -112,6 +112,13 @@ class SettingsStrings {
       t(tk: 'Soňra', ru: 'Позже', tr: 'Sonra', en: 'Later');
 
   // widgets/contact_us_sheet.dart
+  static String get contactNone => t(
+      tk: 'Häzirlikçe habarlaşmak üçin maglumat ýok.',
+      ru: 'Пока нет контактных данных.',
+      tr: 'Şimdilik iletişim bilgisi yok.',
+      en: 'No contact details yet.');
+  static String get contactInstagram =>
+      t(tk: 'Instagram', ru: 'Instagram', tr: 'Instagram', en: 'Instagram');
   static String get contactTelegram =>
       t(tk: 'Telegram', ru: 'Telegram', tr: 'Telegram', en: 'Telegram');
   static String get contactPhone =>

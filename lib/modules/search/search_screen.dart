@@ -16,7 +16,6 @@ import '../../core/services/book_list_api_service.dart';
 import '../../core/services/genre_api_service.dart';
 import '../../core/services/search_discover_cache.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/theme_controller.dart';
 import '../filter/controller/filter_controller.dart'
     show
         BookFormatFilter,
@@ -31,6 +30,7 @@ import 'author_page_merge.dart';
 import 'search_result_diagnostics.dart';
 import 'widgets/author_result_grid.dart';
 import 'widgets/quick_chip.dart';
+import 'widgets/search_no_results_state.dart';
 import 'widgets/search_result_grid.dart';
 import '../main_nav/widgets/wheel_nav_bar.dart';
 

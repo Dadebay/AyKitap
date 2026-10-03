@@ -94,35 +94,9 @@ extension _SearchScreenBody on _SearchScreenState {
     final isEmpty = _searchMode == _SearchMode.author
         ? authorResults.isEmpty
         : results.isEmpty;
-    if (isEmpty) {
-      final isDark = AppTheme.instance.isDark;
-      return Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 260),
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: Image.asset(
-                    isDark
-                        ? 'assets/images/search_empty_dark.webp'
-                        : 'assets/images/search_empty_light.webp',
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(SearchStrings.noResults,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.grey2, fontSize: 15)),
-            ],
-          ),
-        ),
-      );
-    }
+    // Both modes get the same state: a reader who searched an author we do
+    // not carry is missing that author's books, which is the same request.
+    if (isEmpty) return const SearchNoResultsState();
     // Author mode: `GET /authors/search` hands back matching authors
     // directly (id/name/image/book_count), so these render straight from
     // [_authorResults] rather than being derived from book results.

@@ -72,10 +72,24 @@ class _ContactUsSheetState extends State<ContactUsSheet> {
     }
   }
 
+  /// A field the admin filled in, or null. Whitespace counts as empty, and
+  /// so does a lone "@" — the Telegram box left with just its prefix.
+  static String? _present(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty || trimmed == '@') return null;
+    return trimmed;
+  }
+
   void _openTelegram(String tgName) {
     final username = tgName.trim().replaceFirst(RegExp(r'^@'), '');
     if (username.isEmpty) return;
     _open(Uri.parse('https://t.me/$username'));
+  }
+
+  void _openInstagram(String handle) {
+    final username = handle.trim().replaceFirst(RegExp(r'^@'), '');
+    if (username.isEmpty) return;
+    _open(Uri.parse('https://instagram.com/$username'));
   }
 
   void _call(String phone) =>
@@ -143,44 +157,73 @@ class _ContactUsSheetState extends State<ContactUsSheet> {
     }
     final contact = _contact;
     final rows = <Widget>[];
-    if (contact?.tgName != null && contact!.tgName!.isNotEmpty) {
+    // Blank-but-present values, not just missing ones. The admin panel saves
+    // a field that was left alone as an empty (or whitespace) string rather
+    // than omitting it, so `isNotEmpty` still passed and the sheet showed a
+    // "Telegram" row with nothing under it and nothing to open — reported
+    // with the panel's own Telegram field empty.
+    final telegram = _present(contact?.tgName);
+    final phone = _present(contact?.phone);
+    final email = _present(contact?.email);
+    final instagram = _present(contact?.instagram);
+    final privacy = _present(contact?.privacyLink);
+    final agreement = _present(contact?.userAgreementLink);
+
+    if (telegram != null) {
       rows.add(ContactRow(
         icon: HugeIcons.strokeRoundedTelegram,
         label: SettingsStrings.contactTelegram,
-        value: contact.tgName!,
-        onTap: () => _openTelegram(contact.tgName!),
+        value: telegram,
+        onTap: () => _openTelegram(telegram),
       ));
     }
-    if (contact?.phone != null && contact!.phone!.isNotEmpty) {
+    if (phone != null) {
       rows.add(ContactRow(
         icon: HugeIcons.strokeRoundedCall,
         label: SettingsStrings.contactPhone,
-        value: contact.phone!,
-        onTap: () => _call(contact.phone!),
+        value: phone,
+        onTap: () => _call(phone),
       ));
     }
-    if (contact?.email != null && contact!.email!.isNotEmpty) {
+    if (email != null) {
       rows.add(ContactRow(
         icon: HugeIcons.strokeRoundedMail01,
         label: SettingsStrings.contactEmail,
-        value: contact.email!,
-        onTap: () => _email(contact.email!),
+        value: email,
+        onTap: () => _email(email),
       ));
     }
-    if (contact?.privacyLink != null && contact!.privacyLink!.isNotEmpty) {
+    if (instagram != null) {
+      rows.add(ContactRow(
+        icon: HugeIcons.strokeRoundedInstagram,
+        label: SettingsStrings.contactInstagram,
+        value: instagram,
+        onTap: () => _openInstagram(instagram),
+      ));
+    }
+    if (privacy != null) {
       rows.add(ContactRow(
         icon: HugeIcons.strokeRoundedShield01,
         label: SettingsStrings.contactPrivacyPolicy,
-        onTap: () => _openLink(contact.privacyLink!),
+        onTap: () => _openLink(privacy),
       ));
     }
-    if (contact?.userAgreementLink != null &&
-        contact!.userAgreementLink!.isNotEmpty) {
+    if (agreement != null) {
       rows.add(ContactRow(
         icon: HugeIcons.strokeRoundedContracts,
         label: SettingsStrings.contactUserAgreement,
-        onTap: () => _openLink(contact.userAgreementLink!),
+        onTap: () => _openLink(agreement),
       ));
+    }
+    // Every channel blank: an empty sheet with just a heading reads as a
+    // loading failure, so say plainly that there is nothing here.
+    if (rows.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Text(SettingsStrings.contactNone,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+      );
     }
     return Column(
       mainAxisSize: MainAxisSize.min,
