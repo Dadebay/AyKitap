@@ -6,7 +6,6 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../../core/services/profile_avatar_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
-import '../../../core/widgets/profile_avatar.dart';
 import 'wheel_nav_bar_disk_painter.dart';
 
 part 'wheel_nav_bar_geometry.dart';
@@ -33,8 +32,7 @@ class WheelNavBar extends StatefulWidget {
   ///
   /// Kept here, next to the geometry it is made of, so a page can't drift out
   /// of step with the bar by hardcoding a number that was right once.
-  static double clearance(BuildContext context) =>
-      _barHeight + _domeHitOverhang + MediaQuery.viewPaddingOf(context).bottom;
+  static double clearance(BuildContext context) => _barHeight + _domeHitOverhang + MediaQuery.viewPaddingOf(context).bottom;
 
   final int selectedIndex;
   final ValueChanged<int> onTap;
@@ -49,8 +47,7 @@ class WheelNavBar extends StatefulWidget {
   State<WheelNavBar> createState() => _WheelNavBarState();
 }
 
-class _WheelNavBarState extends State<WheelNavBar>
-    with SingleTickerProviderStateMixin {
+class _WheelNavBarState extends State<WheelNavBar> with SingleTickerProviderStateMixin {
   // Every geometry/timing constant this class and its part files use lives
   // in wheel_nav_bar_geometry.dart — _icons, _barHeight, _diskR, _pathR,
   // _stepRad, _domeLift, _domeHitOverhang, _windowRad, _fadeStart,
@@ -142,8 +139,7 @@ class _WheelNavBarState extends State<WheelNavBar>
     // absorb touches, so this added strip still lets taps fall through to the
     // body everywhere except on an actual icon.
     final diskCenterY = _domeHitOverhang + (_diskR - _domeLift);
-    final boxTop =
-        _domeHitOverhang - (_domeLift + 2); // +2px so the apex isn't clipped
+    final boxTop = _domeHitOverhang - (_domeLift + 2); // +2px so the apex isn't clipped
     final boxHeight = (_barHeight + _domeHitOverhang) - boxTop;
 
     return SizedBox(
@@ -171,8 +167,7 @@ class _WheelNavBarState extends State<WheelNavBar>
                 // Fractional selected index — the finger's position while the
                 // wheel is being turned by hand, otherwise the old → new
                 // settle animation.
-                final selFloat =
-                    _dragFloat ?? _selFloatFor(widget.selectedIndex);
+                final selFloat = _dragFloat ?? _selFloatFor(widget.selectedIndex);
 
                 return Stack(
                   clipBehavior: Clip.none,

@@ -62,7 +62,6 @@ class SearchResultGrid extends StatelessWidget {
           sliver: SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: _crossAxisCount,
-              mainAxisSpacing: 0,
               crossAxisSpacing: _crossAxisSpacing,
               mainAxisExtent: coverHeight + 20 + _labelsHeight(context),
             ),

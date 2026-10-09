@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import '../../../core/theme/app_colors.dart';
+
 import '../../../core/localization/strings/payment_strings.dart';
+import '../../../core/theme/app_colors.dart';
 
 /// [BookPurchaseScreen]'s price/balance breakdown card, plus the
 /// insufficient-balance note shown under it when [balance] doesn't cover
@@ -9,8 +10,7 @@ import '../../../core/localization/strings/payment_strings.dart';
 class BookPurchasePriceCard extends StatelessWidget {
   final int price;
   final int? balance;
-  const BookPurchasePriceCard(
-      {super.key, required this.price, required this.balance});
+  const BookPurchasePriceCard({super.key, required this.price, required this.balance});
 
   bool get _enough => balance != null && balance! >= price;
 
@@ -22,8 +22,7 @@ class BookPurchasePriceCard extends StatelessWidget {
       children: [
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-              color: AppColors.card, borderRadius: BorderRadius.circular(16)),
+          decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16)),
           child: Column(
             children: [
               _row(PaymentStrings.bookPrice, PaymentStrings.manat(price)),
@@ -39,9 +38,7 @@ class BookPurchasePriceCard extends StatelessWidget {
               ),
               _row(
                 PaymentStrings.afterPurchase,
-                enough
-                    ? PaymentStrings.manat(balance! - price)
-                    : PaymentStrings.notEnough,
+                enough ? PaymentStrings.manat(balance! - price) : PaymentStrings.notEnough,
                 bold: true,
                 valueColor: enough ? AppColors.white : Colors.redAccent,
               ),
@@ -52,15 +49,10 @@ class BookPurchasePriceCard extends StatelessWidget {
           const SizedBox(height: 16),
           Row(
             children: [
-              const HugeIcon(
-                  icon: HugeIcons.strokeRoundedInformationCircle,
-                  color: Colors.redAccent,
-                  size: 16),
+              const HugeIcon(icon: HugeIcons.strokeRoundedInformationCircle, color: Colors.redAccent, size: 16),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(PaymentStrings.balanceInsufficientNote,
-                    style: TextStyle(
-                        color: AppColors.grey2, fontSize: 13, height: 1.4)),
+                child: Text(PaymentStrings.balanceInsufficientNote, style: TextStyle(color: AppColors.grey2, fontSize: 13, height: 1.4)),
               ),
             ],
           ),
@@ -69,21 +61,12 @@ class BookPurchasePriceCard extends StatelessWidget {
     );
   }
 
-  Widget _row(String label, String value,
-      {bool bold = false, Color? valueColor}) {
+  Widget _row(String label, String value, {bool bold = false, Color? valueColor}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
-            style: TextStyle(
-                color: AppColors.grey2,
-                fontSize: bold ? 14.5 : 14,
-                fontWeight: bold ? FontWeight.w700 : FontWeight.w500)),
-        Text(value,
-            style: TextStyle(
-                color: valueColor ?? AppColors.grey1,
-                fontSize: bold ? 16 : 14,
-                fontWeight: bold ? FontWeight.w800 : FontWeight.w600)),
+        Text(label, style: TextStyle(color: AppColors.grey2, fontSize: bold ? 14.5 : 14, fontWeight: bold ? FontWeight.w700 : FontWeight.w500)),
+        Text(value, style: TextStyle(color: valueColor ?? AppColors.grey1, fontSize: bold ? 16 : 14, fontWeight: bold ? FontWeight.w800 : FontWeight.w600)),
       ],
     );
   }

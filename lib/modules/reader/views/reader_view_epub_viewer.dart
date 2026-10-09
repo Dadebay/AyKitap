@@ -38,7 +38,6 @@ extension _ReaderViewEpubViewer on _ReaderScreenState {
       initialFontMimeType: provider.readerFontMimeType,
       onLocationsGenerated: provider.onLocationsGenerated,
       displaySettings: EpubDisplaySettings(
-        flow: EpubFlow.paginated,
         snap: true,
         // epub.js's own default is EpubSpread.auto, which is what used to put
         // the book into a two-page spread as soon as the reader was rotated
@@ -70,8 +69,7 @@ extension _ReaderViewEpubViewer on _ReaderScreenState {
       // mode whose page turn hangs off a vertical flick. Android reads the
       // mode straight out of epubView.js; iOS runs its own detector, which
       // needs telling.
-      verticalPageNavigation:
-          provider.pageTransition == ReaderPageTransition.scroll,
+      verticalPageNavigation: provider.pageTransition == ReaderPageTransition.scroll,
       // Tapping an already-painted highlight re-selects its exact range
       // instead of doing nothing — see ReaderProvider.selectedHighlight and
       // _removeHighlight, which together are the only way to undo a
@@ -116,6 +114,5 @@ extension _ReaderViewEpubViewer on _ReaderScreenState {
   /// numbers are derived from how much text a screen currently holds, so the
   /// same spot in the same book reads differently between sessions; the
   /// percentage comes from epub.js's locations and doesn't move.
-  String _pageLabel(ReaderProgressSnapshot snapshot) =>
-      '%${(snapshot.progress.clamp(0.0, 1.0) * 100).round()}';
+  String _pageLabel(ReaderProgressSnapshot snapshot) => '%${(snapshot.progress.clamp(0.0, 1.0) * 100).round()}';
 }

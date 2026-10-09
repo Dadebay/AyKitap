@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+
+import '../../../core/localization/strings/reader_pdf_strings.dart';
 import '../../../core/localization/strings/reader_strings.dart';
 import '../../../core/theme/app_colors.dart';
 import 'cbz_gutter_swatch.dart';
@@ -9,7 +11,6 @@ import 'reader_landscape_row.dart';
 import 'reader_section_label.dart';
 import 'reader_sheet_header.dart';
 import 'reader_slider_row.dart';
-import '../../../core/localization/strings/reader_pdf_strings.dart';
 
 /// How a CBZ's page images are laid out and moved through — the image-book
 /// counterpart of [PdfViewMode], and the same trade-off.
@@ -59,24 +60,19 @@ class CbzSettingsSheet extends StatelessWidget {
     return Container(
       // See [PdfSettingsSheet] — same cap-and-scroll treatment, so the sheet
       // still fits once the reader is rotated into landscape.
-      constraints:
-          BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: EdgeInsets.fromLTRB(
-          20, 12, 20, 24 + MediaQuery.of(context).padding.bottom),
+      padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + MediaQuery.of(context).padding.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ReaderSheetHeader(
             title: ReaderStrings.settingsTitle,
-            closeIcon: HugeIcon(
-                icon: HugeIcons.strokeRoundedArrowDown01,
-                color: AppColors.grey2,
-                size: 18),
+            closeIcon: HugeIcon(icon: HugeIcons.strokeRoundedArrowDown01, color: AppColors.grey2, size: 18),
           ),
 
           // Grab handle and heading stay put; everything below them scrolls,
@@ -147,8 +143,7 @@ class CbzSettingsSheet extends StatelessWidget {
                   // ── Page scale ────────────────────────────────────────────────
                   // Only meaningful page-at-a-time: in continuous scroll every
                   // page already fills the width by definition.
-                  if (viewMode == CbzViewMode.paged)
-                    CbzPageScaleSection(fit: fit, onFitChanged: onFitChanged),
+                  if (viewMode == CbzViewMode.paged) CbzPageScaleSection(fit: fit, onFitChanged: onFitChanged),
 
                   // ── Brightness (TZ §12.4) ──────────────────────────────────────
                   ReaderSectionLabel(ReaderStrings.brightnessLabel),

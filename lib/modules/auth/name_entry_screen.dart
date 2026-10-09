@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
+
+import '../../core/localization/strings/auth_strings.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/services/auth_api_service.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/localization/strings/auth_strings.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/gradient_icon_badge.dart';
@@ -76,16 +77,11 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
                 const SizedBox(height: 12),
                 const GradientIconBadge(icon: HugeIcons.strokeRoundedUser),
                 const SizedBox(height: 24),
-                Text(AuthStrings.nameEntryTitle,
-                    style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800)),
+                Text(AuthStrings.nameEntryTitle, style: TextStyle(color: AppColors.white, fontSize: 26, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 8),
                 Text(
                   AuthStrings.nameEntrySubtitle,
-                  style: TextStyle(
-                      color: AppColors.grey2, fontSize: 14.5, height: 1.5),
+                  style: TextStyle(color: AppColors.grey2, fontSize: 14.5, height: 1.5),
                 ),
                 const SizedBox(height: 32),
                 AppTextField(
@@ -100,10 +96,7 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
                   onSubmitted: (_) => _continue(),
                 ),
                 const Spacer(),
-                PrimaryButton(
-                    label: AuthStrings.continueButton,
-                    loading: _saving,
-                    onPressed: _isValid ? _continue : null),
+                PrimaryButton(label: AuthStrings.continueButton, loading: _saving, onPressed: _isValid ? _continue : null),
               ],
             ),
           ),

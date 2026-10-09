@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
+
+import '../../core/localization/strings/profile_strings.dart';
 import '../../core/models/user_note.dart';
 import '../../core/navigation/app_hero_tags.dart';
 import '../../core/navigation/app_navigator.dart';
@@ -9,7 +10,6 @@ import '../../core/services/user_notes_api_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/app_snackbar.dart';
-import '../../core/localization/strings/profile_strings.dart';
 import '../book_detail/catalog_book_detail_screen.dart';
 import 'widgets/edit_note_sheet.dart';
 import 'widgets/note_card.dart';
@@ -72,9 +72,7 @@ class _NotesScreenState extends State<NotesScreen> {
     await context.pushHero(CatalogBookDetailScreen(
       bookId: note.bookId,
       heroTag: AppHeroTags.noteBookCover(note.id, note.bookId),
-      initialCoverUrl: image != null && image.isNotEmpty
-          ? ApiConfig.resolveImageUrl(image)
-          : null,
+      initialCoverUrl: image != null && image.isNotEmpty ? ApiConfig.resolveImageUrl(image) : null,
     ));
     if (mounted) _load();
   }
@@ -88,11 +86,9 @@ class _NotesScreenState extends State<NotesScreen> {
     );
     if (draft == null || draft.text.isEmpty) return;
     try {
-      final updated =
-          await UserNotesApiService.updateNote(note.id, note: draft.text);
+      final updated = await UserNotesApiService.updateNote(note.id, note: draft.text);
       if (!mounted) return;
-      setState(() =>
-          _notes = _notes?.map((n) => n.id == note.id ? updated : n).toList());
+      setState(() => _notes = _notes?.map((n) => n.id == note.id ? updated : n).toList());
     } on ApiException catch (e) {
       if (!mounted) return;
       context.showAppSnackBar(e.message, isError: true);
@@ -124,11 +120,7 @@ class _NotesScreenState extends State<NotesScreen> {
         scrolledUnderElevation: 0,
         centerTitle: true,
         leading: const AppBackButton(size: 20),
-        title: Text(ProfileStrings.notesTitle,
-            style: TextStyle(
-                color: AppColors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w700)),
+        title: Text(ProfileStrings.notesTitle, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
       ),
       body: SafeArea(top: false, child: _buildBody()),
     );
@@ -145,16 +137,9 @@ class _NotesScreenState extends State<NotesScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_error!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+              Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
               const SizedBox(height: 12),
-              TextButton(
-                  onPressed: _load,
-                  child: Text(ProfileStrings.retry,
-                      style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700))),
+              TextButton(onPressed: _load, child: Text(ProfileStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700))),
             ],
           ),
         ),

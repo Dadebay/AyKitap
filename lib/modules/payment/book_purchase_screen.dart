@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/localization/strings/payment_strings.dart';
 import '../../core/models/book_detail.dart';
 import '../../core/navigation/app_navigator.dart';
@@ -15,9 +16,9 @@ import '../../core/services/book_purchase_api_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/app_snackbar.dart';
+import '../library/purchase_diagnostics.dart';
 import 'balance_top_up.dart';
 import 'widgets/book_purchase_confirm_button.dart';
-import '../library/purchase_diagnostics.dart';
 import 'widgets/book_purchase_price_card.dart';
 import 'widgets/book_purchase_summary_card.dart';
 import 'widgets/insufficient_balance_dialog.dart';
@@ -84,17 +85,9 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
     }
     setState(() => _processing = true);
     try {
-      logBookPurchase(
-          step: 'sending',
-          bookId: widget.book.id,
-          bookFileId: file.id,
-          bookName: widget.book.name);
+      logBookPurchase(step: 'sending', bookId: widget.book.id, bookFileId: file.id, bookName: widget.book.name);
       await BookPurchaseApiService.buy(file.id);
-      logBookPurchase(
-          step: 'server accepted',
-          bookId: widget.book.id,
-          bookFileId: file.id,
-          bookName: widget.book.name);
+      logBookPurchase(step: 'server accepted', bookId: widget.book.id, bookFileId: file.id, bookName: widget.book.name);
       // The backend has already moved the money; this just picks up the new
       // number rather than guessing at it.
       if (!mounted) return;
@@ -139,8 +132,7 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
   /// button again.
   Future<void> _offerTopUp(int? balance) async {
     final shortfall = balance == null ? null : _price - balance;
-    final pay = await InsufficientBalanceDialog.show(context,
-        shortfallManat: shortfall);
+    final pay = await InsufficientBalanceDialog.show(context, shortfallManat: shortfall);
     if (!pay || !mounted) return;
     await startBalanceTopUp(context);
     if (!mounted) return;
@@ -158,11 +150,7 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.bg,
         leading: const AppBackButton(size: 20),
-        title: Text(PaymentStrings.purchaseTitle,
-            style: TextStyle(
-                color: AppColors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w700)),
+        title: Text(PaymentStrings.purchaseTitle, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
       ),
       body: SafeArea(
         child: Column(
@@ -177,17 +165,10 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      HugeIcon(
-                          icon: HugeIcons.strokeRoundedShield01,
-                          color: AppColors.grey3,
-                          size: 15),
+                      HugeIcon(icon: HugeIcons.strokeRoundedShield01, color: AppColors.grey3, size: 15),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(PaymentStrings.booksOnlyInApp,
-                            style: TextStyle(
-                                color: AppColors.grey3,
-                                fontSize: 12.5,
-                                height: 1.4)),
+                        child: Text(PaymentStrings.booksOnlyInApp, style: TextStyle(color: AppColors.grey3, fontSize: 12.5, height: 1.4)),
                       ),
                     ],
                   ),

@@ -30,7 +30,7 @@ class OnboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: data.gradient,
@@ -55,12 +55,7 @@ class OnboardPage extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 stops: [0.0, 0.55, 0.82, 1.0],
-                colors: [
-                  Colors.white,
-                  Colors.white,
-                  Colors.white24,
-                  Colors.transparent
-                ],
+                colors: [Colors.white, Colors.white, Colors.white24, Colors.transparent],
               ).createShader(rect),
               child: Stack(
                 fit: StackFit.expand,
@@ -87,10 +82,7 @@ class OnboardPage extends StatelessWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         stops: const [0.0, 0.12],
-                        colors: [
-                          data.gradient.first.withValues(alpha: 0.45),
-                          Colors.transparent
-                        ],
+                        colors: [data.gradient.first.withValues(alpha: 0.45), Colors.transparent],
                       ),
                     ),
                   ),
@@ -108,25 +100,15 @@ class OnboardPage extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.card.withValues(alpha: 0.85),
                 borderRadius: BorderRadius.circular(20),
-                border:
-                    Border.all(color: data.accentColor.withValues(alpha: 0.3)),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      blurRadius: 12)
-                ],
+                border: Border.all(color: data.accentColor.withValues(alpha: 0.3)),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12)],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(data.badge,
-                      style: TextStyle(
-                          color: data.accentColor,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800)),
+                  Text(data.badge, style: TextStyle(color: data.accentColor, fontSize: 15, fontWeight: FontWeight.w800)),
                   const SizedBox(width: 6),
-                  Text(data.badgeLabel,
-                      style: TextStyle(color: AppColors.grey1, fontSize: 12)),
+                  Text(data.badgeLabel, style: TextStyle(color: AppColors.grey1, fontSize: 12)),
                 ],
               ),
             ),
@@ -156,8 +138,7 @@ class OnboardPage extends StatelessWidget {
                   const SizedBox(height: 14),
                   Text(
                     data.subtitle,
-                    style: TextStyle(
-                        color: AppColors.grey2, fontSize: 15.5, height: 1.6),
+                    style: TextStyle(color: AppColors.grey2, fontSize: 15.5, height: 1.6),
                   ),
                 ],
               ),

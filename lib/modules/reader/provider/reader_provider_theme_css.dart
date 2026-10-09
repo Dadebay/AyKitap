@@ -18,9 +18,10 @@ extension ReaderProviderThemeCss on ReaderProvider {
   /// layout already uses it. Null until [_loadReaderFontBase64] has run.
   String get readerFontCssName => _fontCssName(_fontFamily);
   String? get readerFontBase64 => _readerFontBase64;
-  String get readerFontMimeType => _fontAsset(_fontFamily).endsWith('.otf')
-      ? 'font/opentype'
-      : 'font/truetype';
+  String get readerFontMimeType =>
+      (_fontAsset(_fontFamily) ?? '').endsWith('.otf')
+          ? 'font/opentype'
+          : 'font/truetype';
 
   /// Reads the chosen font off the asset bundle and caches it as base64.
   ///
@@ -30,8 +31,14 @@ extension ReaderProviderThemeCss on ReaderProvider {
   /// falls on. Loading it up front is what lets a book reopen on exactly the
   /// screen it was left on rather than the one before or after.
   Future<void> _loadReaderFontBase64() async {
+    final asset = _fontAsset(_fontFamily);
+    if (asset == null) {
+      // A system font: nothing to embed, the WebView resolves it itself.
+      _readerFontBase64 = null;
+      return;
+    }
     try {
-      final data = await rootBundle.load(_fontAsset(_fontFamily));
+      final data = await rootBundle.load(asset);
       _readerFontBase64 = base64Encode(data.buffer.asUint8List());
     } catch (e) {
       // A missing/corrupt font asset is not worth failing the open over —
@@ -49,7 +56,8 @@ extension ReaderProviderThemeCss on ReaderProvider {
   Future<void> _applyReaderFont() async {
     await _loadReaderFontBase64();
     final b64 = _readerFontBase64;
-    if (b64 == null) return;
+    // No bytes is only a problem for an embedded font; a system font has none.
+    if (b64 == null && _fontAsset(_fontFamily) != null) return;
     epubController.setFontFamily(
       fontFamily: readerFontCssName,
       fontBase64: b64,
@@ -211,14 +219,17 @@ extension ReaderProviderThemeCss on ReaderProvider {
   }
 
   static String _fontCssName(ReaderFontFamily f) => switch (f) {
-        ReaderFontFamily.sanFrancisco => 'SanFrancisco',
+        // The platform's own UI font (SF on iOS, Roboto on Android) — Apple
+        // forbids shipping SF Pro itself, so this is a font stack, not a name.
+        ReaderFontFamily.sanFrancisco => '-apple-system, system-ui',
         ReaderFontFamily.arial => 'Arial',
         ReaderFontFamily.notoSerif => 'NotoSerif',
         ReaderFontFamily.openSans => 'OpenSans',
       };
 
-  static String _fontAsset(ReaderFontFamily f) => switch (f) {
-        ReaderFontFamily.sanFrancisco => 'assets/fonts/SF-Pro-Text-Regular.otf',
+  /// The bundled font file, or null for a system font.
+  static String? _fontAsset(ReaderFontFamily f) => switch (f) {
+        ReaderFontFamily.sanFrancisco => null,
         ReaderFontFamily.arial => 'assets/fonts/Arial-Regular.ttf',
         ReaderFontFamily.notoSerif => 'assets/fonts/NotoSerif-Regular.ttf',
         ReaderFontFamily.openSans => 'assets/fonts/OpenSans-Regular.ttf',

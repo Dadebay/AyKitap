@@ -23,8 +23,10 @@ class ReaderFontTile extends StatelessWidget {
         ReaderFontFamily.openSans => 'Open Sans',
       };
 
-  String get fontFamily => switch (family) {
-        ReaderFontFamily.sanFrancisco => 'SanFrancisco',
+  // Null = the platform's default UI font (SF on iOS); Apple's SF Pro file is
+  // not bundled.
+  String? get fontFamily => switch (family) {
+        ReaderFontFamily.sanFrancisco => null,
         ReaderFontFamily.arial => 'Arial',
         ReaderFontFamily.notoSerif => 'NotoSerif',
         ReaderFontFamily.openSans => 'OpenSans',

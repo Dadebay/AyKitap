@@ -4,14 +4,14 @@ import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/navigation/app_navigator.dart';
+import '../../core/network/api_exception.dart';
 import '../../core/services/account_service.dart';
-import '../../core/services/purchase_mode_service.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/services/auth_api_service.dart';
-import '../../core/network/api_exception.dart';
 import '../../core/services/auth_session.dart';
 import '../../core/services/firebase_messaging_service.dart';
 import '../../core/services/onesignal_service.dart';
+import '../../core/services/purchase_mode_service.dart';
 import '../../core/services/revenue_cat_service.dart';
 import 'name_entry_screen.dart';
 import 'suggested_display_name.dart';

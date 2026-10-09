@@ -1,7 +1,8 @@
 import 'package:dio/dio.dart';
+
 import '../models/auth_user.dart';
-import '../network/auth_endpoints.dart';
 import '../network/api_exception.dart';
+import '../network/auth_endpoints.dart';
 import '../network/dio_client.dart';
 
 /// The `data` payload of a successful `/users/verify-login` response.
@@ -23,8 +24,7 @@ class AuthApiService {
   /// [verifyLogin] comes back.
   static Future<void> sendCode({required String phone}) async {
     try {
-      await DioClient.instance
-          .post(AuthEndpoints.sendCode, data: {'phone': phone});
+      await DioClient.instance.post(AuthEndpoints.sendCode, data: {'phone': phone});
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -94,8 +94,7 @@ class AuthApiService {
   /// locally, not just in [AuthSession].
   static Future<void> updateUsername({required String username}) async {
     try {
-      await DioClient.instance
-          .patch(AuthEndpoints.updateProfile, data: {'username': username});
+      await DioClient.instance.patch(AuthEndpoints.updateProfile, data: {'username': username});
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -107,8 +106,7 @@ class AuthApiService {
   /// it ever reaches here, so this call never sees an oversized payload.
   static Future<void> updateImage({required String imageBase64}) async {
     try {
-      await DioClient.instance
-          .patch(AuthEndpoints.updateProfile, data: {'image': imageBase64});
+      await DioClient.instance.patch(AuthEndpoints.updateProfile, data: {'image': imageBase64});
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -133,8 +131,7 @@ class AuthApiService {
   /// for an invalid/already-used code, same as every other call here.
   static Future<void> redeemPromoCode({required String code}) async {
     try {
-      await DioClient.instance
-          .post(AuthEndpoints.promoCodes, data: {'promo_code': code});
+      await DioClient.instance.post(AuthEndpoints.promoCodes, data: {'promo_code': code});
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -156,8 +153,7 @@ class AuthApiService {
   /// becomes available while logged in.
   static Future<void> updateFcmToken({required String fcmToken}) async {
     try {
-      await DioClient.instance
-          .patch(AuthEndpoints.fcmToken, data: {'fcm_token': fcmToken});
+      await DioClient.instance.patch(AuthEndpoints.fcmToken, data: {'fcm_token': fcmToken});
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

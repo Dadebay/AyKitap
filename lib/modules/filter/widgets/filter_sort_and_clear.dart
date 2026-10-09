@@ -21,29 +21,18 @@ class FilterSortSection extends StatelessWidget {
       children: [
         Text(
           FilterStrings.sorting.toUpperCase(),
-          style: TextStyle(
-              color: AppColors.grey2,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.6),
+          style: TextStyle(color: AppColors.grey2, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 0.6),
         ),
         const SizedBox(height: 10),
-        Container(
-          decoration: BoxDecoration(
-              color: AppColors.card, borderRadius: BorderRadius.circular(16)),
+        DecoratedBox(
+          decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16)),
           child: ExpandableFilterSection(
             title: FilterStrings.sortOrder,
             summary: c.sortBy.label,
             expanded: c.expanded.contains('sort'),
             onToggle: () => c.toggleExpanded('sort'),
             child: Column(
-              children: SortBy.values
-                  .map((s) => SortTile(
-                      label: s.label,
-                      value: s,
-                      group: c.sortBy,
-                      onChanged: (v) => c.setSortBy(v!)))
-                  .toList(),
+              children: SortBy.values.map((s) => SortTile(label: s.label, value: s, group: c.sortBy, onChanged: (v) => c.setSortBy(v!))).toList(),
             ),
           ),
         ),
@@ -64,20 +53,12 @@ class FilterClearRow extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-            color: AppColors.card, borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16)),
         child: Row(
           children: [
-            HugeIcon(
-                icon: HugeIcons.strokeRoundedRefresh,
-                color: AppColors.grey1,
-                size: 18),
+            HugeIcon(icon: HugeIcons.strokeRoundedRefresh, color: AppColors.grey1, size: 18),
             const SizedBox(width: 12),
-            Text(FilterStrings.clearFilter,
-                style: TextStyle(
-                    color: AppColors.grey1,
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w600)),
+            Text(FilterStrings.clearFilter, style: TextStyle(color: AppColors.grey1, fontSize: 14.5, fontWeight: FontWeight.w600)),
           ],
         ),
       ),

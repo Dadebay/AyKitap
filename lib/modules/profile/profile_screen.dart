@@ -3,10 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/localization/strings/gift_strings.dart';
 import '../../core/localization/strings/payment_strings.dart';
-import '../../core/localization/strings/profile_strings.dart';
 import '../../core/localization/strings/profile_feedback_strings.dart';
+import '../../core/localization/strings/profile_strings.dart';
 import '../../core/navigation/app_navigator.dart';
 import '../../core/network/api_config.dart';
 import '../../core/services/account_service.dart';
@@ -31,8 +32,8 @@ import 'widgets/profile_entry_card.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/send_gift_sheet.dart';
 
-part 'profile_screen_session.dart';
 part 'profile_screen_entries.dart';
+part 'profile_screen_session.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -80,11 +81,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: AppColors.journeyMist,
         scrolledUnderElevation: 0.0,
         centerTitle: true,
-        title: Text(ProfileStrings.profileTitle,
-            style: TextStyle(
-                color: AppColors.journeyInk,
-                fontSize: 22,
-                fontWeight: FontWeight.w700)),
+        title: Text(ProfileStrings.profileTitle, style: TextStyle(color: AppColors.journeyInk, fontSize: 22, fontWeight: FontWeight.w700)),
       ),
       body: SafeArea(
         bottom: false,
@@ -95,13 +92,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 110),
           children: _isLoggedIn
               ? [
-                  ProfileTopSection(
-                      name: _name,
-                      maskedPhone: _maskedPhone,
-                      avatarIndex: _avatarIndex,
-                      avatarImage: _avatarImage,
-                      avatarUrl: _backendAvatarUrl,
-                      onTap: _openEditProfile),
+                  ProfileTopSection(name: _name, maskedPhone: _maskedPhone, avatarIndex: _avatarIndex, avatarImage: _avatarImage, avatarUrl: _backendAvatarUrl, onTap: _openEditProfile),
                   const SizedBox(height: 24),
                   _buildBalanceEntry(context, balance),
                   const SizedBox(height: 12),

@@ -140,8 +140,9 @@ class BookOpenFlow {
         // rather than making the user tap "Satyn al" again.
         if (retries <= 0) return false;
         final resolved = await bookAccess.resolve(book);
-        if (resolved != BookAccess.needsPurchase || !context.mounted)
+        if (resolved != BookAccess.needsPurchase || !context.mounted) {
           return false;
+        }
         return buy(retries: retries - 1);
 
       // An active subscriber can still buy a book outright — that's the

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+
+import '../../../core/localization/strings/reader_pdf_strings.dart';
 import 'pdf_settings_sheet.dart';
 import 'reader_fit_tile.dart';
 import 'reader_section_label.dart';
-import '../../../core/localization/strings/reader_pdf_strings.dart';
 
 /// The "view mode" and "page scale" sections of [PdfSettingsSheet], grouped
 /// together since they're the two halves of one choice — see

@@ -43,7 +43,6 @@ class SearchNoResultsState extends StatelessWidget {
       padding: const EdgeInsets.all(8.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 240),

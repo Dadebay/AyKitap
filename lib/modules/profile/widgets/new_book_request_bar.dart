@@ -19,8 +19,7 @@ class NewBookRequestBar extends StatefulWidget {
   State<NewBookRequestBar> createState() => _NewBookRequestBarState();
 }
 
-class _NewBookRequestBarState extends State<NewBookRequestBar>
-    with TickerProviderStateMixin {
+class _NewBookRequestBarState extends State<NewBookRequestBar> with TickerProviderStateMixin {
   late final AnimationController _entrance;
   late final AnimationController _press;
   late final AnimationController _glow;
@@ -66,9 +65,7 @@ class _NewBookRequestBarState extends State<NewBookRequestBar>
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     return SlideTransition(
-      position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
-          .animate(
-              CurvedAnimation(parent: _entrance, curve: Curves.easeOutCubic)),
+      position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(CurvedAnimation(parent: _entrance, curve: Curves.easeOutCubic)),
       child: AnimatedBuilder(
         animation: Listenable.merge([_press, _glow]),
         builder: (context, child) {
@@ -116,15 +113,15 @@ class _NewBookRequestBarState extends State<NewBookRequestBar>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        HugeIcon(
+                        const HugeIcon(
                           icon: HugeIcons.strokeRoundedAdd01,
                           color: Colors.white,
                           size: 20,
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         Text(
                           ProfileStrings.newBookRequest,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 15.5,
                             fontWeight: FontWeight.w700,

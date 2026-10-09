@@ -16,17 +16,14 @@ class LibraryScreen extends StatefulWidget {
   /// local Downloaded shelf, while normal navigation keeps the reading shelf.
   final int initialTabIndex;
 
-  const LibraryScreen({super.key, this.initialTabIndex = 0})
-      : assert(initialTabIndex >= 0 && initialTabIndex < 6);
+  const LibraryScreen({super.key, this.initialTabIndex = 0}) : assert(initialTabIndex >= 0 && initialTabIndex < 6);
 
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
 }
 
-class _LibraryScreenState extends State<LibraryScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController = TabController(
-      length: 6, vsync: this, initialIndex: widget.initialTabIndex);
+class _LibraryScreenState extends State<LibraryScreen> with SingleTickerProviderStateMixin {
+  late final TabController _tabController = TabController(length: 6, vsync: this, initialIndex: widget.initialTabIndex);
 
   static List<String> get _tabs => [
         LibraryStrings.tabReading,
@@ -53,12 +50,8 @@ class _LibraryScreenState extends State<LibraryScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(20, 16, 20, 12),
-              child: Text(LibraryStrings.libraryTitle,
-                  style: TextStyle(
-                      color: AppColors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800)),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              child: Text(LibraryStrings.libraryTitle, style: TextStyle(color: AppColors.white, fontSize: 26, fontWeight: FontWeight.w800)),
             ),
             TabBar(
               controller: _tabController,
@@ -66,8 +59,7 @@ class _LibraryScreenState extends State<LibraryScreen>
               indicatorColor: AppColors.primary,
               labelColor: AppColors.white,
               unselectedLabelColor: AppColors.grey2,
-              labelStyle:
-                  const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+              labelStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
               tabAlignment: TabAlignment.start,
               tabs: _tabs.map((t) => Tab(text: t)).toList(),
             ),
@@ -81,10 +73,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                   // rather than server-side because there's no
                   // `finished=false` filter, only `finished=true`.
                   ApiBooksTab(
-                    fetcher: () async =>
-                        (await BookListApiService.listBooks(myBooks: true))
-                            .where((b) => !b.isFinished)
-                            .toList(),
+                    fetcher: () async => (await BookListApiService.listBooks(myBooks: true)).where((b) => !b.isFinished).toList(),
                     emptyLabel: LibraryStrings.emptyReading,
                     heroShelf: 'reading',
                     showProgress: true,
@@ -95,8 +84,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                       await ReadingBooksStore.instance.load();
                       return ReadingBooksStore.instance.books;
                     },
-                    cacheLoadedBooks:
-                        ReadingBooksStore.instance.mergeFromBackend,
+                    cacheLoadedBooks: ReadingBooksStore.instance.mergeFromBackend,
                     openLocalWhenOffline: true,
                     sortByLastOpened: true,
                     removal: ShelfRemoval.reading,

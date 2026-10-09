@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
-import '../../core/navigation/app_navigator.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/services/device_fingerprint.dart';
+
 import '../../core/localization/strings/auth_strings.dart';
+import '../../core/navigation/app_navigator.dart';
+import '../../core/services/device_fingerprint.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/gradient_icon_badge.dart';
@@ -20,8 +21,7 @@ import 'widgets/otp_code_row.dart';
 class OtpVerifyScreen extends StatefulWidget {
   final String phone;
   final bool simulateOtherDevice;
-  const OtpVerifyScreen(
-      {super.key, required this.phone, this.simulateOtherDevice = false});
+  const OtpVerifyScreen({super.key, required this.phone, this.simulateOtherDevice = false});
 
   @override
   State<OtpVerifyScreen> createState() => _OtpVerifyScreenState();
@@ -29,10 +29,8 @@ class OtpVerifyScreen extends StatefulWidget {
 
 class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
   static const _length = 4;
-  late final List<TextEditingController> _controllers =
-      List.generate(_length, (_) => TextEditingController());
-  late final List<FocusNode> _focusNodes =
-      List.generate(_length, (_) => FocusNode());
+  late final List<TextEditingController> _controllers = List.generate(_length, (_) => TextEditingController());
+  late final List<FocusNode> _focusNodes = List.generate(_length, (_) => FocusNode());
 
   String? _error;
   final _authProvider = AuthProvider();
@@ -40,8 +38,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _focusNodes[0].requestFocus());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _focusNodes[0].requestFocus());
   }
 
   @override
@@ -104,12 +101,10 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
     // Already resolved and cached by the time we get here (warmed at app
     // start in main.dart) — this just reads the cache.
     final deviceId = await DeviceFingerprint.get();
-    final result = await _authProvider.verifyLogin(
-        phone: widget.phone, code: _code, deviceId: deviceId);
+    final result = await _authProvider.verifyLogin(phone: widget.phone, code: _code, deviceId: deviceId);
     if (!mounted) return;
     if (result == null) {
-      setState(() =>
-          _error = _authProvider.errorMessage ?? AuthStrings.genericError);
+      setState(() => _error = _authProvider.errorMessage ?? AuthStrings.genericError);
       return;
     }
 
@@ -132,9 +127,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
     final ok = await _authProvider.sendCode(widget.phone);
     if (!mounted) return;
     if (!ok) {
-      context.showAppSnackBar(
-          _authProvider.errorMessage ?? AuthStrings.genericError,
-          isError: true);
+      context.showAppSnackBar(_authProvider.errorMessage ?? AuthStrings.genericError, isError: true);
       return;
     }
     for (final c in _controllers) {
@@ -149,8 +142,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
       value: _authProvider,
-      child: Consumer<AuthProvider>(
-          builder: (context, auth, _) => _buildScaffold(context, auth)),
+      child: Consumer<AuthProvider>(builder: (context, auth, _) => _buildScaffold(context, auth)),
     );
   }
 
@@ -161,11 +153,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
           child: ConstrainedBox(
-            constraints: BoxConstraints(
-                minHeight: MediaQuery.of(context).size.height -
-                    MediaQuery.of(context).viewInsets.bottom -
-                    MediaQuery.of(context).padding.vertical -
-                    32),
+            constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).viewInsets.bottom - MediaQuery.of(context).padding.vertical - 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -173,51 +161,28 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
                 const SizedBox(height: 12),
                 const GradientIconBadge(icon: HugeIcons.strokeRoundedMessage01),
                 const SizedBox(height: 24),
-                Text(AuthStrings.otpTitle,
-                    style: TextStyle(
-                        color: AppColors.white,
-                        fontFamily: 'GilroyRegular',
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800)),
+                Text(AuthStrings.otpTitle, style: TextStyle(color: AppColors.white, fontFamily: 'GilroyRegular', fontSize: 26, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 8),
                 RichText(
                   text: TextSpan(
-                    style: TextStyle(
-                        color: AppColors.grey2,
-                        fontFamily: 'GilroyRegular',
-                        fontSize: 14.5,
-                        height: 1.5),
+                    style: TextStyle(color: AppColors.grey2, fontFamily: 'GilroyRegular', fontSize: 14.5, height: 1.5),
                     children: [
                       TextSpan(text: AuthStrings.otpSentPrefix),
-                      TextSpan(
-                          text: widget.phone,
-                          style: TextStyle(
-                              color: AppColors.grey1,
-                              fontWeight: FontWeight.w700)),
+                      TextSpan(text: widget.phone, style: TextStyle(color: AppColors.grey1, fontWeight: FontWeight.w700)),
                     ],
                   ),
                 ),
                 const SizedBox(height: 36),
-                OtpCodeRow(
-                    length: _length,
-                    controllers: _controllers,
-                    focusNodes: _focusNodes,
-                    onChanged: _onDigitChanged),
+                OtpCodeRow(length: _length, controllers: _controllers, focusNodes: _focusNodes, onChanged: _onDigitChanged),
                 if (_error != null) ...[
                   const SizedBox(height: 14),
-                  Text(_error!,
-                      style: const TextStyle(
-                          color: Colors.redAccent, fontSize: 13)),
+                  Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
                 ],
                 const SizedBox(height: 28),
                 Center(
                   child: GestureDetector(
                     onTap: _resend,
-                    child: Text(AuthStrings.resendAction,
-                        style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700)),
+                    child: Text(AuthStrings.resendAction, style: TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w700)),
                   ),
                 ),
                 const SizedBox(height: 32),

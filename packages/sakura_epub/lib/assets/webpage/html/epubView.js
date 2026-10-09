@@ -19,7 +19,11 @@ function _injectFontCSS(contents, fontFamily, fontBase64, fontMimeType) {
     var fmt = (fontMimeType && fontMimeType.indexOf('opentype') !== -1) ? 'opentype' : 'truetype';
     css += "@font-face { font-family: '" + fontFamily + "'; src: url('data:" + fontMimeType + ";base64," + fontBase64 + "') format('" + fmt + "'); font-weight: normal; font-style: normal; }\n";
   }
-  css += "body, p, span, div, li, td, th { font-family: '" + fontFamily + "', sans-serif !important; }";
+  // With an embedded face the family is a single name and gets quoted. With
+  // none, `fontFamily` is a raw CSS font stack (e.g. the system font), which
+  // must not be quoted or `-apple-system` would be read as a family name.
+  var family = fontBase64 ? "'" + fontFamily + "'" : fontFamily;
+  css += "body, p, span, div, li, td, th { font-family: " + family + ", sans-serif !important; }";
   style.textContent = css;
   contents.document.head.appendChild(style);
 }

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
-import '../network/book_endpoints.dart';
+
 import '../network/api_exception.dart';
+import '../network/book_endpoints.dart';
 import '../network/dio_client.dart';
 
 /// Buying one book from the balance — `POST /users/buy-book/:bookFileId`.

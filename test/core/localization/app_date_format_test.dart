@@ -30,16 +30,12 @@ void main() {
 
     test('keeps a 24-hour time alongside the date', () async {
       await AppLocale.instance.setLanguage(AppLanguageCode.tk);
-      expect(AppDateFormat.dateTime(DateTime(2026, 9, 24, 10, 56)),
-          '24 Sent 2026 10:56');
+      expect(AppDateFormat.dateTime(DateTime(2026, 9, 24, 10, 56)), '24 Sent 2026 10:56');
     });
 
-    test('names every month, and June and July stay distinguishable',
-        () async {
+    test('names every month, and June and July stay distinguishable', () async {
       await AppLocale.instance.setLanguage(AppLanguageCode.tk);
-      final months = [
-        for (var m = 1; m <= 12; m++) AppDateFormat.date(DateTime(2026, m, 1))
-      ];
+      final months = [for (var m = 1; m <= 12; m++) AppDateFormat.date(DateTime(2026, m))];
       expect(months, [
         '1 Ýan 2026',
         '1 Few 2026',

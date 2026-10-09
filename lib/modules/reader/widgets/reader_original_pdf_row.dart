@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import '../../../core/theme/app_colors.dart';
+
 import '../../../core/localization/strings/reader_pdf_strings.dart';
+import '../../../core/theme/app_colors.dart';
 
 /// The "view original PDF pages" row — same card shape as the page-transition
 /// row but a one-shot action rather than a row that opens a submenu: tapping
@@ -27,10 +28,7 @@ class ReaderOriginalPdfRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              HugeIcon(
-                  icon: HugeIcons.strokeRoundedFile02,
-                  color: AppColors.primary,
-                  size: 19),
+              HugeIcon(icon: HugeIcons.strokeRoundedFile02, color: AppColors.primary, size: 19),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -38,10 +36,7 @@ class ReaderOriginalPdfRow extends StatelessWidget {
                   children: [
                     Text(
                       ReaderPdfStrings.pdfOriginalViewLabel,
-                      style: TextStyle(
-                          color: AppColors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600),
+                      style: TextStyle(color: AppColors.white, fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 2),
                     Text(

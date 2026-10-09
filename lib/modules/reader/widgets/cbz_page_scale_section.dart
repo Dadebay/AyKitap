@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+
+import '../../../core/localization/strings/reader_pdf_strings.dart';
 import '../../../core/localization/strings/reader_strings.dart';
 import 'reader_fit_tile.dart';
 import 'reader_section_label.dart';
-import '../../../core/localization/strings/reader_pdf_strings.dart';
 
 /// The "page scale" section of [CbzSettingsSheet] — only meaningful
 /// page-at-a-time, since in continuous scroll every page already fills the
@@ -12,8 +13,7 @@ class CbzPageScaleSection extends StatelessWidget {
   final BoxFit fit;
   final ValueChanged<BoxFit> onFitChanged;
 
-  const CbzPageScaleSection(
-      {super.key, required this.fit, required this.onFitChanged});
+  const CbzPageScaleSection({super.key, required this.fit, required this.onFitChanged});
 
   @override
   Widget build(BuildContext context) {

@@ -1,15 +1,17 @@
 import 'dart:developer';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:sakura_epub/sakura_epub.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../../core/layout/window_size_class.dart';
 import '../../../core/localization/app_locale.dart';
-import '../../../core/localization/strings/reader_strings.dart';
 import '../../../core/localization/strings/reader_notes_strings.dart';
+import '../../../core/localization/strings/reader_strings.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/services/notes_store.dart';
 import '../../../core/services/user_notes_api_service.dart';
@@ -121,9 +123,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     enableReaderLandscape();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context
-          .read<ReaderProvider>()
-          .initialize(bookId: widget.bookId, bookTitle: widget.bookTitle);
+      context.read<ReaderProvider>().initialize(bookId: widget.bookId, bookTitle: widget.bookTitle);
     });
   }
 
@@ -136,15 +136,12 @@ class _ReaderScreenState extends State<ReaderScreen> {
     // closing. See ReaderProviderLayout.updateWindowSizeClass: it only ever
     // calls into the already-open WebView's rendition, never rebuilds it, so
     // this never disturbs the current reading position.
-    context
-        .read<ReaderProvider>()
-        .updateWindowSizeClass(WindowSizeClass.of(context));
+    context.read<ReaderProvider>().updateWindowSizeClass(WindowSizeClass.of(context));
   }
 
   @override
   void dispose() {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
-        overlays: [SystemUiOverlay.top]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [SystemUiOverlay.top]);
     restoreAppPortraitLock();
     super.dispose();
   }
@@ -155,8 +152,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     // switch unless it depends on [AppLocale] — watch it so the bars/labels
     // re-render in the app's current language while a book is open.
     context.watch<AppLocale>();
-    return Consumer<ReaderProvider>(
-        builder: (context, provider, _) => _buildScaffold(context, provider));
+    return Consumer<ReaderProvider>(builder: (context, provider, _) => _buildScaffold(context, provider));
   }
 
   /// `setState` is `@protected` on [State] — see [PdfReaderScreen]'s

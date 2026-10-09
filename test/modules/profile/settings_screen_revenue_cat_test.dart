@@ -26,7 +26,7 @@ CustomerInfo _customerInfo({Map<String, EntitlementInfo> active = const {}}) {
   );
 }
 
-EntitlementInfo _entitlement() => EntitlementInfo(
+EntitlementInfo _entitlement() => const EntitlementInfo(
       RevenueCatService.entitlementId,
       true,
       true,
@@ -46,8 +46,7 @@ class _FakeClient implements RevenueCatClient {
   Future<void> configure(String apiKey, {required bool debugLogging}) async {}
 
   @override
-  void addCustomerInfoUpdateListener(
-      void Function(CustomerInfo info) listener) {}
+  void addCustomerInfoUpdateListener(void Function(CustomerInfo info) listener) {}
 
   @override
   Future<CustomerInfo> getCustomerInfo() async => info;
@@ -68,13 +67,10 @@ class _FakeClient implements RevenueCatClient {
   Future<CustomerInfo> restorePurchases() async => info;
 
   @override
-  Future<PaywallResult> presentPaywall({Offering? offering}) async =>
-      paywallResult;
+  Future<PaywallResult> presentPaywall({Offering? offering}) async => paywallResult;
 
   @override
-  Future<PaywallResult> presentPaywallIfNeeded(String entitlementId,
-          {Offering? offering}) async =>
-      paywallResult;
+  Future<PaywallResult> presentPaywallIfNeeded(String entitlementId, {Offering? offering}) async => paywallResult;
 
   @override
   Future<void> presentCustomerCenter() async {
@@ -94,8 +90,7 @@ Widget _app(RevenueCatService revenueCat) => MultiProvider(
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  testWidgets('a purchased result shows the unlock dialog once',
-      (tester) async {
+  testWidgets('a purchased result shows the unlock dialog once', (tester) async {
     final client = _FakeClient()..paywallResult = PaywallResult.purchased;
     final service = RevenueCatService.forTest(client);
     await service.init();
@@ -105,8 +100,7 @@ void main() {
 
     // The entitlement comes back active by the time the post-purchase
     // refresh inside presentPaywallIfNeeded reads it.
-    client.info = _customerInfo(
-        active: {RevenueCatService.entitlementId: _entitlement()});
+    client.info = _customerInfo(active: {RevenueCatService.entitlementId: _entitlement()});
     await tester.tap(find.text(SettingsStrings.storeSubscription));
     await tester.pumpAndSettle();
 
@@ -119,8 +113,7 @@ void main() {
     expect(find.text(PaymentStrings.subscriptionSuccessTitle), findsNothing);
   });
 
-  testWidgets('a restored result shows the restored-purchases dialog',
-      (tester) async {
+  testWidgets('a restored result shows the restored-purchases dialog', (tester) async {
     final client = _FakeClient()..paywallResult = PaywallResult.restored;
     final service = RevenueCatService.forTest(client);
     await service.init();
@@ -128,8 +121,7 @@ void main() {
     await tester.pumpWidget(_app(service));
     await tester.pumpAndSettle();
 
-    client.info = _customerInfo(
-        active: {RevenueCatService.entitlementId: _entitlement()});
+    client.info = _customerInfo(active: {RevenueCatService.entitlementId: _entitlement()});
     await tester.tap(find.text(SettingsStrings.storeSubscription));
     await tester.pumpAndSettle();
 
@@ -142,8 +134,7 @@ void main() {
     PaywallResult.error,
     PaywallResult.notPresented,
   ]) {
-    testWidgets('a $result result never shows the unlock dialog',
-        (tester) async {
+    testWidgets('a $result result never shows the unlock dialog', (tester) async {
       final client = _FakeClient()..paywallResult = result;
       final service = RevenueCatService.forTest(client);
       await service.init();
@@ -159,12 +150,8 @@ void main() {
     });
   }
 
-  testWidgets(
-      'an already-active subscriber opens the Customer Center instead of the paywall',
-      (tester) async {
-    final client = _FakeClient()
-      ..info = _customerInfo(
-          active: {RevenueCatService.entitlementId: _entitlement()});
+  testWidgets('an already-active subscriber opens the Customer Center instead of the paywall', (tester) async {
+    final client = _FakeClient()..info = _customerInfo(active: {RevenueCatService.entitlementId: _entitlement()});
     final service = RevenueCatService.forTest(client);
     await service.init();
     expect(service.isPlusActive, isTrue);

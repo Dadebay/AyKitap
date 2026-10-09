@@ -2,13 +2,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+
 import '../../core/constants/app_radius.dart';
+import '../../core/localization/strings/auth_strings.dart';
 import '../../core/navigation/app_navigator.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/services/auth_api_service.dart';
 import '../../core/services/firebase_auth_service.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/localization/strings/auth_strings.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/app_text_field.dart';
@@ -29,8 +30,7 @@ class InternationalLoginScreen extends StatefulWidget {
   const InternationalLoginScreen({super.key});
 
   @override
-  State<InternationalLoginScreen> createState() =>
-      _InternationalLoginScreenState();
+  State<InternationalLoginScreen> createState() => _InternationalLoginScreenState();
 }
 
 enum _Busy { none, email, google, apple }
@@ -78,15 +78,12 @@ class _InternationalLoginScreenState extends State<InternationalLoginScreen> {
     try {
       final email = _emailController.text.trim();
       final password = _passwordController.text;
-      final signIn = _isRegisterMode
-          ? FirebaseAuthService.instance.registerWithEmail
-          : FirebaseAuthService.instance.signInWithEmail;
+      final signIn = _isRegisterMode ? FirebaseAuthService.instance.registerWithEmail : FirebaseAuthService.instance.signInWithEmail;
       final result = await signIn(email, password);
       await _finishLogin(
         result.idToken,
         'email',
-        suggestedName: suggestedDisplayName(
-            displayName: result.displayName, email: result.email),
+        suggestedName: suggestedDisplayName(displayName: result.displayName, email: result.email),
       );
     } on FirebaseAuthClientException catch (e) {
       _handleFirebaseError(e);
@@ -106,8 +103,7 @@ class _InternationalLoginScreenState extends State<InternationalLoginScreen> {
       await _finishLogin(
         result.idToken,
         'google',
-        suggestedName: suggestedDisplayName(
-            displayName: result.displayName, email: result.email),
+        suggestedName: suggestedDisplayName(displayName: result.displayName, email: result.email),
       );
     } on FirebaseAuthClientException catch (e) {
       _handleFirebaseError(e);
@@ -129,8 +125,7 @@ class _InternationalLoginScreenState extends State<InternationalLoginScreen> {
         'apple',
         // App Store guideline 4: never ask for what Sign in with Apple
         // already handed over. See [suggestedDisplayName].
-        suggestedName: suggestedDisplayName(
-            displayName: result.displayName, email: result.email),
+        suggestedName: suggestedDisplayName(displayName: result.displayName, email: result.email),
       );
     } on FirebaseAuthClientException catch (e) {
       _handleFirebaseError(e);
@@ -205,15 +200,9 @@ class _InternationalLoginScreenState extends State<InternationalLoginScreen> {
               const SizedBox(height: 12),
               const GradientIconBadge(icon: HugeIcons.strokeRoundedUserAccount),
               const SizedBox(height: 24),
-              Text(AuthStrings.internationalLoginTitle,
-                  style: TextStyle(
-                      color: AppColors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800)),
+              Text(AuthStrings.internationalLoginTitle, style: TextStyle(color: AppColors.white, fontSize: 26, fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),
-              Text(AuthStrings.internationalLoginSubtitle,
-                  style: TextStyle(
-                      color: AppColors.grey2, fontSize: 14.5, height: 1.5)),
+              Text(AuthStrings.internationalLoginSubtitle, style: TextStyle(color: AppColors.grey2, fontSize: 14.5, height: 1.5)),
               const SizedBox(height: 32),
               AuthProviderButton.google(
                 label: AuthStrings.continueWithGoogle,
@@ -247,14 +236,11 @@ class _InternationalLoginScreenState extends State<InternationalLoginScreen> {
                 style: TextStyle(color: AppColors.white, fontSize: 16),
                 onChanged: (_) => setState(() {}),
                 suffix: GestureDetector(
-                  onTap: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
+                  onTap: () => setState(() => _obscurePassword = !_obscurePassword),
                   child: Padding(
                     padding: const EdgeInsets.only(left: 8),
                     child: HugeIcon(
-                      icon: _obscurePassword
-                          ? HugeIcons.strokeRoundedView
-                          : HugeIcons.strokeRoundedViewOffSlash,
+                      icon: _obscurePassword ? HugeIcons.strokeRoundedView : HugeIcons.strokeRoundedViewOffSlash,
                       color: AppColors.grey3,
                       size: 20,
                     ),
@@ -267,42 +253,26 @@ class _InternationalLoginScreenState extends State<InternationalLoginScreen> {
               ],
               const SizedBox(height: 24),
               PrimaryButton(
-                label: _isRegisterMode
-                    ? AuthStrings.emailRegisterButton
-                    : AuthStrings.emailSignInButton,
+                label: _isRegisterMode ? AuthStrings.emailRegisterButton : AuthStrings.emailSignInButton,
                 loading: _busy == _Busy.email,
-                onPressed: _emailValid && _passwordValid && _busy == _Busy.none
-                    ? _submitEmail
-                    : null,
+                onPressed: _emailValid && _passwordValid && _busy == _Busy.none ? _submitEmail : null,
               ),
               const SizedBox(height: 16),
               Center(
                 child: GestureDetector(
-                  onTap: () =>
-                      setState(() => _isRegisterMode = !_isRegisterMode),
+                  onTap: () => setState(() => _isRegisterMode = !_isRegisterMode),
                   child: RichText(
                     text: TextSpan(
                       // RichText doesn't inherit the app's default font from
                       // the surrounding theme the way Text does — every
                       // TextSpan here needs it spelled out explicitly, same
                       // as the terms RichText on PhoneLoginScreen.
-                      style: TextStyle(
-                          color: AppColors.grey2,
-                          fontFamily: 'GilroyRegular',
-                          fontSize: 13),
+                      style: TextStyle(color: AppColors.grey2, fontFamily: 'GilroyRegular', fontSize: 13),
                       children: [
+                        TextSpan(text: _isRegisterMode ? AuthStrings.emailTogglePrefixHaveAccount : AuthStrings.emailTogglePrefixNoAccount),
                         TextSpan(
-                            text: _isRegisterMode
-                                ? AuthStrings.emailTogglePrefixHaveAccount
-                                : AuthStrings.emailTogglePrefixNoAccount),
-                        TextSpan(
-                          text: _isRegisterMode
-                              ? AuthStrings.emailToggleToSignIn
-                              : AuthStrings.emailToggleToRegister,
-                          style: TextStyle(
-                              color: AppColors.primary,
-                              fontFamily: 'GilroyRegular',
-                              fontWeight: FontWeight.w700),
+                          text: _isRegisterMode ? AuthStrings.emailToggleToSignIn : AuthStrings.emailToggleToRegister,
+                          style: TextStyle(color: AppColors.primary, fontFamily: 'GilroyRegular', fontWeight: FontWeight.w700),
                         ),
                       ],
                     ),
@@ -336,18 +306,10 @@ class _ErrorBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const HugeIcon(
-              icon: HugeIcons.strokeRoundedAlert02,
-              color: Colors.redAccent,
-              size: 18),
+          const HugeIcon(icon: HugeIcons.strokeRoundedAlert02, color: Colors.redAccent, size: 18),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(message,
-                style: const TextStyle(
-                    color: Colors.redAccent,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    height: 1.3)),
+            child: Text(message, style: const TextStyle(color: Colors.redAccent, fontSize: 12.5, fontWeight: FontWeight.w600, height: 1.3)),
           ),
         ],
       ),

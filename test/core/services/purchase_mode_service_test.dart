@@ -26,8 +26,7 @@ void main() {
     test('toggle true forces store checkout regardless of region', () async {
       final service = PurchaseModeService.forTest(
         isIOS: true,
-        fetchConfig: (_) async =>
-            _config(purchaseMode: 'wallet', iosStoreIapOnlyEnabled: true),
+        fetchConfig: (_) async => _config(iosStoreIapOnlyEnabled: true),
       );
       await service.refresh();
       expect(service.isIOSStoreOnly, isTrue);
@@ -37,8 +36,7 @@ void main() {
     test('toggle false falls back to the existing region decision', () async {
       final service = PurchaseModeService.forTest(
         isIOS: true,
-        fetchConfig: (_) async =>
-            _config(purchaseMode: 'wallet', iosStoreIapOnlyEnabled: false),
+        fetchConfig: (_) async => _config(iosStoreIapOnlyEnabled: false),
       );
       await service.refresh();
       expect(service.isIOSStoreOnly, isFalse);
@@ -51,8 +49,7 @@ void main() {
         'region decision, not the toggle', () async {
       final service = PurchaseModeService.forTest(
         isIOS: true,
-        fetchConfig: (_) async => _config(
-            purchaseMode: 'store_iap', iosStoreIapOnlyEnabled: false),
+        fetchConfig: (_) async => _config(purchaseMode: 'store_iap', iosStoreIapOnlyEnabled: false),
       );
       await service.refresh();
       expect(service.isIOSStoreOnly, isFalse);
@@ -60,8 +57,7 @@ void main() {
       expect(service.useStoreCheckout, isTrue);
     });
 
-    test('a fetch failure fails closed to store-only, never wallet',
-        () async {
+    test('a fetch failure fails closed to store-only, never wallet', () async {
       final service = PurchaseModeService.forTest(
         isIOS: true,
         fetchConfig: (_) async => throw Exception('network down'),
@@ -77,8 +73,7 @@ void main() {
         'dropped connection', () async {
       final service = PurchaseModeService.forTest(
         isIOS: true,
-        fetchConfig: (_) async =>
-            _config(purchaseMode: 'wallet', iosStoreIapOnlyEnabled: false),
+        fetchConfig: (_) async => _config(iosStoreIapOnlyEnabled: false),
       );
       await service.refresh();
       expect(service.isIOSStoreOnly, isFalse);
@@ -93,31 +88,28 @@ void main() {
   });
 
   group('Android', () {
-    test('ignores the iOS toggle entirely even when the backend sends true',
-        () async {
+    test('ignores the iOS toggle entirely even when the backend sends true', () async {
       final service = PurchaseModeService.forTest(
         isIOS: false,
-        fetchConfig: (_) async =>
-            _config(purchaseMode: 'wallet', iosStoreIapOnlyEnabled: true),
+        fetchConfig: (_) async => _config(iosStoreIapOnlyEnabled: true),
       );
       await service.refresh();
       expect(service.isIOSStoreOnly, isFalse);
       expect(service.useStoreCheckout, isFalse);
     });
 
-    test('foreign region resolves to store checkout via the region decision',
-        () async {
+    test('foreign region resolves to store checkout via the region decision', () async {
       final service = PurchaseModeService.forTest(
         isIOS: false,
-        fetchConfig: (_) async =>
-            _config(purchaseMode: 'store_iap', iosStoreIapOnlyEnabled: true),
+        fetchConfig: (_) async => _config(purchaseMode: 'store_iap'),
       );
       await service.refresh();
       expect(service.isIOSStoreOnly, isFalse);
       expect(service.useStoreCheckout, isTrue);
     });
 
-    test('a fetch failure fails closed to wallet, matching the pre-existing '
+    test(
+        'a fetch failure fails closed to wallet, matching the pre-existing '
         'default', () async {
       final service = PurchaseModeService.forTest(
         isIOS: false,
@@ -134,8 +126,7 @@ void main() {
     var iosStoreIapOnlyEnabled = true;
     final service = PurchaseModeService.forTest(
       isIOS: true,
-      fetchConfig: (_) async =>
-          _config(iosStoreIapOnlyEnabled: iosStoreIapOnlyEnabled),
+      fetchConfig: (_) async => _config(iosStoreIapOnlyEnabled: iosStoreIapOnlyEnabled),
     );
     await service.refresh();
     expect(service.isIOSStoreOnly, isTrue);
@@ -145,8 +136,7 @@ void main() {
     expect(service.isIOSStoreOnly, isFalse);
   });
 
-  test('notifies listeners after each refresh so watching widgets rebuild',
-      () async {
+  test('notifies listeners after each refresh so watching widgets rebuild', () async {
     final service = PurchaseModeService.forTest(
       isIOS: true,
       fetchConfig: (_) async => _config(),

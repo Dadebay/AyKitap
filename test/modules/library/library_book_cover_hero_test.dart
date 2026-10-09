@@ -8,32 +8,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 void main() {
-  test('the same book on two different shelves gets two different Hero tags',
-      () {
+  test('the same book on two different shelves gets two different Hero tags', () {
     expect(
       AppHeroTags.libraryShelfBookCover('purchased', 42),
       isNot(AppHeroTags.libraryShelfBookCover('favorites', 42)),
     );
   });
 
-  testWidgets(
-      'the same book rendered on two kept-alive shelves at once does not throw a duplicate-Hero error',
-      (tester) async {
+  testWidgets('the same book rendered on two kept-alive shelves at once does not throw a duplicate-Hero error', (tester) async {
     // Regression: LibraryScreen keeps every tab's ApiBooksTab/DownloadedTab
     // alive at once (AutomaticKeepAliveClientMixin), so a purchased book
     // that's also being read can have two LibraryBookCovers mounted on the
     // same route simultaneously. Before heroShelf existed both used the
     // plain per-id tag and Flutter throws "multiple heroes that share the
     // same tag" the moment two of them are in the tree together.
-    const book = LibraryBook(id: 42, name: 'Atomic Habits', authors: []);
+    const book = LibraryBook(id: 42, name: 'Atomic Habits');
 
     await tester.pumpWidget(
       MultiProvider(
         providers: [
-          ChangeNotifierProvider<BookAccessService>.value(
-              value: BookAccessService.instance),
-          ChangeNotifierProvider<SubscriptionService>.value(
-              value: SubscriptionService.instance),
+          ChangeNotifierProvider<BookAccessService>.value(value: BookAccessService.instance),
+          ChangeNotifierProvider<SubscriptionService>.value(value: SubscriptionService.instance),
         ],
         child: const MaterialApp(
           home: Scaffold(
@@ -57,8 +52,7 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
-    final tags =
-        tester.widgetList<Hero>(find.byType(Hero)).map((h) => h.tag).toSet();
+    final tags = tester.widgetList<Hero>(find.byType(Hero)).map((h) => h.tag).toSet();
     expect(tags, hasLength(2));
   });
 }

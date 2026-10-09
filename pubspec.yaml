@@ -136,10 +136,9 @@ flutter:
       fonts:
         - asset: assets/fonts/Gilroy-Regular.ttf
     # Reader font options (TZ §12.4) — used both for the settings-sheet
-    # previews and injected into the epub WebView as @font-face.
-    - family: SanFrancisco
-      fonts:
-        - asset: assets/fonts/SF-Pro-Text-Regular.otf
+    # previews and injected into the epub WebView as @font-face. "San
+    # Francisco" is deliberately not embedded: Apple-provided fonts must not
+    # ship in the bundle (ITMS-91182), so that option uses the system font.
     - family: Arial
       fonts:
         - asset: assets/fonts/Arial-Regular.ttf

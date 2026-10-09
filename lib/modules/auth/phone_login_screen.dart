@@ -33,8 +33,7 @@ class PhoneLoginScreen extends StatefulWidget {
 class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   final _phoneController = TextEditingController();
   final _focusNode = FocusNode();
-  late final TapGestureRecognizer _termsTap =
-      TapGestureRecognizer(debugOwner: this)..onTap = _openTerms;
+  late final TapGestureRecognizer _termsTap = TapGestureRecognizer(debugOwner: this)..onTap = _openTerms;
 
   // Fetched on tap rather than on screen load — this link is rarely opened,
   // so there's no point in a `/contacts` call every time this screen shows.
@@ -54,7 +53,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
 
   // Demo-only toggle so the "already logged in elsewhere" flow (TZ 2.2) can
   // be shown without a real backend behind it.
-  bool _simulateOtherDevice = false;
+  final bool _simulateOtherDevice = false;
   final _authProvider = AuthProvider();
 
   static const _digitsNeeded = 8; // XX XX XX XX
@@ -86,8 +85,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
 
   void _onPhoneChanged(String value) {
     final allDigits = value.replaceAll(RegExp(r'\D'), '');
-    final digits =
-        allDigits.substring(0, allDigits.length.clamp(0, _digitsNeeded));
+    final digits = allDigits.substring(0, allDigits.length.clamp(0, _digitsNeeded));
     final formatted = _formatPhone(digits);
     _phoneController.value = TextEditingValue(
       text: formatted,
@@ -102,15 +100,12 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     final ok = await _authProvider.sendCode(_apiPhone);
     if (!mounted) return;
     if (!ok) {
-      context.showAppSnackBar(
-          _authProvider.errorMessage ?? AuthStrings.genericError,
-          isError: true);
+      context.showAppSnackBar(_authProvider.errorMessage ?? AuthStrings.genericError, isError: true);
       return;
     }
 
     final loggedIn = await context.push<bool>(
-      OtpVerifyScreen(
-          phone: _apiPhone, simulateOtherDevice: _simulateOtherDevice),
+      OtpVerifyScreen(phone: _apiPhone, simulateOtherDevice: _simulateOtherDevice),
     );
     if (loggedIn == true && mounted) {
       context.pop(true);
@@ -128,8 +123,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
       value: _authProvider,
-      child: Consumer<AuthProvider>(
-          builder: (context, auth, _) => _buildScaffold(context, auth)),
+      child: Consumer<AuthProvider>(builder: (context, auth, _) => _buildScaffold(context, auth)),
     );
   }
 
@@ -140,31 +134,22 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
           child: ConstrainedBox(
-            constraints: BoxConstraints(
-                minHeight: MediaQuery.of(context).size.height -
-                    MediaQuery.of(context).viewInsets.bottom -
-                    MediaQuery.of(context).padding.vertical -
-                    32),
+            constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).viewInsets.bottom - MediaQuery.of(context).padding.vertical - 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const AppBackButton(),
                 const SizedBox(height: 12),
-                const GradientIconBadge(
-                    icon: HugeIcons.strokeRoundedSmartPhone01),
+                const GradientIconBadge(icon: HugeIcons.strokeRoundedSmartPhone01),
                 const SizedBox(height: 24),
                 Text(
                   AuthStrings.phoneLoginTitle,
-                  style: TextStyle(
-                      color: AppColors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800),
+                  style: TextStyle(color: AppColors.white, fontSize: 26, fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   AuthStrings.phoneLoginSubtitle,
-                  style: TextStyle(
-                      color: AppColors.grey2, fontSize: 14.5, height: 1.5),
+                  style: TextStyle(color: AppColors.grey2, fontSize: 14.5, height: 1.5),
                 ),
                 const SizedBox(height: 32),
                 AppTextField(
@@ -173,35 +158,20 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                   label: AuthStrings.phoneNumberLabel,
                   hint: AuthStrings.phoneHint,
                   keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(11)
-                  ],
-                  style: TextStyle(
-                      color: AppColors.white, fontSize: 16, letterSpacing: 1),
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(11)],
+                  style: TextStyle(color: AppColors.white, fontSize: 16, letterSpacing: 1),
                   onChanged: _onPhoneChanged,
                   prefix: Row(
                     children: [
                       const Text('🇹🇲', style: TextStyle(fontSize: 20)),
                       const SizedBox(width: 8),
-                      Text('+993',
-                          style: TextStyle(
-                              color: AppColors.grey1,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600)),
-                      Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 10),
-                          width: 1,
-                          height: 22,
-                          color: AppColors.border),
+                      Text('+993', style: TextStyle(color: AppColors.grey1, fontSize: 16, fontWeight: FontWeight.w600)),
+                      Container(margin: const EdgeInsets.symmetric(horizontal: 10), width: 1, height: 22, color: AppColors.border),
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
-                PrimaryButton(
-                    label: AuthStrings.sendCodeButton,
-                    loading: auth.isLoading,
-                    onPressed: _isValid ? _sendCode : null),
+                PrimaryButton(label: AuthStrings.sendCodeButton, loading: auth.isLoading, onPressed: _isValid ? _sendCode : null),
                 const SizedBox(height: 14),
                 // Column above is left-aligned (crossAxisAlignment.start), so
                 // without this the RichText shrink-wraps to its own text
@@ -213,19 +183,12 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                   child: RichText(
                     textAlign: TextAlign.center,
                     text: TextSpan(
-                      style: TextStyle(
-                          color: AppColors.grey3,
-                          fontFamily: 'GilroyRegular',
-                          fontSize: 11.5),
+                      style: TextStyle(color: AppColors.grey3, fontFamily: 'GilroyRegular', fontSize: 11.5),
                       children: [
                         TextSpan(text: AuthStrings.termsPrefix),
                         TextSpan(
                           text: AuthStrings.termsLink,
-                          style: TextStyle(
-                              color: AppColors.primary,
-                              fontFamily: 'GilroyRegular',
-                              fontWeight: FontWeight.w700,
-                              decoration: TextDecoration.underline),
+                          style: TextStyle(color: AppColors.primary, fontFamily: 'GilroyRegular', fontWeight: FontWeight.w700, decoration: TextDecoration.underline),
                           recognizer: _termsTap,
                         ),
                         TextSpan(text: AuthStrings.termsSuffix),
@@ -237,10 +200,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                 OrDivider(label: AuthStrings.orDivider),
                 const SizedBox(height: 16),
                 AuthProviderButton(
-                  icon: HugeIcon(
-                      icon: HugeIcons.strokeRoundedLoginCircle02,
-                      color: AppColors.white,
-                      size: 20),
+                  icon: HugeIcon(icon: HugeIcons.strokeRoundedLoginCircle02, color: AppColors.white, size: 20),
                   label: AuthStrings.otherMethodsLink,
                   onPressed: _openOtherMethods,
                 ),

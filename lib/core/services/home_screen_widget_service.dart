@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:home_widget/home_widget.dart';
 
@@ -167,8 +166,7 @@ class HomeScreenWidgetService {
       HomeWidget.updateWidget(
         androidName: _androidBookProvider,
         iOSName: _iosBookKind,
-        qualifiedAndroidName:
-            'com.aykitap.aykitap.AykitapReadingWidgetProvider',
+        qualifiedAndroidName: 'com.aykitap.aykitap.AykitapReadingWidgetProvider',
       ),
       HomeWidget.updateWidget(
         androidName: _androidStreakProvider,

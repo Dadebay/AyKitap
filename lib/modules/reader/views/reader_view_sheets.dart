@@ -13,13 +13,13 @@ extension _ReaderViewSheets on _ReaderScreenState {
       isScrollControlled: true,
       builder: (_) => ChangeNotifierProvider.value(
         value: provider,
-        child: ReaderSettingsSheet(
-            showOriginalPdfOption: widget.originalPdfPath != null),
+        child: ReaderSettingsSheet(showOriginalPdfOption: widget.originalPdfPath != null),
       ),
     );
     final pdfPath = widget.originalPdfPath;
-    if (switchToOriginalPdf != true || pdfPath == null || !context.mounted)
+    if (switchToOriginalPdf != true || pdfPath == null || !context.mounted) {
       return;
+    }
     await provider.saveAndClose();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(preferFixedPrefKey(widget.bookId), true);

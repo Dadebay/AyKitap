@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../modules/auth/phone_login_screen.dart';
 import '../navigation/root_navigator.dart';
 import 'account_service.dart';
 import 'auth_session.dart';
@@ -8,7 +9,6 @@ import 'book_access_service.dart';
 import 'onesignal_service.dart';
 import 'purchase_mode_service.dart';
 import 'subscription_service.dart';
-import '../../modules/auth/phone_login_screen.dart';
 
 /// Reacts to a 401 from any authenticated request ([DioClient]'s `onError`)
 /// as the backend having logged this device out from under it — same
@@ -67,8 +67,7 @@ class SessionExpiryHandler {
       await PurchaseModeService.instance.refresh();
       final navigator = rootNavigatorKey.currentState;
       if (navigator == null) return;
-      await navigator
-          .push(MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
+      await navigator.push(MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
     } finally {
       _handling = false;
     }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/theme/app_colors.dart';
+
 import '../../core/localization/strings/filter_strings.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_back_button.dart';
 import 'controller/filter_controller.dart';
 import 'widgets/filter_bottom_bar.dart';
@@ -57,11 +58,7 @@ class _FilterScreenBody extends StatelessWidget {
         backgroundColor: AppColors.bg,
         centerTitle: true,
         leading: const AppBackButton(size: 20),
-        title: Text(FilterStrings.title,
-            style: TextStyle(
-                color: AppColors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w700)),
+        title: Text(FilterStrings.title, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
       ),
       body: Column(
         children: [

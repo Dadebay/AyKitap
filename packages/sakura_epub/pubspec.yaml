@@ -37,9 +37,6 @@ flutter:
 
   fonts:
     #book fonts
-    - family: NewYork
-      fonts:
-        - asset: lib/assets/fonts/NewYork.ttf 
     - family: Gilroy
       fonts:
         - asset: lib/assets/fonts/Gilroy-Medium.ttf    

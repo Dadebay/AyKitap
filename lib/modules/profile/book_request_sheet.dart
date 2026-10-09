@@ -53,9 +53,7 @@ class _BookRequestSheetState extends State<BookRequestSheet> {
     return 'other';
   }
 
-  bool get _isValid =>
-      _titleController.text.trim().isNotEmpty &&
-      _authorController.text.trim().isNotEmpty;
+  bool get _isValid => _titleController.text.trim().isNotEmpty && _authorController.text.trim().isNotEmpty;
 
   @override
   void dispose() {
@@ -88,13 +86,12 @@ class _BookRequestSheetState extends State<BookRequestSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -102,49 +99,27 @@ class _BookRequestSheetState extends State<BookRequestSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
-                child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                        color: AppColors.grey3,
-                        borderRadius: BorderRadius.circular(2))),
+                child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.grey3, borderRadius: BorderRadius.circular(2))),
               ),
               const SizedBox(height: 18),
               Row(
                 children: [
-                  HugeIcon(
-                      icon: HugeIcons.strokeRoundedBookOpen01,
-                      color: AppColors.primary,
-                      size: 22),
-                  SizedBox(width: 10),
-                  Text(ProfileFeedbackStrings.bookRequestTitle,
-                      style: TextStyle(
-                          color: AppColors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800)),
+                  HugeIcon(icon: HugeIcons.strokeRoundedBookOpen01, color: AppColors.primary, size: 22),
+                  const SizedBox(width: 10),
+                  Text(ProfileFeedbackStrings.bookRequestTitle, style: TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w800)),
                 ],
               ),
               const SizedBox(height: 6),
-              Text(ProfileFeedbackStrings.bookRequestSubtitle,
-                  style: TextStyle(color: AppColors.grey2, fontSize: 13)),
+              Text(ProfileFeedbackStrings.bookRequestSubtitle, style: TextStyle(color: AppColors.grey2, fontSize: 13)),
               const SizedBox(height: 20),
               BookRequestFieldLabel(ProfileFeedbackStrings.bookTitleLabel),
-              BookRequestTextField(
-                  controller: _titleController,
-                  hint: ProfileFeedbackStrings.bookTitleHint,
-                  onChanged: (_) => setState(() {})),
+              BookRequestTextField(controller: _titleController, hint: ProfileFeedbackStrings.bookTitleHint, onChanged: (_) => setState(() {})),
               const SizedBox(height: 14),
               BookRequestFieldLabel(ProfileFeedbackStrings.authorNameLabel),
-              BookRequestTextField(
-                  controller: _authorController,
-                  hint: ProfileFeedbackStrings.authorNameHint,
-                  onChanged: (_) => setState(() {})),
+              BookRequestTextField(controller: _authorController, hint: ProfileFeedbackStrings.authorNameHint, onChanged: (_) => setState(() {})),
               const SizedBox(height: 14),
               BookRequestFieldLabel(ProfileFeedbackStrings.descriptionLabel),
-              BookRequestTextField(
-                  controller: _descriptionController,
-                  hint: ProfileFeedbackStrings.descriptionHint,
-                  maxLines: 3),
+              BookRequestTextField(controller: _descriptionController, hint: ProfileFeedbackStrings.descriptionHint, maxLines: 3),
               const SizedBox(height: 14),
               BookRequestFieldLabel(ProfileFeedbackStrings.languageLabel),
               const SizedBox(height: 8),

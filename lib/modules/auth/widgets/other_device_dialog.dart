@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import '../../../core/theme/app_colors.dart';
+
 import '../../../core/localization/strings/auth_strings.dart';
+import '../../../core/theme/app_colors.dart';
 
 /// TZ 2.2 — shown when logging in on this device would kick out an
 /// existing session elsewhere. Returns true if the user chose to continue.
@@ -15,20 +16,13 @@ Future<bool?> showOtherDeviceDialog(BuildContext context) {
       icon: Container(
         width: 56,
         height: 56,
-        decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.15),
-            shape: BoxShape.circle),
-        child: Center(
-            child: HugeIcon(
-                icon: HugeIcons.strokeRoundedSecurityLock,
-                color: AppColors.primary,
-                size: 26)),
+        decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.15), shape: BoxShape.circle),
+        child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedSecurityLock, color: AppColors.primary, size: 26)),
       ),
       title: Text(
         AuthStrings.otherDeviceTitle,
         textAlign: TextAlign.center,
-        style: TextStyle(
-            color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800),
+        style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800),
       ),
       content: Text(
         AuthStrings.otherDeviceBody,
@@ -44,17 +38,9 @@ Future<bool?> showOtherDeviceDialog(BuildContext context) {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                    elevation: 0),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
                 onPressed: () => Navigator.pop(context, true),
-                child: Text(AuthStrings.otherDeviceConfirm,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700)),
+                child: Text(AuthStrings.otherDeviceConfirm, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
               ),
             ),
             const SizedBox(height: 8),
@@ -63,8 +49,7 @@ Future<bool?> showOtherDeviceDialog(BuildContext context) {
               height: 44,
               child: TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: Text(AuthStrings.cancel,
-                    style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+                child: Text(AuthStrings.cancel, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
               ),
             ),
           ],

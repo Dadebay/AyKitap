@@ -1,6 +1,7 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../../core/localization/strings/library_strings.dart';
 import '../../../core/models/library_book.dart';
 import '../../../core/navigation/app_hero_tags.dart';
@@ -15,8 +16,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../book_detail/catalog_book_detail_screen.dart';
 import '../../main_nav/widgets/wheel_nav_bar.dart';
-import '../purchase_diagnostics.dart';
 import '../../reader/utils/catalog_book_opener.dart';
+import '../purchase_diagnostics.dart';
 import 'library_book_cover.dart';
 import 'library_empty_state.dart';
 import 'shelf_delete.dart';
@@ -97,8 +98,7 @@ class ApiBooksTab extends StatefulWidget {
   State<ApiBooksTab> createState() => _ApiBooksTabState();
 }
 
-class _ApiBooksTabState extends State<ApiBooksTab>
-    with AutomaticKeepAliveClientMixin {
+class _ApiBooksTabState extends State<ApiBooksTab> with AutomaticKeepAliveClientMixin {
   List<LibraryBook>? _books;
   bool _loading = true;
   String? _error;
@@ -146,16 +146,9 @@ class _ApiBooksTabState extends State<ApiBooksTab>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_error!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+              Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
               const SizedBox(height: 12),
-              TextButton(
-                  onPressed: _load,
-                  child: Text(LibraryStrings.retry,
-                      style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700))),
+              TextButton(onPressed: _load, child: Text(LibraryStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700))),
             ],
           ),
         ),
@@ -165,9 +158,7 @@ class _ApiBooksTabState extends State<ApiBooksTab>
     // reorders the shelf straight away: this tab is kept alive across tab
     // switches and doesn't re-fetch on its own, so a shelf ordered at load
     // time would keep yesterday's order until a pull-to-refresh.
-    final books = widget.sortByLastOpened
-        ? context.watch<BookOpenHistory>().sortByRecency(_books ?? const [])
-        : _books ?? const [];
+    final books = widget.sortByLastOpened ? context.watch<BookOpenHistory>().sortByRecency(_books ?? const []) : _books ?? const [];
     if (books.isEmpty) return LibraryEmptyState(label: widget.emptyLabel);
     return RefreshIndicator(
       onRefresh: _load,
@@ -194,15 +185,11 @@ class _ApiBooksTabState extends State<ApiBooksTab>
             showProgress: widget.showProgress,
             canRemoveFromPurchased: widget.allowRemovingPurchasedBooks,
             onPurchasedBookRemoved: _load,
-            onTap:
-                widget.openLocalWhenOffline ? () => _openBook(books[i]) : null,
-            onLongPress:
-                widget.removal == null ? null : () => _confirmDelete(books[i]),
+            onTap: widget.openLocalWhenOffline ? () => _openBook(books[i]) : null,
+            onLongPress: widget.removal == null ? null : () => _confirmDelete(books[i]),
             // Derived rather than a second flag: the heart *is* this
             // shelf's removal, so the two can't drift apart.
-            onUnfavorite: widget.removal == ShelfRemoval.favorite
-                ? () => _unfavorite(books[i])
-                : null,
+            onUnfavorite: widget.removal == ShelfRemoval.favorite ? () => _unfavorite(books[i]) : null,
           ),
         ),
       ),

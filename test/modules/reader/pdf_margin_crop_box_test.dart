@@ -1,7 +1,6 @@
+import 'package:aykitap/modules/reader/widgets/pdf_margin_crop_box.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:aykitap/modules/reader/widgets/pdf_margin_crop_box.dart';
 
 /// The margin trim is pure geometry — it hands the PDF viewer a wider
 /// viewport than the real one and clips the overflow — so it can be checked
@@ -62,8 +61,7 @@ void main() {
       expect(pastMax.width, atMax.width);
     });
 
-    testWidgets('only touches the width — the page keeps its full height',
-        (tester) async {
+    testWidgets('only touches the width — the page keeps its full height', (tester) async {
       final size = await childSize(tester, 0.08);
       expect(size.height, viewport.height);
     });

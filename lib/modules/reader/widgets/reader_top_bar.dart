@@ -42,9 +42,7 @@ class ReaderTopBar extends StatelessWidget {
     final isDarkPage = pageColor.computeLuminance() < 0.4;
     final fg = isDarkPage ? Colors.white : const Color(0xFF1A1A22);
     final well = eyeCareTint(
-      isDarkPage
-          ? Colors.white.withValues(alpha: 0.13)
-          : Colors.black.withValues(alpha: 0.07),
+      isDarkPage ? Colors.white.withValues(alpha: 0.13) : Colors.black.withValues(alpha: 0.07),
       eyeCare,
       isDarkPage: isDarkPage,
     );
@@ -75,7 +73,6 @@ class ReaderTopBar extends StatelessWidget {
               IconCircleButton(
                 icon: HugeIcons.strokeRoundedArrowLeft01,
                 onTap: onBack,
-                size: 40,
                 iconSize: 19,
                 backgroundColor: well,
                 iconColor: fg,
@@ -87,8 +84,7 @@ class ReaderTopBar extends StatelessWidget {
                   textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: fg, fontSize: 15.5, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: fg, fontSize: 15.5, fontWeight: FontWeight.w600),
                 ),
               ),
               const SizedBox(width: 10),
@@ -97,11 +93,8 @@ class ReaderTopBar extends StatelessWidget {
               IconCircleButton(
                 icon: HugeIcons.strokeRoundedBookmark01,
                 onTap: onBookmark,
-                size: 40,
                 iconSize: 19,
-                backgroundColor: isBookmarked
-                    ? AppColors.primary.withValues(alpha: 0.20)
-                    : well,
+                backgroundColor: isBookmarked ? AppColors.primary.withValues(alpha: 0.20) : well,
                 iconColor: isBookmarked ? AppColors.primary : fg,
               ),
             ],

@@ -70,9 +70,9 @@ extension _BookOpenFlowActions on BookOpenFlow {
     } else {
       final file = _pickFile();
       if (file == null) {
-        if (context.mounted)
-          context.showAppSnackBar(BookDetailStrings.noFileForBook,
-              isError: true);
+        if (context.mounted) {
+          context.showAppSnackBar(BookDetailStrings.noFileForBook, isError: true);
+        }
         return;
       }
       // Progress/cancellation are tracked in [BookDownloadService] itself
@@ -81,8 +81,7 @@ extension _BookOpenFlowActions on BookOpenFlow {
       // download whether it started the request or was (re)opened after
       // one already had.
       try {
-        path =
-            await downloadService.ensureDownloaded(bookId: book.id, file: file);
+        path = await downloadService.ensureDownloaded(bookId: book.id, file: file);
         format = file.fileFormat.toLowerCase();
         log('🔍 [BookOpen] bookId=${book.id} freshly downloaded '
             'format=$format path=$path');
@@ -93,8 +92,7 @@ extension _BookOpenFlowActions on BookOpenFlow {
             'status=${e.response?.statusCode} type=${e.type} '
             'uri=${e.requestOptions.uri}');
         if (context.mounted) {
-          context.showAppSnackBar(BookDetailStrings.downloadFailed,
-              isError: true);
+          context.showAppSnackBar(BookDetailStrings.downloadFailed, isError: true);
         }
         return;
       } on ApiException catch (e) {
@@ -136,17 +134,14 @@ extension _BookOpenFlowActions on BookOpenFlow {
   /// cbz least).
   BookFile? _pickFile() => preferredBookFile(book.bookFiles);
 
-  void _openReader({required String path, required String format}) =>
-      openCatalogBookFile(
+  void _openReader({required String path, required String format}) => openCatalogBookFile(
         context,
         path: path,
         format: format,
         bookId: book.id,
         title: book.name,
         pageCount: book.pageCount,
-        coverUrl: book.image == null || book.image!.isEmpty
-            ? null
-            : ApiConfig.resolveImageUrl(book.image!),
+        coverUrl: book.image == null || book.image!.isEmpty ? null : ApiConfig.resolveImageUrl(book.image!),
         heroTag: heroTag ?? AppHeroTags.catalogBookCover(book.id),
       );
 }

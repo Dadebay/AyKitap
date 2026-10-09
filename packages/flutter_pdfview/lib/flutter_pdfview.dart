@@ -17,7 +17,7 @@ enum FitPolicy { WIDTH, HEIGHT, BOTH }
 
 class PDFView extends StatefulWidget {
   const PDFView({
-    Key? key,
+    super.key,
     this.filePath,
     this.pdfData,
     this.onViewCreated,
@@ -44,8 +44,7 @@ class PDFView extends StatefulWidget {
     this.fitPolicy = FitPolicy.WIDTH,
     this.preventLinkNavigation = false,
     this.backgroundColor,
-  })  : assert(filePath != null || pdfData != null),
-        super(key: key);
+  }) : assert(filePath != null || pdfData != null);
 
   @override
   _PDFViewState createState() => _PDFViewState();
@@ -157,8 +156,7 @@ class PDFView extends StatefulWidget {
 }
 
 class _PDFViewState extends State<PDFView> {
-  final Completer<PDFViewController> _controller =
-  Completer<PDFViewController>();
+  final Completer<PDFViewController> _controller = Completer<PDFViewController>();
 
   @override
   Widget build(BuildContext context) {
@@ -166,13 +164,12 @@ class _PDFViewState extends State<PDFView> {
       return PlatformViewLink(
         viewType: 'plugins.endigo.io/pdfview',
         surfaceFactory: (
-            BuildContext context,
-            PlatformViewController controller,
-            ) {
+          BuildContext context,
+          PlatformViewController controller,
+        ) {
           return AndroidViewSurface(
             controller: controller as AndroidViewController,
-            gestureRecognizers: widget.gestureRecognizers ??
-                const <Factory<OneSequenceGestureRecognizer>>{},
+            gestureRecognizers: widget.gestureRecognizers ?? const <Factory<OneSequenceGestureRecognizer>>{},
             hitTestBehavior: PlatformViewHitTestBehavior.opaque,
           );
         },
@@ -200,8 +197,7 @@ class _PDFViewState extends State<PDFView> {
         creationParamsCodec: const StandardMessageCodec(),
       );
     }
-    return Text(
-        '$defaultTargetPlatform is not yet supported by the pdfview_flutter plugin');
+    return Text('$defaultTargetPlatform is not yet supported by the pdfview_flutter plugin');
   }
 
   void _onPlatformViewCreated(int id) {
@@ -215,14 +211,12 @@ class _PDFViewState extends State<PDFView> {
   @override
   void didUpdateWidget(PDFView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _controller.future.then(
-            (PDFViewController controller) => controller._updateWidget(widget));
+    _controller.future.then((PDFViewController controller) => controller._updateWidget(widget));
   }
 
   @override
   void dispose() {
-    _controller.future
-        .then((PDFViewController controller) => controller.dispose());
+    _controller.future.then((PDFViewController controller) => controller.dispose());
     super.dispose();
   }
 }
@@ -248,7 +242,7 @@ class _CreationParams {
   final _PDFViewSettings? settings;
 
   Map<String, dynamic> toMap() {
-    Map<String, dynamic> params = {
+    final Map<String, dynamic> params = {
       'filePath': filePath,
       'pdfData': pdfData,
     };
@@ -363,9 +357,9 @@ class _PDFViewSettings {
 
 class PDFViewController {
   PDFViewController._(
-      int id,
-      PDFView widget,
-      )   : _channel = MethodChannel('plugins.endigo.io/pdfview_$id'),
+    int id,
+    PDFView widget,
+  )   : _channel = MethodChannel('plugins.endigo.io/pdfview_$id'),
         _widget = widget {
     _settings = _PDFViewSettings.fromWidget(widget);
     _channel.setMethodCallHandler(_onMethodCall);
@@ -376,7 +370,7 @@ class PDFViewController {
     _widget = null;
   }
 
-  MethodChannel _channel;
+  final MethodChannel _channel;
 
   late _PDFViewSettings _settings;
 
@@ -400,15 +394,13 @@ class PDFViewController {
         widget.onError?.call(call.arguments['error']);
         return null;
       case 'onPageError':
-        widget.onPageError
-            ?.call(call.arguments['page'], call.arguments['error']);
+        widget.onPageError?.call(call.arguments['page'], call.arguments['error']);
         return null;
       case 'onLinkHandler':
         widget.onLinkHandler?.call(call.arguments);
         return null;
     }
-    throw MissingPluginException(
-        '${call.method} was invoked but has no handler');
+    throw MissingPluginException('${call.method} was invoked but has no handler');
   }
 
   Future<int?> getPageCount() async {
@@ -422,8 +414,7 @@ class PDFViewController {
   }
 
   Future<bool?> setPage(int page) async {
-    final bool? isSet =
-    await _channel.invokeMethod('setPage', <String, dynamic>{
+    final bool? isSet = await _channel.invokeMethod('setPage', <String, dynamic>{
       'page': page,
     });
     return isSet;
@@ -437,7 +428,7 @@ class PDFViewController {
   Future<void> _updateSettings(_PDFViewSettings setting) async {
     final Map<String, dynamic> updateMap = _settings.updatesMap(setting);
     if (updateMap.isEmpty) {
-      return null;
+      return;
     }
     _settings = setting;
     return _channel.invokeMethod('updateSettings', updateMap);

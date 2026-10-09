@@ -67,8 +67,7 @@ class _ContactUsSheetState extends State<ContactUsSheet> {
     HapticFeedback.lightImpact();
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!ok && mounted) {
-      context.showAppSnackBar(SettingsStrings.contactLinkOpenError,
-          isError: true);
+      context.showAppSnackBar(SettingsStrings.contactLinkOpenError, isError: true);
     }
   }
 
@@ -92,8 +91,7 @@ class _ContactUsSheetState extends State<ContactUsSheet> {
     _open(Uri.parse('https://instagram.com/$username'));
   }
 
-  void _call(String phone) =>
-      _open(Uri(scheme: 'tel', path: phone.replaceAll(' ', '')));
+  void _call(String phone) => _open(Uri(scheme: 'tel', path: phone.replaceAll(' ', '')));
 
   void _email(String email) => _open(Uri(scheme: 'mailto', path: email));
 
@@ -102,15 +100,13 @@ class _ContactUsSheetState extends State<ContactUsSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.75),
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.75),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -131,8 +127,7 @@ class _ContactUsSheetState extends State<ContactUsSheet> {
     if (_loading) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 32),
-        child:
-            Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
     }
     if (_error != null) {
@@ -141,16 +136,9 @@ class _ContactUsSheetState extends State<ContactUsSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_error!,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+            Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
             const SizedBox(height: 12),
-            TextButton(
-                onPressed: _load,
-                child: Text(SettingsStrings.retry,
-                    style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w700))),
+            TextButton(onPressed: _load, child: Text(SettingsStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700))),
           ],
         ),
       );
@@ -220,9 +208,7 @@ class _ContactUsSheetState extends State<ContactUsSheet> {
     if (rows.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 24),
-        child: Text(SettingsStrings.contactNone,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+        child: Text(SettingsStrings.contactNone, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
       );
     }
     return Column(

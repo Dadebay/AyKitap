@@ -17,16 +17,13 @@ class FilterQuickSections extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.watch<FilterController>();
-    return Container(
-      decoration: BoxDecoration(
-          color: AppColors.card, borderRadius: BorderRadius.circular(16)),
+    return DecoratedBox(
+      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16)),
       child: Column(
         children: [
           ExpandableFilterSection(
             title: FilterStrings.language,
-            summary: c.selectedLanguageIds.isEmpty
-                ? FilterStrings.any
-                : c.selectedLanguagesLabel,
+            summary: c.selectedLanguageIds.isEmpty ? FilterStrings.any : c.selectedLanguagesLabel,
             expanded: c.expanded.contains('lang'),
             onToggle: () => c.toggleExpanded('lang'),
             child: LanguageOptions(c),
@@ -34,9 +31,7 @@ class FilterQuickSections extends StatelessWidget {
           const _SectionDivider(),
           ExpandableFilterSection(
             title: FilterStrings.genre,
-            summary: c.selectedGenreIds.isEmpty
-                ? FilterStrings.any
-                : c.selectedGenreLabels,
+            summary: c.selectedGenreIds.isEmpty ? FilterStrings.any : c.selectedGenreLabels,
             expanded: c.expanded.contains('genre'),
             onToggle: () => c.toggleExpanded('genre'),
             child: GenreOptions(c),
@@ -44,9 +39,7 @@ class FilterQuickSections extends StatelessWidget {
           const _SectionDivider(),
           ExpandableFilterSection(
             title: FilterStrings.format,
-            summary: c.selectedFormats.isEmpty
-                ? FilterStrings.any
-                : c.selectedFormats.map((f) => f.label).join(', '),
+            summary: c.selectedFormats.isEmpty ? FilterStrings.any : c.selectedFormats.map((f) => f.label).join(', '),
             expanded: c.expanded.contains('format'),
             onToggle: () => c.toggleExpanded('format'),
             child: Wrap(
@@ -64,8 +57,7 @@ class FilterQuickSections extends StatelessWidget {
           const _SectionDivider(),
           ExpandableFilterSection(
             title: FilterStrings.publishDate,
-            summary:
-                '${c.yearRange.start.round()} – ${c.yearRange.end.round()}',
+            summary: '${c.yearRange.start.round()} – ${c.yearRange.end.round()}',
             expanded: c.expanded.contains('year'),
             onToggle: () => c.toggleExpanded('year'),
             child: Column(
@@ -77,8 +69,7 @@ class FilterQuickSections extends StatelessWidget {
                   divisions: 76,
                   activeColor: AppColors.primary,
                   inactiveColor: AppColors.border,
-                  labels: RangeLabels(c.yearRange.start.round().toString(),
-                      c.yearRange.end.round().toString()),
+                  labels: RangeLabels(c.yearRange.start.round().toString(), c.yearRange.end.round().toString()),
                   onChanged: c.setYearRange,
                 ),
                 Padding(
@@ -86,12 +77,8 @@ class FilterQuickSections extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('${c.yearRange.start.round()}',
-                          style:
-                              TextStyle(color: AppColors.grey2, fontSize: 12)),
-                      Text('${c.yearRange.end.round()}',
-                          style:
-                              TextStyle(color: AppColors.grey2, fontSize: 12)),
+                      Text('${c.yearRange.start.round()}', style: TextStyle(color: AppColors.grey2, fontSize: 12)),
+                      Text('${c.yearRange.end.round()}', style: TextStyle(color: AppColors.grey2, fontSize: 12)),
                     ],
                   ),
                 ),
@@ -108,10 +95,5 @@ class _SectionDivider extends StatelessWidget {
   const _SectionDivider();
 
   @override
-  Widget build(BuildContext context) => Divider(
-      height: 1,
-      thickness: 1,
-      color: AppColors.border.withValues(alpha: 0.5),
-      indent: 16,
-      endIndent: 16);
+  Widget build(BuildContext context) => Divider(height: 1, thickness: 1, color: AppColors.border.withValues(alpha: 0.5), indent: 16, endIndent: 16);
 }

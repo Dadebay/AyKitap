@@ -54,19 +54,16 @@ extension _ReaderViewNotes on _ReaderScreenState {
         );
         remoteId = created.id;
       } on ApiException {
-        if (context.mounted)
-          _showSnack(context, ReaderNotesStrings.noteSaveFailedMessage,
-              isError: true);
+        if (context.mounted) {
+          _showSnack(context, ReaderNotesStrings.noteSaveFailedMessage, isError: true);
+        }
         return;
       }
     }
 
     final si = _bookSeedIndex;
     if (cfi != null && cfi.isNotEmpty) {
-      provider.epubController.addHighlight(
-          cfi: cfi,
-          color: Color(draft.colorValue),
-          opacity: HighlightColors.highlightOpacity);
+      provider.epubController.addHighlight(cfi: cfi, color: Color(draft.colorValue), opacity: HighlightColors.highlightOpacity);
     }
     await NotesStore.instance.add(
       text: draft.text,
@@ -78,8 +75,9 @@ extension _ReaderViewNotes on _ReaderScreenState {
       cfi: cfi,
       remoteId: remoteId,
     );
-    if (context.mounted)
+    if (context.mounted) {
       _showSnack(context, ReaderNotesStrings.noteSavedMessage);
+    }
   }
 
   /// Reverse of [_addNote]: tapping an already-painted highlight re-selects
@@ -87,8 +85,7 @@ extension _ReaderViewNotes on _ReaderScreenState {
   /// [ReaderProvider.selectedHighlight] matches back to the note that
   /// created it — this erases both the paint on the page and the saved note,
   /// which was previously impossible to undo once a highlight was made.
-  Future<void> _removeHighlight(
-      BuildContext context, ReaderProvider provider) async {
+  Future<void> _removeHighlight(BuildContext context, ReaderProvider provider) async {
     final note = provider.selectedHighlight;
     provider.clearSelection();
     if (note == null) return;
@@ -109,7 +106,8 @@ extension _ReaderViewNotes on _ReaderScreenState {
       }
     }
     await NotesStore.instance.remove(note.id);
-    if (context.mounted)
+    if (context.mounted) {
       _showSnack(context, ReaderNotesStrings.highlightRemovedMessage);
+    }
   }
 }

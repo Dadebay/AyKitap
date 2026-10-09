@@ -55,7 +55,6 @@ class PdfMarginCropBox extends StatelessWidget {
           // be laid out 1/(1 - 2f) times as wide as the viewport is.
           final width = constraints.maxWidth / (1 - crop * 2);
           return OverflowBox(
-            alignment: Alignment.center,
             minWidth: width,
             maxWidth: width,
             minHeight: constraints.maxHeight,

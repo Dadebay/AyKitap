@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+
+import '../../../core/localization/strings/profile_strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/highlight_colors.dart';
-import '../../../core/localization/strings/profile_strings.dart';
 import 'color_dot.dart';
 
 /// What [EditNoteSheet] returns when the reader saves — the note text plus the
@@ -69,8 +70,7 @@ class _EditNoteSheetState extends State<EditNoteSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         decoration: BoxDecoration(
@@ -85,38 +85,21 @@ class _EditNoteSheetState extends State<EditNoteSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
-                child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                        color: AppColors.grey3,
-                        borderRadius: BorderRadius.circular(2))),
+                child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.grey3, borderRadius: BorderRadius.circular(2))),
               ),
               const SizedBox(height: 18),
               Row(
                 children: [
-                  HugeIcon(
-                      icon: HugeIcons.strokeRoundedNoteAdd,
-                      color: Color(_color),
-                      size: 22),
+                  HugeIcon(icon: HugeIcons.strokeRoundedNoteAdd, color: Color(_color), size: 22),
                   const SizedBox(width: 10),
-                  Text(widget.title ?? ProfileStrings.editNoteTitle,
-                      style: TextStyle(
-                          color: AppColors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800)),
+                  Text(widget.title ?? ProfileStrings.editNoteTitle, style: TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w800)),
                 ],
               ),
               const SizedBox(height: 6),
-              Text(widget.subtitle ?? ProfileStrings.editNoteSubtitle,
-                  style: TextStyle(color: AppColors.grey2, fontSize: 13)),
+              Text(widget.subtitle ?? ProfileStrings.editNoteSubtitle, style: TextStyle(color: AppColors.grey2, fontSize: 13)),
               const SizedBox(height: 18),
               // ── Colour picker ─────────────────────────────────────────────
-              Text(ProfileStrings.noteColorLabel,
-                  style: TextStyle(
-                      color: AppColors.grey2,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600)),
+              Text(ProfileStrings.noteColorLabel, style: TextStyle(color: AppColors.grey2, fontSize: 12.5, fontWeight: FontWeight.w600)),
               const SizedBox(height: 10),
               Row(
                 children: [
@@ -132,25 +115,19 @@ class _EditNoteSheetState extends State<EditNoteSheet> {
               ),
               const SizedBox(height: 18),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
                   color: AppColors.card,
                   borderRadius: BorderRadius.circular(14),
-                  border:
-                      Border(left: BorderSide(color: Color(_color), width: 3)),
+                  border: Border(left: BorderSide(color: Color(_color), width: 3)),
                 ),
                 child: TextField(
                   controller: _controller,
                   autofocus: true,
                   maxLines: 5,
                   minLines: 3,
-                  style: TextStyle(
-                      color: AppColors.white, fontSize: 14.5, height: 1.5),
-                  decoration: InputDecoration(
-                      hintText: ProfileStrings.noteTextHint,
-                      hintStyle: TextStyle(color: AppColors.grey3),
-                      border: InputBorder.none),
+                  style: TextStyle(color: AppColors.white, fontSize: 14.5, height: 1.5),
+                  decoration: InputDecoration(hintText: ProfileStrings.noteTextHint, hintStyle: TextStyle(color: AppColors.grey3), border: InputBorder.none),
                 ),
               ),
               const SizedBox(height: 20),
@@ -158,17 +135,9 @@ class _EditNoteSheetState extends State<EditNoteSheet> {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
-                      elevation: 0),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
                   onPressed: _save,
-                  child: Text(ProfileStrings.save,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700)),
+                  child: Text(ProfileStrings.save, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
                 ),
               ),
               const SizedBox(height: 8),
@@ -177,8 +146,7 @@ class _EditNoteSheetState extends State<EditNoteSheet> {
                 height: 44,
                 child: TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text(ProfileStrings.cancel,
-                      style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+                  child: Text(ProfileStrings.cancel, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
                 ),
               ),
             ],

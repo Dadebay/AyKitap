@@ -1,5 +1,5 @@
-import '../../core/models/tariff.dart';
 import '../../core/localization/strings/payment_strings.dart';
+import '../../core/models/tariff.dart';
 
 /// The best-value plan (biggest discount) among [tariffs] — the default
 /// selection, since there's no fixed "monthly is always index 1" to lean on
@@ -22,9 +22,7 @@ int bestSubscriptionPlanIndex(List<Tariff> tariffs) {
 String subscriptionPlanLabel(Tariff tariff) {
   final months = tariff.monthCount;
   if (months == null) {
-    return tariff.dayCount == 7
-        ? PaymentStrings.planWeekly
-        : PaymentStrings.planDaysGeneric(tariff.lengthInDays);
+    return tariff.dayCount == 7 ? PaymentStrings.planWeekly : PaymentStrings.planDaysGeneric(tariff.lengthInDays);
   }
   switch (months) {
     case 1:

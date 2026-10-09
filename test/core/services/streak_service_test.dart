@@ -6,13 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 StreakOverview _overview({required bool goalMet}) {
-  final base = DateTime(2026, 1, 1);
+  final base = DateTime(2026, 1);
   return StreakOverview(
     currentStreak: 1,
     bestStreak: 1,
     goalMinMinutes: 15,
-    today: StreakDay(
-        date: base, seconds: 0, minutes: 0, pages: 0, goalMet: goalMet),
+    today: StreakDay(date: base, seconds: 0, minutes: 0, pages: 0, goalMet: goalMet),
     week: List.generate(
       7,
       (i) => StreakWeekDay(
@@ -24,18 +23,15 @@ StreakOverview _overview({required bool goalMet}) {
         goalMet: false,
       ),
     ),
-    thisMonth: const StreakMonthSummary(
-        month: '2026-01', pages: 0, minutes: 0, daysMet: 0),
-    lastMonth: const StreakMonthSummary(
-        month: '2025-12', pages: 0, minutes: 0, daysMet: 0),
+    thisMonth: const StreakMonthSummary(month: '2026-01', pages: 0, minutes: 0, daysMet: 0),
+    lastMonth: const StreakMonthSummary(month: '2025-12', pages: 0, minutes: 0, daysMet: 0),
     rewardRules: const [],
   );
 }
 
-StreakReportResult _report({required int minutes, required int pages}) =>
-    StreakReportResult(
+StreakReportResult _report({required int minutes, required int pages}) => StreakReportResult(
       today: StreakDay(
-        date: DateTime(2026, 1, 1),
+        date: DateTime(2026, 1),
         seconds: minutes * 60,
         minutes: minutes,
         pages: pages,
@@ -70,9 +66,7 @@ void main() {
   setUp(() => StreakService.instance.resetForTest());
   tearDown(() => StreakService.instance.resetForTest());
 
-  testWidgets(
-      'a false-to-true goal report shows the celebration once, with the right minutes/pages',
-      (tester) async {
+  testWidgets('a false-to-true goal report shows the celebration once, with the right minutes/pages', (tester) async {
     await tester.pumpWidget(_appWithOuterOverlay());
 
     final service = StreakService.instance;
@@ -81,15 +75,12 @@ void main() {
     await tester.pump();
 
     expect(find.byType(StreakGoalCelebration), findsOneWidget);
-    final celebration = tester
-        .widget<StreakGoalCelebration>(find.byType(StreakGoalCelebration));
+    final celebration = tester.widget<StreakGoalCelebration>(find.byType(StreakGoalCelebration));
     expect(celebration.minutes, 20);
     expect(celebration.pages, 10);
   });
 
-  testWidgets(
-      'a goal already met this session does not replay the celebration on a later report',
-      (tester) async {
+  testWidgets('a goal already met this session does not replay the celebration on a later report', (tester) async {
     await tester.pumpWidget(_appWithOuterOverlay());
 
     final service = StreakService.instance;
@@ -104,9 +95,7 @@ void main() {
     expect(find.byType(StreakGoalCelebration), findsNothing);
   });
 
-  testWidgets(
-      'a second report on the same already-completed day never re-fires',
-      (tester) async {
+  testWidgets('a second report on the same already-completed day never re-fires', (tester) async {
     await tester.pumpWidget(_appWithOuterOverlay());
 
     final service = StreakService.instance;

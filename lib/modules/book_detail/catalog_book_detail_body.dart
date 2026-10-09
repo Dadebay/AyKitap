@@ -66,9 +66,7 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
     }
     final book = _book!;
     final image = book.image;
-    final imageUrl = image != null && image.isNotEmpty
-        ? ApiConfig.resolveImageUrl(image)
-        : null;
+    final imageUrl = image != null && image.isNotEmpty ? ApiConfig.resolveImageUrl(image) : null;
     return Stack(
       children: [
         Positioned(
@@ -83,9 +81,7 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
         ListView(
           padding: EdgeInsets.zero,
           children: [
-            SizedBox(
-                height: _CatalogBookDetailScreenState._headerHeight -
-                    _CatalogBookDetailScreenState._sheetOverlap),
+            const SizedBox(height: _CatalogBookDetailScreenState._headerHeight - _CatalogBookDetailScreenState._sheetOverlap),
             _buildContentSheet(book),
           ],
         ),
@@ -103,8 +99,7 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
 
   Widget _buildBackButton(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(
-          top: MediaQuery.of(context).padding.top + 8, left: 12),
+      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 8, left: 12),
       child: IconCircleButton(
         icon: HugeIcons.strokeRoundedArrowLeft01,
         onTap: () => Navigator.pop(context),
@@ -120,19 +115,12 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
     final headerSteps = CatalogDetailHeaderInfo.stepCount(book);
     final descriptionSteps = CatalogDetailDescription.stepCount(book);
     return ClipRRect(
-      borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(38), topRight: Radius.circular(38)),
-      child: Container(
+      borderRadius: const BorderRadius.only(topLeft: Radius.circular(38), topRight: Radius.circular(38)),
+      child: DecoratedBox(
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(38), topRight: Radius.circular(38)),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                blurRadius: 20,
-                offset: const Offset(0, -6))
-          ],
+          borderRadius: const BorderRadius.only(topLeft: Radius.circular(38), topRight: Radius.circular(38)),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 20, offset: const Offset(0, -6))],
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
@@ -144,14 +132,11 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
           // the other's internal block count.
           child: Column(
             children: [
-              CatalogDetailHeaderInfo(
-                  book: book,
-                  onTapAuthor: () => _openAuthor(book.authors.first)),
+              CatalogDetailHeaderInfo(book: book, onTapAuthor: () => _openAuthor(book.authors.first)),
               CatalogDetailDescription(
                 book: book,
                 expanded: _descriptionExpanded,
-                onToggleExpanded: () => _setState(
-                    () => _descriptionExpanded = !_descriptionExpanded),
+                onToggleExpanded: () => _setState(() => _descriptionExpanded = !_descriptionExpanded),
                 onTapGenre: _openGenre,
                 startIndex: headerSteps,
               ),

@@ -36,25 +36,20 @@ class SplashScreen extends StatefulWidget {
   /// nothing artificially stretches the wait beyond whatever the real prefs
   /// read and connectivity check already take on their own.
   @visibleForTesting
-  static Duration splashFloorFor({required bool reduceMotion}) =>
-      reduceMotion ? Duration.zero : minSplashDelay;
+  static Duration splashFloorFor({required bool reduceMotion}) => reduceMotion ? Duration.zero : minSplashDelay;
 
   /// Pure routing decision, pulled out of [_SplashScreenState._bootstrap] so
   /// it's unit-testable without standing up [AppPrefs]/`Connectivity` (both
   /// platform-backed) or the animation lifecycle around it.
   @visibleForTesting
-  static Widget destinationFor(
-          {required bool isOffline, required bool onboardingSeen}) =>
-      isOffline
-          ? const OfflineLibraryScreen()
-          : (onboardingSeen ? const MainNavScreen() : const OnboardingScreen());
+  static Widget destinationFor({required bool isOffline, required bool onboardingSeen}) =>
+      isOffline ? const OfflineLibraryScreen() : (onboardingSeen ? const MainNavScreen() : const OnboardingScreen());
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
-    with TickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
   // One-shot entrance timeline. Duration set in [initState] — shortened (or
   // skipped outright) under reduced motion, so it can't be `late final` with
   // an inline initializer the way [_ambient] used to be.
@@ -99,8 +94,7 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness:
-          AppTheme.instance.isDark ? Brightness.light : Brightness.dark,
+      statusBarIconBrightness: AppTheme.instance.isDark ? Brightness.light : Brightness.dark,
     ));
   }
 
@@ -122,8 +116,7 @@ class _SplashScreenState extends State<SplashScreen>
     final reduceMotion = AppMotion.reduceMotion(context);
     // `duration` only matters for the `forward()` branch below — never read
     // when reduced motion jumps straight to `value = 1`.
-    _entrance = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 800));
+    _entrance = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
     if (reduceMotion) {
       // Same convention [StaggerFadeIn] uses: jump straight to the settled
       // frame instead of animating through it.
@@ -148,9 +141,7 @@ class _SplashScreenState extends State<SplashScreen>
     // from disk at boot rather than on the first book tapped. The purchased
     // list is then re-synced from the backend when there's a session —
     // best-effort, so this never delays the splash.
-    unawaited(BookAccessService.instance
-        .load()
-        .then((_) => BookAccessService.instance.refreshPurchased()));
+    unawaited(BookAccessService.instance.load().then((_) => BookAccessService.instance.refreshPurchased()));
     unawaited(SubscriptionService.instance.load());
     unawaited(DownloadedFilesStore.instance.load());
 
@@ -178,8 +169,7 @@ class _SplashScreenState extends State<SplashScreen>
       context,
       FadePageRoute(
         reduceMotion: reduceMotion,
-        child: SplashScreen.destinationFor(
-            isOffline: isOffline, onboardingSeen: seen),
+        child: SplashScreen.destinationFor(isOffline: isOffline, onboardingSeen: seen),
       ),
     );
   }
@@ -196,16 +186,16 @@ class _SplashScreenState extends State<SplashScreen>
     final isDark = AppTheme.instance.isDark;
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: Container(
+      body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: RadialGradient(
-            center: Alignment(0, -0.25),
+            center: const Alignment(0, -0.25),
             radius: 1.1,
             colors: [
               isDark ? const Color(0xFF201436) : const Color(0xFFFFEADA),
               AppColors.bg,
             ],
-            stops: [0.0, 0.75],
+            stops: const [0.0, 0.75],
           ),
         ),
         child: Stack(
@@ -221,9 +211,7 @@ class _SplashScreenState extends State<SplashScreen>
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      isDark
-                          ? const Color(0xFF0C0C12)
-                          : const Color(0x1AD8CFC4),
+                      isDark ? const Color(0xFF0C0C12) : const Color(0x1AD8CFC4),
                     ],
                   ),
                 ),
@@ -234,11 +222,7 @@ class _SplashScreenState extends State<SplashScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Spacer(flex: 3),
-                  SplashLogo(
-                      entrance: _entrance,
-                      ambient: _ambient,
-                      logoScale: _logoScale,
-                      logoFade: _logoFade),
+                  SplashLogo(entrance: _entrance, ambient: _ambient, logoScale: _logoScale, logoFade: _logoFade),
                   const SizedBox(height: 28),
                   SplashWordmark(animation: _wordmark),
                   const SizedBox(height: 14),

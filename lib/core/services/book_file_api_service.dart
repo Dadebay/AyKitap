@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
-import '../network/book_endpoints.dart';
+
 import '../network/api_exception.dart';
+import '../network/book_endpoints.dart';
 import '../network/dio_client.dart';
 
 /// `GET /books/file`'s `data` — a short-lived, presigned link to one of a
@@ -46,8 +47,7 @@ class BookFileApiService {
         BookEndpoints.bookFile,
         queryParameters: {'filename': fileKey},
       );
-      return BookFileLink.fromJson(
-          response.data['data'] as Map<String, dynamic>);
+      return BookFileLink.fromJson(response.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

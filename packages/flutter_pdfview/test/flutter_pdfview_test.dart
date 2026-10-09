@@ -10,8 +10,7 @@ void main() {
   late PDFView pdfView;
 
   setUp(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (MethodCall methodCall) async {
       switch (methodCall.method) {
         case 'pageCount':
           return 10;
@@ -28,22 +27,11 @@ void main() {
 
     pdfView = const PDFView(
       filePath: 'test.pdf',
-      enableSwipe: true,
-      swipeHorizontal: false,
-      nightMode: false,
-      autoSpacing: true,
-      pageFling: true,
-      pageSnap: true,
-      fitEachPage: true,
-      defaultPage: 0,
-      fitPolicy: FitPolicy.WIDTH,
-      preventLinkNavigation: false,
     );
   });
 
   tearDown(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, null);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, null);
   });
 
   group('PDFView Widget Tests', () {
@@ -57,9 +45,8 @@ void main() {
       );
     });
 
-    testWidgets('PDFView with custom background color',
-        (WidgetTester tester) async {
-      final customPdfView = PDFView(
+    testWidgets('PDFView with custom background color', (WidgetTester tester) async {
+      final customPdfView = const PDFView(
         filePath: 'test.pdf',
         backgroundColor: Colors.blue,
       );
@@ -73,9 +60,8 @@ void main() {
       );
     });
 
-    testWidgets('PDFView with password protection',
-        (WidgetTester tester) async {
-      final protectedPdfView = PDFView(
+    testWidgets('PDFView with password protection', (WidgetTester tester) async {
+      final protectedPdfView = const PDFView(
         filePath: 'test.pdf',
         password: 'test123',
       );
@@ -89,8 +75,7 @@ void main() {
       );
     });
 
-    testWidgets('PDFView with onViewCreated callback',
-        (WidgetTester tester) async {
+    testWidgets('PDFView with onViewCreated callback', (WidgetTester tester) async {
       PDFViewController? controller;
       final pdfViewWithCallback = PDFView(
         filePath: 'test.pdf',
@@ -141,19 +126,18 @@ void main() {
 
   group('PDFView Settings Tests', () {
     test('PDFView with different fit policies', () {
-      final widthFit = PDFView(
+      final widthFit = const PDFView(
         filePath: 'test.pdf',
-        fitPolicy: FitPolicy.WIDTH,
       );
       expect(widthFit.fitPolicy, FitPolicy.WIDTH);
 
-      final heightFit = PDFView(
+      final heightFit = const PDFView(
         filePath: 'test.pdf',
         fitPolicy: FitPolicy.HEIGHT,
       );
       expect(heightFit.fitPolicy, FitPolicy.HEIGHT);
 
-      final bothFit = PDFView(
+      final bothFit = const PDFView(
         filePath: 'test.pdf',
         fitPolicy: FitPolicy.BOTH,
       );
@@ -161,7 +145,7 @@ void main() {
     });
 
     test('PDFView with different navigation settings', () {
-      final customPdfView = PDFView(
+      final customPdfView = const PDFView(
         filePath: 'test.pdf',
         enableSwipe: false,
         swipeHorizontal: true,
@@ -180,7 +164,6 @@ void main() {
     test('PDFView handles missing file path and pdf data', () {
       expect(
         () => PDFView(
-          filePath: null,
           pdfData: null,
         ),
         throwsAssertionError,

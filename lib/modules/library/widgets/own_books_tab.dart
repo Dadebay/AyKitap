@@ -40,42 +40,32 @@ class _OwnBooksTabState extends State<OwnBooksTab> {
     if (_picking) return;
     setState(() => _picking = true);
     try {
-      final result = await FilePicker.platform.pickFiles(
-          type: FileType.custom, allowedExtensions: ['epub', 'pdf', 'cbz']);
+      final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['epub', 'pdf', 'cbz']);
       final picked = result?.files.single;
       final path = picked?.path;
       if (picked == null || path == null) return;
       await _store.addFromPickedFile(sourcePath: path, fileName: picked.name);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         context.showAppSnackBar(LibraryStrings.fileAddError(e), isError: true);
+      }
     } finally {
       if (mounted) setState(() => _picking = false);
     }
   }
 
   void _openBook(OwnBook book) {
-    AnalyticsService.instance
-        .logBookOpened(id: book.id, format: book.format.name);
+    AnalyticsService.instance.logBookOpened(id: book.id, format: book.format.name);
     switch (book.format) {
       case OwnBookFormat.pdf:
-        openPdfBook(context,
-            filePath: book.filePath,
-            title: book.title,
-            bookId: stableBookKey(book.id));
+        openPdfBook(context, filePath: book.filePath, title: book.title, bookId: stableBookKey(book.id));
       case OwnBookFormat.cbz:
-        context.push(CbzReaderScreen(
-            filePath: book.filePath,
-            title: book.title,
-            bookId: stableBookKey(book.id)));
+        context.push(CbzReaderScreen(filePath: book.filePath, title: book.title, bookId: stableBookKey(book.id)));
       case OwnBookFormat.epub:
         context.push(
           ChangeNotifierProvider(
             create: (_) => ReaderProvider(),
-            child: ReaderScreen(
-                bookPath: book.filePath,
-                bookId: stableBookKey(book.id),
-                bookTitle: book.title),
+            child: ReaderScreen(bookPath: book.filePath, bookId: stableBookKey(book.id), bookTitle: book.title),
           ),
         );
     }
@@ -87,12 +77,12 @@ class _OwnBooksTabState extends State<OwnBooksTab> {
   Future<void> _confirmDelete(OwnBook book) async {
     // No `coverUrl` — an imported file has no artwork, so the dialog falls
     // back to its icon badge.
-    final choice = await showShelfDeleteDialog(context,
-        message: LibraryStrings.deleteOwnBookConfirm(book.title));
+    final choice = await showShelfDeleteDialog(context, message: LibraryStrings.deleteOwnBookConfirm(book.title));
     if (choice != ShelfDeleteChoice.delete) return;
     await _store.remove(book.id);
-    if (mounted)
+    if (mounted) {
       context.showAppSnackBar(LibraryStrings.bookDeleted(book.title));
+    }
   }
 
   @override
@@ -100,8 +90,7 @@ class _OwnBooksTabState extends State<OwnBooksTab> {
     final books = context.watch<OwnBooksStore>().books;
     return ListView(
       // See [WheelNavBar.clearance] — the wheel is drawn over this content.
-      padding:
-          EdgeInsets.fromLTRB(20, 24, 20, WheelNavBar.clearance(context) + 16),
+      padding: EdgeInsets.fromLTRB(20, 24, 20, WheelNavBar.clearance(context) + 16),
       children: [
         GestureDetector(
           onTap: _pickFile,
@@ -110,8 +99,7 @@ class _OwnBooksTabState extends State<OwnBooksTab> {
             decoration: BoxDecoration(
               color: AppColors.card,
               borderRadius: BorderRadius.circular(16),
-              border:
-                  Border.all(color: AppColors.border, style: BorderStyle.solid),
+              border: Border.all(color: AppColors.border),
             ),
             child: Column(
               children: [
@@ -119,34 +107,21 @@ class _OwnBooksTabState extends State<OwnBooksTab> {
                   SizedBox(
                     width: 34,
                     height: 34,
-                    child: CircularProgressIndicator(
-                        color: AppColors.primary, strokeWidth: 2.5),
+                    child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
                   )
                 else
-                  HugeIcon(
-                      icon: HugeIcons.strokeRoundedFolderAdd,
-                      color: AppColors.primary,
-                      size: 34),
+                  HugeIcon(icon: HugeIcons.strokeRoundedFolderAdd, color: AppColors.primary, size: 34),
                 const SizedBox(height: 10),
-                Text(LibraryStrings.addFileTitle,
-                    style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700)),
+                Text(LibraryStrings.addFileTitle, style: TextStyle(color: AppColors.white, fontSize: 15, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
-                Text(LibraryStrings.addFileSubtitle,
-                    style: TextStyle(color: AppColors.grey2, fontSize: 12.5)),
+                Text(LibraryStrings.addFileSubtitle, style: TextStyle(color: AppColors.grey2, fontSize: 12.5)),
               ],
             ),
           ),
         ),
         const SizedBox(height: 24),
         if (books.isNotEmpty) ...[
-          Text(LibraryStrings.addedBooks,
-              style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700)),
+          Text(LibraryStrings.addedBooks, style: TextStyle(color: AppColors.white, fontSize: 15, fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
           ShelfGrid(
             itemCount: books.length,
@@ -159,8 +134,7 @@ class _OwnBooksTabState extends State<OwnBooksTab> {
           ),
           const SizedBox(height: 16),
         ],
-        Text(LibraryStrings.localOnlyNotice,
-            style: TextStyle(color: AppColors.grey3, fontSize: 12.5)),
+        Text(LibraryStrings.localOnlyNotice, style: TextStyle(color: AppColors.grey3, fontSize: 12.5)),
       ],
     );
   }

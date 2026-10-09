@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+
 import '../../core/localization/strings/payment_strings.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/services/account_service.dart';
@@ -10,8 +11,8 @@ import '../../core/services/payment_api_service.dart';
 import '../../core/services/purchase_mode_service.dart';
 import '../../core/services/revenue_cat_api_service.dart';
 import '../../core/services/revenue_cat_service.dart';
-import '../../core/widgets/app_snackbar.dart';
 import '../../core/services/tmcell_numbers_api_service.dart';
+import '../../core/widgets/app_snackbar.dart';
 import 'payment_webview_screen.dart';
 import 'tmcell_payment_screen.dart';
 import 'widgets/bank_select_sheet.dart';
@@ -92,8 +93,7 @@ Future<void> startBalanceTopUp(
     return;
   }
 
-  final choice =
-      await PaymentMethodSheet.show(context, showTmcell: _canOfferTmcell);
+  final choice = await PaymentMethodSheet.show(context, showTmcell: _canOfferTmcell);
   if (choice == null || !context.mounted) return;
 
   switch (choice) {
@@ -109,11 +109,9 @@ Future<void> startBalanceTopUp(
       final bank = await BankSelectSheet.show(context);
       if (bank == null || !context.mounted) return;
       try {
-        final url = await PaymentApiService.createTopUpOrder(
-            amount: amount, bankId: bank.id);
+        final url = await PaymentApiService.createTopUpOrder(amount: amount, bankId: bank.id);
         if (!context.mounted) return;
-        await Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => PaymentWebViewScreen(url: url)));
+        await Navigator.of(context).push(MaterialPageRoute(builder: (_) => PaymentWebViewScreen(url: url)));
       } on ApiException catch (e) {
         if (!context.mounted) return;
         context.showAppSnackBar(e.message, isError: true);
@@ -150,8 +148,7 @@ Future<void> _openTmcellPayment(BuildContext context) async {
   // number outliving it would send a reader's money to a SIM nothing is
   // watching. One request per deliberate tap is cheap.
   TmcellNumbersApiService.invalidate();
-  await Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const TmcellPaymentScreen()));
+  await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const TmcellPaymentScreen()));
 }
 
 /// Asks for a code and redeems it, crediting the balance server-side.
@@ -194,7 +191,6 @@ Future<void> _purchaseStoreTopUp(BuildContext context) async {
     }
   } on RevenueCatPurchaseException catch (e) {
     if (!context.mounted) return;
-    context.showAppSnackBar(e.message ?? PaymentStrings.storeTopUpFailed,
-        isError: true);
+    context.showAppSnackBar(e.message ?? PaymentStrings.storeTopUpFailed, isError: true);
   }
 }

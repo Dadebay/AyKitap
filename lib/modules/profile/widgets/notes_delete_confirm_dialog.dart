@@ -15,20 +15,13 @@ Future<bool> showDeleteNoteConfirmDialog(BuildContext context) async {
       icon: Container(
         width: 52,
         height: 52,
-        decoration: BoxDecoration(
-            color: Colors.redAccent.withValues(alpha: 0.15),
-            shape: BoxShape.circle),
-        child: const Center(
-            child: HugeIcon(
-                icon: HugeIcons.strokeRoundedDelete02,
-                color: Colors.redAccent,
-                size: 24)),
+        decoration: BoxDecoration(color: Colors.redAccent.withValues(alpha: 0.15), shape: BoxShape.circle),
+        child: const Center(child: HugeIcon(icon: HugeIcons.strokeRoundedDelete02, color: Colors.redAccent)),
       ),
       title: Text(
         ProfileStrings.deleteNoteConfirmTitle,
         textAlign: TextAlign.center,
-        style: TextStyle(
-            color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800),
+        style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800),
       ),
       content: Text(
         ProfileStrings.actionIrreversible,
@@ -44,17 +37,9 @@ Future<bool> showDeleteNoteConfirmDialog(BuildContext context) async {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                    elevation: 0),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
                 onPressed: () => Navigator.pop(context, true),
-                child: Text(ProfileStrings.delete,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700)),
+                child: Text(ProfileStrings.delete, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
               ),
             ),
             const SizedBox(height: 8),
@@ -63,8 +48,7 @@ Future<bool> showDeleteNoteConfirmDialog(BuildContext context) async {
               height: 44,
               child: TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: Text(ProfileStrings.cancel,
-                    style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+                child: Text(ProfileStrings.cancel, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
               ),
             ),
           ],
