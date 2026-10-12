@@ -60,6 +60,15 @@ class BookApiService {
     }
   }
 
+  /// Persists the detail screen's finished toggle. Marking a book finished
+  /// stores 100% progress; unmarking it removes that progress record because
+  /// the API has no separate `finished=false` field.
+  static Future<void> setFinished(int bookId, {required bool finished}) {
+    return finished
+        ? updateProgress(bookId, progress: 100)
+        : deleteProgress(bookId);
+  }
+
   /// POST `/books/:bookId/like`.
   static Future<void> likeBook(String bookId) async {
     try {

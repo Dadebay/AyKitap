@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+
+import '../../core/localization/strings/profile_feedback_strings.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/services/feedback_api_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
-import '../../core/localization/strings/profile_feedback_strings.dart';
 
 /// Free-text bug/problem report, sent straight to `/problems`.
 class ReportProblemSheet extends StatefulWidget {

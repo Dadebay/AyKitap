@@ -2,22 +2,23 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
+
+import '../../../core/localization/strings/library_strings.dart';
 import '../../../core/models/own_book.dart';
 import '../../../core/navigation/app_navigator.dart';
 import '../../../core/services/analytics_service.dart';
 import '../../../core/services/own_books_store.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/stable_hash.dart';
-import '../../../core/localization/strings/library_strings.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../../core/widgets/own_book_spine_cover.dart';
+import '../../main_nav/widgets/wheel_nav_bar.dart';
 import '../../reader/provider/reader_provider.dart';
 import '../../reader/utils/pdf_book_opener.dart';
 import '../../reader/views/cbz_reader_screen.dart';
 import '../../reader/views/reader_view.dart';
 import 'shelf_delete.dart';
 import 'shelf_grid.dart';
-import '../../main_nav/widgets/wheel_nav_bar.dart';
 
 class OwnBooksTab extends StatefulWidget {
   const OwnBooksTab({super.key});

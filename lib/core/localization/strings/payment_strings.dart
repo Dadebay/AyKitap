@@ -44,13 +44,34 @@ class PaymentStrings {
         tr: 'Kitaplar yalnızca uygulama içinde okunur — telefona indirilmez.',
         en: 'Books are read only in the app — they aren\'t downloaded to your phone.',
       );
+  static const downloadFileWebsite = 'www.aykitap.com.tm';
+  static String get downloadFileWebsitePrefix => t(
+        tk: 'Faýly ýükläp almak üçin',
+        ru: 'Чтобы скачать файл, используйте сайт',
+        tr: 'Dosyayı indirmek için',
+        en: 'To download the file, use',
+      );
+  static String get downloadFileWebsiteSuffix => t(
+        tk: ' saýtyny ulanyň.',
+        ru: '.',
+        tr: ' adresini kullanın.',
+        en: '.',
+      );
+  static String get downloadFileWebsiteText =>
+      '$downloadFileWebsitePrefix $downloadFileWebsite$downloadFileWebsiteSuffix';
+  static String get downloadFileWebsiteOpenError => t(
+        tk: 'Web sahypasy açylmady.',
+        ru: 'Не удалось открыть сайт.',
+        tr: 'Web sitesi açılamadı.',
+        en: 'Couldn\'t open the website.',
+      );
   static String confirmWithPrice(num amount) => t(
         tk: 'Tassykla — $amount TMT',
         ru: 'Подтвердить — $amount TMT',
         tr: 'Onayla — $amount TMT',
         en: 'Confirm — $amount TMT',
       );
-  static String get topUpBalance => t(tk: 'Balans doldyr', ru: 'Пополнить баланс', tr: 'Bakiye yükle', en: 'Top up balance');
+  static String get topUpBalance => t(tk: 'Balans doldur', ru: 'Пополнить баланс', tr: 'Bakiye yükle', en: 'Top up balance');
   static String get payNow => t(tk: 'Töle', ru: 'Оплатить', tr: 'Öde', en: 'Pay now');
   static String get close => t(tk: 'Ýap', ru: 'Закрыть', tr: 'Kapat', en: 'Close');
 
@@ -151,7 +172,7 @@ class PaymentStrings {
       );
   // Store (RevenueCat) purchase path — no per-tariff name to show, unlike
   // the TMT/balance flow's [subscriptionActivated].
-  static String get plusPlanName => t(tk: 'Aýkitap Plus', ru: 'Aýkitap Plus', tr: 'Aýkitap Plus', en: 'Aýkitap Plus');
+  static String get plusPlanName => t(tk: 'Aýkitap Premium', ru: 'Aýkitap Premium', tr: 'Aýkitap Premium', en: 'Aýkitap Premium');
 
   // widgets/store_plan_card.dart, store_subscription_screen.dart — the
   // custom store paywall that replaces RevenueCat's native paywall UI.

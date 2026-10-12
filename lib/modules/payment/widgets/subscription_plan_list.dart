@@ -57,11 +57,11 @@ class SubscriptionPlanList extends StatelessWidget {
         return PlanCard(
           tariff: tariff,
           label: subscriptionPlanLabel(tariff),
-          // "Most popular" is a fixed marketing badge on the 6-month plan —
+          // "Most popular" is a fixed marketing badge on the 3-month plan —
           // independent of [bestSubscriptionPlanIndex]'s discount-based
           // default *selection*, which stays on whichever tariff is
           // actually cheapest per month.
-          best: tariff.monthCount == 6,
+          best: tariff.monthCount == 3,
           selected: isSelected,
           onTap: () {
             if (isSelected) return;

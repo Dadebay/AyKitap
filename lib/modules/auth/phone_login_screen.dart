@@ -1,14 +1,15 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import '../../core/localization/strings/auth_strings.dart';
 import '../../core/navigation/app_navigator.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/services/contact_api_service.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/localization/strings/auth_strings.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/app_text_field.dart';

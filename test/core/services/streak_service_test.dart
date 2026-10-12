@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 StreakOverview _overview({required bool goalMet}) {
-  final base = DateTime(2026, 1);
+  final base = DateTime(2026);
   return StreakOverview(
     currentStreak: 1,
     bestStreak: 1,
@@ -31,7 +31,7 @@ StreakOverview _overview({required bool goalMet}) {
 
 StreakReportResult _report({required int minutes, required int pages}) => StreakReportResult(
       today: StreakDay(
-        date: DateTime(2026, 1),
+        date: DateTime(2026),
         seconds: minutes * 60,
         minutes: minutes,
         pages: pages,

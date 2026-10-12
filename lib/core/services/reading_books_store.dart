@@ -57,14 +57,24 @@ class ReadingBooksStore extends ChangeNotifier {
   /// backend list while retaining local launches not yet synced by progress.
   Future<void> mergeFromBackend(Iterable<LibraryBook> books) async {
     await load();
-    final fresh = books.where((book) => !book.isFinished).toList();
-    final freshIds = fresh.map((book) => book.id).toSet();
+    final backendBooks = books.toList();
+    final fresh = backendBooks.where((book) => !book.isFinished).toList();
+    final backendIds = backendBooks.map((book) => book.id).toSet();
     _books = [
       ...fresh,
-      ..._books.where((book) => !freshIds.contains(book.id)),
+      // Missing from the backend still means "opened locally but its first
+      // progress report has not landed yet", so retain it. Present as a
+      // finished backend row means it belongs on the Finished shelf instead.
+      ..._books.where((book) => !backendIds.contains(book.id)),
     ];
     await _persist();
     notifyListeners();
+  }
+
+  @visibleForTesting
+  void resetForTest() {
+    _books = [];
+    _loaded = false;
   }
 
   Future<void> _persist() async {

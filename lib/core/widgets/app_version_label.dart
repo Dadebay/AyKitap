@@ -4,7 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../localization/strings/settings_strings.dart';
 import '../theme/app_colors.dart';
 
-/// "Aykitap v1.1.5 (15)" — read from the installed build.
+/// "Aykitap v1.1.6 (16)" — read from the installed build.
 ///
 /// Asynchronous because that is the only way to know it: the number lives in
 /// the platform's own bundle metadata, not in Dart. Renders nothing until it

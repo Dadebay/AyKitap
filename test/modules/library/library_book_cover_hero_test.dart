@@ -55,4 +55,35 @@ void main() {
     final tags = tester.widgetList<Hero>(find.byType(Hero)).map((h) => h.tag).toSet();
     expect(tags, hasLength(2));
   });
+
+  testWidgets('finished shelf can hide the redundant 100% badge',
+      (tester) async {
+    const finishedBook =
+        LibraryBook(id: 7, name: 'Finished book', progress: 100);
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<BookAccessService>.value(
+              value: BookAccessService.instance),
+          ChangeNotifierProvider<SubscriptionService>.value(
+              value: SubscriptionService.instance),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 80,
+              height: 120,
+              child: LibraryBookCover(
+                book: finishedBook,
+                heroShelf: 'finished',
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('100%'), findsNothing);
+  });
 }

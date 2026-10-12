@@ -3,25 +3,24 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
-import '../../core/navigation/app_navigator.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/theme_controller.dart';
-import '../../core/services/account_service.dart';
-import '../../core/services/book_access_service.dart';
-import '../../core/services/subscription_service.dart';
-import '../../core/services/auth_api_service.dart';
-import '../../core/services/auth_session.dart';
-import '../../core/services/notification_permission_flow.dart';
-import '../../core/services/firebase_auth_service.dart';
-import '../../core/services/onesignal_service.dart';
-import '../../core/services/revenue_cat_service.dart';
 import '../../core/localization/app_locale.dart';
 import '../../core/localization/strings/notification_strings.dart';
 import '../../core/localization/strings/settings_strings.dart';
+import '../../core/services/account_service.dart';
+import '../../core/services/auth_api_service.dart';
+import '../../core/services/auth_session.dart';
+import '../../core/services/book_access_service.dart';
+import '../../core/services/firebase_auth_service.dart';
+import '../../core/services/notification_permission_flow.dart';
+import '../../core/services/onesignal_service.dart';
+import '../../core/services/revenue_cat_service.dart';
+import '../../core/services/subscription_service.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/theme_controller.dart';
 import '../../core/widgets/app_back_button.dart';
-import '../../core/widgets/app_version_label.dart';
 import '../../core/widgets/app_snackbar.dart';
-import '../payment/store_subscription_screen.dart';
+import '../../core/widgets/app_version_label.dart';
+import '../payment/open_subscription_screen.dart';
 import 'widgets/contact_us_sheet.dart';
 import 'widgets/language_sheet.dart';
 import 'widgets/settings_confirm_dialog.dart';
@@ -169,17 +168,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (confirmed == true && mounted) await _clearSessionAndClose();
   }
 
-  // Not-yet-subscribed goes to our own custom store paywall
-  // ([StoreSubscriptionScreen]); already-subscribed opens the Customer
-  // Center instead, since that screen is meant to sell, not to manage an
-  // existing plan.
+  // Already-subscribed readers manage the store entitlement in Customer
+  // Center. New subscriptions go through the shared router so the admin's
+  // iosStoreIapOnlyEnabled value chooses store/$ versus wallet/TMT here too.
   Future<void> _openStoreSubscription() async {
     final revenueCat = context.read<RevenueCatService>();
     if (revenueCat.isPlusActive) {
       await revenueCat.presentCustomerCenter();
       return;
     }
-    await context.push(const StoreSubscriptionScreen());
+    await openSubscriptionScreen(context);
   }
 
   @override

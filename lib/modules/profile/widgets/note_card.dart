@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+
+import '../../../core/localization/strings/profile_strings.dart';
 import '../../../core/models/user_note.dart';
 import '../../../core/navigation/app_hero_tags.dart';
 import '../../../core/network/api_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/book_cover_hero.dart';
 import '../../../core/widgets/network_cover_image.dart';
-import '../../../core/localization/strings/profile_strings.dart';
 
 class NoteCard extends StatelessWidget {
   final UserNote note;

@@ -1,12 +1,14 @@
 import 'dart:convert';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+
+import '../../../core/localization/strings/profile_strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/image_compressor.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../../core/widgets/profile_avatar.dart';
-import '../../../core/localization/strings/profile_strings.dart';
 
 /// Either a preset avatar index or a custom photo the user picked.
 class AvatarPickResult {

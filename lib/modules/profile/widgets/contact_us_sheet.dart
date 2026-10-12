@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import '../../../core/localization/strings/settings_strings.dart';
 import '../../../core/models/contact_info.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/services/contact_api_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_snackbar.dart';
-import '../../../core/localization/strings/settings_strings.dart';
 import 'contact_row.dart';
 import 'contact_us_header.dart';
 

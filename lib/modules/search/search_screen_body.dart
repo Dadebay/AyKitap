@@ -8,8 +8,12 @@ extension _SearchScreenBody on _SearchScreenState {
   /// [MainNavScreen]'s Scaffold uses `extendBody`, so the bar is painted over
   /// this content. See [WheelNavBar.clearance]; the four hardcoded bottoms
   /// this replaced (20 and 60) were each short of it.
-  EdgeInsets _gridPadding(BuildContext context) =>
-      EdgeInsets.fromLTRB(20, 8, 20, WheelNavBar.clearance(context) + 16);
+  EdgeInsets _gridPadding(
+    BuildContext context, {
+    double bottomSpacing = 16,
+  }) =>
+      EdgeInsets.fromLTRB(
+          20, 8, 20, WheelNavBar.clearance(context) + bottomSpacing);
 
   Widget _buildScreen(BuildContext context) {
     return Scaffold(
@@ -68,25 +72,9 @@ extension _SearchScreenBody on _SearchScreenState {
       return Center(child: CircularProgressIndicator(color: AppColors.primary));
     }
     if (_searchError != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(_searchError!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.grey2, fontSize: 14)),
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: _runSearch,
-                child: Text(SearchStrings.retry,
-                    style: TextStyle(
-                        color: AppColors.primary, fontWeight: FontWeight.w700)),
-              ),
-            ],
-          ),
-        ),
+      return SearchErrorState(
+        message: _searchError!,
+        onRetry: _runSearch,
       );
     }
     final results = _searchResults ?? const [];
@@ -112,9 +100,15 @@ extension _SearchScreenBody on _SearchScreenState {
     // (like every other real-book grid in the app) — no extra wrapper here.
     return SearchResultGrid(
       books: results,
-      padding: _gridPadding(context),
+      // Keep 30 px of visible breathing room between the suggestion action
+      // and the wheel navigation once the list is scrolled to its end.
+      padding: _gridPadding(context, bottomSpacing: 30),
       loadingMore: _searchLoadingMore,
       controller: _bookGridScroll,
+      // A close-but-not-exact match is still a missing book. Keep the same
+      // request action used by the zero-results state reachable underneath
+      // non-empty title-search results too.
+      footer: const SuggestBookButton(),
     );
   }
 

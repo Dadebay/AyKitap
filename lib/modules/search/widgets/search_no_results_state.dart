@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 
 import '../../../core/localization/strings/search_strings.dart';
-import '../../../core/navigation/app_navigator.dart';
-import '../../../core/services/auth_session.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
-import '../../auth/phone_login_screen.dart';
-import '../../profile/book_request_sheet.dart';
+import 'suggest_book_button.dart';
 
 /// What a search that found nothing shows.
 ///
@@ -19,22 +15,6 @@ import '../../profile/book_request_sheet.dart';
 /// to send it.
 class SearchNoResultsState extends StatelessWidget {
   const SearchNoResultsState({super.key});
-
-  /// The request is posted as the signed-in account (`POST /suggests`), so a
-  /// signed-out reader is sent through login first rather than filling the
-  /// sheet in and being told 401 by the server afterwards. Same shape as
-  /// [LibraryLoginRequiredState]: the login screen can be dismissed by a back
-  /// gesture after a successful verify without popping `true`, so the stored
-  /// token is what gets trusted, not the pop result.
-  Future<void> _suggest(BuildContext context) async {
-    if (!await AuthSession.isLoggedIn()) {
-      if (!context.mounted) return;
-      await context.push<bool>(const PhoneLoginScreen());
-      if (!await AuthSession.isLoggedIn()) return;
-    }
-    if (!context.mounted) return;
-    await BookRequestSheet.show(context);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,23 +54,7 @@ class SearchNoResultsState extends StatelessWidget {
           // Sized to its label rather than full-width: the state is
           // centred in open space, and a button stretched across it would
           // read as the page's primary action instead of an offer.
-          FilledButton.icon(
-            onPressed: () => _suggest(context),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            ),
-            icon: const HugeIcon(icon: HugeIcons.strokeRoundedBookOpen01, color: Colors.white, size: 19),
-            label: Text(
-              SearchStrings.suggestBook,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
+          const SuggestBookButton(),
         ],
       ),
     );

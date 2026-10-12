@@ -192,7 +192,7 @@ class ProfileStrings {
         en: 'For subscriptions and book purchases',
       );
   static String get topUpBalance =>
-      t(tk: 'Doldyr', ru: 'Пополнить', tr: 'Yükle', en: 'Top up');
+      t(tk: 'Doldur', ru: 'Пополнить', tr: 'Yükle', en: 'Top up');
 
   // balance_screen.dart
   static String get balanceHistoryTitle => t(

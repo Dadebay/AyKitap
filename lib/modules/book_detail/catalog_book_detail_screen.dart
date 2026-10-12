@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../core/constants/app_store_links.dart';
 import '../../core/localization/strings/book_detail_strings.dart';
 import '../../core/models/book_detail.dart';
 import '../../core/models/library_book.dart';
@@ -20,6 +22,7 @@ import '../../core/services/downloaded_files_store.dart';
 import '../../core/services/favorites_sync_service.dart';
 import '../../core/services/finished_books_sync_service.dart';
 import '../../core/services/last_read_book_store.dart';
+import '../../core/services/reading_books_store.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/icon_circle_button.dart';
@@ -87,6 +90,7 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
   bool _descriptionExpanded = false;
   bool _isFavorite = false;
   bool _isFinished = false;
+  bool _syncingFinished = false;
   bool _removingFromPurchased = false;
 
   /// Null until [_resolveAccess] has run once — the CTA row shows disabled

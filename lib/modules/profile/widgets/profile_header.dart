@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+
+import '../../../core/localization/strings/profile_strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
-import '../../../core/localization/strings/profile_strings.dart';
 import '../../../core/widgets/profile_avatar.dart';
 
 /// The signed-out hero card: prompt + a "Giriş" button that starts the

@@ -1,11 +1,13 @@
 import 'dart:developer';
+
 import 'package:dio/dio.dart';
+
 import '../models/bank.dart';
 import '../models/payment_order.dart';
 import '../models/tariff.dart';
-import '../network/payment_endpoints.dart';
 import '../network/api_exception.dart';
 import '../network/dio_client.dart';
+import '../network/payment_endpoints.dart';
 
 /// Talks to the `/payments/*` endpoints behind [SubscriptionScreen]'s plan
 /// list and bank-card top-up, plus `/users/buy-subscription/:id` — grouped

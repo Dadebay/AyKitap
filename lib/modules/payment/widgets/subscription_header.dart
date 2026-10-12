@@ -7,7 +7,7 @@ import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/theme_controller.dart';
 
 /// Premium hero for the subscription screen. Active entitlement information
-/// shares the Plus hierarchy instead of looking like a detached warning row.
+/// shares the Premium hierarchy instead of looking like a detached warning row.
 class SubscriptionHeader extends StatelessWidget {
   const SubscriptionHeader({super.key, required this.expiresAt});
 
@@ -104,7 +104,7 @@ class SubscriptionHeader extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Aýkitap Plus',
+                              PaymentStrings.plusPlanName,
                               style: TextStyle(
                                 color: foreground,
                                 fontSize: 23,

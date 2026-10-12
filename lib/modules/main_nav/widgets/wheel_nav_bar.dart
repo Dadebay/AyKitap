@@ -7,6 +7,7 @@ import '../../../core/services/profile_avatar_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
 import 'wheel_nav_bar_disk_painter.dart';
+import 'wheel_nav_glyph.dart';
 
 part 'wheel_nav_bar_geometry.dart';
 part 'wheel_nav_bar_gestures.dart';

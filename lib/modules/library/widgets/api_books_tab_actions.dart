@@ -21,6 +21,19 @@ extension _ApiBooksTabActions on _ApiBooksTabState {
     });
   }
 
+  Future<void> _onOfflineChanged() async {
+    final fetcher = widget.offlineFetcher;
+    if (fetcher == null) return;
+    final books = await fetcher();
+    if (!mounted) return;
+    _setState(() {
+      _books = books;
+      _loading = false;
+      _error = null;
+      _needsLogin = false;
+    });
+  }
+
   Future<void> _load() async {
     _setState(() {
       _loading = true;
@@ -39,8 +52,6 @@ extension _ApiBooksTabActions on _ApiBooksTabState {
         await BookAccessService.instance
             .replacePurchased(books.map((b) => b.id));
       }
-      if (!mounted) return;
-      await widget.cacheLoadedBooks?.call(books);
       if (!mounted) return;
       _setState(() {
         _books = books;

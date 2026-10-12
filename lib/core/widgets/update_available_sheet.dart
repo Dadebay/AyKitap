@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../localization/strings/settings_strings.dart';
@@ -13,44 +12,33 @@ import 'pressable_scale.dart';
 ///
 /// A sheet rather than a permanent banner: an update is worth interrupting
 /// for once, not worth a strip of screen on every visit to Home. It appears
-/// at most once per launch, and "Soňra" remembers *that* version — so
-/// declining 1.2.1 stays declined until 1.2.2 ships, instead of asking again
-/// on the next cold start. That is the difference between a reminder and
-/// nagging, and nagging is what makes people stop reading these.
+/// at most once per launch. Choosing "Soňra" dismisses it only for the
+/// current launch, so an available update is offered again next time the app
+/// starts.
 class UpdateAvailableSheet extends StatelessWidget {
   const UpdateAvailableSheet({super.key, required this.release});
 
   final StoreRelease release;
 
-  /// The version the reader last said "Soňra" to.
-  static const _skippedVersionKey = 'update_skipped_version';
+  static bool _shownThisLaunch = false;
 
-  /// Checks the store and, if there is something newer that hasn't already
-  /// been declined, shows the sheet. Safe to call and forget: every failure
-  /// path inside [AppUpdateService] returns null, so a blocked or slow
-  /// network simply means no sheet.
+  /// Checks the store and shows a newer release once during this app launch.
+  /// Safe to call and forget: every failure path inside [AppUpdateService]
+  /// returns null, so a blocked or slow network simply means no sheet.
   static Future<void> maybeShow(BuildContext context) async {
     updateDebugLog('Check starting (after the notification prompt)');
     final release = await AppUpdateService.instance.check();
     if (release == null) return; // check() has already said why.
-    final prefs = await SharedPreferences.getInstance();
-    final skipped = prefs.getString(_skippedVersionKey);
-    if (skipped == release.version) {
-      updateDebugLog(
-        'Version ${release.version} was already declined with "Soňra" — '
-        'no sheet. Clear the app data to see it again.',
-        bad: true,
-      );
-      return;
-    }
-    if (skipped != null) {
-      updateDebugLog('Previously declined $skipped, which is not this one');
-    }
     if (!context.mounted) {
       updateDebugLog('Screen was gone before the answer arrived — no sheet',
           bad: true);
       return;
     }
+    if (_shownThisLaunch) {
+      updateDebugLog('Update sheet was already shown this launch — no repeat');
+      return;
+    }
+    _shownThisLaunch = true;
     updateDebugLog('SHOWING THE SHEET', ok: true);
     await showModalBottomSheet<void>(
       context: context,
@@ -60,11 +48,11 @@ class UpdateAvailableSheet extends StatelessWidget {
     );
   }
 
-  Future<void> _later(BuildContext context) async {
+  void _later(BuildContext context) {
     Navigator.pop(context);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_skippedVersionKey, release.version);
-    updateDebugLog('"Soňra" — ${release.version} will not be offered again');
+    updateDebugLog(
+      '"Soňra" — ${release.version} will be offered again next launch',
+    );
   }
 
   Future<void> _update(BuildContext context) async {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../../core/localization/app_date_format.dart';
+import '../../../core/localization/strings/payment_strings.dart';
 import '../../../core/localization/strings/profile_strings.dart';
 import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/theme_controller.dart';
@@ -143,7 +144,7 @@ class _ActiveSubscriptionCardState extends State<ActiveSubscriptionCard> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Aýkitap Plus',
+                                    PaymentStrings.plusPlanName,
                                     style: TextStyle(
                                       color: titleColor,
                                       fontSize: 19,

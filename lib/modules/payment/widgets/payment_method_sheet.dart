@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import '../../../core/theme/app_colors.dart';
+
 import '../../../core/localization/strings/payment_strings.dart';
+import '../../../core/theme/app_colors.dart';
 
 enum PaymentMethodChoice { promoCode, bankCard, tmcell, store }
 

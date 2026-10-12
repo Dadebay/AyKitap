@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
+
 import '../../../core/localization/strings/filter_strings.dart';
+import '../../../core/theme/app_colors.dart';
 import '../controller/filter_controller.dart';
 import 'expandable_filter_section.dart';
 import 'filter_chips.dart';

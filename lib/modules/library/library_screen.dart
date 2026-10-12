@@ -1,38 +1,55 @@
 import 'package:flutter/material.dart';
 import '../../core/localization/strings/library_strings.dart';
+import '../../core/models/library_book.dart';
 import '../../core/services/book_list_api_service.dart';
 import '../../core/services/favorites_sync_service.dart';
 import '../../core/services/finished_books_sync_service.dart';
 import '../../core/services/reading_books_store.dart';
 import '../../core/theme/app_colors.dart';
 import 'widgets/api_books_tab.dart';
-import 'widgets/downloaded_tab.dart';
 import 'widgets/own_books_tab.dart';
 import 'widgets/shelf_delete.dart';
 
-/// Kitaplagrym Sahypasy — TZ section 7. 6 tabs on a "shelf" style page.
+/// Kitaplagrym Sahypasy — TZ section 7. Five tabs on a "shelf" style page.
 class LibraryScreen extends StatefulWidget {
-  /// The shelf to show on first entry. The offline shortcut starts on the
-  /// local Downloaded shelf, while normal navigation keeps the reading shelf.
+  static const tabCount = 5;
+
+  static const readingOpensLocalFilesWhenOffline = true;
+
+  static List<String> get tabLabels => [
+        LibraryStrings.tabReading,
+        LibraryStrings.tabFinished,
+        LibraryStrings.tabPurchased,
+        LibraryStrings.tabFavorites,
+        LibraryStrings.tabOwnBooks,
+      ];
+
+  /// The shelf to show on first entry. Reading is also the offline catalogue
+  /// shelf now, so both normal and offline navigation start at index zero.
   final int initialTabIndex;
 
-  const LibraryScreen({super.key, this.initialTabIndex = 0}) : assert(initialTabIndex >= 0 && initialTabIndex < 6);
+  const LibraryScreen({super.key, this.initialTabIndex = 0})
+      : assert(initialTabIndex >= 0 && initialTabIndex < tabCount);
 
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
 }
 
 class _LibraryScreenState extends State<LibraryScreen> with SingleTickerProviderStateMixin {
-  late final TabController _tabController = TabController(length: 6, vsync: this, initialIndex: widget.initialTabIndex);
+  late final TabController _tabController = TabController(
+      length: LibraryScreen.tabCount,
+      vsync: this,
+      initialIndex: widget.initialTabIndex);
 
-  static List<String> get _tabs => [
-        LibraryStrings.tabReading,
-        LibraryStrings.tabFinished,
-        LibraryStrings.tabDownloaded,
-        LibraryStrings.tabPurchased,
-        LibraryStrings.tabFavorites,
-        LibraryStrings.tabOwnBooks,
-      ];
+  Future<List<LibraryBook>> _loadReadingBooks() async {
+    // The API owns synced progress, while ReadingBooksStore owns the gap
+    // between opening the reader and its first debounced progress report.
+    // Reconcile the complete response before filtering so a 100% backend row
+    // can also evict a stale local reading entry.
+    final backendBooks = await BookListApiService.listBooks(myBooks: true);
+    await ReadingBooksStore.instance.mergeFromBackend(backendBooks);
+    return ReadingBooksStore.instance.books;
+  }
 
   @override
   void dispose() {
@@ -61,7 +78,7 @@ class _LibraryScreenState extends State<LibraryScreen> with SingleTickerProvider
               unselectedLabelColor: AppColors.grey2,
               labelStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
               tabAlignment: TabAlignment.start,
-              tabs: _tabs.map((t) => Tab(text: t)).toList(),
+              tabs: LibraryScreen.tabLabels.map((t) => Tab(text: t)).toList(),
             ),
             Expanded(
               child: TabBarView(
@@ -73,7 +90,7 @@ class _LibraryScreenState extends State<LibraryScreen> with SingleTickerProvider
                   // rather than server-side because there's no
                   // `finished=false` filter, only `finished=true`.
                   ApiBooksTab(
-                    fetcher: () async => (await BookListApiService.listBooks(myBooks: true)).where((b) => !b.isFinished).toList(),
+                    fetcher: _loadReadingBooks,
                     emptyLabel: LibraryStrings.emptyReading,
                     heroShelf: 'reading',
                     showProgress: true,
@@ -84,8 +101,12 @@ class _LibraryScreenState extends State<LibraryScreen> with SingleTickerProvider
                       await ReadingBooksStore.instance.load();
                       return ReadingBooksStore.instance.books;
                     },
-                    cacheLoadedBooks: ReadingBooksStore.instance.mergeFromBackend,
-                    openLocalWhenOffline: true,
+                    // The main tabs stay mounted off-screen. Listen to the
+                    // local store so opening a reader updates this shelf
+                    // immediately instead of waiting for an app restart.
+                    offlineRefreshOn: ReadingBooksStore.instance,
+                    openLocalWhenOffline:
+                        LibraryScreen.readingOpensLocalFilesWhenOffline,
                     sortByLastOpened: true,
                     removal: ShelfRemoval.reading,
                   ),
@@ -96,14 +117,12 @@ class _LibraryScreenState extends State<LibraryScreen> with SingleTickerProvider
                     ),
                     emptyLabel: LibraryStrings.emptyFinished,
                     heroShelf: 'finished',
-                    showProgress: true,
+                    // Completion is already communicated by this shelf;
+                    // intentionally don't enable the 100% corner badge.
                     refreshOn: FinishedBooksSyncService.instance,
                     sortByLastOpened: true,
                     removal: ShelfRemoval.finished,
                   ),
-                  // No `/books/all` filter for this — see
-                  // DownloadedBooksStore's doc comment.
-                  const DownloadedTab(),
                   ApiBooksTab(
                     fetcher: () => BookListApiService.listBooks(bought: true),
                     emptyLabel: LibraryStrings.emptyPurchased,

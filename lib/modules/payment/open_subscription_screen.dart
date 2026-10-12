@@ -13,16 +13,12 @@ import 'subscription_screen.dart';
 /// of the resolved screen once the awaits all resolve.
 bool _isOpening = false;
 
-/// Routes to whichever subscription screen can actually take the signed-in
-/// user's money — [PurchaseModeService.useStoreCheckout] resolves a
-/// Turkmenistan account to the TMT/[SubscriptionScreen] (bank card, promo
-/// code, balance) and everyone else (plus every iOS account while the App
-/// Store review toggle is on — see APPLE_REVIEW_IOS_STORE_TOGGLE_PLAN.md) to
-/// the store-billed [StoreSubscriptionScreen] (App Store/Play Store via
-/// RevenueCat). Every "subscribe" entry point in the app should go through
-/// this instead of pushing [SubscriptionScreen] directly — that screen has
-/// no bank cards to offer a foreign user, so they'd land on a plan list with
-/// no way to complete a purchase.
+/// Routes every subscription entry point using the admin-controlled
+/// `iosStoreIapOnlyEnabled` value exposed by
+/// [PurchaseModeService.useStoreSubscription]. When enabled, every account
+/// sees the store-billed [StoreSubscriptionScreen] and its localized store
+/// prices (for example `$`). When disabled, every account — including Gmail
+/// sign-ins — sees the wallet-funded [SubscriptionScreen] and TMT tariffs.
 ///
 /// [PurchaseModeService.refresh] never throws — a config error fails closed
 /// to the store screen on iOS (never quietly reopening a payment path Apple
@@ -74,7 +70,7 @@ Future<void> openSubscriptionScreen(BuildContext context) async {
     if (spinner != null && spinner.mounted) Navigator.of(spinner).pop();
   }
   await navigator.push(MaterialPageRoute(
-    builder: (_) => purchaseMode.useStoreCheckout
+    builder: (_) => purchaseMode.useStoreSubscription
         ? const StoreSubscriptionScreen()
         : const SubscriptionScreen(),
   ));

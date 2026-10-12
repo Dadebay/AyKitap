@@ -39,13 +39,14 @@ class SearchResultGrid extends StatelessWidget {
   final List<LibraryBook> books;
   final EdgeInsets padding;
   final bool loadingMore;
+  final Widget? footer;
 
   /// Owned by [SearchScreen] rather than by this widget, because the
   /// infinite-scroll trigger has to read the position *outside* a scroll
   /// notification — see `_maybeLoadMore`.
   final ScrollController? controller;
 
-  const SearchResultGrid({super.key, required this.books, required this.padding, required this.loadingMore, this.controller});
+  const SearchResultGrid({super.key, required this.books, required this.padding, required this.loadingMore, this.controller, this.footer});
 
   @override
   Widget build(BuildContext context) {
@@ -54,11 +55,16 @@ class SearchResultGrid extends StatelessWidget {
     // screen it was tuned on.
     final columnWidth = (MediaQuery.sizeOf(context).width - padding.horizontal - _crossAxisSpacing * (_crossAxisCount - 1)) / _crossAxisCount;
     final coverHeight = columnWidth * _coverAspect;
+    // With a footer, the wheel clearance belongs after the footer rather
+    // than between the final cover row and the action.
+    final gridPadding = footer == null
+        ? padding
+        : EdgeInsets.fromLTRB(padding.left, padding.top, padding.right, 8);
     return CustomScrollView(
       controller: controller,
       slivers: [
         SliverPadding(
-          padding: padding,
+          padding: gridPadding,
           sliver: SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: _crossAxisCount,
@@ -93,6 +99,18 @@ class SearchResultGrid extends StatelessWidget {
                   child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
                 ),
               ),
+            ),
+          ),
+        if (footer != null)
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              padding.left,
+              12,
+              padding.right,
+              padding.bottom,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: Center(child: footer),
             ),
           ),
       ],

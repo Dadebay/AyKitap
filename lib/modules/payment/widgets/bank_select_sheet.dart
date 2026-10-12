@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+
+import '../../../core/localization/strings/payment_strings.dart';
 import '../../../core/models/bank.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/services/payment_api_service.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/localization/strings/payment_strings.dart';
 
 /// "Bank saýlaň" — shown before a bank-card payment so the user picks
 /// which bank's online payment page to open. Fetches `GET /payments/banks`

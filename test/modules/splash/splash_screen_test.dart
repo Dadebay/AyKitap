@@ -6,10 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('SplashScreen.minSplashDelay', () {
-    test('is well under the old 2600ms forced wait', () {
-      expect(SplashScreen.minSplashDelay.inMilliseconds, lessThan(900));
-      expect(SplashScreen.minSplashDelay.inMilliseconds,
-          greaterThanOrEqualTo(700));
+    test('keeps the connection-check screen visible for two seconds', () {
+      expect(SplashScreen.minSplashDelay, const Duration(seconds: 2));
     });
 
     test('splashFloorFor drops to zero under reduced motion', () {

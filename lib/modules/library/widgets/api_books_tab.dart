@@ -55,7 +55,11 @@ class ApiBooksTab extends StatefulWidget {
 
   /// Local shadow used when the reading shelf's backend request cannot run.
   final Future<List<LibraryBook>> Function()? offlineFetcher;
-  final Future<void> Function(List<LibraryBook> books)? cacheLoadedBooks;
+
+  /// Repaints from [offlineFetcher] when its local source changes, without
+  /// making another network request. The reading shelf uses this because all
+  /// main-nav pages stay mounted while a book is opened elsewhere.
+  final Listenable? offlineRefreshOn;
 
   /// A cached reading-shelf book must bypass `GET /books/:id` in airplane
   /// mode and open the downloaded file directly.
@@ -88,7 +92,7 @@ class ApiBooksTab extends StatefulWidget {
     this.syncsPurchasedAccess = false,
     this.refreshOn,
     this.offlineFetcher,
-    this.cacheLoadedBooks,
+    this.offlineRefreshOn,
     this.openLocalWhenOffline = false,
     this.sortByLastOpened = false,
     this.removal,
@@ -117,11 +121,13 @@ class _ApiBooksTabState extends State<ApiBooksTab> with AutomaticKeepAliveClient
     _load();
     if (widget.sortByLastOpened) BookOpenHistory.instance.load();
     widget.refreshOn?.addListener(_load);
+    widget.offlineRefreshOn?.addListener(_onOfflineChanged);
   }
 
   @override
   void dispose() {
     widget.refreshOn?.removeListener(_load);
+    widget.offlineRefreshOn?.removeListener(_onOfflineChanged);
     super.dispose();
   }
 

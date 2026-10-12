@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/services/app_prefs.dart';
+
 import '../../core/localization/strings/onboarding_strings.dart';
+import '../../core/services/app_prefs.dart';
+import '../../core/theme/app_colors.dart';
 import 'language_select_screen.dart';
 import 'widgets/onboard_page.dart';
 

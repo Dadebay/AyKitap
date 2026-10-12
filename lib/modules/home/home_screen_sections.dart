@@ -32,7 +32,13 @@ extension _HomeScreenSections on _HomeScreenState {
     if (shelves.isEmpty) return const SizedBox.shrink();
     final hasRankShelf =
         shelves.any((c) => c.cardType == CollectionCardType.card2);
-    final rowHeight = hasRankShelf ? 460.0 : 300.0;
+    final hasSeriesCard = shelves.any((c) =>
+        c.cardType == CollectionCardType.card3 ||
+        c.cardType == CollectionCardType.card1);
+    // Series artwork is portrait-oriented. Keep the existing 320px card
+    // width, but give it a little more vertical room so the cover is not
+    // cropped into a squat landscape shape in grouped horizontal rows.
+    final rowHeight = hasRankShelf ? 460.0 : (hasSeriesCard ? 350.0 : 300.0);
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 20, 0, 20),
       child: SizedBox(

@@ -25,7 +25,10 @@ class FeedbackApiService {
       await DioClient.instance.post(FeedbackEndpoints.suggests, data: {
         'name': name,
         'author': author,
-        if (description != null && description.isNotEmpty) 'description': description,
+        // The field is optional for the reader, but the current backend
+        // database column is non-nullable. Send an empty string instead of
+        // omitting the key so a request without a description is accepted.
+        'description': description?.trim() ?? '',
         'language': language,
       });
     } on DioException catch (e) {

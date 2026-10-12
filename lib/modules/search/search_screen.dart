@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:developer';
+
 import 'package:flutter/cupertino.dart' show CupertinoSlidingSegmentedControl;
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+
 import '../../core/localization/app_locale.dart';
 import '../../core/localization/strings/search_strings.dart';
 import '../../core/models/author_detail.dart';
@@ -16,23 +18,18 @@ import '../../core/services/book_list_api_service.dart';
 import '../../core/services/genre_api_service.dart';
 import '../../core/services/search_discover_cache.dart';
 import '../../core/theme/app_colors.dart';
-import '../filter/controller/filter_controller.dart'
-    show
-        BookFormatFilter,
-        BookFormatFilterLabel,
-        SortBy,
-        SortByLabel,
-        kDefaultSortBy,
-        kDefaultYearRange;
+import '../filter/controller/filter_controller.dart' show BookFormatFilter, BookFormatFilterLabel, SortBy, SortByLabel, kDefaultSortBy, kDefaultYearRange;
 import '../filter/filter_screen.dart';
 import '../home/widgets/stagger_fade_in.dart';
+import '../main_nav/widgets/wheel_nav_bar.dart';
 import 'author_page_merge.dart';
 import 'search_result_diagnostics.dart';
 import 'widgets/author_result_grid.dart';
 import 'widgets/quick_chip.dart';
+import 'widgets/search_error_state.dart';
 import 'widgets/search_no_results_state.dart';
 import 'widgets/search_result_grid.dart';
-import '../main_nav/widgets/wheel_nav_bar.dart';
+import 'widgets/suggest_book_button.dart';
 
 part 'search_screen_body.dart';
 part 'search_screen_controls.dart';
@@ -226,15 +223,10 @@ class _SearchScreenState extends State<SearchScreen> {
   // so it needs actual typed text.
   bool get _shouldShowResults => _searchMode == _SearchMode.author
       ? _hasQuery
-      : _hasQuery ||
-          _selectedGenreIds.isNotEmpty ||
-          _filterLanguageIds.isNotEmpty ||
-          _filterFormats.isNotEmpty ||
-          _filterStartYear != null ||
-          _filterEndYear != null;
+      : _hasQuery || _selectedGenreIds.isNotEmpty || _filterLanguageIds.isNotEmpty || _filterFormats.isNotEmpty || _filterStartYear != null || _filterEndYear != null;
 
-  // Any active filter lights the red badge on the filter button. The genre
   // chips aren't in here on purpose: a selected one is already visibly
+  // Any active filter lights the red badge on the filter button. The genre
   // highlighted in the row right next to the button.
   bool get _hasActiveFilters => _filterActive;
 

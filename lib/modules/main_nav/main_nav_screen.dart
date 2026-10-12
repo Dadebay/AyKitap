@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../../core/layout/phone_safe_canvas.dart';
+import '../../core/localization/app_locale.dart';
 import '../../core/services/deep_link_service.dart';
 import '../../core/services/incoming_file_service.dart';
 import '../../core/services/notification_permission_flow.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/update_available_sheet.dart';
 import '../../core/theme/theme_controller.dart';
-import '../../core/localization/app_locale.dart';
+import '../../core/widgets/update_available_sheet.dart';
 import '../home/home_screen.dart';
-import '../search/search_screen.dart';
 import '../library/library_screen.dart';
 import '../profile/profile_screen.dart';
 import '../reader/views/reader_tab_screen.dart';
+import '../search/search_screen.dart';
 import 'widgets/wheel_nav_bar.dart';
 
 class MainNavScreen extends StatefulWidget {
@@ -26,7 +27,8 @@ class MainNavScreen extends StatefulWidget {
     this.initialIndex = 2,
     this.libraryInitialTabIndex = 0,
   })  : assert(initialIndex >= 0 && initialIndex < 5),
-        assert(libraryInitialTabIndex >= 0 && libraryInitialTabIndex < 6);
+        assert(libraryInitialTabIndex >= 0 &&
+            libraryInitialTabIndex < LibraryScreen.tabCount);
 
   @override
   State<MainNavScreen> createState() => _MainNavScreenState();
@@ -148,6 +150,11 @@ class _MainNavScreenState extends State<MainNavScreen> with SingleTickerProvider
 
   void _onTap(int index) {
     if (index == _selectedIndex) return;
+
+    // Tabs stay mounted in the animated stack, so a focused field would keep
+    // owning the keyboard after leaving Search unless focus is cleared here.
+    FocusManager.instance.primaryFocus?.unfocus();
+
     if (index == _readerTabIndex) {
       _onReaderTap();
       return;

@@ -19,6 +19,7 @@ import '../../core/widgets/app_snackbar.dart';
 import '../library/purchase_diagnostics.dart';
 import 'balance_top_up.dart';
 import 'widgets/book_purchase_confirm_button.dart';
+import 'widgets/book_purchase_download_hint.dart';
 import 'widgets/book_purchase_price_card.dart';
 import 'widgets/book_purchase_summary_card.dart';
 import 'widgets/insufficient_balance_dialog.dart';
@@ -172,6 +173,8 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 14),
+                  const BookPurchaseDownloadHint(),
                 ],
               ),
             ),

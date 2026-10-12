@@ -55,8 +55,7 @@ class OfflineLibraryActions extends StatelessWidget {
               onPressed: () => Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                    builder: (_) => const MainNavScreen(
-                        initialIndex: 1, libraryInitialTabIndex: 2)),
+                    builder: (_) => const MainNavScreen(initialIndex: 1)),
               ),
               child: Text(LibraryStrings.goToLibrary,
                   style: TextStyle(

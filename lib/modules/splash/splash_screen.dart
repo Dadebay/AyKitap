@@ -30,7 +30,7 @@ class SplashScreen extends StatefulWidget {
   /// check, the entrance animation itself) runs in parallel with this, so
   /// this is a floor, not something added on top of them.
   @visibleForTesting
-  static const minSplashDelay = Duration(milliseconds: 750);
+  static const minSplashDelay = Duration(seconds: 2);
 
   /// [minSplashDelay] under normal motion; zero under reduced motion, so
   /// nothing artificially stretches the wait beyond whatever the real prefs

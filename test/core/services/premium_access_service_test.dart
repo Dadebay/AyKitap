@@ -33,7 +33,7 @@ void main() {
   });
 
   group('PremiumAccessService.computeExpiresAt', () {
-    final earlier = DateTime.utc(2026, 1);
+    final earlier = DateTime.utc(2026);
     final later = DateTime.utc(2026, 6);
 
     test('returns the wallet expiry when the store one is null', () {
@@ -52,7 +52,7 @@ void main() {
 
     test('returns null when neither is active', () {
       expect(
-        PremiumAccessService.computeExpiresAt(storeExpiresAt: null),
+        PremiumAccessService.computeExpiresAt(),
         isNull,
       );
     });

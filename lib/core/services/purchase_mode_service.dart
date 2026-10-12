@@ -66,6 +66,18 @@ class PurchaseModeService extends ChangeNotifier with WidgetsBindingObserver {
   /// to have on its own error handling.
   bool get isRegionStoreIap => _config?.isStoreIap ?? false;
 
+  /// Which subscription price surface the admin toggle selects, on both
+  /// Android and iOS. This deliberately does not depend on login provider,
+  /// phone number, country, or [isRegionStoreIap]:
+  ///
+  /// - `iosStoreIapOnlyEnabled == true`  -> store/RevenueCat prices
+  /// - `iosStoreIapOnlyEnabled == false` -> wallet/TMT tariffs
+  ///
+  /// Before the first successful config response, iOS keeps its existing
+  /// App Store-safe default while Android keeps its existing TMT default.
+  bool get useStoreSubscription =>
+      _isIOS() ? _iosStoreOnly : (_config?.iosStoreIapOnlyEnabled ?? false);
+
   /// Whichever payment surface should actually be used right now — the one
   /// check most call sites want instead of combining the two getters
   /// themselves.

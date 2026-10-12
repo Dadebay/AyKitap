@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+import '../localization/strings/api_error_strings.dart';
+
 /// A backend or network failure translated into a message a screen can show
 /// directly, instead of every call site having to pick apart a [DioException].
 class ApiException implements Exception {
@@ -36,15 +38,13 @@ class ApiException implements Exception {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return const ApiException(
-            'Sorag wagty gutardy. Internet baglanyşygyňyzy barlaň.');
+        return ApiException(ApiErrorStrings.requestTimedOut);
       case DioExceptionType.connectionError:
-        return const ApiException(
-            'Internete birikip bolmady. Baglanyşygyňyzy barlaň.');
+        return ApiException(ApiErrorStrings.couldNotConnect);
       default:
         // Every path that falls through to this generic message is exactly
         // the case where the screen can't say anything more specific than
-        // "Näbelli ýalñyşlyk" — a 404/5xx, a response body that isn't the
+        // "Näbelli ýalňyşlyk" — a 404/5xx, a response body that isn't the
         // `{message}` shape, or a Dio-level failure with no response at all.
         // [ApiLogInterceptor] already prints a one-line `✕ METHOD path
         // status` for it, but not *why* — the actual status/body is what a
@@ -54,7 +54,7 @@ class ApiException implements Exception {
         // builds only, and deliberately just this exception's own data —
         // not headers/tokens, matching [ApiLogInterceptor]'s same restraint.
         _debugLogUnhandled(e, statusCode);
-        return ApiException('Näbelli ýalñyşlyk ýüze çykdy.',
+        return ApiException(ApiErrorStrings.unknownError,
             statusCode: statusCode);
     }
   }

@@ -26,7 +26,7 @@ void main() {
     test('toggle true forces store checkout regardless of region', () async {
       final service = PurchaseModeService.forTest(
         isIOS: true,
-        fetchConfig: (_) async => _config(iosStoreIapOnlyEnabled: true),
+        fetchConfig: (_) async => _config(),
       );
       await service.refresh();
       expect(service.isIOSStoreOnly, isTrue);
@@ -91,7 +91,7 @@ void main() {
     test('ignores the iOS toggle entirely even when the backend sends true', () async {
       final service = PurchaseModeService.forTest(
         isIOS: false,
-        fetchConfig: (_) async => _config(iosStoreIapOnlyEnabled: true),
+        fetchConfig: (_) async => _config(),
       );
       await service.refresh();
       expect(service.isIOSStoreOnly, isFalse);
@@ -119,6 +119,73 @@ void main() {
       expect(service.isIOSStoreOnly, isFalse);
       expect(service.isRegionStoreIap, isFalse);
       expect(service.useStoreCheckout, isFalse);
+    });
+  });
+
+  group('subscription pricing toggle', () {
+    test('enabled shows store prices on Android even for a wallet account', () async {
+      final service = PurchaseModeService.forTest(
+        isIOS: false,
+        fetchConfig: (_) async => _config(),
+      );
+
+      await service.refresh();
+
+      expect(service.useStoreSubscription, isTrue);
+    });
+
+    test('disabled shows TMT on Android even for a Gmail/foreign account', () async {
+      final service = PurchaseModeService.forTest(
+        isIOS: false,
+        fetchConfig: (_) async => _config(
+          purchaseMode: 'store_iap',
+          iosStoreIapOnlyEnabled: false,
+        ),
+      );
+
+      await service.refresh();
+
+      expect(service.isRegionStoreIap, isTrue, reason: 'the Gmail/foreign account still comes from the backend');
+      expect(service.useStoreSubscription, isFalse, reason: 'the admin toggle alone selects TMT pricing');
+    });
+
+    test('disabled shows TMT on iOS too', () async {
+      final service = PurchaseModeService.forTest(
+        isIOS: true,
+        fetchConfig: (_) async => _config(
+          purchaseMode: 'store_iap',
+          iosStoreIapOnlyEnabled: false,
+        ),
+      );
+
+      await service.refresh();
+
+      expect(service.useStoreSubscription, isFalse);
+    });
+
+    test('iOS falls back to store prices when config cannot be loaded', () async {
+      final service = PurchaseModeService.forTest(
+        isIOS: true,
+        fetchConfig: (_) async => throw Exception('network down'),
+      );
+
+      await service.refresh();
+
+      expect(service.useStoreSubscription, isTrue);
+    });
+
+    test('platform-safe defaults apply before config is available', () {
+      final android = PurchaseModeService.forTest(
+        isIOS: false,
+        fetchConfig: (_) async => throw Exception('unused'),
+      );
+      final ios = PurchaseModeService.forTest(
+        isIOS: true,
+        fetchConfig: (_) async => throw Exception('unused'),
+      );
+
+      expect(android.useStoreSubscription, isFalse);
+      expect(ios.useStoreSubscription, isTrue);
     });
   });
 

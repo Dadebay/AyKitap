@@ -213,10 +213,10 @@ class AuthStrings {
   /// states what's actually sitting in the account rather than a number
   /// that could drift from whatever the backend is configured to grant.
   static String welcomeBonusBody(String amount) => t(
-        tk: 'Sowgat hökmünde balansyňyza $amount TMT goşduk! Muny 1 hepdelik Plus abunalygyny satyn almak ýa-da bir kitap satyn alyp okamak üçin ulanyp bilersiňiz.',
-        ru: 'Мы начислили $amount TMT на ваш баланс в подарок! Используйте их, чтобы купить недельную подписку Plus или один платный электронную книгу.',
-        tr: 'Hediye olarak bakiyene $amount TMT ekledik! Bunu 1 haftalık Plus aboneliği satın almak ya da bir kitap satın alıp okumak için kullanabilirsin.',
-        en: 'We added $amount TMT to your balance as a gift! Use it to get a 1-week Plus subscription or buy a book to read.',
+        tk: 'Sowgat hökmünde balansyňyza $amount TMT goşduk! Muny 1 hepdelik Premium abunalygyny satyn almak ýa-da bir kitap satyn alyp okamak üçin ulanyp bilersiňiz.',
+        ru: 'Мы начислили $amount TMT на ваш баланс в подарок! Используйте их, чтобы купить недельную подписку Premium или один платный электронную книгу.',
+        tr: 'Hediye olarak bakiyene $amount TMT ekledik! Bunu 1 haftalık Premium aboneliği satın almak ya da bir kitap satın alıp okumak için kullanabilirsin.',
+        en: 'We added $amount TMT to your balance as a gift! Use it to get a 1-week Premium subscription or buy a book to read.',
       );
   static String get welcomeBonusCta =>
       t(tk: 'Başlaýyn!', ru: 'Начать', tr: 'Başlayalım!', en: 'Let\'s start!');

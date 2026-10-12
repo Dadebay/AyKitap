@@ -1,6 +1,9 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import '../../../core/localization/strings/home_strings.dart';
 import '../../../core/models/promo_banner.dart';
 import '../../../core/navigation/app_navigator.dart';
 import '../../../core/network/api_config.dart';
@@ -8,7 +11,6 @@ import '../../../core/services/home_data_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../../core/widgets/network_cover_image.dart';
-import '../../../core/localization/strings/home_strings.dart';
 import '../../book_detail/catalog_book_detail_screen.dart';
 import 'home_shimmer.dart';
 

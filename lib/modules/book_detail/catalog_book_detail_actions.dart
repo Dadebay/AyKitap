@@ -29,18 +29,47 @@ extension _CatalogBookDetailActions on _CatalogBookDetailScreenState {
     if (book != null) BookDownloadService.instance.cancel(book.id);
   }
 
-  // Only the "mark as finished" direction syncs — un-marking has no
-  // well-defined progress to report back (the user's real reading
-  // position isn't tracked here), so that half just stays a local toggle.
-  void _toggleFinished() {
-    _setState(() => _isFinished = !_isFinished);
-    context.showAppSnackBar(_isFinished
-        ? BookDetailStrings.finishedAdded
-        : BookDetailStrings.finishedRemoved);
-    if (_isFinished) {
-      BookApiService.updateProgress(widget.bookId, progress: 100)
-          .then((_) => FinishedBooksSyncService.instance.notifyChanged())
-          .catchError((_) {});
+  Future<void> _toggleFinished() async {
+    if (_syncingFinished) return;
+
+    final previous = _isFinished;
+    final next = !previous;
+    _setState(() {
+      _isFinished = next;
+      _syncingFinished = true;
+    });
+
+    try {
+      try {
+        await BookApiService.setFinished(widget.bookId, finished: next);
+      } on ApiException catch (e) {
+        if (!mounted) return;
+        _setState(() => _isFinished = previous);
+        context.showAppSnackBar(e.message, isError: true);
+        return;
+      } catch (_) {
+        if (!mounted) return;
+        _setState(() => _isFinished = previous);
+        context.showAppSnackBar(BookDetailStrings.finishedUpdateError,
+            isError: true);
+        return;
+      }
+
+      // A locally cached reading-shelf entry would otherwise put the book
+      // back after the server list refresh, even though its progress record
+      // has just been completed or deleted. The server is authoritative, so
+      // a local storage failure must not roll its successful change back in
+      // the UI.
+      try {
+        await ReadingBooksStore.instance.remove(widget.bookId);
+      } catch (_) {}
+      FinishedBooksSyncService.instance.notifyChanged();
+      if (!mounted) return;
+      context.showAppSnackBar(next
+          ? BookDetailStrings.finishedAdded
+          : BookDetailStrings.finishedRemoved);
+    } finally {
+      if (mounted) _setState(() => _syncingFinished = false);
     }
   }
 
@@ -69,28 +98,57 @@ extension _CatalogBookDetailActions on _CatalogBookDetailScreenState {
   }
 
   Future<void> _onShare(BookDetail book) async {
+    final platform = defaultTargetPlatform;
     final text = BookDetailStrings.shareText(
       book.name,
       book.authorNames,
       genres: book.genres.map((g) => g.name).toList(),
       pages: book.pageCount,
       synopsis: book.description,
+      appLink: AppStoreLinks.forPlatform(platform),
     );
+    final origin = _sharePositionOrigin();
     final image = book.image;
-    if (image != null && image.isNotEmpty) {
+    // iOS treats WebP cache entries as generic files and can fail before
+    // presenting UIActivityViewController. Text + the App Store link is the
+    // reliable native path there; Android keeps the working cover share.
+    if (platform != TargetPlatform.iOS &&
+        image != null &&
+        image.isNotEmpty) {
       // Reuses NetworkCoverImage's cache — the cover shown on this very
       // page is very likely cached on disk already, so this is usually
       // instant rather than a fresh download.
       try {
         final file = await CoverImageCacheManager.instance
             .getSingleFile(ApiConfig.resolveImageUrl(image));
-        await Share.shareXFiles([XFile(file.path)], text: text);
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: text,
+          subject: book.name,
+          sharePositionOrigin: origin,
+        );
         return;
       } catch (_) {
         // Falls through to text-only share below.
       }
     }
-    await Share.share(text);
+    try {
+      await Share.share(
+        text,
+        subject: book.name,
+        sharePositionOrigin: origin,
+      );
+    } catch (_) {
+      if (mounted) {
+        context.showAppSnackBar(BookDetailStrings.shareFailed, isError: true);
+      }
+    }
+  }
+
+  Rect? _sharePositionOrigin() {
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return null;
+    return box.localToGlobal(Offset.zero) & box.size;
   }
 
   void _openAuthor(LibraryBookAuthor author) {

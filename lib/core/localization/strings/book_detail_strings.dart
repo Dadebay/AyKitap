@@ -24,6 +24,12 @@ class BookDetailStrings {
         tr: 'Bitirdiklerimden çıkarıldı',
         en: 'Removed from finished',
       );
+  static String get finishedUpdateError => t(
+        tk: 'Kitabyň ýagdaýy üýtgedilmedi. Täzeden synanyşyň.',
+        ru: 'Не удалось изменить статус книги. Попробуйте ещё раз.',
+        tr: 'Kitabın durumu değiştirilemedi. Tekrar deneyin.',
+        en: 'Could not update the book status. Please try again.',
+      );
   static String get favoriteAdded => t(
         tk: 'Halananlara goşuldy',
         ru: 'Добавлено в избранное',
@@ -61,6 +67,7 @@ class BookDetailStrings {
     List<String> genres = const [],
     int? pages,
     String? synopsis,
+    String? appLink,
   }) {
     final lines = <String>['📚 «$title» — $author'];
     final meta = <String>[
@@ -75,8 +82,16 @@ class BookDetailStrings {
           : trimmed);
     }
     lines.add(_shareCta);
+    if (appLink != null && appLink.isNotEmpty) lines.add(appLink);
     return lines.join('\n\n');
   }
+
+  static String get shareFailed => t(
+        tk: 'Paýlaşmak başartmady. Täzeden synanyşyň.',
+        ru: 'Не удалось поделиться. Попробуйте ещё раз.',
+        tr: 'Paylaşım açılamadı. Tekrar deneyin.',
+        en: 'Couldn\'t open sharing. Please try again.',
+      );
 
   static String get aboutBook => t(
       tk: 'Kitap barada',

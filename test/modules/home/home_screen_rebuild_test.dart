@@ -28,7 +28,7 @@ void _installFakeSecureStorage() {
 }
 
 StreakOverview _overview() {
-  final base = DateTime(2026, 1);
+  final base = DateTime(2026);
   return StreakOverview(
     currentStreak: 1,
     bestStreak: 1,

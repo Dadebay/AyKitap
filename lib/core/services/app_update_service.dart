@@ -66,14 +66,13 @@ class AppUpdateService {
   ///
   /// Set it to something below what the store serves (e.g. `'1.0.0'` while
   /// the store has 1.1.5) and the check behaves exactly as it would on an
-  /// out-of-date install — same sheet, same "Soňra" memory, same store link.
+  /// out-of-date install — same sheet and same store link.
   /// Null in normal use, and ignored outside debug mode no matter what it
   /// holds, so a value left behind here can never reach a release build.
   ///
-  /// Two things to know while testing: the version line at the bottom of
-  /// Settings keeps reporting the *real* build (it reads the bundle, not
-  /// this), and "Soňra" still remembers the declined version — so to see the
-  /// sheet a second time, clear the app's data or reinstall.
+  /// The version line at the bottom of Settings keeps reporting the *real*
+  /// build (it reads the bundle, not this). "Soňra" dismisses the sheet for
+  /// this launch only; restarting the app offers the update again.
   // Nullable on purpose: null is the off switch. The lint only fires because
   // a test value happens to be set right now.
   // ignore: unnecessary_nullable_for_final_variable_declarations

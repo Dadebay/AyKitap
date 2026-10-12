@@ -13,19 +13,21 @@ extension _WheelNavBarIcons on _WheelNavBarState {
     double selFloat,
   ) {
     // Collect every visible copy (including wrap-around neighbours).
-    final items = <({int index, double angle})>[];
+    final items = <({int index, double angle, int copy})>[];
     for (var i = 0; i < n; i++) {
       final rel = i - selFloat;
-      for (final cand in [rel, rel + n, rel - n]) {
-        final angle = cand * _stepRad;
+      final cands = [rel, rel + n, rel - n];
+      for (var c = 0; c < cands.length; c++) {
+        final angle = cands[c] * _stepRad;
         if (angle.abs() < _windowRad) {
-          items.add((index: i, angle: angle));
+          items.add((index: i, angle: angle, copy: c));
         }
       }
     }
 
     // Draw the outermost first so the centre icon ends up on top.
     items.sort((a, b) => b.angle.abs().compareTo(a.angle.abs()));
+
 
     return items.map((it) {
       final angle = it.angle;
@@ -73,6 +75,9 @@ extension _WheelNavBarIcons on _WheelNavBarState {
       final hitSize = math.max(itemSize, _minTapTarget);
 
       return Positioned(
+        // Keyed because the draw order changes as the wheel turns, and the
+        // glyph inside keeps its own scene state (see [WheelNavGlyph]).
+        key: ValueKey('wheel-icon-${it.index}-${it.copy}'),
         left: cx - hitSize / 2,
         top: cy - hitSize / 2,
         child: Opacity(
@@ -98,7 +103,12 @@ extension _WheelNavBarIcons on _WheelNavBarState {
                       padding: EdgeInsets.only(bottom: iconBottomPad),
                       child: Center(
                         child: _buildTabGlyph(
-                            it.index, itemSize, iconColor, iconSz),
+                          it.index,
+                          iconColor,
+                          iconSz,
+                          selected: it.index == widget.selectedIndex &&
+                              it.copy == 0,
+                        ),
                       ),
                     ),
                   ),
@@ -115,8 +125,15 @@ extension _WheelNavBarIcons on _WheelNavBarState {
   /// set (leaving a ring of [itemSize]'s badge colour visible around it, the
   /// same highlight every other tab gets on selection); every other tab, and
   /// a profile with no avatar chosen yet, keeps the plain [HugeIcon].
-  Widget _buildTabGlyph(
-      int index, double itemSize, Color iconColor, double iconSz) {
-    return HugeIcon(icon: _icons[index], color: iconColor, size: iconSz);
+  Widget _buildTabGlyph(int index, Color iconColor, double iconSz,
+      {required bool selected}) {
+    return WheelNavGlyph(
+      index: index,
+      icon: _icons[index],
+      size: iconSz,
+      color: iconColor,
+      selected: selected,
+      animate: !MediaQuery.disableAnimationsOf(context),
+    );
   }
 }

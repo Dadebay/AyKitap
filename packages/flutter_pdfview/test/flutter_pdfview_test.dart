@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -163,9 +163,7 @@ void main() {
   group('Error Handling Tests', () {
     test('PDFView handles missing file path and pdf data', () {
       expect(
-        () => PDFView(
-          pdfData: null,
-        ),
+        () => PDFView(),
         throwsAssertionError,
       );
     });

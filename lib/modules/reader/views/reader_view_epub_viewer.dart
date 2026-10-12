@@ -38,7 +38,6 @@ extension _ReaderViewEpubViewer on _ReaderScreenState {
       initialFontMimeType: provider.readerFontMimeType,
       onLocationsGenerated: provider.onLocationsGenerated,
       displaySettings: EpubDisplaySettings(
-        snap: true,
         // epub.js's own default is EpubSpread.auto, which is what used to put
         // the book into a two-page spread as soon as the reader was rotated
         // (epub.js sets divisor = 2 once the viewport is wider than its
