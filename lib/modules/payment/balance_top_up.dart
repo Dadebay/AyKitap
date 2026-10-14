@@ -93,7 +93,8 @@ Future<void> startBalanceTopUp(
     return;
   }
 
-  final choice = await PaymentMethodSheet.show(context, showTmcell: _canOfferTmcell);
+  final choice =
+      await PaymentMethodSheet.show(context, showTmcell: _canOfferTmcell);
   if (choice == null || !context.mounted) return;
 
   switch (choice) {
@@ -109,9 +110,11 @@ Future<void> startBalanceTopUp(
       final bank = await BankSelectSheet.show(context);
       if (bank == null || !context.mounted) return;
       try {
-        final url = await PaymentApiService.createTopUpOrder(amount: amount, bankId: bank.id);
+        final url = await PaymentApiService.createTopUpOrder(
+            amount: amount, bankId: bank.id);
         if (!context.mounted) return;
-        await Navigator.of(context).push(MaterialPageRoute(builder: (_) => PaymentWebViewScreen(url: url)));
+        await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => PaymentWebViewScreen(url: url)));
       } on ApiException catch (e) {
         if (!context.mounted) return;
         context.showAppSnackBar(e.message, isError: true);
@@ -148,7 +151,8 @@ Future<void> _openTmcellPayment(BuildContext context) async {
   // number outliving it would send a reader's money to a SIM nothing is
   // watching. One request per deliberate tap is cheap.
   TmcellNumbersApiService.invalidate();
-  await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const TmcellPaymentScreen()));
+  await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const TmcellPaymentScreen()));
 }
 
 /// Asks for a code and redeems it, crediting the balance server-side.
@@ -168,11 +172,21 @@ Future<void> _redeemPromoCode(BuildContext context) async {
   }
 }
 
+/// Which money-in surface to show: the store's, or the wallet's.
+///
+/// Keyed on the admin toggle alone ([PurchaseModeService.useStoreSubscription])
+/// — toggle on → store prices in dollars, toggle off → TMT. It used to read
+/// `useStoreCheckout`, which also folds in the backend's per-account region
+/// flag, so an account the backend considered foreign (which is what a Google
+/// sign-in produces) was sent to the store even with the toggle off. The
+/// subscription screen already routes on the toggle alone, so topping up for
+/// a TMT plan would land on a dollar sheet: the reader could pick a manat
+/// plan and then had no way to pay for it.
 Future<bool> _mustUseStoreTopUp(Future<bool>? storeTopUpAvailability) async {
   if (!Platform.isIOS && !Platform.isAndroid) return false;
   if (storeTopUpAvailability != null) return storeTopUpAvailability;
   await PurchaseModeService.instance.refresh();
-  return PurchaseModeService.instance.useStoreCheckout;
+  return PurchaseModeService.instance.useStoreSubscription;
 }
 
 Future<void> _purchaseStoreTopUp(BuildContext context) async {
@@ -191,6 +205,7 @@ Future<void> _purchaseStoreTopUp(BuildContext context) async {
     }
   } on RevenueCatPurchaseException catch (e) {
     if (!context.mounted) return;
-    context.showAppSnackBar(e.message ?? PaymentStrings.storeTopUpFailed, isError: true);
+    context.showAppSnackBar(e.message ?? PaymentStrings.storeTopUpFailed,
+        isError: true);
   }
 }

@@ -46,11 +46,14 @@ class _BalanceViewState extends State<_BalanceView> {
     // The Doldur CTA needs this same region/payment-mode request. Start it
     // while the balance page is becoming visible so a likely tap does not
     // wait for a second round trip. [PurchaseModeService.refresh] never
-    // throws — on iOS a failed request still leaves useStoreCheckout `true`
-    // rather than opening the promo/bank flow.
+    // throws — on iOS a failed request still leaves the store-only answer
+    // `true` rather than opening the promo/bank flow.
+    //
+    // The same toggle the subscription screen routes on, so the two can't
+    // disagree — see [_mustUseStoreTopUp].
     _storeTopUpAvailability = PurchaseModeService.instance
         .refresh()
-        .then((_) => PurchaseModeService.instance.useStoreCheckout);
+        .then((_) => PurchaseModeService.instance.useStoreSubscription);
   }
 
   /// Pull-to-refresh: re-reads both halves of this page, because they come

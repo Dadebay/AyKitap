@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:iconly/iconly.dart';
 import 'package:provider/provider.dart';
 import '../../../core/models/library_book.dart';
 import '../../../core/navigation/app_hero_tags.dart';
@@ -142,7 +141,7 @@ class LibraryBookCover extends StatelessWidget {
                     padding: EdgeInsets.all(5),
                     child: _CornerBadge(
                       size: 26,
-                      child: Icon(IconlyBold.heart, color: Color(0xFFE5484D), size: 15),
+                      child: Icon(Icons.favorite_rounded, color: Color(0xFFE5484D), size: 15),
                     ),
                   ),
                 ),

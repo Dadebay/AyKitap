@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:iconly/iconly.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/icon_circle_button.dart';
 
@@ -40,7 +39,7 @@ class DetailHeaderControls extends StatelessWidget {
           _overlayIcon(
             HugeIcons.strokeRoundedFlag02,
             active: isFinished,
-            filledIcon: isFinished ? IconlyBold.tick_square : null,
+            filledIcon: isFinished ? Icons.check_box_rounded : null,
             onTap: onToggleFinished,
           ),
           const SizedBox(width: 8),
@@ -48,7 +47,7 @@ class DetailHeaderControls extends StatelessWidget {
             HugeIcons.strokeRoundedFavourite,
             active: isFavorite,
             activeColor: Colors.red,
-            filledIcon: isFavorite ? IconlyBold.heart : null,
+            filledIcon: isFavorite ? Icons.favorite_rounded : null,
             onTap: onToggleFavorite,
           ),
           const SizedBox(width: 8),

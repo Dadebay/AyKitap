@@ -1,27 +1,27 @@
-# Session Snapshot — 2026-10-12 12:35
+# Session Snapshot — 2026-10-13 15:21
 
 ## Files Changed
-- .claude/sessions/.claude-md-validated-2026-10-03
-- .claude/sessions/.claude-md-validated-2026-10-09
-- .claude/sessions/.ghost-checked-20261003
-- .claude/sessions/.ghost-checked-20261009
-- .claude/sessions/.snapshot-injected-2026-10-03
-- .claude/sessions/.snapshot-injected-2026-10-09
-- .claude/sessions/snapshot.md
-- .claude/sessions/token-log.md
-- assets/fonts/SF-Pro-Text-Regular.otf
-- ios/Runner.xcodeproj/project.pbxproj
+- .Codex/completions/2026-10-09-subscription-pricing-toggle.md
+- .Codex/completions/2026-10-12-aykitap-premium-product-name.md
+- .Codex/completions/2026-10-12-cross-platform-version-label.md
+- .Codex/completions/2026-10-12-dismiss-search-focus-on-tab-switch.md
+- .Codex/completions/2026-10-12-hide-finished-book-progress.md
+- .Codex/completions/2026-10-12-home-series-card-height.md
+- .Codex/completions/2026-10-12-localized-api-errors.md
+- .Codex/completions/2026-10-12-merge-downloaded-into-reading-shelf.md
+- .Codex/completions/2026-10-12-optional-book-request-description.md
+- .Codex/completions/2026-10-12-platform-book-share-links.md
 
 ## Recent Commits
+- 891b303 Oct 12
 - fab5980 Oct 9
 - 44f069a Last bugs Fixed
 - 7515caf Sep 26
 - 7ff7dd4 Sep 24 bug fixed
-- 89c10e7 Bugs Fixed
 
 ## Token Estimate
 ~703 tokens in auto-loaded files
 
 ## Last Turn
-Kurulum bitince tekrar `flutter run` yap, iproxy çalışır ve uygulama telefona yüklenir. Başka bir şeye dokunmana gerek y
+Mümkin bolsa iki san goşuň — **ýükleme sany** we **abunaçy/sargyt sany**. Anketada iň köp täsir edýän şol.
 
