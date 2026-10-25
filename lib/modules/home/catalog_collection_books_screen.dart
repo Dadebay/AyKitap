@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/layout/window_size_class.dart';
 import '../../core/models/library_book.dart';
 import '../../core/navigation/app_hero_tags.dart';
 import '../../core/theme/app_colors.dart';
@@ -81,8 +82,8 @@ class CatalogCollectionBooksScreen extends StatelessWidget {
         child: GridView.builder(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
           itemCount: sorted.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: _crossAxisCount,
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: bookGridMaxExtent,
             mainAxisSpacing: 20,
             crossAxisSpacing: 12,
             childAspectRatio: 0.5,

@@ -99,3 +99,15 @@ class WindowSizeClass {
   @override
   int get hashCode => Object.hash(width, size, verticalHinge);
 }
+
+/// Widest a book-cover grid cell may get. A phone (~335 dp of content) still
+/// resolves to exactly three columns; a tablet gets as many same-sized
+/// columns as fit instead of three enormous ones.
+const double bookGridMaxExtent = 140.0;
+
+/// Column count matching [bookGridMaxExtent] for grids that need the number
+/// itself (to size a cell from its column width), never fewer than three.
+int bookGridColumns(double availableWidth) {
+  final n = (availableWidth / bookGridMaxExtent).ceil();
+  return n < 3 ? 3 : n;
+}

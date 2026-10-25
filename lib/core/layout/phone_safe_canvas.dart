@@ -23,7 +23,7 @@ class PhoneSafeCanvas extends StatelessWidget {
   /// Comfortably inside the requested 520-600dp range — wide enough that a
   /// two-column card grid still has room to breathe, narrow enough that a
   /// long line of body text doesn't run past a comfortable reading measure.
-  static const double maxWidth = 560.0;
+  static const double maxWidth = 1200.0;
 
   const PhoneSafeCanvas({super.key, required this.child});
 

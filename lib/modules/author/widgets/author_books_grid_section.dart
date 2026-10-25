@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/layout/window_size_class.dart';
 import '../../../core/localization/strings/author_strings.dart';
 import '../../../core/models/library_book.dart';
 import '../../../core/navigation/app_hero_tags.dart';
@@ -44,8 +45,8 @@ class AuthorBooksGridSection extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: sortedBooks.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: bookGridMaxExtent,
             mainAxisSpacing: 20,
             crossAxisSpacing: 12,
             childAspectRatio: 0.50,

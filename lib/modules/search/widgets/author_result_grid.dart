@@ -10,8 +10,6 @@ import '../../home/widgets/catalog_author_avatar.dart';
 /// the next-page spinner can sit as its own sliver under the grid instead of
 /// needing an off-by-one extra cell for it.
 class AuthorResultGrid extends StatelessWidget {
-  static const _crossAxisCount = 3;
-
   final List<AuthorSearchResult> authors;
   final EdgeInsets padding;
   final bool loadingMore;
@@ -37,8 +35,8 @@ class AuthorResultGrid extends StatelessWidget {
         SliverPadding(
           padding: padding,
           sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: _crossAxisCount,
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 130,
               mainAxisSpacing: 16,
               crossAxisSpacing: 14,
               // A fixed pixel height instead of childAspectRatio: the card's

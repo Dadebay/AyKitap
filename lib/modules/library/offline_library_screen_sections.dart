@@ -51,8 +51,8 @@ extension _OfflineLibraryScreenSections on _OfflineLibraryScreenState {
       sliver: SliverGrid(
         delegate:
             SliverChildBuilderDelegate(itemBuilder, childCount: itemCount),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: bookGridMaxExtent,
           mainAxisSpacing: 18,
           crossAxisSpacing: 14,
           childAspectRatio: 0.62,

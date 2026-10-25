@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/layout/window_size_class.dart';
 
 import '../../core/localization/strings/book_detail_strings.dart';
 import '../../core/models/library_book.dart';
@@ -80,7 +81,7 @@ class _CatalogGenreBooksScreenState extends State<CatalogGenreBooksScreen> {
       child: GridView.builder(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         itemCount: books.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 20, crossAxisSpacing: 12, childAspectRatio: 0.50),
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: bookGridMaxExtent, mainAxisSpacing: 20, crossAxisSpacing: 12, childAspectRatio: 0.50),
         itemBuilder: (context, index) => CatalogBookCard(book: books[index], heroTag: AppHeroTags.catalogBookCover(books[index].id), width: double.infinity, coverHeight: 170, margin: EdgeInsets.zero),
       ),
     );

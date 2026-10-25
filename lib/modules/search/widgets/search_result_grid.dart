@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/layout/window_size_class.dart';
 import '../../../core/models/library_book.dart';
 import '../../../core/navigation/app_hero_tags.dart';
 import '../../../core/theme/app_colors.dart';
@@ -11,7 +12,6 @@ import '../../home/widgets/stagger_fade_in.dart';
 /// so that spinner can sit as its own sliver below the grid instead of
 /// needing an off-by-one extra grid cell for it.
 class SearchResultGrid extends StatelessWidget {
-  static const _crossAxisCount = 3;
   static const _crossAxisSpacing = 12.0;
 
   /// A book cover is taller than it is wide — 3:2 is the shape most of this
@@ -53,7 +53,9 @@ class SearchResultGrid extends StatelessWidget {
     // The width one column actually gets, so the cell's height can be built
     // from its contents instead of a ratio that only happens to fit on the
     // screen it was tuned on.
-    final columnWidth = (MediaQuery.sizeOf(context).width - padding.horizontal - _crossAxisSpacing * (_crossAxisCount - 1)) / _crossAxisCount;
+    final contentWidth = MediaQuery.sizeOf(context).width - padding.horizontal;
+    final crossAxisCount = bookGridColumns(contentWidth);
+    final columnWidth = (contentWidth - _crossAxisSpacing * (crossAxisCount - 1)) / crossAxisCount;
     final coverHeight = columnWidth * _coverAspect;
     // With a footer, the wheel clearance belongs after the footer rather
     // than between the final cover row and the action.
@@ -67,7 +69,7 @@ class SearchResultGrid extends StatelessWidget {
           padding: gridPadding,
           sliver: SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: _crossAxisCount,
+              crossAxisCount: crossAxisCount,
               crossAxisSpacing: _crossAxisSpacing,
               mainAxisExtent: coverHeight + 20 + _labelsHeight(context),
             ),
@@ -81,7 +83,7 @@ class SearchResultGrid extends StatelessWidget {
             // if that turns out to matter on real devices.
             delegate: SliverChildBuilderDelegate(
               (_, i) => StaggerFadeIn(
-                index: i ~/ _crossAxisCount,
+                index: i ~/ crossAxisCount,
                 child: CatalogBookCard(book: books[i], heroTag: AppHeroTags.catalogBookCover(books[i].id), width: double.infinity, coverHeight: coverHeight, margin: EdgeInsets.zero),
               ),
               childCount: books.length,
