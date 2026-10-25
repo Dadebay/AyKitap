@@ -123,7 +123,9 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 20, offset: const Offset(0, -6))],
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+          // On a tablet the sheet's content stays a readable column
+          // instead of running 800dp-wide lines of synopsis.
+          padding: EdgeInsets.fromLTRB(detailSideInset(context), 20, detailSideInset(context), 32),
           // Each block below (title, stats, pills, genres, synopsis)
           // fades/slides in on its own beat rather than as one lump — see
           // [CatalogDetailHeaderInfo]'s doc comment. `headerSteps` keeps

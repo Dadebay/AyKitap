@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
+import '../../../core/layout/window_size_class.dart';
 import '../../../core/localization/strings/book_detail_strings.dart';
 import '../../../core/models/book_detail.dart';
 import '../../../core/services/book_access_service.dart';
@@ -104,7 +105,7 @@ class CatalogDetailBottomCta extends StatelessWidget {
       shadowColor: Colors.black.withValues(alpha: 0.35),
       child: SafeArea(
         top: false,
-        minimum: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+        minimum: EdgeInsets.fromLTRB(detailSideInset(context), 12, detailSideInset(context), 12),
         child: BookCtaRow(
           access: access,
           priceManat: book.price,
