@@ -27,22 +27,7 @@ class BannerCarousel extends StatefulWidget {
 }
 
 class _BannerCarouselState extends State<BannerCarousel> {
-  PageController _controller = PageController();
-  double _fraction = 1.0;
-
-  /// A tablet-wide window would stretch one banner into a ~1300dp strip, so
-  /// there two banners share the row at roughly phone-banner proportions.
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final fraction = MediaQuery.sizeOf(context).width >= 600 ? 0.5 : 1.0;
-    if (fraction == _fraction) return;
-    _fraction = fraction;
-    final page = _controller.hasClients ? (_controller.page ?? 0).round() : 0;
-    final old = _controller;
-    _controller = PageController(viewportFraction: fraction, initialPage: page);
-    WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
-  }
+  late final PageController _controller = PageController();
   Timer? _timer;
   bool _autoAdvanceStarted = false;
 
@@ -123,10 +108,11 @@ class _BannerCarouselState extends State<BannerCarousel> {
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          height: _fraction < 1 ? 200 : 180,
+          // A tablet's banner is full width, so it needs the extra height
+          // to keep the artwork from turning into a thin strip.
+          height: MediaQuery.sizeOf(context).width >= 600 ? 300 : 180,
           child: PageView.builder(
             controller: _controller,
-            padEnds: _fraction == 1.0,
             // No itemCount — an infinite forward index range, wrapped into
             // the real banners below, so paging past the last one loops
             // straight back to the first.
