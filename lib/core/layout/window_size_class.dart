@@ -113,7 +113,11 @@ int bookGridColumns(double availableWidth) {
 }
 
 /// Horizontal padding that keeps detail-screen content at most 720dp wide.
-double detailSideInset(BuildContext context) {
-  final extra = (MediaQuery.sizeOf(context).width - 720) / 2;
+double detailSideInset(BuildContext context, {double maxWidth = 720}) {
+  final extra = (MediaQuery.sizeOf(context).width - maxWidth) / 2;
   return extra > 20 ? extra : 20;
 }
+
+/// Whether the window is wide enough for the two-column book detail layout.
+bool isTabletWidth(BuildContext context) =>
+    MediaQuery.sizeOf(context).width >= 700;

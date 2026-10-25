@@ -37,6 +37,7 @@ import 'widgets/catalog_detail_cta_section.dart';
 import 'widgets/catalog_detail_description.dart';
 import 'widgets/catalog_detail_header_art.dart';
 import 'widgets/catalog_detail_header_info.dart';
+import 'widgets/tablet_detail_info.dart';
 import 'widgets/detail_header_controls.dart';
 import 'widgets/detail_related_sections.dart';
 

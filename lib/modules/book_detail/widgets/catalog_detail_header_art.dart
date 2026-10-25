@@ -16,10 +16,19 @@ class CatalogDetailHeaderArt extends StatefulWidget {
     super.key,
     required this.imageUrl,
     required this.heroTag,
+    this.height = 400,
+    this.tabletCover = false,
+    this.topInset = 0,
   });
 
   final String? imageUrl;
   final String heroTag;
+  final double height;
+
+  /// Tablet layout: a larger cover pinned to the left (beside the title
+  /// block) instead of centred under the back button.
+  final bool tabletCover;
+  final double topInset;
 
   @override
   State<CatalogDetailHeaderArt> createState() => _CatalogDetailHeaderArtState();
@@ -62,7 +71,7 @@ class _CatalogDetailHeaderArtState extends State<CatalogDetailHeaderArt> {
       // its parent gives it — correct in split-screen and on a foldable's
       // inner display, where the screen is wider than this widget's slot.
       width: double.infinity,
-      height: 400,
+      height: widget.height,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -124,15 +133,18 @@ class _CatalogDetailHeaderArtState extends State<CatalogDetailHeaderArt> {
             ),
           ),
           Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            top: 65,
-            child: Center(
+            bottom: widget.tabletCover ? null : 0,
+            left: widget.tabletCover ? 40 : 0,
+            right: widget.tabletCover ? null : 0,
+            top: widget.tabletCover ? widget.topInset + 70 : 65,
+            child: Align(
+              alignment: widget.tabletCover ? Alignment.topLeft : Alignment.center,
+              widthFactor: widget.tabletCover ? 1 : null,
+              heightFactor: widget.tabletCover ? 1 : null,
               child: BookCoverHero(
                   tag: widget.heroTag,
-                  width: 152,
-                  height: 224,
+                  width: widget.tabletCover ? 220 : 152,
+                  height: widget.tabletCover ? 330 : 224,
                   style: BookCoverStyle(
                     borderRadius: 8,
                     shadows: isDark

@@ -105,7 +105,7 @@ class CatalogDetailBottomCta extends StatelessWidget {
       shadowColor: Colors.black.withValues(alpha: 0.35),
       child: SafeArea(
         top: false,
-        minimum: EdgeInsets.fromLTRB(detailSideInset(context), 12, detailSideInset(context), 12),
+        minimum: EdgeInsets.fromLTRB(detailSideInset(context, maxWidth: 1000), 12, detailSideInset(context, maxWidth: 1000), 12),
         child: BookCtaRow(
           access: access,
           priceManat: book.price,

@@ -24,14 +24,17 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
                 top: 0,
                 left: 0,
                 right: 0,
-                height: _CatalogBookDetailScreenState._headerHeight,
+                height: _headerHeightFor(context),
                 child: CatalogDetailHeaderArt(
                   imageUrl: initialCoverUrl,
                   heroTag: _heroTag,
+                  height: _headerHeightFor(context),
+                  tabletCover: isTabletWidth(context),
+                  topInset: MediaQuery.paddingOf(context).top,
                 ),
               ),
               Positioned(
-                top: _CatalogBookDetailScreenState._headerHeight + 24,
+                top: _headerHeightFor(context) + 24,
                 left: 0,
                 right: 0,
                 child: Center(
@@ -65,6 +68,7 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
       );
     }
     final book = _book!;
+    final tablet = isTabletWidth(context);
     final image = book.image;
     final imageUrl = image != null && image.isNotEmpty ? ApiConfig.resolveImageUrl(image) : null;
     return Stack(
@@ -73,16 +77,33 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
             top: 0,
             left: 0,
             right: 0,
-            height: _CatalogBookDetailScreenState._headerHeight,
+            height: _headerHeightFor(context),
             child: CatalogDetailHeaderArt(
               imageUrl: imageUrl,
               heroTag: _heroTag,
+              height: _headerHeightFor(context),
+              tabletCover: tablet,
+              topInset: MediaQuery.paddingOf(context).top,
             )),
         ListView(
           padding: EdgeInsets.zero,
           children: [
-            const SizedBox(height: _CatalogBookDetailScreenState._headerHeight - _CatalogBookDetailScreenState._sheetOverlap),
-            _buildContentSheet(book),
+            SizedBox(
+              height: _headerHeightFor(context) - _CatalogBookDetailScreenState._sheetOverlap,
+              child: tablet
+                  ? Padding(
+                      padding: EdgeInsets.fromLTRB(40 + 220 + 32, MediaQuery.paddingOf(context).top + 70, 40, 0),
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: TabletDetailInfo(book: book, onTapAuthor: () => _openAuthor(book.authors.first)),
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+            _buildContentSheet(book, tablet: tablet),
           ],
         ),
         DetailHeaderControls(
@@ -96,6 +117,9 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
       ],
     );
   }
+
+  double _headerHeightFor(BuildContext context) =>
+      isTabletWidth(context) ? 470.0 : _CatalogBookDetailScreenState._headerHeight;
 
   Widget _buildBackButton(BuildContext context) {
     return Padding(
@@ -111,7 +135,8 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
     );
   }
 
-  Widget _buildContentSheet(BookDetail book) {
+  Widget _buildContentSheet(BookDetail book, {bool tablet = false}) {
+    final inset = detailSideInset(context, maxWidth: tablet ? 1000 : 720);
     final headerSteps = CatalogDetailHeaderInfo.stepCount(book);
     final descriptionSteps = CatalogDetailDescription.stepCount(book);
     return ClipRRect(
@@ -125,7 +150,7 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
         child: Padding(
           // On a tablet the sheet's content stays a readable column
           // instead of running 800dp-wide lines of synopsis.
-          padding: EdgeInsets.fromLTRB(detailSideInset(context), 20, detailSideInset(context), 32),
+          padding: EdgeInsets.fromLTRB(inset, 20, inset, 32),
           // Each block below (title, stats, pills, genres, synopsis)
           // fades/slides in on its own beat rather than as one lump — see
           // [CatalogDetailHeaderInfo]'s doc comment. `headerSteps` keeps
@@ -134,19 +159,19 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
           // the other's internal block count.
           child: Column(
             children: [
-              CatalogDetailHeaderInfo(book: book, onTapAuthor: () => _openAuthor(book.authors.first)),
+              if (!tablet) CatalogDetailHeaderInfo(book: book, onTapAuthor: () => _openAuthor(book.authors.first)),
               CatalogDetailDescription(
                 book: book,
                 expanded: _descriptionExpanded,
                 onToggleExpanded: () => _setState(() => _descriptionExpanded = !_descriptionExpanded),
                 onTapGenre: _openGenre,
-                startIndex: headerSteps,
+                startIndex: tablet ? 0 : headerSteps,
               ),
               // Related rows load separately and render nothing until they
               // arrive. The primary CTA now stays fixed below this scroll.
               ...buildDetailRelatedSections(book),
               StaggerFadeIn(
-                index: headerSteps + descriptionSteps,
+                index: (tablet ? 0 : headerSteps) + descriptionSteps,
                 child: CatalogDetailCtaSection(
                   book: book,
                   canRemoveFromPurchased: widget.canRemoveFromPurchased,
