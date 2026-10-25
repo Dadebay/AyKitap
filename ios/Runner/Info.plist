@@ -8,31 +8,6 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Aykitap</string>
-	<key>CFBundleExecutable</key>
-	<string>$(EXECUTABLE_NAME)</string>
-	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>Aýkitap</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string>$(FLUTTER_BUILD_NAME)</string>
-	<key>CFBundleSignature</key>
-	<string>????</string>
-	<key>CFBundleVersion</key>
-	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<!-- OneSignal's default group name is group.<bundle-id>.onesignal. Aýkitap
-	     already owns one shared container for its home-screen widget, so point
-	     OneSignal at that entitled container instead of letting it probe a
-	     second, unentitled group. -->
-	<key>OneSignal_app_groups_key</key>
-	<string>group.com.aykitap.aykitap</string>
-	<!-- Lists Aýkitap in the "Open with" sheet for PDFs/EPUBs tapped in
-	     other apps (Telegram, Mail, Files, ...). Handled in
-	     SceneDelegate.swift. -->
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -56,45 +31,20 @@
 			</array>
 		</dict>
 	</array>
-	<!-- org.idpf.epub-container has no first-party public UTI on iOS, so we
-	     declare it ourselves (a zip archive with an .epub extension). -->
-	<key>UTImportedTypeDeclarations</key>
-	<array>
-		<dict>
-			<key>UTTypeIdentifier</key>
-			<string>org.idpf.epub-container</string>
-			<key>UTTypeDescription</key>
-			<string>EPUB Document</string>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>public.data</string>
-				<string>public.zip-archive</string>
-			</array>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>epub</string>
-				</array>
-				<key>public.mime-type</key>
-				<array>
-					<string>application/epub+zip</string>
-				</array>
-			</dict>
-		</dict>
-	</array>
-	<!-- iOS'ta ortak bir "İndirilenler" klasörü yok. Satın alınan kitabın
-	     kullanıcıya ait kopyası uygulamanın Documents klasörüne yazılıyor;
-	     bu anahtar o klasörü Dosyalar uygulamasında "iPhone'umda → AyKitap"
-	     altında görünür kılıyor. Uygulamanın kendi çevrimdışı kopyası
-	     Application Support'ta kalıyor, yani listede görünmüyor. -->
-	<key>UIFileSharingEnabled</key>
-	<true/>
-	<key>LSSupportsOpeningDocumentsInPlace</key>
-	<true/>
-	<!-- aykitap://book/<id> deep link — lets the website send a user
-	     straight to a book's detail screen. Handled in Dart by
-	     DeepLinkService. -->
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>Aýkitap</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(FLUTTER_BUILD_NAME)</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -105,10 +55,6 @@
 				<string>aykitap</string>
 			</array>
 		</dict>
-		<!-- RevenueCat's per-app custom URL scheme (dashboard: Apps > Aykitap
-		     (App Store) > Custom URL Scheme) — lets dashboard features like
-		     Paywall Preview deep-link back into this exact app. Not handled
-		     in Dart; the RevenueCat SDK/OS itself resolves it. -->
 		<dict>
 			<key>CFBundleURLName</key>
 			<string>com.revenuecat.aykitap</string>
@@ -117,11 +63,6 @@
 				<string>rc-51992f1ae5</string>
 			</array>
 		</dict>
-		<!-- Google Sign-In's redirect scheme — the reversed form of
-		     GoogleService-Info.plist's CLIENT_ID. Without this entry iOS has
-		     nowhere to hand the OAuth redirect back to, which is what
-		     google_sign_in_ios throws "missing support for the following URL
-		     schemes" for. -->
 		<dict>
 			<key>CFBundleURLName</key>
 			<string>com.google.aykitap</string>
@@ -131,15 +72,22 @@
 			</array>
 		</dict>
 	</array>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
-	<!-- Skips App Store Connect's per-build "does this use encryption?"
-	     prompt — the app only uses standard HTTPS/TLS (via Dio), which
-	     Apple exempts from export compliance review. -->
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Profil suratyňyz üçin täze surat düşürmegi saýlasaňyz, kameraňyza giriş gerek.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Surat saýlaýjysynyň kamerasy düşürilen surata ýerleşiş maglumatyny goşanda, ýerleşýän ýeriňize giriş gerek.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Profil suratyňyzy saýlamak üçin surat kitaphanaňyza giriş gerek.</string>
+	<key>OneSignal_app_groups_key</key>
+	<string>group.com.aykitap.aykitap</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -168,15 +116,12 @@
 		<string>remote-notification</string>
 		<string>fetch</string>
 	</array>
+	<key>UIFileSharingEnabled</key>
+	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
-	<!-- iOS only honours orientations listed here, so landscape has to be
-	     declared for the readers to be able to rotate (see
-	     reader_orientation.dart). The app itself stays portrait: main.dart
-	     locks it to portraitUp at startup and every reader restores that lock
-	     on the way out, so only the readers ever go sideways. -->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -190,6 +135,31 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+	</array>
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.zip-archive</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>EPUB Document</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.idpf.epub-container</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>epub</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/epub+zip</string>
+				</array>
+			</dict>
+		</dict>
 	</array>
 </dict>
 </plist>

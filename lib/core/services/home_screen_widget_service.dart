@@ -109,12 +109,18 @@ class HomeScreenWidgetService {
     required int page,
     required int? pageCount,
   }) async {
+    // home_widget 0.9.3 forwards Dart null as NSNull to iOS UserDefaults,
+    // which raises a native exception that Dart's try/catch cannot catch.
+    // Use the same empty-state defaults as the native widget readers.
     await Future.wait([
-      HomeWidget.saveWidgetData<int>('book_id', bookId),
-      HomeWidget.saveWidgetData<String>('book_title', title),
-      HomeWidget.saveWidgetData<String>('book_author', author),
+      HomeWidget.saveWidgetData<int>('book_id', bookId ?? -1),
+      HomeWidget.saveWidgetData<String>(
+        'book_title',
+        title ?? 'Start your reading journey',
+      ),
+      HomeWidget.saveWidgetData<String>('book_author', author ?? ''),
       HomeWidget.saveWidgetData<int>('book_page', page),
-      HomeWidget.saveWidgetData<int>('book_page_count', pageCount),
+      HomeWidget.saveWidgetData<int>('book_page_count', pageCount ?? 0),
     ]);
   }
 
@@ -144,7 +150,8 @@ class HomeScreenWidgetService {
   }) async {
     if (!updateCover) return;
     if (coverUrl == null || coverUrl.isEmpty) {
-      await HomeWidget.saveWidgetData<String>('book_cover', null);
+      // An empty path shows the native placeholder without sending NSNull.
+      await HomeWidget.saveWidgetData<String>('book_cover', '');
       await _updateNativeWidgets();
       return;
     }
@@ -166,7 +173,8 @@ class HomeScreenWidgetService {
       HomeWidget.updateWidget(
         androidName: _androidBookProvider,
         iOSName: _iosBookKind,
-        qualifiedAndroidName: 'com.aykitap.aykitap.AykitapReadingWidgetProvider',
+        qualifiedAndroidName:
+            'com.aykitap.aykitap.AykitapReadingWidgetProvider',
       ),
       HomeWidget.updateWidget(
         androidName: _androidStreakProvider,

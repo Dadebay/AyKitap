@@ -333,7 +333,7 @@ class _PDFViewSettings {
       'defaultPage': defaultPage,
       'fitPolicy': fitPolicy.toString(),
       'preventLinkNavigation': preventLinkNavigation,
-      'backgroundColor': backgroundColor?.value,
+      'backgroundColor': backgroundColor?.toARGB32(),
     };
   }
 
