@@ -70,7 +70,9 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
     final book = _book!;
     final tablet = isTabletWidth(context);
     final image = book.image;
-    final imageUrl = image != null && image.isNotEmpty ? ApiConfig.resolveImageUrl(image) : null;
+    final imageUrl = image != null && image.isNotEmpty
+        ? ApiConfig.resolveImageUrl(image)
+        : null;
     return Stack(
       children: [
         Positioned(
@@ -89,15 +91,23 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
           padding: EdgeInsets.zero,
           children: [
             SizedBox(
-              height: _headerHeightFor(context) - _CatalogBookDetailScreenState._sheetOverlap,
+              height: _headerHeightFor(context) -
+                  _CatalogBookDetailScreenState._sheetOverlap,
               child: tablet
                   ? Padding(
-                      padding: EdgeInsets.fromLTRB(40 + 220 + 32, MediaQuery.paddingOf(context).top + 70, 40, 0),
-                      child: Align(
-                        alignment: Alignment.topLeft,
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: TabletDetailInfo(book: book, onTapAuthor: () => _openAuthor(book.authors.first)),
+                      padding: EdgeInsets.fromLTRB(40 + 280 + 48,
+                          MediaQuery.paddingOf(context).top + 70, 40, 0),
+                      child: SizedBox(
+                        height: 420,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: TabletDetailInfo(
+                                book: book,
+                                onTapAuthor: () =>
+                                    _openAuthor(book.authors.first)),
+                          ),
                         ),
                       ),
                     )
@@ -118,12 +128,14 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
     );
   }
 
-  double _headerHeightFor(BuildContext context) =>
-      isTabletWidth(context) ? 470.0 : _CatalogBookDetailScreenState._headerHeight;
+  double _headerHeightFor(BuildContext context) => isTabletWidth(context)
+      ? 580.0
+      : _CatalogBookDetailScreenState._headerHeight;
 
   Widget _buildBackButton(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 8, left: 12),
+      padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top + 8, left: 12),
       child: IconCircleButton(
         icon: HugeIcons.strokeRoundedArrowLeft01,
         onTap: () => Navigator.pop(context),
@@ -140,12 +152,19 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
     final headerSteps = CatalogDetailHeaderInfo.stepCount(book);
     final descriptionSteps = CatalogDetailDescription.stepCount(book);
     return ClipRRect(
-      borderRadius: const BorderRadius.only(topLeft: Radius.circular(38), topRight: Radius.circular(38)),
+      borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(38), topRight: Radius.circular(38)),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: const BorderRadius.only(topLeft: Radius.circular(38), topRight: Radius.circular(38)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 20, offset: const Offset(0, -6))],
+          borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(38), topRight: Radius.circular(38)),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 20,
+                offset: const Offset(0, -6))
+          ],
         ),
         child: Padding(
           // On a tablet the sheet's content stays a readable column
@@ -159,11 +178,15 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
           // the other's internal block count.
           child: Column(
             children: [
-              if (!tablet) CatalogDetailHeaderInfo(book: book, onTapAuthor: () => _openAuthor(book.authors.first)),
+              if (!tablet)
+                CatalogDetailHeaderInfo(
+                    book: book,
+                    onTapAuthor: () => _openAuthor(book.authors.first)),
               CatalogDetailDescription(
                 book: book,
                 expanded: _descriptionExpanded,
-                onToggleExpanded: () => _setState(() => _descriptionExpanded = !_descriptionExpanded),
+                onToggleExpanded: () => _setState(
+                    () => _descriptionExpanded = !_descriptionExpanded),
                 onTapGenre: _openGenre,
                 startIndex: tablet ? 0 : headerSteps,
               ),

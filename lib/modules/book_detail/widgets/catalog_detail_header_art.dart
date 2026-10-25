@@ -118,6 +118,21 @@ class _CatalogDetailHeaderArtState extends State<CatalogDetailHeaderArt> {
                     child: ColoredBox(color: AppColors.card),
                   ),
           ),
+          if (widget.tabletCover)
+            // The title block sits straight on the backdrop, so darken it
+            // (more on the left, where the text is) to keep it readable.
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.55),
+                    Colors.black.withValues(alpha: 0.30),
+                  ],
+                ),
+              ),
+            ),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -143,8 +158,8 @@ class _CatalogDetailHeaderArtState extends State<CatalogDetailHeaderArt> {
               heightFactor: widget.tabletCover ? 1 : null,
               child: BookCoverHero(
                   tag: widget.heroTag,
-                  width: widget.tabletCover ? 220 : 152,
-                  height: widget.tabletCover ? 330 : 224,
+                  width: widget.tabletCover ? 280 : 152,
+                  height: widget.tabletCover ? 420 : 224,
                   style: BookCoverStyle(
                     borderRadius: 8,
                     shadows: isDark

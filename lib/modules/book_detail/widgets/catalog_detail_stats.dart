@@ -6,8 +6,10 @@ import '../../../core/theme/app_colors.dart';
 class CatalogDetailMetaStat extends StatelessWidget {
   final String value;
   final String label;
+  /// Light text for sitting directly on the darkened cover backdrop.
+  final bool onImage;
   const CatalogDetailMetaStat(
-      {super.key, required this.value, required this.label});
+      {super.key, required this.value, required this.label, this.onImage = false});
 
   @override
   Widget build(BuildContext context) {
@@ -15,11 +17,11 @@ class CatalogDetailMetaStat extends StatelessWidget {
       children: [
         Text(value,
             style: TextStyle(
-                color: AppColors.white,
-                fontSize: 17,
+                color: onImage ? Colors.white : AppColors.white,
+                fontSize: onImage ? 22 : 17,
                 fontWeight: FontWeight.w800)),
         const SizedBox(height: 2),
-        Text(label, style: TextStyle(color: AppColors.grey2, fontSize: 12)),
+        Text(label, style: TextStyle(color: onImage ? Colors.white70 : AppColors.grey2, fontSize: onImage ? 13 : 12)),
       ],
     );
   }
@@ -27,7 +29,8 @@ class CatalogDetailMetaStat extends StatelessWidget {
 
 /// The vertical hairline between two [CatalogDetailMetaStat]s.
 class CatalogDetailMetaDivider extends StatelessWidget {
-  const CatalogDetailMetaDivider({super.key});
+  final bool onImage;
+  const CatalogDetailMetaDivider({super.key, this.onImage = false});
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +38,7 @@ class CatalogDetailMetaDivider extends StatelessWidget {
         width: 1,
         height: 30,
         margin: const EdgeInsets.symmetric(horizontal: 20),
-        color: AppColors.border);
+        color: onImage ? Colors.white30 : AppColors.border);
   }
 }
 
@@ -44,26 +47,27 @@ class CatalogDetailMetaDivider extends StatelessWidget {
 class CatalogDetailInfoPill extends StatelessWidget {
   final List<List<dynamic>> icon;
   final String label;
+  final bool onImage;
   const CatalogDetailInfoPill(
-      {super.key, required this.icon, required this.label});
+      {super.key, required this.icon, required this.label, this.onImage = false});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: AppColors.bg,
+        color: onImage ? Colors.white.withValues(alpha: 0.12) : AppColors.bg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: onImage ? Colors.white30 : AppColors.border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          HugeIcon(icon: icon, color: AppColors.grey2, size: 14),
+          HugeIcon(icon: icon, color: onImage ? Colors.white70 : AppColors.grey2, size: 14),
           const SizedBox(width: 6),
           Text(label,
               style: TextStyle(
-                  color: AppColors.grey1,
+                  color: onImage ? Colors.white : AppColors.grey1,
                   fontSize: 12,
                   fontWeight: FontWeight.w600)),
         ],
