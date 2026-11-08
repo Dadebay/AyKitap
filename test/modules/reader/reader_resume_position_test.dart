@@ -45,7 +45,11 @@ void main() {
       addTearDown(provider.dispose);
     });
 
-    test('the font is loaded by the time the viewer may be built', () async {
+    test('a bundled font is loaded by the time the viewer may be built',
+        () async {
+      SharedPreferences.setMockInitialValues({
+        'reader_font': ReaderFontFamily.arial.index,
+      });
       final provider = ReaderProvider();
       await provider.initialize(bookId: 1, bookTitle: 'Test');
       addTearDown(provider.dispose);
@@ -57,6 +61,16 @@ void main() {
       expect(provider.readerFontBase64, isNotNull);
       expect(provider.readerFontBase64, isNotEmpty);
       expect(provider.readerFontCssName, isNotEmpty);
+    });
+
+    test('the default system font needs no bundled bytes', () async {
+      final provider = ReaderProvider();
+      await provider.initialize(bookId: 1, bookTitle: 'Test');
+      addTearDown(provider.dispose);
+
+      expect(provider.isInitialized, isTrue);
+      expect(provider.readerFontCssName, '-apple-system, system-ui');
+      expect(provider.readerFontBase64, isNull);
     });
 
     test('the saved position is read before the viewer may be built', () async {
