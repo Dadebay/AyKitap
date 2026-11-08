@@ -32,7 +32,8 @@ class SubscriptionPlanList extends StatelessWidget {
     if (loading) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 24),
-        child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        child:
+            Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
     }
     final error = this.error;
@@ -42,9 +43,16 @@ class SubscriptionPlanList extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(PaymentStrings.tariffsLoadError, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+            Text(PaymentStrings.tariffsLoadError,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.grey2, fontSize: 14)),
             const SizedBox(height: 8),
-            TextButton(onPressed: onRetry, child: Text(PaymentStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700))),
+            TextButton(
+                onPressed: onRetry,
+                child: Text(PaymentStrings.retry,
+                    style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700))),
           ],
         ),
       );

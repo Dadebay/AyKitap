@@ -28,7 +28,6 @@ extension _WheelNavBarIcons on _WheelNavBarState {
     // Draw the outermost first so the centre icon ends up on top.
     items.sort((a, b) => b.angle.abs().compareTo(a.angle.abs()));
 
-
     return items.map((it) {
       final angle = it.angle;
       final absA = angle.abs();
@@ -106,8 +105,8 @@ extension _WheelNavBarIcons on _WheelNavBarState {
                           it.index,
                           iconColor,
                           iconSz,
-                          selected: it.index == widget.selectedIndex &&
-                              it.copy == 0,
+                          selected:
+                              it.index == widget.selectedIndex && it.copy == 0,
                         ),
                       ),
                     ),

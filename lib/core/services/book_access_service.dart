@@ -50,7 +50,10 @@ class BookAccessService extends ChangeNotifier {
   Future<void> load() async {
     if (_loaded) return;
     final prefs = await SharedPreferences.getInstance();
-    _purchasedIds = (prefs.getStringList(_kPurchasedIds) ?? const []).map(int.tryParse).whereType<int>().toSet();
+    _purchasedIds = (prefs.getStringList(_kPurchasedIds) ?? const [])
+        .map(int.tryParse)
+        .whereType<int>()
+        .toSet();
     _loaded = true;
     notifyListeners();
   }
@@ -64,7 +67,8 @@ class BookAccessService extends ChangeNotifier {
   /// [PremiumAccessService.isPremium] — not [SubscriptionService] directly —
   /// is the subscription check, so a store (RevenueCat) subscriber reads the
   /// same as a wallet one.
-  bool canRead(int bookId) => isPurchased(bookId) || PremiumAccessService.instance.isPremium;
+  bool canRead(int bookId) =>
+      isPurchased(bookId) || PremiumAccessService.instance.isPremium;
 
   /// Full evaluation for [book]'s CTA row. Reads only cached state — the
   /// token, the purchased set, the merged premium status, and the last known
@@ -140,6 +144,7 @@ class BookAccessService extends ChangeNotifier {
 
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_kPurchasedIds, _purchasedIds.map((id) => '$id').toList());
+    await prefs.setStringList(
+        _kPurchasedIds, _purchasedIds.map((id) => '$id').toList());
   }
 }

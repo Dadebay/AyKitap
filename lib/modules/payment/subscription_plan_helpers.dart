@@ -22,7 +22,9 @@ int bestSubscriptionPlanIndex(List<Tariff> tariffs) {
 String subscriptionPlanLabel(Tariff tariff) {
   final months = tariff.monthCount;
   if (months == null) {
-    return tariff.dayCount == 7 ? PaymentStrings.planWeekly : PaymentStrings.planDaysGeneric(tariff.lengthInDays);
+    return tariff.dayCount == 7
+        ? PaymentStrings.planWeekly
+        : PaymentStrings.planDaysGeneric(tariff.lengthInDays);
   }
   switch (months) {
     case 1:

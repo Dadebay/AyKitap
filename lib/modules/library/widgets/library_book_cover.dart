@@ -83,7 +83,9 @@ class LibraryBookCover extends StatelessWidget {
                 bookId: book.id,
                 canRemoveFromPurchased: canRemoveFromPurchased,
                 heroTag: heroTag,
-                initialCoverUrl: image != null && image.isNotEmpty ? ApiConfig.resolveImageUrl(image) : null,
+                initialCoverUrl: image != null && image.isNotEmpty
+                    ? ApiConfig.resolveImageUrl(image)
+                    : null,
               ),
             );
             if (removed == true) onPurchasedBookRemoved?.call();
@@ -97,7 +99,11 @@ class LibraryBookCover extends StatelessWidget {
               child: BookCoverHero(
                 tag: heroTag,
                 style: const BookCoverStyle(borderRadius: 3),
-                child: image != null && image.isNotEmpty ? NetworkCoverImage(url: ApiConfig.resolveImageUrl(image), placeholder: (_) => _CoverPlaceholder()) : _CoverPlaceholder(),
+                child: image != null && image.isNotEmpty
+                    ? NetworkCoverImage(
+                        url: ApiConfig.resolveImageUrl(image),
+                        placeholder: (_) => _CoverPlaceholder())
+                    : _CoverPlaceholder(),
               ),
             ),
             if (locked)
@@ -107,7 +113,10 @@ class LibraryBookCover extends StatelessWidget {
                   child: Container(
                     color: Colors.black.withValues(alpha: 0.45),
                     alignment: Alignment.center,
-                    child: const HugeIcon(icon: HugeIcons.strokeRoundedSquareLock02, color: Colors.white, size: 22),
+                    child: const HugeIcon(
+                        icon: HugeIcons.strokeRoundedSquareLock02,
+                        color: Colors.white,
+                        size: 22),
                   ),
                 ),
               ),
@@ -121,7 +130,10 @@ class LibraryBookCover extends StatelessWidget {
                 child: _CornerBadge(
                   child: Text(
                     '${(progress * 100).round()}%',
-                    style: const TextStyle(color: Colors.black87, fontSize: 8, fontWeight: FontWeight.w800),
+                    style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800),
                   ),
                 ),
               ),
@@ -141,7 +153,8 @@ class LibraryBookCover extends StatelessWidget {
                     padding: EdgeInsets.all(5),
                     child: _CornerBadge(
                       size: 26,
-                      child: Icon(Icons.favorite_rounded, color: Color(0xFFE5484D), size: 15),
+                      child: Icon(Icons.favorite_rounded,
+                          color: Color(0xFFE5484D), size: 15),
                     ),
                   ),
                 ),
@@ -158,7 +171,11 @@ class _CoverPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: AppColors.card,
-      child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedBook02, color: AppColors.grey3, size: 22)),
+      child: Center(
+          child: HugeIcon(
+              icon: HugeIcons.strokeRoundedBook02,
+              color: AppColors.grey3,
+              size: 22)),
     );
   }
 }
@@ -178,7 +195,12 @@ class _CornerBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         shape: BoxShape.circle,
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 4, offset: const Offset(0, 1))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 4,
+              offset: const Offset(0, 1))
+        ],
       ),
       child: child,
     );

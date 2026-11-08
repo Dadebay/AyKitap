@@ -67,7 +67,8 @@ class SessionExpiryHandler {
       await PurchaseModeService.instance.refresh();
       final navigator = rootNavigatorKey.currentState;
       if (navigator == null) return;
-      await navigator.push(MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
+      await navigator
+          .push(MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
     } finally {
       _handling = false;
     }

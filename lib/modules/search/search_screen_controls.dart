@@ -8,11 +8,15 @@ extension _SearchScreenControls on _SearchScreenState {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
         height: 50,
-        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14)),
+        decoration: BoxDecoration(
+            color: AppColors.card, borderRadius: BorderRadius.circular(14)),
         child: Row(
           children: [
             const SizedBox(width: 14),
-            HugeIcon(icon: HugeIcons.strokeRoundedSearch01, color: AppColors.grey2, size: 20),
+            HugeIcon(
+                icon: HugeIcons.strokeRoundedSearch01,
+                color: AppColors.grey2,
+                size: 20),
             const SizedBox(width: 10),
             Expanded(
               child: TextField(
@@ -32,7 +36,10 @@ extension _SearchScreenControls on _SearchScreenState {
                 onTap: _clearQuery,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: HugeIcon(icon: HugeIcons.strokeRoundedCancel01, color: AppColors.grey2, size: 18),
+                  child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedCancel01,
+                      color: AppColors.grey2,
+                      size: 18),
                 ),
               ),
           ],
@@ -70,8 +77,10 @@ extension _SearchScreenControls on _SearchScreenState {
             // [_setSearchMode] no-ops on a repeat anyway.
             onValueChanged: (mode) => _setSearchMode(mode ?? _searchMode),
             children: {
-              _SearchMode.book: _searchModeLabel(SearchStrings.searchByBook, _SearchMode.book, segmentWidth),
-              _SearchMode.author: _searchModeLabel(SearchStrings.searchByAuthor, _SearchMode.author, segmentWidth),
+              _SearchMode.book: _searchModeLabel(
+                  SearchStrings.searchByBook, _SearchMode.book, segmentWidth),
+              _SearchMode.author: _searchModeLabel(SearchStrings.searchByAuthor,
+                  _SearchMode.author, segmentWidth),
             },
           );
         },
@@ -90,7 +99,10 @@ extension _SearchScreenControls on _SearchScreenState {
           textAlign: TextAlign.center,
           // The thumb carries the motion; the label only has to stay legible
           // against whichever color ends up under it.
-          style: TextStyle(color: selected ? Colors.white : AppColors.grey2, fontSize: 13, fontWeight: FontWeight.w700),
+          style: TextStyle(
+              color: selected ? Colors.white : AppColors.grey2,
+              fontSize: 13,
+              fontWeight: FontWeight.w700),
         ),
       ),
     );
@@ -114,8 +126,13 @@ extension _SearchScreenControls on _SearchScreenState {
                   width: 40,
                   height: 40,
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12)),
-                  child: HugeIcon(icon: HugeIcons.strokeRoundedFilterHorizontal, color: AppColors.primary, size: 20),
+                  decoration: BoxDecoration(
+                      color: AppColors.card,
+                      borderRadius: BorderRadius.circular(12)),
+                  child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedFilterHorizontal,
+                      color: AppColors.primary,
+                      size: 20),
                 ),
                 if (_hasActiveFilters)
                   Positioned(
@@ -148,7 +165,10 @@ extension _SearchScreenControls on _SearchScreenState {
           for (final (i, genre) in (_genres ?? const []).indexed) ...[
             StaggerFadeIn(
               index: i,
-              child: QuickChip(label: genre.name, selected: _selectedGenreIds.contains(genre.id), onTap: () => _toggleGenre(genre)),
+              child: QuickChip(
+                  label: genre.name,
+                  selected: _selectedGenreIds.contains(genre.id),
+                  onTap: () => _toggleGenre(genre)),
             ),
             const SizedBox(width: 8),
           ],

@@ -34,7 +34,8 @@ class MainNavScreen extends StatefulWidget {
   State<MainNavScreen> createState() => _MainNavScreenState();
 }
 
-class _MainNavScreenState extends State<MainNavScreen> with SingleTickerProviderStateMixin {
+class _MainNavScreenState extends State<MainNavScreen>
+    with SingleTickerProviderStateMixin {
   // Tab order: Profile, Kitaplyk, Ana sayfa (centre — opens by default),
   // Çytalka (reader), Poisk. Must stay in lockstep with _icons in
   // WheelNavBar, which draws the wheel in this same order.
@@ -63,7 +64,9 @@ class _MainNavScreenState extends State<MainNavScreen> with SingleTickerProvider
   // window width on a wide window, not the capped content width.
   List<Widget> _buildPages() => [
         const PhoneSafeCanvas(child: ProfileScreen()),
-        PhoneSafeCanvas(child: LibraryScreen(initialTabIndex: widget.libraryInitialTabIndex)),
+        PhoneSafeCanvas(
+            child:
+                LibraryScreen(initialTabIndex: widget.libraryInitialTabIndex)),
         const PhoneSafeCanvas(child: HomeScreen()),
         const PhoneSafeCanvas(child: ReaderTabScreen()),
         const PhoneSafeCanvas(child: SearchScreen()),
@@ -212,7 +215,8 @@ class _MainNavScreenState extends State<MainNavScreen> with SingleTickerProvider
           children: List.generate(_pages.length, (i) {
             double dx;
             if (i == _selectedIndex) {
-              dx = _slideDir * (1 - t); // incoming: from the _slideDir side to 0
+              dx =
+                  _slideDir * (1 - t); // incoming: from the _slideDir side to 0
             } else if (i == _prevIndex && t < 1.0) {
               dx = -_slideDir * t; // outgoing: 0 → off the opposite side
             } else {

@@ -6,10 +6,14 @@ import '../../../core/theme/app_colors.dart';
 class CatalogDetailMetaStat extends StatelessWidget {
   final String value;
   final String label;
+
   /// Light text for sitting directly on the darkened cover backdrop.
   final bool onImage;
   const CatalogDetailMetaStat(
-      {super.key, required this.value, required this.label, this.onImage = false});
+      {super.key,
+      required this.value,
+      required this.label,
+      this.onImage = false});
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +25,10 @@ class CatalogDetailMetaStat extends StatelessWidget {
                 fontSize: onImage ? 22 : 17,
                 fontWeight: FontWeight.w800)),
         const SizedBox(height: 2),
-        Text(label, style: TextStyle(color: onImage ? Colors.white70 : AppColors.grey2, fontSize: onImage ? 13 : 12)),
+        Text(label,
+            style: TextStyle(
+                color: onImage ? Colors.white70 : AppColors.grey2,
+                fontSize: onImage ? 13 : 12)),
       ],
     );
   }
@@ -49,7 +56,10 @@ class CatalogDetailInfoPill extends StatelessWidget {
   final String label;
   final bool onImage;
   const CatalogDetailInfoPill(
-      {super.key, required this.icon, required this.label, this.onImage = false});
+      {super.key,
+      required this.icon,
+      required this.label,
+      this.onImage = false});
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +73,10 @@ class CatalogDetailInfoPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          HugeIcon(icon: icon, color: onImage ? Colors.white70 : AppColors.grey2, size: 14),
+          HugeIcon(
+              icon: icon,
+              color: onImage ? Colors.white70 : AppColors.grey2,
+              size: 14),
           const SizedBox(width: 6),
           Text(label,
               style: TextStyle(

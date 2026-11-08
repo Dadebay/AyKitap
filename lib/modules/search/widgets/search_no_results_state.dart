@@ -29,7 +29,9 @@ class SearchNoResultsState extends StatelessWidget {
             child: AspectRatio(
               aspectRatio: 1,
               child: Image.asset(
-                isDark ? 'assets/images/search_empty_dark.webp' : 'assets/images/search_empty_light.webp',
+                isDark
+                    ? 'assets/images/search_empty_dark.webp'
+                    : 'assets/images/search_empty_light.webp',
                 fit: BoxFit.contain,
               ),
             ),

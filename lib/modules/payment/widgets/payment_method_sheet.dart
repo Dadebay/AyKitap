@@ -56,7 +56,8 @@ class PaymentMethodSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         decoration: BoxDecoration(
@@ -68,22 +69,33 @@ class PaymentMethodSheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-              child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.grey3, borderRadius: BorderRadius.circular(2))),
+              child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: AppColors.grey3,
+                      borderRadius: BorderRadius.circular(2))),
             ),
             const SizedBox(height: 18),
-            Text(PaymentStrings.choosePaymentMethodTitle, style: TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+            Text(PaymentStrings.choosePaymentMethodTitle,
+                style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800)),
             const SizedBox(height: 16),
             _OptionRow(
               icon: HugeIcons.strokeRoundedDiscountTag01,
               label: PaymentStrings.payWithPromoCode,
-              onTap: () => Navigator.pop(context, PaymentMethodChoice.promoCode),
+              onTap: () =>
+                  Navigator.pop(context, PaymentMethodChoice.promoCode),
             ),
             if (showBankCard) ...[
               Divider(color: AppColors.border, height: 1),
               _OptionRow(
                 icon: HugeIcons.strokeRoundedCreditCard,
                 label: PaymentStrings.payWithCard,
-                onTap: () => Navigator.pop(context, PaymentMethodChoice.bankCard),
+                onTap: () =>
+                    Navigator.pop(context, PaymentMethodChoice.bankCard),
               ),
             ],
             if (showTmcell) ...[
@@ -113,7 +125,8 @@ class _OptionRow extends StatelessWidget {
   final List<List<dynamic>> icon;
   final String label;
   final VoidCallback onTap;
-  const _OptionRow({required this.icon, required this.label, required this.onTap});
+  const _OptionRow(
+      {required this.icon, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -126,12 +139,24 @@ class _OptionRow extends StatelessWidget {
             Container(
               width: 40,
               height: 40,
-              decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.12), shape: BoxShape.circle),
-              child: Center(child: HugeIcon(icon: icon, color: AppColors.primary, size: 19)),
+              decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle),
+              child: Center(
+                  child:
+                      HugeIcon(icon: icon, color: AppColors.primary, size: 19)),
             ),
             const SizedBox(width: 14),
-            Expanded(child: Text(label, style: TextStyle(color: AppColors.white, fontSize: 14.5, fontWeight: FontWeight.w600))),
-            HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: AppColors.grey3, size: 18),
+            Expanded(
+                child: Text(label,
+                    style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600))),
+            HugeIcon(
+                icon: HugeIcons.strokeRoundedArrowRight01,
+                color: AppColors.grey3,
+                size: 18),
           ],
         ),
       ),

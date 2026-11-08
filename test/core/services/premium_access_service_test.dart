@@ -5,28 +5,32 @@ void main() {
   group('PremiumAccessService.computeIsPremium', () {
     test('true when only the wallet subscription is active', () {
       expect(
-        PremiumAccessService.computeIsPremium(walletActive: true, storeActive: false),
+        PremiumAccessService.computeIsPremium(
+            walletActive: true, storeActive: false),
         isTrue,
       );
     });
 
     test('true when only the store entitlement is active', () {
       expect(
-        PremiumAccessService.computeIsPremium(walletActive: false, storeActive: true),
+        PremiumAccessService.computeIsPremium(
+            walletActive: false, storeActive: true),
         isTrue,
       );
     });
 
     test('true when both are active', () {
       expect(
-        PremiumAccessService.computeIsPremium(walletActive: true, storeActive: true),
+        PremiumAccessService.computeIsPremium(
+            walletActive: true, storeActive: true),
         isTrue,
       );
     });
 
     test('false when neither is active', () {
       expect(
-        PremiumAccessService.computeIsPremium(walletActive: false, storeActive: false),
+        PremiumAccessService.computeIsPremium(
+            walletActive: false, storeActive: false),
         isFalse,
       );
     });
@@ -61,11 +65,13 @@ void main() {
         'returns the later of the two when both are active — a reader '
         'should not lose access on whichever expires first', () {
       expect(
-        PremiumAccessService.computeExpiresAt(walletExpiresAt: earlier, storeExpiresAt: later),
+        PremiumAccessService.computeExpiresAt(
+            walletExpiresAt: earlier, storeExpiresAt: later),
         later,
       );
       expect(
-        PremiumAccessService.computeExpiresAt(walletExpiresAt: later, storeExpiresAt: earlier),
+        PremiumAccessService.computeExpiresAt(
+            walletExpiresAt: later, storeExpiresAt: earlier),
         later,
       );
     });

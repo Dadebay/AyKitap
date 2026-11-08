@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets(
-      'preserves an author portrait aspect ratio inside its avatar',
+  testWidgets('preserves an author portrait aspect ratio inside its avatar',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(

@@ -16,7 +16,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// is what makes any DioClient-backed call safe to exercise in a unit test.
 void installFakeSecureStorage() {
   const channel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(
     channel,
     (call) async => null,
   );
@@ -34,7 +35,8 @@ void installFakeSecureStorage() {
 /// `saveAndClose`/`dispose` safe to await from a `testWidgets` test.
 void installFakeScreenBrightness() {
   const channel = MethodChannel('github.com/aaassseee/screen_brightness');
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(
     channel,
     (call) async => switch (call.method) {
       'getSystemScreenBrightness' || 'getApplicationScreenBrightness' => 1.0,

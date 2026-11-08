@@ -81,7 +81,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: AppColors.journeyMist,
         scrolledUnderElevation: 0.0,
         centerTitle: true,
-        title: Text(ProfileStrings.profileTitle, style: TextStyle(color: AppColors.journeyInk, fontSize: 22, fontWeight: FontWeight.w700)),
+        title: Text(ProfileStrings.profileTitle,
+            style: TextStyle(
+                color: AppColors.journeyInk,
+                fontSize: 22,
+                fontWeight: FontWeight.w700)),
       ),
       body: SafeArea(
         bottom: false,
@@ -92,7 +96,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 110),
           children: _isLoggedIn
               ? [
-                  ProfileTopSection(name: _name, maskedPhone: _maskedPhone, avatarIndex: _avatarIndex, avatarImage: _avatarImage, avatarUrl: _backendAvatarUrl, onTap: _openEditProfile),
+                  ProfileTopSection(
+                      name: _name,
+                      maskedPhone: _maskedPhone,
+                      avatarIndex: _avatarIndex,
+                      avatarImage: _avatarImage,
+                      avatarUrl: _backendAvatarUrl,
+                      onTap: _openEditProfile),
                   const SizedBox(height: 24),
                   _buildBalanceEntry(context, balance),
                   const SizedBox(height: 12),

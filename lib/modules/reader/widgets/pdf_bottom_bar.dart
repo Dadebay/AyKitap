@@ -67,12 +67,16 @@ class PdfBottomBar extends StatelessWidget {
     final labelColor = isDarkPage ? Colors.white38 : Colors.black45;
     final iconColor = isDarkPage ? Colors.white70 : const Color(0xFF44444F);
     final borderColor = eyeCareTint(
-      isDarkPage ? Colors.white.withValues(alpha: 0.10) : Colors.black.withValues(alpha: 0.08),
+      isDarkPage
+          ? Colors.white.withValues(alpha: 0.10)
+          : Colors.black.withValues(alpha: 0.08),
       eyeCare,
       isDarkPage: isDarkPage,
     );
     final wellColor = eyeCareTint(
-      isDarkPage ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
+      isDarkPage
+          ? Colors.white.withValues(alpha: 0.08)
+          : Colors.black.withValues(alpha: 0.05),
       eyeCare,
       isDarkPage: isDarkPage,
     );
@@ -98,7 +102,10 @@ class PdfBottomBar extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          Container(height: 1, margin: const EdgeInsets.symmetric(horizontal: 20), color: borderColor),
+          Container(
+              height: 1,
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              color: borderColor),
           const SizedBox(height: 6),
 
           // ── Page scrubber ─────────────────────────────────────────────
@@ -110,7 +117,8 @@ class PdfBottomBar extends StatelessWidget {
               totalPages: totalPages,
               labelColor: labelColor,
               activeColor: accent,
-              inactiveTrackColor: isDarkPage ? Colors.white24 : const Color(0xFFE0E0E0),
+              inactiveTrackColor:
+                  isDarkPage ? Colors.white24 : const Color(0xFFE0E0E0),
               overlayColor: const Color(0x22E8712C),
               onSeek: onProgressChanged,
             ),

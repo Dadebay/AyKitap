@@ -15,7 +15,8 @@ class FilterBottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.read<FilterController>();
     return Container(
-      padding: EdgeInsets.fromLTRB(20, 12, 20, 12 + MediaQuery.of(context).padding.bottom),
+      padding: EdgeInsets.fromLTRB(
+          20, 12, 20, 12 + MediaQuery.of(context).padding.bottom),
       decoration: BoxDecoration(
         color: AppColors.bg,
         border: Border(top: BorderSide(color: AppColors.border)),
@@ -26,16 +27,24 @@ class FilterBottomBar extends StatelessWidget {
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             elevation: 0,
           ),
           onPressed: () => Navigator.pop(context, c.buildResult()),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(FilterStrings.showResults, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+              Text(FilterStrings.showResults,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700)),
               const SizedBox(width: 8),
-              const HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: Colors.white, size: 18),
+              const HugeIcon(
+                  icon: HugeIcons.strokeRoundedArrowRight01,
+                  color: Colors.white,
+                  size: 18),
             ],
           ),
         ),

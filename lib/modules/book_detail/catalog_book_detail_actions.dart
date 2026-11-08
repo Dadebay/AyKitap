@@ -112,9 +112,7 @@ extension _CatalogBookDetailActions on _CatalogBookDetailScreenState {
     // iOS treats WebP cache entries as generic files and can fail before
     // presenting UIActivityViewController. Text + the App Store link is the
     // reliable native path there; Android keeps the working cover share.
-    if (platform != TargetPlatform.iOS &&
-        image != null &&
-        image.isNotEmpty) {
+    if (platform != TargetPlatform.iOS && image != null && image.isNotEmpty) {
       // Reuses NetworkCoverImage's cache — the cover shown on this very
       // page is very likely cached on disk already, so this is usually
       // instant rather than a fresh download.

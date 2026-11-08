@@ -61,7 +61,8 @@ void main() {
       expect(pastMax.width, atMax.width);
     });
 
-    testWidgets('only touches the width — the page keeps its full height', (tester) async {
+    testWidgets('only touches the width — the page keeps its full height',
+        (tester) async {
       final size = await childSize(tester, 0.08);
       expect(size.height, viewport.height);
     });

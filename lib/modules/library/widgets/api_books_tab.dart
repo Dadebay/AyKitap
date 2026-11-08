@@ -102,7 +102,8 @@ class ApiBooksTab extends StatefulWidget {
   State<ApiBooksTab> createState() => _ApiBooksTabState();
 }
 
-class _ApiBooksTabState extends State<ApiBooksTab> with AutomaticKeepAliveClientMixin {
+class _ApiBooksTabState extends State<ApiBooksTab>
+    with AutomaticKeepAliveClientMixin {
   List<LibraryBook>? _books;
   bool _loading = true;
   String? _error;
@@ -152,9 +153,16 @@ class _ApiBooksTabState extends State<ApiBooksTab> with AutomaticKeepAliveClient
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+              Text(_error!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.grey2, fontSize: 14)),
               const SizedBox(height: 12),
-              TextButton(onPressed: _load, child: Text(LibraryStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700))),
+              TextButton(
+                  onPressed: _load,
+                  child: Text(LibraryStrings.retry,
+                      style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700))),
             ],
           ),
         ),
@@ -164,7 +172,9 @@ class _ApiBooksTabState extends State<ApiBooksTab> with AutomaticKeepAliveClient
     // reorders the shelf straight away: this tab is kept alive across tab
     // switches and doesn't re-fetch on its own, so a shelf ordered at load
     // time would keep yesterday's order until a pull-to-refresh.
-    final books = widget.sortByLastOpened ? context.watch<BookOpenHistory>().sortByRecency(_books ?? const []) : _books ?? const [];
+    final books = widget.sortByLastOpened
+        ? context.watch<BookOpenHistory>().sortByRecency(_books ?? const [])
+        : _books ?? const [];
     if (books.isEmpty) return LibraryEmptyState(label: widget.emptyLabel);
     return RefreshIndicator(
       onRefresh: _load,
@@ -191,11 +201,15 @@ class _ApiBooksTabState extends State<ApiBooksTab> with AutomaticKeepAliveClient
             showProgress: widget.showProgress,
             canRemoveFromPurchased: widget.allowRemovingPurchasedBooks,
             onPurchasedBookRemoved: _load,
-            onTap: widget.openLocalWhenOffline ? () => _openBook(books[i]) : null,
-            onLongPress: widget.removal == null ? null : () => _confirmDelete(books[i]),
+            onTap:
+                widget.openLocalWhenOffline ? () => _openBook(books[i]) : null,
+            onLongPress:
+                widget.removal == null ? null : () => _confirmDelete(books[i]),
             // Derived rather than a second flag: the heart *is* this
             // shelf's removal, so the two can't drift apart.
-            onUnfavorite: widget.removal == ShelfRemoval.favorite ? () => _unfavorite(books[i]) : null,
+            onUnfavorite: widget.removal == ShelfRemoval.favorite
+                ? () => _unfavorite(books[i])
+                : null,
           ),
         ),
       ),

@@ -35,7 +35,8 @@ class LibraryScreen extends StatefulWidget {
   State<LibraryScreen> createState() => _LibraryScreenState();
 }
 
-class _LibraryScreenState extends State<LibraryScreen> with SingleTickerProviderStateMixin {
+class _LibraryScreenState extends State<LibraryScreen>
+    with SingleTickerProviderStateMixin {
   late final TabController _tabController = TabController(
       length: LibraryScreen.tabCount,
       vsync: this,
@@ -68,7 +69,11 @@ class _LibraryScreenState extends State<LibraryScreen> with SingleTickerProvider
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-              child: Text(LibraryStrings.libraryTitle, style: TextStyle(color: AppColors.white, fontSize: 26, fontWeight: FontWeight.w800)),
+              child: Text(LibraryStrings.libraryTitle,
+                  style: TextStyle(
+                      color: AppColors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800)),
             ),
             TabBar(
               controller: _tabController,
@@ -76,7 +81,8 @@ class _LibraryScreenState extends State<LibraryScreen> with SingleTickerProvider
               indicatorColor: AppColors.primary,
               labelColor: AppColors.white,
               unselectedLabelColor: AppColors.grey2,
-              labelStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+              labelStyle:
+                  const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
               tabAlignment: TabAlignment.start,
               tabs: LibraryScreen.tabLabels.map((t) => Tab(text: t)).toList(),
             ),

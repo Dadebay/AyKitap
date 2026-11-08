@@ -16,15 +16,18 @@ import 'package:provider/provider.dart';
 /// this file isn't testing connectivity behavior.
 class _FakeConnectivityPlatform extends ConnectivityPlatform {
   @override
-  Future<List<ConnectivityResult>> checkConnectivity() async => [ConnectivityResult.wifi];
+  Future<List<ConnectivityResult>> checkConnectivity() async =>
+      [ConnectivityResult.wifi];
 
   @override
-  Stream<List<ConnectivityResult>> get onConnectivityChanged => const Stream.empty();
+  Stream<List<ConnectivityResult>> get onConnectivityChanged =>
+      const Stream.empty();
 }
 
 void _installFakeSecureStorage() {
   const channel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async => null);
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(channel, (call) async => null);
 }
 
 StreakOverview _overview() {
@@ -33,7 +36,8 @@ StreakOverview _overview() {
     currentStreak: 1,
     bestStreak: 1,
     goalMinMinutes: 15,
-    today: StreakDay(date: base, seconds: 0, minutes: 0, pages: 0, goalMet: false),
+    today:
+        StreakDay(date: base, seconds: 0, minutes: 0, pages: 0, goalMet: false),
     week: List.generate(
       7,
       (i) => StreakWeekDay(
@@ -45,8 +49,10 @@ StreakOverview _overview() {
         goalMet: false,
       ),
     ),
-    thisMonth: const StreakMonthSummary(month: '2026-01', pages: 0, minutes: 0, daysMet: 0),
-    lastMonth: const StreakMonthSummary(month: '2025-12', pages: 0, minutes: 0, daysMet: 0),
+    thisMonth: const StreakMonthSummary(
+        month: '2026-01', pages: 0, minutes: 0, daysMet: 0),
+    lastMonth: const StreakMonthSummary(
+        month: '2025-12', pages: 0, minutes: 0, daysMet: 0),
     rewardRules: const [],
   );
 }
@@ -120,7 +126,8 @@ void main() {
 
   Widget app() => MultiProvider(
         providers: [
-          ChangeNotifierProvider<StreakService>.value(value: StreakService.instance),
+          ChangeNotifierProvider<StreakService>.value(
+              value: StreakService.instance),
         ],
         child: const MaterialApp(home: HomeScreen()),
       );
@@ -130,7 +137,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 250));
   }
 
-  testWidgets('a banner-only change does not rebuild the header or the collection scope', (tester) async {
+  testWidgets(
+      'a banner-only change does not rebuild the header or the collection scope',
+      (tester) async {
     HomeDataService.instance.debugSeedForTesting(
       collections: [_collection(1)],
       banners: [_banner(1)],
@@ -142,15 +151,20 @@ void main() {
     final collectionsBefore = rebuilds.countOf(_collectionsScopeType);
     final bannersBefore = rebuilds.countOf(_bannersScopeType);
 
-    HomeDataService.instance.debugSeedForTesting(banners: [_banner(1), _banner(2)]);
+    HomeDataService.instance
+        .debugSeedForTesting(banners: [_banner(1), _banner(2)]);
     await tester.pump();
 
     expect(rebuilds.countOf(_bannersScopeType), greaterThan(bannersBefore));
-    expect(rebuilds.countOf(_headerType), headerBefore, reason: 'a banner change must not rebuild HomeHeader');
-    expect(rebuilds.countOf(_collectionsScopeType), collectionsBefore, reason: 'a banner change must not rebuild the collection scope');
+    expect(rebuilds.countOf(_headerType), headerBefore,
+        reason: 'a banner change must not rebuild HomeHeader');
+    expect(rebuilds.countOf(_collectionsScopeType), collectionsBefore,
+        reason: 'a banner change must not rebuild the collection scope');
   });
 
-  testWidgets('a collections-only change does not rebuild the header or the banner scope', (tester) async {
+  testWidgets(
+      'a collections-only change does not rebuild the header or the banner scope',
+      (tester) async {
     HomeDataService.instance.debugSeedForTesting(
       collections: [_collection(1)],
       banners: [_banner(1)],
@@ -162,12 +176,16 @@ void main() {
     final collectionsBefore = rebuilds.countOf(_collectionsScopeType);
     final bannersBefore = rebuilds.countOf(_bannersScopeType);
 
-    HomeDataService.instance.debugSeedForTesting(collections: [_collection(1), _collection(2)]);
+    HomeDataService.instance
+        .debugSeedForTesting(collections: [_collection(1), _collection(2)]);
     await tester.pump();
 
-    expect(rebuilds.countOf(_collectionsScopeType), greaterThan(collectionsBefore));
-    expect(rebuilds.countOf(_headerType), headerBefore, reason: 'a collections change must not rebuild HomeHeader');
-    expect(rebuilds.countOf(_bannersScopeType), bannersBefore, reason: 'a collections change must not rebuild the banner scope');
+    expect(rebuilds.countOf(_collectionsScopeType),
+        greaterThan(collectionsBefore));
+    expect(rebuilds.countOf(_headerType), headerBefore,
+        reason: 'a collections change must not rebuild HomeHeader');
+    expect(rebuilds.countOf(_bannersScopeType), bannersBefore,
+        reason: 'a collections change must not rebuild the banner scope');
   });
 
   // Notification suppression for genuinely-unchanged refetched content (same
@@ -178,7 +196,9 @@ void main() {
   // shape quickly, not to exercise the gate itself), so it isn't the right
   // seam to re-verify that suppression through the widget tree here.
 
-  testWidgets('a loading change while empty only rebuilds the small retry scope, not the collection scope', (tester) async {
+  testWidgets(
+      'a loading change while empty only rebuilds the small retry scope, not the collection scope',
+      (tester) async {
     HomeDataService.instance.debugSeedForTesting(
       collections: const [],
       banners: const [],
@@ -194,6 +214,7 @@ void main() {
     await tester.pump();
 
     expect(rebuilds.countOf(_loadingScopeType), greaterThan(loadingBefore));
-    expect(rebuilds.countOf(_collectionsScopeType), collectionsBefore, reason: 'a loading change must not re-run the outer collections scope');
+    expect(rebuilds.countOf(_collectionsScopeType), collectionsBefore,
+        reason: 'a loading change must not re-run the outer collections scope');
   });
 }

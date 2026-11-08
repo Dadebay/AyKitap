@@ -33,7 +33,9 @@ class SearchResultGrid extends StatelessWidget {
   /// name on every card.
   static double _labelsHeight(BuildContext context) {
     final scaler = MediaQuery.textScalerOf(context);
-    return _gapUnderCover + scaler.scale(_titleFontSize) * 1.6 + scaler.scale(_authorFontSize) * 1.6;
+    return _gapUnderCover +
+        scaler.scale(_titleFontSize) * 1.6 +
+        scaler.scale(_authorFontSize) * 1.6;
   }
 
   final List<LibraryBook> books;
@@ -46,7 +48,13 @@ class SearchResultGrid extends StatelessWidget {
   /// notification — see `_maybeLoadMore`.
   final ScrollController? controller;
 
-  const SearchResultGrid({super.key, required this.books, required this.padding, required this.loadingMore, this.controller, this.footer});
+  const SearchResultGrid(
+      {super.key,
+      required this.books,
+      required this.padding,
+      required this.loadingMore,
+      this.controller,
+      this.footer});
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +63,9 @@ class SearchResultGrid extends StatelessWidget {
     // screen it was tuned on.
     final contentWidth = MediaQuery.sizeOf(context).width - padding.horizontal;
     final crossAxisCount = bookGridColumns(contentWidth);
-    final columnWidth = (contentWidth - _crossAxisSpacing * (crossAxisCount - 1)) / crossAxisCount;
+    final columnWidth =
+        (contentWidth - _crossAxisSpacing * (crossAxisCount - 1)) /
+            crossAxisCount;
     final coverHeight = columnWidth * _coverAspect;
     // With a footer, the wheel clearance belongs after the footer rather
     // than between the final cover row and the action.
@@ -84,7 +94,12 @@ class SearchResultGrid extends StatelessWidget {
             delegate: SliverChildBuilderDelegate(
               (_, i) => StaggerFadeIn(
                 index: i ~/ crossAxisCount,
-                child: CatalogBookCard(book: books[i], heroTag: AppHeroTags.catalogBookCover(books[i].id), width: double.infinity, coverHeight: coverHeight, margin: EdgeInsets.zero),
+                child: CatalogBookCard(
+                    book: books[i],
+                    heroTag: AppHeroTags.catalogBookCover(books[i].id),
+                    width: double.infinity,
+                    coverHeight: coverHeight,
+                    margin: EdgeInsets.zero),
               ),
               childCount: books.length,
             ),
@@ -98,7 +113,8 @@ class SearchResultGrid extends StatelessWidget {
                 child: SizedBox(
                   width: 22,
                   height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: AppColors.primary),
                 ),
               ),
             ),

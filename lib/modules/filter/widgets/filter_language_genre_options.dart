@@ -22,7 +22,8 @@ class LanguageOptions extends StatelessWidget {
           child: SizedBox(
             width: 20,
             height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+            child: CircularProgressIndicator(
+                strokeWidth: 2, color: AppColors.primary),
           ),
         ),
       );
@@ -34,14 +35,20 @@ class LanguageOptions extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                c.languagesFailed ? FilterStrings.langLoadFailed : FilterStrings.any,
+                c.languagesFailed
+                    ? FilterStrings.langLoadFailed
+                    : FilterStrings.any,
                 style: TextStyle(color: AppColors.grey2, fontSize: 13.5),
               ),
             ),
             if (c.languagesFailed)
               TextButton(
                 onPressed: c.loadLanguages,
-                child: Text(FilterStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                child: Text(FilterStrings.retry,
+                    style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13.5)),
               ),
           ],
         ),
@@ -79,7 +86,8 @@ class GenreOptions extends StatelessWidget {
           child: SizedBox(
             width: 20,
             height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+            child: CircularProgressIndicator(
+                strokeWidth: 2, color: AppColors.primary),
           ),
         ),
       );
@@ -91,14 +99,20 @@ class GenreOptions extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                c.genresFailed ? FilterStrings.genreLoadFailed : FilterStrings.any,
+                c.genresFailed
+                    ? FilterStrings.genreLoadFailed
+                    : FilterStrings.any,
                 style: TextStyle(color: AppColors.grey2, fontSize: 13.5),
               ),
             ),
             if (c.genresFailed)
               TextButton(
                 onPressed: c.loadGenres,
-                child: Text(FilterStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                child: Text(FilterStrings.retry,
+                    style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13.5)),
               ),
           ],
         ),

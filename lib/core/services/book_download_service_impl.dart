@@ -4,7 +4,8 @@ part of 'book_download_service.dart';
 /// that file to keep it under the 200-line limit. Pure mechanical move:
 /// every expression here is unchanged from before the split.
 extension _BookDownloadServiceImpl on BookDownloadService {
-  Future<String> _ensureDownloaded({required int bookId, required BookFile file}) async {
+  Future<String> _ensureDownloaded(
+      {required int bookId, required BookFile file}) async {
     try {
       final store = DownloadedFilesStore.instance;
       await store.load();
@@ -74,18 +75,21 @@ extension _BookDownloadServiceImpl on BookDownloadService {
         throw const ApiException('Kitabyň faýly tapylmady.');
       }
       try {
-        await BookDownloadService._downloader.download(link.url, tmpPath, onReceiveProgress: onProgress, cancelToken: cancelToken);
+        await BookDownloadService._downloader.download(link.url, tmpPath,
+            onReceiveProgress: onProgress, cancelToken: cancelToken);
       } on DioException catch (e) {
         // The signature is only good for ~10 minutes. A download that
         // started near the end of that window (or a link that sat around
         // while the user read a dialog) comes back 403 — one fresh link and
         // one retry covers it without looping.
         final status = e.response?.statusCode;
-        if (e.type == DioExceptionType.cancel || (status != 403 && status != 401)) {
+        if (e.type == DioExceptionType.cancel ||
+            (status != 403 && status != 401)) {
           rethrow;
         }
         link = await BookFileApiService.getFileLink(file.fileKey);
-        await BookDownloadService._downloader.download(link.url, tmpPath, onReceiveProgress: onProgress, cancelToken: cancelToken);
+        await BookDownloadService._downloader.download(link.url, tmpPath,
+            onReceiveProgress: onProgress, cancelToken: cancelToken);
       }
 
       final tmp = File(tmpPath);

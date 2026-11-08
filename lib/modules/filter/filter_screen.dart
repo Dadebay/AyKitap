@@ -58,7 +58,11 @@ class _FilterScreenBody extends StatelessWidget {
         backgroundColor: AppColors.bg,
         centerTitle: true,
         leading: const AppBackButton(size: 20),
-        title: Text(FilterStrings.title, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+        title: Text(FilterStrings.title,
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700)),
       ),
       body: Column(
         children: [

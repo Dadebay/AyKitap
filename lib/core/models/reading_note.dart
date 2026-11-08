@@ -103,12 +103,16 @@ class ReadingNote {
       // Notes saved before highlights were book-keyed by id carry only
       // seed/index — rebuild the same bookId the reader would use so their
       // highlights still restore.
-      bookId: json['bookId'] as int? ?? (seed != null && index != null ? stableBookKey('book_${seed}_$index') : 0),
+      bookId: json['bookId'] as int? ??
+          (seed != null && index != null
+              ? stableBookKey('book_${seed}_$index')
+              : 0),
       bookSeed: seed,
       bookIndex: index,
       bookTitle: json['bookTitle'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
-      colorValue: json['colorValue'] as int? ?? HighlightColors.defaultColor.toARGB32(),
+      colorValue:
+          json['colorValue'] as int? ?? HighlightColors.defaultColor.toARGB32(),
       cfi: json['cfi'] as String?,
       remoteId: json['remoteId'] as int?,
     );

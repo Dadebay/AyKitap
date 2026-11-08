@@ -49,7 +49,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
     _autoAdvanceStarted = true;
     _timer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!_controller.hasClients) return;
-      _controller.nextPage(duration: const Duration(milliseconds: 500), curve: Curves.easeOut);
+      _controller.nextPage(
+          duration: const Duration(milliseconds: 500), curve: Curves.easeOut);
     });
   }
 
@@ -120,7 +121,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
               final banner = banners[i % banners.length];
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _BannerCard(banner: banner, onTap: () => _openBanner(banner)),
+                child: _BannerCard(
+                    banner: banner, onTap: () => _openBanner(banner)),
               );
             },
           ),
@@ -133,7 +135,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
             // that can drift out of sync with what's actually on screen.
             animation: _controller,
             builder: (context, _) {
-              final raw = _controller.hasClients ? (_controller.page ?? 0) : 0.0;
+              final raw =
+                  _controller.hasClients ? (_controller.page ?? 0) : 0.0;
               final active = raw.round() % banners.length;
               return Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -166,7 +169,8 @@ class _BannerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasAction = banner.bookId != null || (banner.link != null && banner.link!.isNotEmpty);
+    final hasAction = banner.bookId != null ||
+        (banner.link != null && banner.link!.isNotEmpty);
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Material(
@@ -188,7 +192,10 @@ class _BannerCard extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.78)],
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.78)
+                    ],
                     stops: const [0.3, 1.0],
                   ),
                 ),
@@ -201,7 +208,11 @@ class _BannerCard extends StatelessWidget {
                   children: [
                     Text(
                       banner.name,
-                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800, height: 1.2),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          height: 1.2),
                     ),
                   ],
                 ),
