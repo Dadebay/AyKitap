@@ -21,14 +21,17 @@ extension _BookOpenFlowActions on BookOpenFlow {
     await context.push<bool>(const PhoneLoginScreen());
     if (!await AuthSession.isLoggedIn()) return false;
     if (!context.mounted) return false;
+    final accountService = context.read<AccountService>();
+    final bookAccessService = context.read<BookAccessService>();
+    final purchaseModeService = context.read<PurchaseModeService>();
     // A fresh session means a fresh balance and a fresh purchased list —
     // both feed the very next access decision.
-    await context.read<AccountService>().refresh();
-    await context.read<BookAccessService>().refreshPurchased();
+    await accountService.refresh();
+    await bookAccessService.refreshPurchased();
     // Ödeme yüzeyi de bu oturuma göre yeniden çözülmeli — bkz.
     // auth_completion.dart'taki aynı çağrının gerekçesi.
     if (!context.mounted) return false;
-    await context.read<PurchaseModeService>().refresh();
+    await purchaseModeService.refresh();
     if (!context.mounted) return false;
     onAccessChanged?.call();
     return true;
@@ -71,7 +74,8 @@ extension _BookOpenFlowActions on BookOpenFlow {
       final file = _pickFile();
       if (file == null) {
         if (context.mounted) {
-          context.showAppSnackBar(BookDetailStrings.noFileForBook, isError: true);
+          context.showAppSnackBar(BookDetailStrings.noFileForBook,
+              isError: true);
         }
         return;
       }
@@ -81,7 +85,8 @@ extension _BookOpenFlowActions on BookOpenFlow {
       // download whether it started the request or was (re)opened after
       // one already had.
       try {
-        path = await downloadService.ensureDownloaded(bookId: book.id, file: file);
+        path =
+            await downloadService.ensureDownloaded(bookId: book.id, file: file);
         format = file.fileFormat.toLowerCase();
         log('🔍 [BookOpen] bookId=${book.id} freshly downloaded '
             'format=$format path=$path');
@@ -92,7 +97,8 @@ extension _BookOpenFlowActions on BookOpenFlow {
             'status=${e.response?.statusCode} type=${e.type} '
             'uri=${e.requestOptions.uri}');
         if (context.mounted) {
-          context.showAppSnackBar(BookDetailStrings.downloadFailed, isError: true);
+          context.showAppSnackBar(BookDetailStrings.downloadFailed,
+              isError: true);
         }
         return;
       } on ApiException catch (e) {
@@ -134,14 +140,17 @@ extension _BookOpenFlowActions on BookOpenFlow {
   /// cbz least).
   BookFile? _pickFile() => preferredBookFile(book.bookFiles);
 
-  void _openReader({required String path, required String format}) => openCatalogBookFile(
+  void _openReader({required String path, required String format}) =>
+      openCatalogBookFile(
         context,
         path: path,
         format: format,
         bookId: book.id,
         title: book.name,
         pageCount: book.pageCount,
-        coverUrl: book.image == null || book.image!.isEmpty ? null : ApiConfig.resolveImageUrl(book.image!),
+        coverUrl: book.image == null || book.image!.isEmpty
+            ? null
+            : ApiConfig.resolveImageUrl(book.image!),
         heroTag: heroTag ?? AppHeroTags.catalogBookCover(book.id),
       );
 }

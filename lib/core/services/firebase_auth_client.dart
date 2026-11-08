@@ -81,7 +81,7 @@ class LiveFirebaseAuthClient implements FirebaseAuthClient {
     try {
       final credential = await _auth.signInWithEmailAndPassword(
           email: email, password: password);
-      return _resultFor(credential.user);
+      return await _resultFor(credential.user);
     } on fb.FirebaseAuthException catch (e) {
       throw _mapFirebaseException(e);
     }
@@ -93,7 +93,7 @@ class LiveFirebaseAuthClient implements FirebaseAuthClient {
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
           email: email, password: password);
-      return _resultFor(credential.user);
+      return await _resultFor(credential.user);
     } on fb.FirebaseAuthException catch (e) {
       throw _mapFirebaseException(e);
     }
@@ -115,7 +115,7 @@ class LiveFirebaseAuthClient implements FirebaseAuthClient {
       }
       final credential = fb.GoogleAuthProvider.credential(idToken: idToken);
       final userCredential = await _auth.signInWithCredential(credential);
-      return _resultFor(userCredential.user,
+      return await _resultFor(userCredential.user,
           fallbackDisplayName: account.displayName,
           fallbackEmail: account.email);
     } on GoogleSignInException catch (e) {
@@ -153,7 +153,7 @@ class LiveFirebaseAuthClient implements FirebaseAuthClient {
           .whereType<String>()
           .join(' ')
           .trim();
-      return _resultFor(
+      return await _resultFor(
         userCredential.user,
         fallbackDisplayName: fullName.isEmpty ? null : fullName,
         fallbackEmail: appleCredential.email,

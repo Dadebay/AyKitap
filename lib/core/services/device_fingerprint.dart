@@ -31,7 +31,8 @@ class DeviceFingerprint {
     try {
       if (kIsWeb) {
         final info = await plugin.webBrowserInfo;
-        return _persistedFallback(seed: '${info.vendor}-${info.userAgent}');
+        return await _persistedFallback(
+            seed: '${info.vendor}-${info.userAgent}');
       }
       if (Platform.isAndroid) {
         final info = await plugin.androidInfo;
@@ -45,7 +46,7 @@ class DeviceFingerprint {
     } catch (_) {
       // Plugin unsupported/failed on this platform — fall back below.
     }
-    return _persistedFallback();
+    return await _persistedFallback();
   }
 
   /// Used where there's no stable hardware identifier (web, desktop, or a
