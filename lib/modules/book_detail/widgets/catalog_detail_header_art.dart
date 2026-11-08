@@ -124,8 +124,6 @@ class _CatalogDetailHeaderArtState extends State<CatalogDetailHeaderArt> {
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
                   colors: [
                     Colors.black.withValues(alpha: 0.55),
                     Colors.black.withValues(alpha: 0.30),
@@ -153,7 +151,8 @@ class _CatalogDetailHeaderArtState extends State<CatalogDetailHeaderArt> {
             right: widget.tabletCover ? null : 0,
             top: widget.tabletCover ? widget.topInset + 70 : 65,
             child: Align(
-              alignment: widget.tabletCover ? Alignment.topLeft : Alignment.center,
+              alignment:
+                  widget.tabletCover ? Alignment.topLeft : Alignment.center,
               widthFactor: widget.tabletCover ? 1 : null,
               heightFactor: widget.tabletCover ? 1 : null,
               child: BookCoverHero(

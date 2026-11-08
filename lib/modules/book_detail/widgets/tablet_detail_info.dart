@@ -27,7 +27,7 @@ class TabletDetailInfo extends StatelessWidget {
         Text(book.name,
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
+            style: const TextStyle(
                 fontSize: 38,
                 fontWeight: FontWeight.w800,
                 height: 1.15,

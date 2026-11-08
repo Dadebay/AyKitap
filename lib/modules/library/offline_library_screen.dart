@@ -1,7 +1,8 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
-import '../../core/layout/window_size_class.dart';
 import 'package:provider/provider.dart';
+
+import '../../core/layout/window_size_class.dart';
 import '../../core/localization/strings/library_strings.dart';
 import '../../core/models/library_book.dart';
 import '../../core/models/own_book.dart';

@@ -22,7 +22,6 @@ const _icons = [
 // The profile tab's slot in [_icons] — [_WheelNavBarIcons] swaps its
 // HugeIcons.strokeRoundedUser glyph for the signed-in user's actual
 // [ProfileAvatar] once one is set (see [ProfileAvatarService]).
-const _profileTabIndex = 0;
 
 // ── Geometry ─────────────────────────────────────────────────────────────
 const _barHeight = 42.0;

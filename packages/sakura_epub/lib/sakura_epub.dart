@@ -1,4 +1,4 @@
-library epub_viewer;
+library;
 
 export 'src/epub_viewer.dart';
 export 'src/epub_controller.dart';
