@@ -39,7 +39,8 @@ extension _BookOpenFlowActions on BookOpenFlow {
 
   Future<void> _topUp() async {
     final balance = context.read<AccountService>().balanceManat;
-    final price = book.price ?? 0;
+    final price = book.price;
+    if (price == null || price < 0) return;
     final pay = await InsufficientBalanceDialog.show(
       context,
       shortfallManat: balance == null ? null : price - balance,

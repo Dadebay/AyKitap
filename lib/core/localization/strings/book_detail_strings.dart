@@ -138,6 +138,12 @@ class BookDetailStrings {
   static String priceValue(int manat) => '$manat TMT';
   static String get buy =>
       t(tk: 'Satyn al', ru: 'Купить', tr: 'Satın al', en: 'Buy');
+  static String get priceUnavailable => t(
+        tk: 'Kitabyň bahasy elýeterli däl. Soňrak synanyşyň.',
+        ru: 'Цена книги недоступна. Попробуйте позже.',
+        tr: 'Kitabın fiyatı şu anda yok. Daha sonra tekrar deneyin.',
+        en: 'The book price is unavailable. Please try again later.',
+      );
 
   // catalog_book_detail_screen.dart — the real `GET /books/:id` detail page.
   static String get catalogLoadError => t(

@@ -74,6 +74,10 @@ class BookOpenFlow {
       case BookAccess.subscription:
         await _downloadAndOpen();
 
+      case BookAccess.priceUnavailable:
+        context.showAppSnackBar(BookDetailStrings.priceUnavailable,
+            isError: true);
+
       case BookAccess.needsLogin:
         if (retries <= 0) return;
         final loggedIn = await _login();
@@ -125,6 +129,11 @@ class BookOpenFlow {
     switch (access) {
       case BookAccess.purchased:
         return true;
+
+      case BookAccess.priceUnavailable:
+        context.showAppSnackBar(BookDetailStrings.priceUnavailable,
+            isError: true);
+        return false;
 
       case BookAccess.needsLogin:
         if (retries <= 0) return false;

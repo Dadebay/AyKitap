@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/localization/strings/book_detail_strings.dart';
 import '../../core/localization/strings/payment_strings.dart';
 import '../../core/models/book_detail.dart';
 import '../../core/navigation/app_navigator.dart';
@@ -47,10 +48,15 @@ class BookPurchaseScreen extends StatefulWidget {
 class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
   bool _processing = false;
 
-  int get _price => widget.book.price ?? 0;
+  int get _price => widget.book.price!;
 
   Future<void> _confirm() async {
     if (_processing) return;
+    if (widget.book.price == null || widget.book.price! <= 0) {
+      context.showAppSnackBar(BookDetailStrings.priceUnavailable,
+          isError: true);
+      return;
+    }
     final balance = context.read<AccountService>().balanceManat;
     if (balance == null || balance < _price) {
       unawaited(AnalyticsService.instance.logPurchaseStep(
@@ -84,6 +90,8 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
       context.showAppSnackBar(PaymentStrings.bookHasNoFileError, isError: true);
       return;
     }
+    final account = context.read<AccountService>();
+    final bookAccess = context.read<BookAccessService>();
     setState(() => _processing = true);
     try {
       logBookPurchase(
@@ -97,12 +105,6 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
           bookId: widget.book.id,
           bookFileId: file.id,
           bookName: widget.book.name);
-      // The backend has already moved the money; this just picks up the new
-      // number rather than guessing at it.
-      if (!mounted) return;
-      await context.read<AccountService>().refresh();
-      if (!mounted) return;
-      await context.read<BookAccessService>().markPurchased(widget.book.id);
     } on ApiException catch (e) {
       unawaited(AnalyticsService.instance.logPurchaseStep(
         step: 'failed',
@@ -115,8 +117,22 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
       setState(() => _processing = false);
       context.showAppSnackBar(e.message, isError: true);
       return;
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _processing = false);
+      context.showAppSnackBar(PaymentStrings.storePurchaseFailed,
+          isError: true);
+      return;
     }
 
+    // The server has accepted the purchase. A cache or balance refresh error
+    // must never turn a completed charge into a visible purchase failure.
+    try {
+      await bookAccess.markPurchased(widget.book.id);
+    } catch (_) {
+      // The next library sync can restore the local ownership cache.
+    }
+    unawaited(account.refresh().catchError((Object _) {}));
     if (!mounted) return;
     setState(() => _processing = false);
     AnalyticsService.instance.logPurchase(
@@ -153,6 +169,22 @@ class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
   @override
   Widget build(BuildContext context) {
     final book = widget.book;
+    if (book.price == null || book.price! <= 0) {
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        appBar: AppBar(
+          backgroundColor: AppColors.bg,
+          leading: const AppBackButton(size: 20),
+          title: Text(PaymentStrings.purchaseTitle),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(BookDetailStrings.priceUnavailable),
+          ),
+        ),
+      );
+    }
     final balance = context.watch<AccountService>().balanceManat;
     final enough = balance != null && balance >= _price;
     return Scaffold(

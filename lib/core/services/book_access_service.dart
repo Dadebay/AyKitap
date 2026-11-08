@@ -26,6 +26,20 @@ enum BookAccess {
 
   /// Not owned and the balance is short — the only way forward is a top-up.
   needsTopUp,
+
+  /// The API did not supply a usable price; never treat that as a free book.
+  priceUnavailable,
+}
+
+/// Evaluates a book that is neither owned nor covered by a subscription.
+/// A missing price is an unknown contract value, not a zero-price promotion.
+@visibleForTesting
+BookAccess accessForUnownedBook({required int? price, required int? balance}) {
+  if (price == null || price < 0) return BookAccess.priceUnavailable;
+  if (price == 0) return BookAccess.purchased;
+  return (balance ?? 0) >= price
+      ? BookAccess.needsPurchase
+      : BookAccess.needsTopUp;
 }
 
 /// The single place that decides whether a book can be opened. Screens ask
@@ -81,13 +95,10 @@ class BookAccessService extends ChangeNotifier {
     if (isPurchased(book.id)) return BookAccess.purchased;
     if (PremiumAccessService.instance.isPremium) return BookAccess.subscription;
 
-    final price = book.price ?? 0;
-    // A free book has nothing to buy — treat it as already owned rather
-    // than sending the user to a 0-manat checkout.
-    if (price <= 0) return BookAccess.purchased;
-
-    final balance = AccountService.instance.balanceManat ?? 0;
-    return balance >= price ? BookAccess.needsPurchase : BookAccess.needsTopUp;
+    return accessForUnownedBook(
+      price: book.price,
+      balance: AccountService.instance.balanceManat,
+    );
   }
 
   /// Re-reads `GET /books/all?bought=true` — the backend is the authority

@@ -18,7 +18,7 @@ class BookCtaRow extends StatelessWidget {
   /// disabled rather than flashing the wrong label for a frame.
   final BookAccess? access;
 
-  /// The book's price in manat; 0/null means free, so no buy button.
+  /// The book's price in manat; 0 means free, null means unavailable.
   final int? priceManat;
 
   /// 0–1 while downloading, null otherwise.
@@ -38,7 +38,7 @@ class BookCtaRow extends StatelessWidget {
     this.downloadProgress,
   });
 
-  bool get _isFree => (priceManat ?? 0) <= 0;
+  bool get _hasSalePrice => priceManat != null && priceManat! > 0;
 
   /// A book that's already owned has nothing left to sell — the "Satyn al"
   /// button is replaced by a passive "Satyn alnan" badge. A subscriber
@@ -53,7 +53,7 @@ class BookCtaRow extends StatelessWidget {
     // App Store IAP, so the standalone "Satyn al" CTA never appears — the
     // reader can still reach the book through a subscription instead.
     final isIOSStoreOnly = context.watch<PurchaseModeService>().isIOSStoreOnly;
-    final showBuySide = !_isFree && !isIOSStoreOnly;
+    final showBuySide = _hasSalePrice && !isIOSStoreOnly;
     return Row(
       children: [
         Expanded(
