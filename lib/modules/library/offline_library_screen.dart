@@ -1,22 +1,44 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
-import '../../core/theme/app_colors.dart';
+
+import '../../core/layout/window_size_class.dart';
+import '../../core/localization/strings/library_strings.dart';
+import '../../core/models/library_book.dart';
 import '../../core/models/own_book.dart';
+import '../../core/navigation/app_navigator.dart';
+import '../../core/services/analytics_service.dart';
+import '../../core/services/book_access_service.dart';
+import '../../core/services/downloaded_books_store.dart';
+import '../../core/services/downloaded_files_store.dart';
 import '../../core/services/own_books_store.dart';
+import '../../core/services/subscription_service.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/utils/stable_hash.dart';
+import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/own_book_spine_cover.dart';
+import '../../core/widgets/section_header.dart';
 import '../main_nav/main_nav_screen.dart';
 import '../reader/provider/reader_provider.dart';
+import '../reader/utils/catalog_book_opener.dart';
+import '../reader/utils/pdf_book_opener.dart';
+import '../reader/views/cbz_reader_screen.dart';
 import '../reader/views/reader_view.dart';
-import '../reader/views/pdf_reader_screen.dart';
-import '../../core/localization/strings/library_strings.dart';
+import 'widgets/library_book_cover.dart';
+import 'widgets/offline_library_actions.dart';
+import 'widgets/offline_library_empty_state.dart';
+import 'widgets/offline_library_header.dart';
+
+part 'offline_library_screen_sections.dart';
 
 /// TZ 12.6: shown right after the splash screen instead of the normal app
-/// when there's no network — the only content that can actually be opened
-/// with no connection is what's already saved on-device (the "Öz Kitaplarym"
-/// imports, copied into app-private storage by [OwnBooksStore]), so that's
-/// what this screen lists. A "Baglanyşygy barla" button re-checks
-/// connectivity and hands off to the normal app once it's back.
+/// when there's no network — everything that can actually be opened with no
+/// connection is what's already saved on-device: both the "Öz Kitaplarym"
+/// imports ([OwnBooksStore]) and any catalogue book that was downloaded
+/// while online and is still within its access window (purchased, or an
+/// as-yet-unexpired subscription — see [BookAccessService.canRead]). A
+/// "Baglanyşygy barla" button re-checks connectivity and hands off to the
+/// normal app once it's back.
 class OfflineLibraryScreen extends StatefulWidget {
   const OfflineLibraryScreen({super.key});
 
@@ -25,13 +47,16 @@ class OfflineLibraryScreen extends StatefulWidget {
 }
 
 class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
-  final _store = OwnBooksStore.instance;
+  final _ownBooks = OwnBooksStore.instance;
   bool _checking = false;
 
   @override
   void initState() {
     super.initState();
-    _store.load();
+    _ownBooks.load();
+    DownloadedBooksStore.instance.load();
+    DownloadedFilesStore.instance.load();
+    BookAccessService.instance.load();
   }
 
   Future<void> _checkConnection() async {
@@ -42,165 +67,105 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
     if (!mounted) return;
     setState(() => _checking = false);
     if (isOnline) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainNavScreen()));
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (_) => const MainNavScreen()));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(LibraryStrings.noInternetSnackbar)),
-      );
+      context.showAppSnackBar(LibraryStrings.noInternetSnackbar, isError: true);
     }
   }
 
-  void _openBook(OwnBook book) {
-    if (book.format == OwnBookFormat.pdf) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => PdfReaderScreen(filePath: book.filePath, title: book.title)));
-    } else {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ChangeNotifierProvider(
+  void _openOwnBook(OwnBook book) {
+    AnalyticsService.instance
+        .logBookOpened(id: book.id, format: book.format.name);
+    switch (book.format) {
+      case OwnBookFormat.pdf:
+        openPdfBook(context,
+            filePath: book.filePath,
+            title: book.title,
+            bookId: stableBookKey(book.id));
+      case OwnBookFormat.cbz:
+        context.push(CbzReaderScreen(
+            filePath: book.filePath,
+            title: book.title,
+            bookId: stableBookKey(book.id)));
+      case OwnBookFormat.epub:
+        context.push(
+          ChangeNotifierProvider(
             create: (_) => ReaderProvider(),
-            child: ReaderScreen(bookPath: book.filePath, bookId: book.id.hashCode, bookTitle: book.title),
+            child: ReaderScreen(
+                bookPath: book.filePath,
+                bookId: stableBookKey(book.id),
+                bookTitle: book.title),
           ),
-        ),
-      );
+        );
     }
+  }
+
+  /// Opens a downloaded catalogue book straight from disk — same as
+  /// Kitaplygym's own "Ýüklenenler" shelf, since a `GET /books/:id` detail
+  /// page (the online fallback that shelf has) is exactly what isn't
+  /// reachable here. [_readableCatalogBooks] already filters to books that
+  /// still pass this check, so the guard below is only for a verdict that
+  /// changed (e.g. a subscription expiring) between build and tap.
+  Future<void> _openCatalogBook(LibraryBook book) async {
+    final entry = DownloadedFilesStore.instance.best(book.id);
+    if (entry == null || !BookAccessService.instance.canRead(book.id)) {
+      if (mounted) {
+        context.showAppSnackBar(LibraryStrings.noInternetSnackbar,
+            isError: true);
+      }
+      return;
+    }
+    openCatalogBookFile(
+      context,
+      path: entry.path,
+      format: entry.format,
+      bookId: book.id,
+      title: book.name,
+      pageCount: book.pageCount,
+    );
+  }
+
+  /// Downloaded catalogue books that can still actually be opened offline —
+  /// on disk ([DownloadedFilesStore]) *and* within access
+  /// ([BookAccessService.canRead], which a lapsed subscription can fail even
+  /// though the file itself is still there).
+  List<LibraryBook> get _readableCatalogBooks {
+    final access = BookAccessService.instance;
+    return DownloadedBooksStore.instance.books
+        .where((b) =>
+            DownloadedFilesStore.instance.best(b.id) != null &&
+            access.canRead(b.id))
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    final ownBooks = context.watch<OwnBooksStore>().books;
+    context.watch<DownloadedBooksStore>();
+    context.watch<DownloadedFilesStore>();
+    context.watch<BookAccessService>();
+    context.watch<SubscriptionService>();
+    final catalogBooks = _readableCatalogBooks;
+    final isEmpty = ownBooks.isEmpty && catalogBooks.isEmpty;
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
-        child: ListenableBuilder(
-          listenable: _store,
-          builder: (context, _) {
-            final books = _store.books;
-            return Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(color: AppColors.grey3.withValues(alpha: 0.15), shape: BoxShape.circle),
-                        child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedWifiDisconnected01, color: AppColors.grey2, size: 22)),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(LibraryStrings.noInternetTitle, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800)),
-                            const SizedBox(height: 2),
-                            Text(LibraryStrings.noInternetSubtitle, style: TextStyle(color: AppColors.grey2, fontSize: 12.5)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: books.isEmpty
-                      ? _buildEmpty()
-                      : GridView.builder(
-                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            mainAxisSpacing: 18,
-                            crossAxisSpacing: 14,
-                            childAspectRatio: 0.62,
-                          ),
-                          itemCount: books.length,
-                          itemBuilder: (context, i) => _OfflineBookCover(book: books[i], onTap: () => _openBook(books[i])),
-                        ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
-                      onPressed: _checking ? null : _checkConnection,
-                      child: _checking
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                          : Text(LibraryStrings.checkConnection, style: const TextStyle(color: Colors.white, fontSize: 15.5, fontWeight: FontWeight.w700)),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmpty() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            HugeIcon(icon: HugeIcons.strokeRoundedBookOpen01, color: AppColors.grey3, size: 56),
-            const SizedBox(height: 14),
-            Text(LibraryStrings.noOfflineBooksTitle, style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            Text(
-              LibraryStrings.noOfflineBooksBody,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.grey2, fontSize: 13, height: 1.4),
+            const OfflineLibraryHeader(),
+            Expanded(
+              child: isEmpty
+                  ? const OfflineLibraryEmptyState()
+                  : CustomScrollView(
+                      slivers: _buildSlivers(
+                          ownBooks: ownBooks, catalogBooks: catalogBooks),
+                    ),
             ),
+            OfflineLibraryActions(
+                checking: _checking, onCheckConnection: _checkConnection),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Same placeholder-spine styling as the "Öz Kitaplarym" tab — there's no
-/// real cover art for a locally imported file, just a format badge + title.
-class _OfflineBookCover extends StatelessWidget {
-  final OwnBook book;
-  final VoidCallback onTap;
-  const _OfflineBookCover({required this.book, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final isPdf = book.format == OwnBookFormat.pdf;
-    return GestureDetector(
-      onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: isPdf ? const [Color(0xFF6B3B3B), Color(0xFF2E1919)] : const [Color(0xFF3B4A6B), Color(0xFF191F2E)],
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(4)),
-                child: Text(isPdf ? 'PDF' : 'EPUB', style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
-              ),
-              Text(
-                book.title,
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700, height: 1.2),
-              ),
-            ],
-          ),
         ),
       ),
     );

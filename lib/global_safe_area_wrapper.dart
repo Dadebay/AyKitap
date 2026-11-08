@@ -12,6 +12,10 @@ class GlobalSafeAreaWrapper extends StatelessWidget {
     super.key,
     required this.child,
     this.top = false,
+    // Every screen already manages its own bottom inset (WheelNavBar,
+    // sticky CTAs, etc. all read MediaQuery.padding.bottom themselves), so
+    // padding it again here left an extra strip of unpainted (black) space
+    // in the iPhone home-indicator area.
     this.bottom = true,
     this.left = true,
     this.right = true,
@@ -23,7 +27,7 @@ class GlobalSafeAreaWrapper extends StatelessWidget {
       value: _getSystemUiOverlayStyle(context),
       child: SafeArea(
         top: top,
-        bottom: true,
+        bottom: bottom,
         left: left,
         right: right,
         child: child,
@@ -32,7 +36,7 @@ class GlobalSafeAreaWrapper extends StatelessWidget {
   }
 
   SystemUiOverlayStyle _getSystemUiOverlayStyle(BuildContext context) {
-    return SystemUiOverlayStyle(
+    return const SystemUiOverlayStyle(
       statusBarColor: Colors.black,
       statusBarIconBrightness: Brightness.dark,
       statusBarBrightness: Brightness.light,

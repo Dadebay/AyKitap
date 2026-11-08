@@ -1,0 +1,148 @@
+<!-- One UI gives this 4x2 widget 401x208dp. Three equal flexible spaces sit
+     above, between, and below the two content bands, so the layout uses that
+     height without either leaving one large empty band or gluing content to
+     the card edges. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:id="@+id/streak_widget_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/aykitap_widget_background"
+        android:orientation="vertical"
+        android:weightSum="3"
+        android:paddingStart="10dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:background="@drawable/aykitap_widget_flame_glow"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:shadowColor="#88FF5C7D"
+                android:shadowDx="0"
+                android:shadowDy="2"
+                android:shadowRadius="7"
+                android:text="🔥"
+                android:textSize="25sp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:id="@+id/streak_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:adjustViewBounds="true"
+                    android:contentDescription="4 day streak"
+                    android:scaleType="fitStart" />
+
+                <ImageView
+                    android:id="@+id/streak_best"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:adjustViewBounds="true"
+                    android:contentDescription="Best: 12 days"
+                    android:scaleType="fitStart" />
+            </LinearLayout>
+
+            <!-- Two stacked lines, each with its own size/weight, rather than one
+                 TextView with a literal "\n" — a single TextView forces both
+                 lines to share one textSize/textStyle, which is why the count
+                 and its caption used to look like the same weight instead of a
+                 real number-then-label hierarchy.
+
+                 The caption is just "PAGES", not "pages today": the two-word
+                 version was what made this badge nearly 80dp wide — wider than
+                 the number it labels and wide enough to squeeze the streak
+                 title beside it — while "today" is already what the whole
+                 widget is reporting. A minWidth keeps the badge from changing
+                 shape between a 1- and a 3-digit count. -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/aykitap_widget_stat_pill"
+                android:gravity="center"
+                android:minWidth="46dp"
+                android:orientation="vertical"
+                android:paddingStart="9dp"
+                android:paddingTop="5dp"
+                android:paddingEnd="9dp"
+                android:paddingBottom="5dp">
+
+                <ImageView
+                    android:id="@+id/streak_today_pages_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:adjustViewBounds="true"
+                    android:contentDescription="18"
+                    android:scaleType="fitCenter" />
+
+                <ImageView
+                    android:id="@+id/streak_pages_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:adjustViewBounds="true"
+                    android:contentDescription="PAGES"
+                    android:scaleType="fitCenter" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/aykitap_widget_week_background"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingStart="5dp"
+            android:paddingTop="5dp"
+            android:paddingEnd="5dp"
+            android:paddingBottom="4dp">
+
+            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_1_circle" style="@style/AykitapStreakDayCircle" /><ImageView android:id="@+id/streak_day_1_label" style="@style/AykitapStreakDayLabel" android:contentDescription="M" /></LinearLayout>
+            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_2_circle" style="@style/AykitapStreakDayCircle" /><ImageView android:id="@+id/streak_day_2_label" style="@style/AykitapStreakDayLabel" android:contentDescription="T" /></LinearLayout>
+            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_3_circle" style="@style/AykitapStreakDayCircle" /><ImageView android:id="@+id/streak_day_3_label" style="@style/AykitapStreakDayLabel" android:contentDescription="W" /></LinearLayout>
+            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_4_circle" style="@style/AykitapStreakDayCircle" /><ImageView android:id="@+id/streak_day_4_label" style="@style/AykitapStreakDayLabel" android:contentDescription="T" /></LinearLayout>
+            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_5_circle" style="@style/AykitapStreakDayCircle" android:text="•" /><ImageView android:id="@+id/streak_day_5_label" style="@style/AykitapStreakDayLabel" android:contentDescription="F" /></LinearLayout>
+            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_6_circle" style="@style/AykitapStreakDayCircle" /><ImageView android:id="@+id/streak_day_6_label" style="@style/AykitapStreakDayLabel" android:contentDescription="S" /></LinearLayout>
+            <LinearLayout style="@style/AykitapStreakDayColumn"><TextView android:id="@+id/streak_day_7_circle" style="@style/AykitapStreakDayCircle" /><ImageView android:id="@+id/streak_day_7_label" style="@style/AykitapStreakDayLabel" android:contentDescription="S" /></LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical" />
+    </LinearLayout>
+</FrameLayout>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark launch background (matches AppColors.bg in dark mode), used when
+         the OS is in dark mode. MainActivity still overrides this with the
+         app's own stored theme once it starts. -->
+    <color name="splash_bg">#13131A</color>
+</resources>

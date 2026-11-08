@@ -1,12 +1,59 @@
 import 'dart:async';
+import 'dart:developer';
+
+import 'package:flutter/cupertino.dart' show CupertinoSlidingSegmentedControl;
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/models/book.dart';
-import '../book_detail/book_detail_screen.dart';
-import '../filter/filter_screen.dart';
-import '../../core/localization/strings/search_strings.dart';
 
+import '../../core/localization/app_locale.dart';
+import '../../core/localization/strings/search_strings.dart';
+import '../../core/models/author_detail.dart';
+import '../../core/models/genre.dart';
+import '../../core/models/library_book.dart';
+import '../../core/navigation/app_navigator.dart';
+import '../../core/network/api_exception.dart';
+import '../../core/services/analytics_service.dart';
+import '../../core/services/author_api_service.dart';
+import '../../core/services/book_list_api_service.dart';
+import '../../core/services/genre_api_service.dart';
+import '../../core/services/search_discover_cache.dart';
+import '../../core/theme/app_colors.dart';
+import '../filter/controller/filter_controller.dart'
+    show
+        BookFormatFilter,
+        BookFormatFilterLabel,
+        SortBy,
+        SortByLabel,
+        kDefaultSortBy,
+        kDefaultYearRange;
+import '../filter/filter_screen.dart';
+import '../home/widgets/stagger_fade_in.dart';
+import '../main_nav/widgets/wheel_nav_bar.dart';
+import 'author_page_merge.dart';
+import 'search_result_diagnostics.dart';
+import 'widgets/author_result_grid.dart';
+import 'widgets/quick_chip.dart';
+import 'widgets/search_error_state.dart';
+import 'widgets/search_no_results_state.dart';
+import 'widgets/search_result_grid.dart';
+import 'widgets/suggest_book_button.dart';
+
+part 'search_screen_body.dart';
+part 'search_screen_controls.dart';
+part 'search_screen_discover.dart';
+part 'search_screen_filter.dart';
+part 'search_screen_query.dart';
+part 'search_screen_scroll.dart';
+part 'search_screen_search.dart';
+
+enum _SearchMode { book, author }
+
+/// The Search tab: a text field over either a pre-search "discover" grid
+/// (search_screen_discover.dart) or live results (search_screen_search.dart),
+/// with a Kitap/Awtor mode toggle, genre chips and a full filter page
+/// (search_screen_filter.dart) all narrowing the same query. Split across
+/// the `part` files above as `extension`s on the private State class, the
+/// same way [ReaderProvider] and the PDF/CBZ reader screens are.
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
@@ -18,231 +65,193 @@ class _SearchScreenState extends State<SearchScreen> {
   final _controller = TextEditingController();
   Timer? _debounce;
 
+  // Books per `GET /books/all` page — both the discover grid and book-mode
+  // search results page through this. A page shorter than this is taken to
+  // mean the backend has nothing left (see `_discoverHasMore`/
+  // `_searchHasMore`), which is only approximate for the multi-language/
+  // multi-format fan-out (BookApiService._listBooksFanOut merges several
+  // per-request pages, so a merged page's length isn't directly comparable)
+  // — an acceptable rough edge given how rarely that combination is picked.
+  static const _pageSize = 30;
+
   // Debounced live query — only set once ≥2 chars have been typed.
   String _query = '';
-  // Quick chips selected on this screen.
-  final Set<String> _chips = {};
   // Result of the full filter page, if it was applied.
   bool _filterActive = false;
-  List<Book>? _filterBooks;
+  // Book languages picked on the filter page (`GET /book-languages` ids) —
+  // folded into the same `GET /books/all` request as the text query and the
+  // genre chip, so language narrows whatever is already showing.
+  Set<int> _filterLanguageIds = {};
+  // File formats picked on the filter page, sent as `book_format`
+  // (`pdf`/`epub`/`cbz`) — same deal: it narrows the current query rather
+  // than replacing it.
+  Set<BookFormatFilter> _filterFormats = {};
+  // "Çap senesi" window picked on the filter page — folded into the same
+  // request as `start_year`/`end_year`. Both null while untouched.
+  int? _filterStartYear;
+  int? _filterEndYear;
+  // Ordering picked on the filter page, sent as `sort_by`/`sort_order`.
+  // Unlike the filters above this always has a value, and it applies to the
+  // discover grid too — sorting isn't a narrowing, so it has something to do
+  // even when nothing is being searched for.
+  SortBy _filterSort = kDefaultSortBy;
+  // Set once the filter page has actually been applied — [_filterSort]
+  // starts equal to [kDefaultSortBy], the same value "Ýüklenen wagty
+  // (täzeden köne)" carries, so equality alone can't tell "never touched"
+  // apart from "the user picked that option on purpose". See
+  // [_SearchScreenDiscover._discoverSort].
+  bool _sortChosenByUser = false;
 
-  // Any active filter lights the red badge on the filter button.
-  bool get _hasActiveFilters => _filterActive || _chips.isNotEmpty;
+  // True once the grid below has been scrolled away from its top: the page
+  // title, the Kitap/Awtor toggle and the chip row fold away so the covers
+  // get the whole screen, and unfold again the moment the grid is back at
+  // the top. The search field itself never leaves — losing it mid-scroll
+  // would mean scrolling all the way back up just to edit the query.
+  bool _headerCollapsed = false;
 
-  // What the grid shows, in priority order: a live text query, then a
-  // returned filter set / selected chips, otherwise the full browse catalogue.
-  List<Book> get _gridBooks {
-    if (_query.length >= 2) {
-      return MockData.generateBooks(18, seed: _query.length * 7 + _query.codeUnitAt(0));
-    }
-    if (_filterActive && _filterBooks != null) return _filterBooks!;
-    if (_chips.isNotEmpty) return MockData.generateBooks(18, seed: _chips.length * 13 + 5);
-    return MockData.books;
+  // Real genres (`GET /genres/all`, top-level) for the chip row.
+  List<Genre>? _genres;
+
+  /// Which language [_genres] was fetched (or read from cache) for. The names
+  /// are translated server-side, so this is what tells a chip row that is
+  /// merely *stale* from one that is simply in the wrong language — see
+  /// [_loadGenres], which the [AppLocale] listener re-runs on every switch.
+  AppLanguageCode? _genresLanguage;
+  // Multi-select: tapping a genre chip toggles it independently of whichever
+  // others are already selected. Combined with `_query` in the same search
+  // request rather than navigating away, so text + genres can narrow results
+  // together; more than one genre fans out into one request per genre and
+  // merges the results — see [BookListApiService.listBooks].
+  Set<int> _selectedGenreIds = {};
+
+  // Which field the typed text matches — the backend treats book-title
+  // search (`search=`) and author-name search (`authors=`) as two separate
+  // params, not one combined field, so the user picks which one they mean.
+  _SearchMode _searchMode = _SearchMode.book;
+
+  // Live search, fired once `_query` settles (see `_onChanged`'s debounce).
+  // null = no request has settled yet for the current query (either empty,
+  // or still debouncing/in flight); non-null once one has. Book mode fills
+  // [_searchResults] (`GET /books/all?search=`); author mode fills
+  // [_authorResults] (`GET /authors/search?search=`) — a dedicated
+  // author-matching endpoint, so the two modes no longer share one result
+  // list.
+  List<LibraryBook>? _searchResults;
+  List<AuthorSearchResult>? _authorResults;
+  bool _searching = false;
+  String? _searchError;
+  // Result pagination, shared by both modes — the two are mutually exclusive
+  // and switching between them re-runs the search from page 1 (see
+  // [_setSearchMode]), so one set of counters is enough. Author mode pages
+  // through `GET /authors/search` the same way book mode pages
+  // `GET /books/all`; see [mergeAuthorPage] for how its "has more" is decided.
+  int _searchPage = 1;
+  bool _searchHasMore = true;
+  bool _searchLoadingMore = false;
+  // Guards against a slower, older request's response landing after a
+  // faster, newer one — only the response whose id still matches this is
+  // applied, so a stale result never clobbers what the user is now seeing.
+  int _searchRequestId = 0;
+
+  // Shown under the tab bar before the user has typed/selected anything —
+  // a default "discover" grid rather than an empty screen. The backend dev
+  // asked that this not be a real random order: true randomization has no
+  // stable sort underneath it, so the same page boundary can't be
+  // reproduced across requests and pagination breaks. [_discoverSort]'s
+  // day-of-the-week rotation stands in for it instead — see there.
+  List<LibraryBook>? _discoverBooks;
+  bool _discoverLoading = false;
+  String? _discoverError;
+  int _discoverPage = 1;
+  bool _discoverHasMore = true;
+  bool _discoverLoadingMore = false;
+  // Pinned at page 1 (see [_discoverSort]) and reused by every load-more of
+  // the same run — re-deriving it on each page instead would let the sort
+  // actually change mid-scroll on the rare request that straddles midnight.
+  (String, String) _discoverActiveSort = ('created_at', 'DESC');
+  // Same stale-response guard as [_searchRequestId] — a sort change (a
+  // fresh page-1 load) can otherwise land after an in-flight load-more's
+  // response and have that older page's books appended on top of it.
+  int _discoverRequestId = 0;
+
+  // Author mode's counterpart of the fields above — a default author list
+  // shown before any name is typed, fetched lazily the first time Author
+  // mode is opened and kept (rather than re-fetched) on every switch back to
+  // it, then paged as the grid is scrolled exactly like the book one.
+  // `GET /authors/search` takes no genre/language/format filters, so there's
+  // nothing else to mirror from the book discover state.
+  List<AuthorSearchResult>? _discoverAuthors;
+  bool _discoverAuthorsLoading = false;
+  String? _discoverAuthorsError;
+  int _discoverAuthorsRequestId = 0;
+  int _discoverAuthorsPage = 1;
+  bool _discoverAuthorsHasMore = true;
+  bool _discoverAuthorsLoadingMore = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGenres();
+    _loadDiscoverBooks();
+    // `GET /genres/all` returns each genre's `name` pre-translated server-side
+    // off the `Accept-Language` header [DioClient] sends (see
+    // [AppLocale.current]) — unlike `GET /book-languages`, whose response
+    // already carries all three names and needs no refetch. Genres were only
+    // ever fetched once, in initState, so switching language later left the
+    // chip row showing the old language until the app restarted.
+    AppLocale.instance.addListener(_loadGenres);
   }
+
+  // One per grid *kind* rather than one shared controller: book and author
+  // grids are different widget types, so switching modes mounts the new
+  // scroll view before the old one is unmounted, and a single controller
+  // would briefly be attached to two positions at once — which asserts.
+  // Within a kind the element is reused (results and discover are the same
+  // widget), so the position simply carries over.
+  final ScrollController _bookGridScroll = ScrollController();
+  final ScrollController _authorGridScroll = ScrollController();
 
   @override
   void dispose() {
+    AppLocale.instance.removeListener(_loadGenres);
+    _bookGridScroll.dispose();
+    _authorGridScroll.dispose();
     _controller.dispose();
     _debounce?.cancel();
     super.dispose();
   }
 
-  void _onChanged(String value) {
-    _debounce?.cancel();
-    // Iň az 2 harp ýazylandan soň netijeler peýda bolýar (debounce 300ms).
-    if (value.trim().length < 2) {
-      if (_query.isNotEmpty) setState(() => _query = '');
-      return;
-    }
-    _debounce = Timer(const Duration(milliseconds: 300), () {
-      setState(() => _query = value.trim());
-    });
-  }
+  bool get _hasQuery => _query.length >= 2;
+  // A language, format or year filter alone is enough to show results in
+  // Book mode — they're real backend filters, same as a genre chip. Sort is
+  // deliberately not in this list: it reorders whatever is on screen instead
+  // of narrowing it, so on its own it just re-sorts the discover grid.
+  // Author mode has no equivalent on `GET /authors/search` (just `search`),
+  // so it needs actual typed text.
+  bool get _shouldShowResults => _searchMode == _SearchMode.author
+      ? _hasQuery
+      : _hasQuery ||
+          _selectedGenreIds.isNotEmpty ||
+          _filterLanguageIds.isNotEmpty ||
+          _filterFormats.isNotEmpty ||
+          _filterStartYear != null ||
+          _filterEndYear != null;
 
-  void _clearQuery() {
-    _controller.clear();
-    _debounce?.cancel();
-    setState(() => _query = '');
-  }
+  // chips aren't in here on purpose: a selected one is already visibly
+  // Any active filter lights the red badge on the filter button. The genre
+  // highlighted in the row right next to the button.
+  bool get _hasActiveFilters => _filterActive;
 
-  void _toggleChip(String chip) {
-    setState(() => _chips.contains(chip) ? _chips.remove(chip) : _chips.add(chip));
-  }
-
-  Future<void> _openFilter() async {
-    final res = await Navigator.push<FilterResult>(
-      context,
-      MaterialPageRoute(builder: (_) => const FilterScreen()),
-    );
-    if (res != null && mounted) {
-      setState(() {
-        _filterActive = res.active;
-        _filterBooks = res.books;
-      });
-    }
-  }
+  RangeValues get _filterYearRange => RangeValues(
+        (_filterStartYear ?? kDefaultYearRange.start).toDouble(),
+        (_filterEndYear ?? kDefaultYearRange.end).toDouble(),
+      );
 
   @override
-  Widget build(BuildContext context) {
-    final books = _gridBooks;
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-              child: Text(SearchStrings.title, style: TextStyle(color: AppColors.white, fontSize: 26, fontWeight: FontWeight.w800)),
-            ),
-            _buildSearchBar(),
-            const SizedBox(height: 12),
-            _buildChipsRow(),
-            const SizedBox(height: 8),
-            Expanded(child: _buildGrid(books)),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => _buildScreen(context);
 
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        height: 50,
-        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14)),
-        child: Row(
-          children: [
-            const SizedBox(width: 14),
-            HugeIcon(icon: HugeIcons.strokeRoundedSearch01, color: AppColors.grey2, size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                onChanged: _onChanged,
-                textInputAction: TextInputAction.search,
-                style: TextStyle(color: AppColors.white, fontSize: 15),
-                decoration: InputDecoration(
-                  hintText: SearchStrings.searchHint,
-                  hintStyle: TextStyle(color: AppColors.grey3, fontSize: 14.5),
-                  border: InputBorder.none,
-                ),
-              ),
-            ),
-            if (_controller.text.isNotEmpty)
-              GestureDetector(
-                onTap: _clearQuery,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: HugeIcon(icon: HugeIcons.strokeRoundedCancel01, color: AppColors.grey2, size: 18),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildChipsRow() {
-    return SizedBox(
-      height: 40,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        children: [
-          // Filter button (opens the full filter page) with a red badge
-          // whenever any filter is active.
-          GestureDetector(
-            onTap: _openFilter,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12)),
-                  child: HugeIcon(icon: HugeIcons.strokeRoundedFilterHorizontal, color: AppColors.primary, size: 20),
-                ),
-                if (_hasActiveFilters)
-                  Positioned(
-                    top: -2,
-                    right: -2,
-                    child: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE53935),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.bg, width: 2),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          for (final chip in MockData.quickFilterChips) ...[
-            _QuickChip(label: chip, selected: _chips.contains(chip), onTap: () => _toggleChip(chip)),
-            const SizedBox(width: 8),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGrid(List<Book> books) {
-    if (books.isEmpty) {
-      return Center(child: Text(SearchStrings.noResults, style: TextStyle(color: AppColors.grey2, fontSize: 15)));
-    }
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 0.66,
-      ),
-      itemCount: books.length,
-      itemBuilder: (_, i) {
-        final book = books[i];
-        return GestureDetector(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BookDetailScreen(book: book))),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              color: AppColors.card,
-              child: Image.asset(book.coverImage, fit: BoxFit.cover),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _QuickChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  const _QuickChip({required this.label, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.card,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: selected ? AppColors.primary : AppColors.border),
-        ),
-        child: Text(label, style: TextStyle(color: selected ? Colors.white : AppColors.grey1, fontSize: 13, fontWeight: FontWeight.w600)),
-      ),
-    );
-  }
+  /// `setState` is `@protected` on [State] — see [PdfReaderScreen]'s
+  /// equivalent wrapper for why the `extension`s in the part files above
+  /// need this instead of calling `setState(...)` directly.
+  void _setState(VoidCallback fn) => setState(fn);
 }

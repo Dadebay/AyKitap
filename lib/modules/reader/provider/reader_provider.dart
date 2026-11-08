@@ -1,352 +1,231 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_epub_viewer/flutter_epub_viewer.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:sakura_epub/sakura_epub.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/layout/window_size_class.dart';
+import '../../../core/models/bookmark.dart';
+import '../../../core/models/reading_note.dart';
+import '../../../core/services/bookmarks_store.dart';
+import '../../../core/services/last_read_book_store.dart';
+import '../../../core/services/notes_store.dart';
+import '../../../core/services/reading_progress_reporter.dart';
 import '../../../core/services/streak_service.dart';
+import '../../../core/theme/highlight_colors.dart';
+import '../../../core/theme/theme_controller.dart';
+import '../utils/reader_brightness_controller.dart';
+import '../utils/reader_streak_ping.dart';
+import 'reader_enums.dart';
+import 'reader_progress_snapshot.dart';
 
-enum ReaderThemeMode { white, sepia, dark, black }
+export 'reader_enums.dart';
+export 'reader_progress_snapshot.dart';
 
-enum ReaderFontFamily { sfPro, newYork, gilroy }
+part 'reader_provider_lifecycle.dart';
+part 'reader_provider_chapters.dart';
+part 'reader_provider_callbacks.dart';
+part 'reader_provider_ui_actions.dart';
+part 'reader_provider_appearance.dart';
+part 'reader_provider_theme_css.dart';
+part 'reader_provider_bookmarks.dart';
+part 'reader_provider_persistence.dart';
+part 'reader_provider_layout.dart';
 
-class ReaderProvider extends ChangeNotifier {
+/// Drives one open EPUB (TZ §12): the WebView bridge in [epubController],
+/// reading position/progress, chapters/TOC, highlights, appearance settings
+/// and the streak/brightness side effects that go with an open book.
+///
+/// One [ReaderProvider] instance is created per reader screen (see
+/// `docs/provider-inventory.md` — it is *not* a `.instance` singleton), so
+/// its state resets naturally when the screen is popped and a fresh one is
+/// pushed for the next book.
+///
+/// The implementation is split by responsibility across the `part` files
+/// listed above — chapters/TOC lookup, epub.js callbacks, UI actions,
+/// appearance settings, theme/CSS building and progress persistence — each
+/// contributing `extension` members on this class so the split is purely
+/// mechanical: every method below still resolves and behaves exactly as it
+/// did when the whole class lived in one file. Fields stay here because Dart
+/// doesn't allow splitting one class's field declarations across files.
+class ReaderProvider extends ChangeNotifier with WidgetsBindingObserver {
   // ── Epub controller (low-level WebView bridge) ──────────────────────────
   final EpubController epubController = EpubController();
 
-  // ── Page state ───────────────────────────────────────────────────────────
+  // ── Page state (see reader_provider_callbacks.dart) ─────────────────────
   int _currentPage = 0;
   int _totalPages = 0;
   int? _lastLoggedPage;
   double _progress = 0.0;
   String _currentCfi = '';
-  String _currentHref = '';
   bool _isAtLastPage = false;
 
-  int get currentPage => _currentPage;
-  int get totalPages => _totalPages;
-  double get progress => _progress;
-  String get currentCfi => _currentCfi;
-  bool get isAtLastPage => _isAtLastPage;
+  /// When the book last actually moved. Read by [ReaderTapGate] to tell a
+  /// scroll or page turn apart from a tap — the WebView's own touch
+  /// coordinates can't be trusted for that while a page transition is
+  /// animating (see that class's doc comment).
+  DateTime? _lastRelocationAt;
 
-  // ── Loading state ────────────────────────────────────────────────────────
+  /// True from the moment a book with a saved position starts opening until
+  /// that position is confirmed reached (or the attempt gives up).
+  ///
+  /// While set, relocations still drive the UI but are *not* persisted.
+  /// Applying the saved font size, theme and spread in [onEpubLoaded] reflows
+  /// the book, and epub.js's re-layout can report the current *section's*
+  /// start instead of the page the book actually opened at. Letting that
+  /// reach disk is what walked the saved position backwards a little further
+  /// on every reopen — the reader left off at 11% and came back to 4%.
+  /// See [_verifyRestoredPosition].
+  bool _restoringPosition = false;
+
+  /// The progress this book was last left at, snapshotted in `initialize`
+  /// before any relocation overwrites [_progress]. The target
+  /// [_verifyRestoredPosition] checks the opened position against.
+  double _restoreTargetProgress = 0.0;
+
+  /// How long to let [onEpubLoaded]'s appearance reflow settle before
+  /// checking where the book actually landed.
+  static const _restoreSettleDelay = Duration(milliseconds: 900);
+
+  /// How far off the saved point the book may come to rest before
+  /// [_verifyRestoredPosition] re-asserts the saved CFI.
+  ///
+  /// Deliberately small. The old value (0.005, half a percent of the whole
+  /// book) was wider than a screen of text in anything longer than a couple
+  /// of hundred pages, so a book that opened one screen off — the reported
+  /// symptom — sat inside the tolerance and was never corrected. A screen is
+  /// the unit that matters here: landing on the wrong one is exactly what the
+  /// reader notices. This is narrow enough to catch that while still
+  /// absorbing the sub-screen difference between a CFI and the start of the
+  /// page it sits on.
+  static const _restoreDriftTolerance = 0.0005;
+
+  /// Publishes the page-scoped slice of the state above (see
+  /// [ReaderProgressSnapshot]) on every relocation, separately from this
+  /// provider's own [notifyListeners] — see reader_provider_callbacks.dart's
+  /// `_updateProgressSnapshot` for why.
+  final ValueNotifier<ReaderProgressSnapshot> _progressNotifier =
+      ValueNotifier(const ReaderProgressSnapshot());
+
+  // ── Loading state (see reader_provider_lifecycle.dart) ──────────────────
+  /// Whether `initialize` has finished reading this book's saved position,
+  /// appearance settings and font off disk.
+  ///
+  /// The viewer is not built until it has: everything that decides where the
+  /// book opens — the saved CFI, the font, the type size, the theme, the
+  /// spread — is read asynchronously, while `EpubViewer` reads them once, at
+  /// the moment its WebView finishes loading. Building it earlier is a race
+  /// on which of the two wins, and losing it means opening a book at the
+  /// wrong place or in the wrong typeface.
+  bool _initialized = false;
   bool _isLoading = true;
   bool _isProgressSaving = false;
+  bool _renditionConfigured = false;
+  bool _loadFailed = false;
+  Timer? _loadTimeoutTimer;
+  static const _loadTimeout = Duration(seconds: 30);
 
-  bool get isLoading => _isLoading;
-  bool get isProgressSaving => _isProgressSaving;
-
-  // ── Chapters ─────────────────────────────────────────────────────────────
+  // ── Chapters (see reader_provider_chapters.dart) ─────────────────────────
   List<EpubChapter> _chapters = [];
-  List<EpubChapter> get chapters => _chapters;
+  String _currentHref = '';
+  String _currentTocHref = '';
 
-  // ── UI state ─────────────────────────────────────────────────────────────
-  bool _showControls = false;
-  bool get showControls => _showControls;
-
+  // ── UI state (see reader_provider_ui_actions.dart) ──────────────────────
+  bool _showControls = true;
   String _selectedText = '';
   String? _selectedCfi;
   Rect? _selectionRect;
 
-  String get selectedText => _selectedText;
-  String? get selectedCfi => _selectedCfi;
-  Rect? get selectionRect => _selectionRect;
-  bool get hasSelection => _selectedText.isNotEmpty;
+  // ── Theme & font (see reader_provider_appearance.dart) ──────────────────
+  /// Bounds of the font-size slider, in CSS px. The reader's viewport is
+  /// `width=device-width, initial-scale=1`, so 1 CSS px is 1 dp — these are
+  /// directly comparable to Flutter font sizes.
+  static const double minFontSize = 12.0;
+  static const double maxFontSize = 28.0;
 
-  // ── Theme & font ─────────────────────────────────────────────────────────
+  /// First-run body size, used until the reader saves a choice of its own.
+  /// Sits at the centre of [minFontSize]–[maxFontSize], so there's equal room
+  /// to adjust either way, and matches what mainstream e-readers open at —
+  /// comfortably above Material's 16 dp body text, which is sized for UI
+  /// labels rather than for pages of prose.
+  static const double defaultFontSize = 20.0;
+
   ReaderThemeMode _themeMode = ReaderThemeMode.white;
-  ReaderFontFamily _fontFamily = ReaderFontFamily.sfPro;
-  double _fontSize = 18.0;
+  ReaderFontFamily _fontFamily = ReaderFontFamily.sanFrancisco;
+  double _fontSize = defaultFontSize;
   double _lineSpacing = 1.5;
+  double _brightness = 1.0;
+  double _eyeCare = 0.0;
 
-  ReaderThemeMode get themeMode => _themeMode;
-  ReaderFontFamily get fontFamily => _fontFamily;
-  double get fontSize => _fontSize;
-  double get lineSpacing => _lineSpacing;
+  // ── Page transition & reading direction (see reader_provider_appearance.dart) ──
+  ReaderPageTransition _pageTransition = ReaderPageTransition.scroll;
+  bool _leftHandMode = false;
 
-  EpubTheme get currentEpubTheme => _buildEpubTheme();
+  // ── Two-page spread (see reader_provider_layout.dart) ────────────────────
+  WindowWidthClass _windowWidth = WindowWidthClass.compact;
+  Rect? _verticalHinge;
+  bool _spreadActive = false;
 
-  // ── Book info ─────────────────────────────────────────────────────────────
+  // ── Book info (see reader_provider_lifecycle.dart / _persistence.dart) ──
   int? _bookId;
+  String _bookTitle = '';
   Timer? _saveTimer;
+  String _savedCfi = '';
+  String? _savedLocationsJson;
 
-  // ── Streak ping (TZ §9.1: "Her 30 sek-de server-e ping iberilýär") ────────
-  Timer? _streakPingTimer;
-  static const _streakPingInterval = Duration(seconds: 30);
+  /// The reader font, base64-encoded, read from assets in `initialize` so it
+  /// can be handed to `EpubViewer.initialFontBase64` and be in place for the
+  /// book's *first* layout. See [ReaderProviderThemeCss._loadReaderFontBase64].
+  String? _readerFontBase64;
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Init
-  // ─────────────────────────────────────────────────────────────────────────
+  // ── Streak ping & brightness (see reader_provider_lifecycle.dart / _appearance.dart) ──
+  final ReaderStreakPing _streakPing = ReaderStreakPing();
+  // Changed from the notification panel rather than the settings sheet's
+  // slider — routed into the same setter, so it is applied and saved
+  // identically. See [ReaderBrightnessController].
+  late final ReaderBrightnessController _brightnessController =
+      ReaderBrightnessController(onExternalChange: setBrightness);
+  bool _lifecycleObserverAdded = false;
 
-  Future<void> initialize({required int bookId}) async {
-    _bookId = bookId;
-    _isLoading = true;
-    notifyListeners();
+  /// Set at the top of [dispose] so any callback still in flight (a relocation
+  /// the WebView fires mid-teardown, a timer that raced the cancel) becomes a
+  /// no-op instead of calling `notifyListeners`/[ValueNotifier.value] on an
+  /// already-disposed [ChangeNotifier] — see [_notify] and
+  /// reader_provider_callbacks.dart's `_updateProgressSnapshot`.
+  bool _disposed = false;
 
-    final prefs = await SharedPreferences.getInstance();
-    _progress = prefs.getDouble('book_${bookId}_progress') ?? 0.0;
-    _currentPage = prefs.getInt('book_${bookId}_page') ?? 0;
-    _lastLoggedPage = null;
-
-    final savedTheme = prefs.getInt('reader_theme') ?? 0;
-    _themeMode = ReaderThemeMode.values[savedTheme.clamp(0, ReaderThemeMode.values.length - 1)];
-
-    final savedFont = prefs.getInt('reader_font') ?? 0;
-    _fontFamily = ReaderFontFamily.values[savedFont.clamp(0, ReaderFontFamily.values.length - 1)];
-
-    _fontSize = prefs.getDouble('reader_font_size') ?? 18.0;
-    _lineSpacing = prefs.getDouble('reader_line_spacing') ?? 1.5;
-
-    notifyListeners();
-
-    _streakPingTimer?.cancel();
-    _streakPingTimer = Timer.periodic(_streakPingInterval, (_) {
-      StreakService.instance.recordActiveSeconds(_streakPingInterval.inSeconds);
-    });
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Epub viewer callbacks
-  // ─────────────────────────────────────────────────────────────────────────
-
-  void onEpubLoaded() {
-    log('📖 EPUB loaded');
-    _isLoading = false;
-    notifyListeners();
-
-    // Restore reading position
-    if (_progress > 0.0) {
-      Future.delayed(const Duration(milliseconds: 600), () {
-        epubController.toProgressPercentage(_progress);
-      });
-    }
-  }
-
-  void onChaptersLoaded(List<EpubChapter> chapters) {
-    log('📑 Chapters loaded: ${chapters.length}');
-    _chapters = chapters;
-    notifyListeners();
-  }
-
-  void onRelocated(EpubLocation location) {
-    _progress = location.progress;
-    _currentCfi = location.startCfi;
-    _currentHref = location.href;
-    notifyListeners();
-
-    // Debounced save
-    _saveTimer?.cancel();
-    _saveTimer = Timer(const Duration(seconds: 2), _saveProgress);
-  }
-
-  void onPageChanged(int current, int total) {
-    _currentPage = current;
-    _totalPages = total;
-    _isAtLastPage = current >= total - 1;
-    // Only forward turns count as "pages read" — and the very first callback
-    // after a load/position-restore is skipped so jumping back into a book
-    // isn't logged as having read every page up to that point.
-    if (_lastLoggedPage != null && current > _lastLoggedPage!) {
-      StreakService.instance.recordPageRead(count: (current - _lastLoggedPage!).clamp(1, 5));
-    }
-    _lastLoggedPage = current;
-    notifyListeners();
-  }
-
-  void onTextSelected(EpubTextSelection selection) {
-    _selectedText = selection.selectedText;
-    _selectedCfi = selection.selectionCfi;
-    notifyListeners();
-  }
-
-  void onSelection(String text, String? cfi, Rect? selectionRect, Rect? viewRect) {
-    _selectedText = text;
-    _selectedCfi = cfi;
-    _selectionRect = selectionRect;
-    notifyListeners();
-  }
-
-  void onDeselection() {
-    _selectedText = '';
-    _selectedCfi = null;
-    _selectionRect = null;
-    notifyListeners();
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // UI actions
-  // ─────────────────────────────────────────────────────────────────────────
-
-  void toggleControls() {
-    _showControls = !_showControls;
-    notifyListeners();
-  }
-
-  void hideControls() {
-    if (_showControls) {
-      _showControls = false;
-      notifyListeners();
-    }
-  }
-
-  void clearSelection() {
-    epubController.clearSelection();
-    _selectedText = '';
-    _selectedCfi = null;
-    _selectionRect = null;
-    notifyListeners();
-  }
-
-  void nextPage() => epubController.next();
-  void prevPage() => epubController.prev();
-
-  void goToChapter(EpubChapter chapter) {
-    final target = chapter.id.isNotEmpty && !chapter.href.contains('#')
-        ? '${chapter.href}#${chapter.id}'
-        : chapter.href;
-    epubController.display(cfi: target);
-  }
-
-  void goToCfi(String cfi) => epubController.display(cfi: cfi);
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Settings
-  // ─────────────────────────────────────────────────────────────────────────
-
-  Future<void> setTheme(ReaderThemeMode mode) async {
-    _themeMode = mode;
-    epubController.updateTheme(theme: _buildEpubTheme());
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('reader_theme', mode.index);
-  }
-
-  Future<void> setFontSize(double size) async {
-    _fontSize = size.clamp(12.0, 28.0);
-    epubController.setFontSize(fontSize: _fontSize);
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('reader_font_size', _fontSize);
-  }
-
-  Future<void> setFontFamily(ReaderFontFamily family) async {
-    _fontFamily = family;
-    epubController.updateTheme(theme: _buildEpubTheme());
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('reader_font', family.index);
-  }
-
-  Future<void> setLineSpacing(double spacing) async {
-    _lineSpacing = spacing.clamp(1.0, 2.5);
-    epubController.updateTheme(theme: _buildEpubTheme());
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('reader_line_spacing', _lineSpacing);
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Theme builder
-  // ─────────────────────────────────────────────────────────────────────────
-
-  EpubTheme _buildEpubTheme() {
-    final fontName = switch (_fontFamily) {
-      ReaderFontFamily.sfPro => 'SFPro',
-      ReaderFontFamily.newYork => 'NewYork',
-      ReaderFontFamily.gilroy => 'Gilroy',
-    };
-
-    return switch (_themeMode) {
-      ReaderThemeMode.white => EpubTheme.custom(
-          backgroundDecoration: const BoxDecoration(color: Color(0xFFFFFFFF)),
-          foregroundColor: const Color(0xFF000000),
-          customCss: {
-            'font-family': fontName,
-            'line-height': '$_lineSpacing',
-            'padding-top': '40px',
-            'padding-bottom': '40px',
-          },
-        ),
-      ReaderThemeMode.sepia => EpubTheme.custom(
-          backgroundDecoration: const BoxDecoration(color: Color(0xFFf5ebda)),
-          foregroundColor: const Color(0xFF3E3329),
-          customCss: {
-            'font-family': fontName,
-            'line-height': '$_lineSpacing',
-            'padding-top': '40px',
-            'padding-bottom': '40px',
-          },
-        ),
-      ReaderThemeMode.dark => EpubTheme.custom(
-          backgroundDecoration: const BoxDecoration(color: Color(0xFF1C1C1E)),
-          foregroundColor: const Color(0xFFFFFFFF),
-          customCss: {
-            'font-family': fontName,
-            'line-height': '$_lineSpacing',
-            'padding-top': '40px',
-            'padding-bottom': '40px',
-          },
-        ),
-      ReaderThemeMode.black => EpubTheme.custom(
-          backgroundDecoration: const BoxDecoration(color: Color(0xFF000000)),
-          foregroundColor: const Color(0xFFABAAB2),
-          customCss: {
-            'font-family': fontName,
-            'line-height': '$_lineSpacing',
-            'padding-top': '40px',
-            'padding-bottom': '40px',
-          },
-        ),
-    };
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Progress persistence
-  // ─────────────────────────────────────────────────────────────────────────
-
-  Future<void> _saveProgress() async {
-    if (_bookId == null || _isProgressSaving) return;
-    _isProgressSaving = true;
-    notifyListeners();
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setDouble('book_${_bookId}_progress', _progress);
-      await prefs.setInt('book_${_bookId}_page', _currentPage);
-      log('💾 Progress saved: ${(_progress * 100).toStringAsFixed(1)}%');
-    } catch (e) {
-      log('❌ Save progress error: $e');
-    } finally {
-      _isProgressSaving = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> saveAndClose() async {
-    _saveTimer?.cancel();
-    _streakPingTimer?.cancel();
-    await _saveProgress();
-    _reset();
-  }
-
-  void _reset() {
-    _currentPage = 0;
-    _totalPages = 0;
-    _lastLoggedPage = null;
-    _progress = 0.0;
-    _isLoading = true;
-    _showControls = false;
-    _selectedText = '';
-    _selectedCfi = null;
-    _selectionRect = null;
-    _chapters = [];
-    notifyListeners();
-  }
+  /// `inactive` is skipped deliberately — it also fires for brief, non-
+  /// backgrounding interruptions (a permission dialog, Control Center, an
+  /// incoming call banner) that resolve back to `resumed` almost
+  /// immediately, and pausing/resuming the ping for those would just be
+  /// noise. Only `paused` (genuinely backgrounded) and `resumed` toggle it.
+  /// Body lives in reader_provider_lifecycle.dart.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) =>
+      _handleAppLifecycleState(state);
 
   @override
   void dispose() {
-    _saveTimer?.cancel();
-    _streakPingTimer?.cancel();
+    _disposed = true;
+    _disposeCleanup();
+    _progressNotifier.dispose();
     super.dispose();
+  }
+
+  /// `notifyListeners` is `@protected` on [ChangeNotifier] — callable from a
+  /// subclass, but not from the `extension`s the part files above use to
+  /// split this class's methods across several files (an extension isn't
+  /// part of the class hierarchy, even in the same library). This thin
+  /// wrapper *is* a real instance member of the subclass, so every part file
+  /// calls this instead of `notifyListeners()` directly.
+  ///
+  /// Guarded on [_disposed] so a callback that fires after this provider is
+  /// torn down (see [dispose]) no-ops instead of hitting `ChangeNotifier`'s
+  /// own disposed-use assertion.
+  void _notify() {
+    if (_disposed) return;
+    notifyListeners();
   }
 }

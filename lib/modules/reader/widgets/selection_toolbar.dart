@@ -1,17 +1,46 @@
 import 'package:flutter/material.dart';
-import '../../../core/localization/strings/reader_strings.dart';
+import 'package:hugeicons/hugeicons.dart';
+import '../../../core/localization/strings/reader_notes_strings.dart';
+import '../../../core/theme/app_colors.dart';
 
+/// The text-selection menu (TZ §12.7): shows the selected passage and the
+/// actions available on it — add note, copy, share.
+///
+/// Styled from [AppColors] like every other reader sheet (settings,
+/// bookmarks, chapters, search) — it's a UI chrome element floating over the
+/// page, not part of the page itself, so it follows the app's light/dark
+/// theme rather than the EPUB reader's page colour (white/sepia/dark/black).
+///
+/// "Not" opens the add-note sheet, which carries the colour picker: the chosen
+/// colour is what the passage gets highlighted in once the note is saved. The
+/// note action appears only when [canAnnotate] is true.
+///
+/// Tapping an *already* highlighted passage lands here too (the viewer
+/// re-selects that exact range), so [isExistingHighlight] swaps "Not" for
+/// "Poz" (remove) — there being no built-in way, otherwise, to take a
+/// highlight back off the page.
 class SelectionToolbar extends StatelessWidget {
   final String selectedText;
   final Rect? selectionRect;
+  final bool canAnnotate;
+  final bool isExistingHighlight;
+
+  final VoidCallback onAddNote;
+  final VoidCallback onRemoveHighlight;
   final VoidCallback onCopy;
+  final VoidCallback onShare;
   final VoidCallback onClose;
 
   const SelectionToolbar({
     super.key,
     required this.selectedText,
     required this.selectionRect,
+    required this.canAnnotate,
+    this.isExistingHighlight = false,
+    required this.onAddNote,
+    required this.onRemoveHighlight,
     required this.onCopy,
+    required this.onShare,
     required this.onClose,
   });
 
@@ -22,36 +51,101 @@ class SelectionToolbar extends StatelessWidget {
       left: 16,
       right: 16,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.fromLTRB(14, 10, 8, 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1E2E),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 12)],
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25), blurRadius: 16)
+          ],
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Text(
-                '"${selectedText.length > 60 ? '${selectedText.substring(0, 60)}...' : selectedText}"',
-                style: const TextStyle(color: Colors.white54, fontSize: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    '"${selectedText.length > 80 ? '${selectedText.substring(0, 80)}…' : selectedText}"',
+                    style: TextStyle(
+                        color: AppColors.grey2, fontSize: 12, height: 1.4),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  icon: HugeIcon(
+                      icon: HugeIcons.strokeRoundedCancel01,
+                      color: AppColors.grey3,
+                      size: 18),
+                  onPressed: onClose,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                if (isExistingHighlight)
+                  _Action(
+                    icon: HugeIcons.strokeRoundedDelete02,
+                    label: ReaderNotesStrings.removeHighlightLabel,
+                    onTap: onRemoveHighlight,
+                  )
+                else if (canAnnotate)
+                  _Action(
+                      icon: HugeIcons.strokeRoundedNoteAdd,
+                      label: ReaderNotesStrings.noteLabel,
+                      onTap: onAddNote),
+                _Action(
+                    icon: HugeIcons.strokeRoundedCopy01,
+                    label: ReaderNotesStrings.copyLabel,
+                    onTap: onCopy),
+                _Action(
+                    icon: HugeIcons.strokeRoundedShare08,
+                    label: ReaderNotesStrings.shareLabel,
+                    onTap: onShare),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Action extends StatelessWidget {
+  final List<List<dynamic>> icon;
+  final String label;
+  final VoidCallback onTap;
+  const _Action({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              HugeIcon(icon: icon, size: 20, color: AppColors.primary),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(color: AppColors.grey1, fontSize: 11),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-            ),
-            const SizedBox(width: 8),
-            TextButton.icon(
-              onPressed: onCopy,
-              icon: const Icon(Icons.copy, size: 16, color: Color(0xFFE86B2C)),
-              label: Text(ReaderStrings.copyLabel, style: const TextStyle(color: Color(0xFFE86B2C), fontSize: 13)),
-              style: TextButton.styleFrom(padding: EdgeInsets.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-            ),
-            IconButton(
-              icon: const Icon(Icons.close, color: Colors.white38, size: 18),
-              onPressed: onClose,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

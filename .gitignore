@@ -1,3 +1,6 @@
+# Local test books (not for repo)
+assets/books/
+
 # Miscellaneous
 *.class
 *.log
@@ -43,3 +46,17 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/build/
+
+# Local agent sessions and editor-generated Xcode backups
+/.claude/sessions/
+/ios/Runner.xcodeproj/*.backup
+/ios/Runner.xcodeproj/xcshareddata/xcschemes/*.backup
+
+# Release signing and local configuration
+/android/key.properties
+*.jks
+*.keystore
+.env
+.env.*
+!.env.example

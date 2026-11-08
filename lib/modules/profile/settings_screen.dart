@@ -1,18 +1,30 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
+import '../../core/localization/app_locale.dart';
+import '../../core/localization/strings/notification_strings.dart';
+import '../../core/localization/strings/settings_strings.dart';
+import '../../core/services/account_service.dart';
+import '../../core/services/auth_api_service.dart';
+import '../../core/services/auth_session.dart';
+import '../../core/services/book_access_service.dart';
+import '../../core/services/firebase_auth_service.dart';
+import '../../core/services/notification_permission_flow.dart';
+import '../../core/services/onesignal_service.dart';
+import '../../core/services/revenue_cat_service.dart';
+import '../../core/services/subscription_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_controller.dart';
-import '../../core/services/auth_session.dart';
-import '../../core/localization/app_locale.dart';
-import '../../core/localization/strings/settings_strings.dart';
-
-class _AppLanguage {
-  final AppLanguageCode code;
-  final String label;
-  final String? flagAsset; // null when no flag artwork is available yet
-  const _AppLanguage(this.code, this.label, this.flagAsset);
-}
+import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/app_version_label.dart';
+import '../payment/open_subscription_screen.dart';
+import 'widgets/contact_us_sheet.dart';
+import 'widgets/language_sheet.dart';
+import 'widgets/settings_confirm_dialog.dart';
+import 'widgets/settings_tiles.dart';
 
 /// Sazlamalar — TZ 8.6.
 /// The "Çykmak" / "Hasaby poz" group only makes sense for a signed-in
@@ -20,371 +32,262 @@ class _AppLanguage {
 /// hidden entirely when [isLoggedIn] is false.
 class SettingsScreen extends StatefulWidget {
   final bool isLoggedIn;
-  const SettingsScreen({super.key, this.isLoggedIn = false});
+  final Future<void> Function(BuildContext)? openSubscription;
+  const SettingsScreen({
+    super.key,
+    this.isLoggedIn = false,
+    this.openSubscription,
+  });
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool get _darkTheme => AppTheme.instance.isDark;
-  _AppLanguage get _language => _languages.firstWhere((l) => l.code == AppLocale.instance.current);
+  // Read from prefs + the SDK rather than held only in the widget: the OS can
+  // change the answer while the app is backgrounded (permission revoked in
+  // system settings), so this is re-read on every entry to the screen.
+  bool _notificationsEnabled = false;
+  bool _notificationsBusy = true;
 
   @override
   void initState() {
     super.initState();
-    AppTheme.instance.addListener(_onChanged);
-    AppLocale.instance.addListener(_onChanged);
+    _refreshNotificationState();
   }
 
-  @override
-  void dispose() {
-    AppTheme.instance.removeListener(_onChanged);
-    AppLocale.instance.removeListener(_onChanged);
-    super.dispose();
+  Future<void> _refreshNotificationState() async {
+    final enabled = await NotificationPermissionFlow.isEnabled();
+    if (!mounted) return;
+    setState(() {
+      _notificationsEnabled = enabled;
+      _notificationsBusy = false;
+    });
   }
 
-  void _onChanged() => setState(() {});
+  AppLanguage _languageFor(AppLanguageCode code) =>
+      kSettingsLanguages.firstWhere((l) => l.code == code);
 
-  static const _languages = [
-    _AppLanguage(AppLanguageCode.tk, SettingsStrings.langTurkmen, 'assets/flags/tm.svg'),
-    _AppLanguage(AppLanguageCode.ru, SettingsStrings.langRussian, 'assets/flags/ru.svg'),
-    _AppLanguage(AppLanguageCode.tr, SettingsStrings.langTurkish, 'assets/flags/tr.svg'),
-  ];
-
-  Widget _flagFor(_AppLanguage lang, {double size = 28}) {
-    final d = size;
-    if (lang.flagAsset == null) {
-      return Container(
-        width: d,
-        height: d,
-        decoration: BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
-        child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedGlobal, color: AppColors.grey2, size: d * 0.6)),
-      );
-    }
-    return ClipOval(
-      child: SizedBox(
-        width: d,
-        height: d,
-        child: SvgPicture.asset(lang.flagAsset!, fit: BoxFit.cover),
-      ),
-    );
+  // Best-effort: the local session (see [AuthSession]) is what "logged in"
+  // actually means to the rest of the app, so a failed/offline logout call
+  // must never block clearing it — the caller clears the token regardless.
+  Future<void> _notifyBackendLogout() async {
+    try {
+      await AuthApiService.logout();
+    } catch (_) {}
   }
 
   void _pickLanguage() async {
-    final result = await showModalBottomSheet<_AppLanguage>(
+    final current = _languageFor(AppLocale.instance.current);
+    final result = await showModalBottomSheet<AppLanguage>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => _LanguageSheet(
-        languages: _languages,
-        selected: _language,
-        flagBuilder: _flagFor,
-      ),
+      builder: (_) =>
+          LanguageSheet(languages: kSettingsLanguages, selected: current),
     );
-    if (result != null) await AppLocale.instance.setLanguage(result.code);
+    if (result != null) {
+      await AppLocale.instance.setLanguage(result.code);
+      // `app_language` is a OneSignal segmentation tag, so a campaign written
+      // per language keeps targeting correctly after a switch. Fire-and-forget
+      // — a failed tag sync must never surface here.
+      unawaited(OneSignalService.instance.syncTags());
+    }
   }
 
-  void _confirmDeleteAccount() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        icon: Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(color: Colors.redAccent.withValues(alpha: 0.15), shape: BoxShape.circle),
-          child: const Center(child: HugeIcon(icon: HugeIcons.strokeRoundedDelete02, color: Colors.redAccent, size: 24)),
-        ),
-        title: Text(
-          SettingsStrings.deleteAccountTitle,
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800),
-        ),
-        content: Text(
-          SettingsStrings.deleteAccountBody,
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.grey2, fontSize: 13.5, height: 1.5),
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actionsPadding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-        actions: [
-          Column(
-            children: [
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
-                  onPressed: () async {
-                    await AuthSession.clearToken();
-                    if (!mounted) return;
-                    Navigator.pop(context); // close the dialog
-                    Navigator.pop(context, 'logout'); // leave the settings screen logged out
-                  },
-                  child: Text(SettingsStrings.delete, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                height: 44,
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(SettingsStrings.cancel, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+  Future<void> _setNotifications(bool enabled) async {
+    setState(() => _notificationsBusy = true);
+    final settled = await NotificationPermissionFlow.setEnabled(enabled);
+    if (!mounted) return;
+    setState(() {
+      _notificationsEnabled = settled;
+      _notificationsBusy = false;
+    });
+    // Only worth a message when switching *on* didn't take. Turning it off
+    // always works, and confirming an action the switch already shows would
+    // just be noise.
+    if (enabled && !settled) {
+      context.showAppSnackBar(
+        // A second denial is final on both platforms: the OS stops showing
+        // the prompt, and `fallbackToSettings` has already sent the user to
+        // the system page. All that's left is to say where to look.
+        NotificationStrings.openSystemSettingsHint,
+        isError: true,
+      );
+    }
+  }
+
+  // Both dialogs below end in the exact same place: neither actually calls
+  // a distinct "delete account" API today, they just clear the local
+  // session — see [showSettingsConfirmDialog]'s call sites. Preserved as-is
+  // rather than changed, since fixing that is a behaviour change outside
+  // this refactor's scope.
+  Future<void> _clearSessionAndClose() async {
+    await _notifyBackendLogout();
+    await AuthSession.clearToken();
+    // Drop the cached /users/me record too, so the next account doesn't
+    // briefly see this one's balance.
+    AccountService.instance.clear();
+    // ...and this one's purchased books, which otherwise would unlock them
+    // for whoever logs in next.
+    await BookAccessService.instance.clear();
+    await SubscriptionService.instance.clear();
+    // Same for the engagement provider: identity dropped and every tag this
+    // app wrote removed, so a different account signing in on this device
+    // can't inherit the previous one's segmentation.
+    await OneSignalService.instance.logout();
+    // Same reasoning as the OneSignal call above, for store purchases: drop
+    // the App User ID binding so the next account on this device starts
+    // anonymous rather than inheriting this one's entitlement.
+    await RevenueCatService.instance.logout();
+    // Clears any Firebase session too (email/Google/Apple login) — a no-op
+    // if this account signed in via phone/OTP and never touched Firebase.
+    await FirebaseAuthService.instance.signOut();
+    if (!mounted) return;
+    Navigator.pop(context, 'logout');
+  }
+
+  Future<void> _confirmLogout() async {
+    final confirmed = await showSettingsConfirmDialog(
+      context,
+      icon: HugeIcon(
+          icon: HugeIcons.strokeRoundedLogout01,
+          color: AppColors.primary,
+          size: 26),
+      iconSize: 56,
+      iconColor: AppColors.primary,
+      title: SettingsStrings.logoutTitle,
+      body: SettingsStrings.logoutBody,
+      confirmLabel: SettingsStrings.logoutConfirm,
+      confirmColor: AppColors.primary,
     );
+    if (confirmed == true && mounted) await _clearSessionAndClose();
+  }
+
+  Future<void> _confirmDeleteAccount() async {
+    final confirmed = await showSettingsConfirmDialog(
+      context,
+      icon: const HugeIcon(
+          icon: HugeIcons.strokeRoundedDelete02, color: Colors.redAccent),
+      iconSize: 52,
+      iconColor: Colors.redAccent,
+      title: SettingsStrings.deleteAccountTitle,
+      body: SettingsStrings.deleteAccountBody,
+      confirmLabel: SettingsStrings.delete,
+      confirmColor: Colors.redAccent,
+    );
+    if (confirmed == true && mounted) await _clearSessionAndClose();
+  }
+
+  // Already-subscribed readers manage the store entitlement in Customer
+  // Center. New subscriptions go through the shared router so the admin's
+  // iosStoreIapOnlyEnabled value chooses store/$ versus wallet/TMT here too.
+  Future<void> _openStoreSubscription() async {
+    final revenueCat = context.read<RevenueCatService>();
+    if (revenueCat.isPlusActive) {
+      await revenueCat.presentCustomerCenter();
+      return;
+    }
+    await (widget.openSubscription ?? openSubscriptionScreen)(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final darkTheme = context.watch<AppTheme>().isDark;
+    final language = _languageFor(context.watch<AppLocale>().current);
+    final isPlusActive = context.watch<RevenueCatService>().isPlusActive;
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: AppColors.bg,
-        leading: IconButton(
-          icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: AppColors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
+        leading: const AppBackButton(size: 20),
         centerTitle: true,
-        title: Text(SettingsStrings.title, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+        title: Text(SettingsStrings.title,
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700)),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          _SettingsGroup(children: [
-            _SwitchTile(
-              icon: _darkTheme ? HugeIcons.strokeRoundedMoon02 : HugeIcons.strokeRoundedSun03,
-              iconColor: _darkTheme ? const Color(0xFF8B7BF0) : const Color(0xFFFFB020),
-              label: SettingsStrings.theme,
-              value: _darkTheme ? SettingsStrings.themeDark : SettingsStrings.themeLight,
-              switchValue: _darkTheme,
-              onChanged: (v) => AppTheme.instance.setDark(v),
-            ),
-            _NavTile(
-              icon: HugeIcons.strokeRoundedGlobal,
-              label: SettingsStrings.language,
-              value: _language.label,
-              leadingValue: _flagFor(_language, size: 22),
-              onTap: _pickLanguage,
-            ),
-          ]),
-          const SizedBox(height: 16),
-          _SettingsGroup(children: [
-            _NavTile(icon: HugeIcons.strokeRoundedCustomerService01, label: SettingsStrings.contactUs, value: '', onTap: () {}),
-          ]),
-          if (widget.isLoggedIn) ...[
-            const SizedBox(height: 16),
-            _SettingsGroup(children: [
-              _NavTile(
-                icon: HugeIcons.strokeRoundedLogout01,
-                label: SettingsStrings.logout,
-                danger: true,
-                onTap: () async {
-                  await AuthSession.clearToken();
-                  if (!mounted) return;
-                  Navigator.pop(context, 'logout');
-                },
-              ),
-              _NavTile(icon: HugeIcons.strokeRoundedDelete02, label: SettingsStrings.deleteAccount, danger: true, onTap: _confirmDeleteAccount),
-            ]),
-          ],
-          const SizedBox(height: 24),
-          Center(child: Text(SettingsStrings.appVersion, style: TextStyle(color: AppColors.grey3, fontSize: 12))),
-        ],
-      ),
-    );
-  }
-}
-
-/// Dil saýlamak bottom sheet — redesigned with a drag handle, a title, and
-/// flag-led rows so the current language is easy to scan at a glance.
-class _LanguageSheet extends StatelessWidget {
-  final List<_AppLanguage> languages;
-  final _AppLanguage selected;
-  final Widget Function(_AppLanguage, {double size}) flagBuilder;
-
-  const _LanguageSheet({required this.languages, required this.selected, required this.flagBuilder});
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
           children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.grey3, borderRadius: BorderRadius.circular(2))),
+            SettingsGroup(children: [
+              SwitchTile(
+                icon: darkTheme
+                    ? HugeIcons.strokeRoundedMoon02
+                    : HugeIcons.strokeRoundedSun03,
+                iconColor: darkTheme
+                    ? const Color(0xFF8B7BF0)
+                    : const Color(0xFFFFB020),
+                label: SettingsStrings.theme,
+                value: darkTheme
+                    ? SettingsStrings.themeDark
+                    : SettingsStrings.themeLight,
+                switchValue: darkTheme,
+                onChanged: (v) => AppTheme.instance.setDark(v),
+              ),
+              NavTile(
+                icon: HugeIcons.strokeRoundedGlobal,
+                label: SettingsStrings.language,
+                value: language.label,
+                leadingValue: flagFor(language, size: 22),
+                onTap: _pickLanguage,
+              ),
+            ]),
             const SizedBox(height: 16),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(SettingsStrings.chooseLanguage, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800)),
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...languages.map((lang) {
-              final isSelected = lang.label == selected.label;
-              return InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () => Navigator.pop(context, lang),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary.withValues(alpha: 0.12) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(16),
-                    border: isSelected ? Border.all(color: AppColors.primary.withValues(alpha: 0.4)) : null,
-                  ),
-                  child: Row(
-                    children: [
-                      flagBuilder(lang, size: 30),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Text(
-                          lang.label,
-                          style: TextStyle(color: AppColors.white, fontSize: 15.5, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500),
-                        ),
-                      ),
-                      HugeIcon(
-                        icon: isSelected ? HugeIcons.strokeRoundedCheckmarkCircle01 : HugeIcons.strokeRoundedCircle,
-                        color: isSelected ? AppColors.primary : AppColors.grey3,
-                        size: 20,
-                      ),
-                    ],
-                  ),
+            SettingsGroup(children: [
+              SwitchTile(
+                icon: _notificationsEnabled
+                    ? HugeIcons.strokeRoundedNotification02
+                    : HugeIcons.strokeRoundedNotificationOff02,
+                iconColor: AppColors.primary,
+                label: NotificationStrings.settingsLabel,
+                value: _notificationsEnabled
+                    ? NotificationStrings.statusOn
+                    : NotificationStrings.settingsSubtitleOff,
+                switchValue: _notificationsEnabled,
+                onChanged: _setNotifications,
+                control: AppSwitch(
+                  value: _notificationsEnabled,
+                  enabled: !_notificationsBusy,
+                  onChanged: _setNotifications,
                 ),
-              );
-            }),
-            const SizedBox(height: 4),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SettingsGroup extends StatelessWidget {
-  final List<Widget> children;
-  const _SettingsGroup({required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16)),
-      child: Column(children: children),
-    );
-  }
-}
-
-class _NavTile extends StatelessWidget {
-  final List<List<dynamic>> icon;
-  final String label;
-  final String? value;
-  final Widget? leadingValue;
-  final bool danger;
-  final VoidCallback onTap;
-  const _NavTile({required this.icon, required this.label, this.value, this.leadingValue, this.danger = false, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = danger ? Colors.redAccent : AppColors.primary;
-    return ListTile(
-      onTap: onTap,
-      leading: HugeIcon(icon: icon, color: color, size: 20),
-      title: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: danger ? Colors.redAccent : AppColors.grey1, fontSize: 14.5, fontWeight: FontWeight.w600)),
-      trailing: value != null
-          ? Row(mainAxisSize: MainAxisSize.min, children: [
-              if (leadingValue != null) ...[leadingValue!, const SizedBox(width: 8)],
-              Text(value!, style: TextStyle(color: AppColors.grey2, fontSize: 13)),
-              const SizedBox(width: 6),
-              HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: AppColors.grey3, size: 16),
-            ])
-          : null,
-    );
-  }
-}
-
-class _SwitchTile extends StatelessWidget {
-  final List<List<dynamic>> icon;
-  final Color iconColor;
-  final String label;
-  final String value;
-  final bool switchValue;
-  final ValueChanged<bool> onChanged;
-  _SwitchTile({
-    required this.icon,
-    required this.iconColor,
-    required this.label,
-    required this.value,
-    required this.switchValue,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: HugeIcon(icon: icon, color: iconColor, size: 22),
-      title: Text(label, style: TextStyle(color: AppColors.grey1, fontSize: 14.5, fontWeight: FontWeight.w600)),
-      trailing: _ThemeSwitch(isDark: switchValue, onChanged: onChanged),
-      subtitle: Text(value, style: TextStyle(color: AppColors.grey2, fontSize: 12)),
-    );
-  }
-}
-
-/// A pill-shaped toggle with a sun/moon glyph riding inside the thumb,
-/// instead of a generic Material [Switch] — reads at a glance which mode
-/// is active without needing the subtitle text.
-class _ThemeSwitch extends StatelessWidget {
-  final bool isDark;
-  final ValueChanged<bool> onChanged;
-  const _ThemeSwitch({required this.isDark, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onChanged(!isDark),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOut,
-        width: 54,
-        height: 30,
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: LinearGradient(
-            colors: isDark ? const [Color(0xFF352E5C), Color(0xFF201A38)] : const [Color(0xFFFFD27A), Color(0xFFFFA726)],
-          ),
-        ),
-        child: AnimatedAlign(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOut,
-          alignment: isDark ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            width: 24,
-            height: 24,
-            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-            child: Center(
-              child: HugeIcon(
-                icon: isDark ? HugeIcons.strokeRoundedMoon02 : HugeIcons.strokeRoundedSun03,
-                color: isDark ? const Color(0xFF8B7BF0) : const Color(0xFFFFA726),
-                size: 14,
               ),
-            ),
-          ),
+              NavTile(
+                  icon: HugeIcons.strokeRoundedCustomerService01,
+                  label: SettingsStrings.contactUs,
+                  value: '',
+                  onTap: () => ContactUsSheet.show(context)),
+              NavTile(
+                icon: HugeIcons.strokeRoundedCrown02,
+                label: SettingsStrings.storeSubscription,
+                value: isPlusActive
+                    ? SettingsStrings.storeSubscriptionActive
+                    : SettingsStrings.storeSubscriptionInactive,
+                onTap: _openStoreSubscription,
+              ),
+            ]),
+            if (widget.isLoggedIn) ...[
+              const SizedBox(height: 16),
+              SettingsGroup(children: [
+                NavTile(
+                  icon: HugeIcons.strokeRoundedLogout01,
+                  label: SettingsStrings.logout,
+                  danger: true,
+                  onTap: _confirmLogout,
+                ),
+                NavTile(
+                    icon: HugeIcons.strokeRoundedDelete02,
+                    label: SettingsStrings.deleteAccount,
+                    danger: true,
+                    onTap: _confirmDeleteAccount),
+              ]),
+            ],
+            const SizedBox(height: 24),
+            const Center(child: AppVersionLabel()),
+          ],
         ),
       ),
     );

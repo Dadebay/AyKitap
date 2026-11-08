@@ -1,198 +1,277 @@
-import 'dart:convert';
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/streak.dart';
+import '../navigation/root_navigator.dart';
+import '../network/api_exception.dart';
+import '../widgets/streak_goal_celebration.dart';
+import '../widgets/streak_reward_dialog.dart';
+import 'account_service.dart';
+import 'analytics_service.dart';
+import 'home_screen_widget_service.dart';
+import 'streak_api_service.dart';
 
-/// Local stand-in for the server-computed reading streak (TZ section 9).
-/// The spec has the *server* tally active-reading seconds from a 30-second
-/// client ping and decide streaks/rewards from that; this project has no
-/// backend, so [ReaderProvider] plays the pinger and this singleton plays
-/// the server — same cadence and thresholds (§9.1), persisted on-device.
+part 'streak_service_reporting.dart';
+
+/// Server-backed reading streak (see the backend's `streak-apis.md`
+/// contract — `POST /streaks/report`, `GET /streaks/me`, `GET
+/// /streaks/history`). Used to be an entirely on-device mock tally before
+/// this endpoint existed; [ReaderProvider]/[PdfReaderScreen]/
+/// [CbzReaderScreen] report active-reading seconds + page deltas here,
+/// [StreakScreen]/[ProfileScreen] read [overview] for everything the UI
+/// shows.
 class StreakService extends ChangeNotifier {
   StreakService._();
   static final instance = StreakService._();
 
-  static const _kDailyLog = 'streak_daily_log_v1';
-  static const _kDailyPages = 'streak_daily_pages_v1';
-  static const _kCurrentStreak = 'streak_current_v1';
-  static const _kBestStreak = 'streak_best_v1';
-  static const _kLastStreakDate = 'streak_last_date_v1';
-  static const _kBalanceManat = 'streak_balance_manat_v1';
-  static const _kRewardedAtStreak = 'streak_rewarded_at_v1';
-
-  static const dailyGoalSeconds = 15 * 60;
-  static const _rewardIntervalDays = 30;
-  static const _rewardManat = 10;
-  static const _logRetentionDays = 60;
-
-  Map<String, int> _dailyLog = {};
-  Map<String, int> _dailyPages = {};
-  int _currentStreak = 0;
-  int _bestStreak = 0;
-  DateTime? _lastStreakDate;
-  int _balanceManat = 45; // seeded to match the profile screen's old mock value
-  int _rewardedAtStreak = 0;
-
+  StreakOverview? _overview;
+  bool _loading = false;
+  String? _error;
   bool _loaded = false;
 
-  int get currentStreak => _currentStreak;
-  int get bestStreak => _bestStreak;
-  int get balanceManat => _balanceManat;
-  int get todaySeconds => _dailyLog[_dateKey(DateTime.now())] ?? 0;
-  int get todayPages => _dailyPages[_dateKey(DateTime.now())] ?? 0;
+  StreakOverview? get overview => _overview;
+  bool get isLoading => _loading;
+  String? get error => _error;
 
-  /// Per-day reading log (pages + minutes), most recent day first — only
-  /// days with some recorded activity, for the streak screen's history list.
-  List<StreakDayLog> get history {
-    final keys = {..._dailyLog.keys, ..._dailyPages.keys}.toList()..sort((a, b) => b.compareTo(a));
-    return keys
-        .map((k) => StreakDayLog(date: DateTime.parse(k), seconds: _dailyLog[k] ?? 0, pages: _dailyPages[k] ?? 0))
-        .where((e) => e.seconds > 0 || e.pages > 0)
-        .toList();
+  int get currentStreak => _overview?.currentStreak ?? 0;
+  int get bestStreak => _overview?.bestStreak ?? 0;
+  int get goalMinMinutes => _overview?.goalMinMinutes ?? 15;
+  int get todayPages => _overview?.today.pages ?? 0;
+  StreakDay? get today => _overview?.today;
+  StreakMonthSummary? get thisMonth => _overview?.thisMonth;
+  StreakMonthSummary? get lastMonth => _overview?.lastMonth;
+  List<StreakRewardRule> get rewardRules => _overview?.rewardRules ?? const [];
+
+  /// Mon..Sun, true where that day's goal was met — [StreakWeekRow]'s input
+  /// shape, unchanged by the move to a server-backed streak.
+  List<bool> get weekRead {
+    final week = _overview?.week;
+    if (week == null || week.length != 7) return List.filled(7, false);
+    return week.map((d) => d.goalMet).toList();
   }
 
-  /// Mon..Sun read/not-read for the current calendar week — feeds the week
-  /// grid on ProfileScreen and StreakScreen (§9.2).
-  List<bool> get weekRead {
-    final today = _dateOnly(DateTime.now());
-    final monday = today.subtract(Duration(days: today.weekday - 1));
-    return List.generate(7, (i) {
-      final day = monday.add(Duration(days: i));
-      if (day.isAfter(today)) return false;
-      return (_dailyLog[_dateKey(day)] ?? 0) >= dailyGoalSeconds;
+  // ── Reading history (GET /streaks/history) ──────────────────────────────
+  final List<StreakDay> _history = [];
+  int _historyPage = 0;
+  bool _historyHasMore = true;
+  bool _historyLoading = false;
+
+  List<StreakDay> get history => List.unmodifiable(_history);
+  bool get historyHasMore => _historyHasMore;
+  bool get historyLoading => _historyLoading;
+
+  // ── Offline buffering ────────────────────────────────────────────────
+  // A tick that fails to send stays here instead of being dropped, so the
+  // next successful report carries the running total.
+  //
+  // Persisted (see [_savePending]): reading offline and then closing the app
+  // used to lose everything buffered, which is exactly the case this is for
+  // — someone reads on the bus with no signal, the app is swiped away, and
+  // the reading never happened as far as the streak is concerned. Three ints
+  // on disk, rewritten about once a minute while reading.
+  int _pendingSeconds = 0;
+  int _pendingPages = 0;
+  int? _pendingBookId;
+
+  static const _kPendingSeconds = 'streak_pending_seconds';
+  static const _kPendingPages = 'streak_pending_pages';
+  static const _kPendingBookId = 'streak_pending_book_id';
+
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _pendingRestored = false;
+
+  /// Clears every field back to a fresh instance's defaults. This is the
+  /// app's process-lifetime singleton, so tests that exercise it (directly or
+  /// via [ReaderProvider]) need a way to undo that state between cases —
+  /// there is no other way to get a clean [StreakService] in a test process.
+  @visibleForTesting
+  void resetForTest() {
+    _overview = null;
+    _loading = false;
+    _error = null;
+    _loaded = false;
+    _history.clear();
+    _historyPage = 0;
+    _historyHasMore = true;
+    _historyLoading = false;
+    _pendingSeconds = 0;
+    _pendingPages = 0;
+    _pendingBookId = null;
+    _pendingRestored = false;
+    _connectivitySub?.cancel();
+    _connectivitySub = null;
+  }
+
+  /// Test-only seed for [_overview] — lets a test set up a baseline
+  /// `today.goalMet` before exercising [debugApplyReportForTesting], with no
+  /// network call. Never called from production code.
+  @visibleForTesting
+  void debugSeedOverviewForTesting(StreakOverview overview) {
+    _overview = overview;
+    _loaded = true;
+  }
+
+  /// Test-only hook into the same false → true detection [_report] runs
+  /// after a real `POST /streaks/report` response — lets a widget test
+  /// exercise the goal-completion celebration without a network call.
+  /// Never called from production code.
+  @visibleForTesting
+  void debugApplyReportForTesting(StreakReportResult result) =>
+      _applyReport(result);
+
+  /// Fetches `GET /streaks/me` once; later calls no-op until [refresh] is
+  /// called explicitly. Safe for every screen that needs streak data to
+  /// call without worrying about duplicate requests.
+  Future<void> load() async {
+    // Before the fetch, and on every launch: whatever was buffered when the
+    // app was last closed is reading the reader has already done.
+    await _restorePending();
+    _watchConnectivity();
+    if (_loaded) return;
+    await refresh();
+    // Now that a token and a connection have both been proven to work, send
+    // anything that was waiting. A zero-second report is the flush: [_report]
+    // sends the accumulated total, not its argument.
+    if (_pendingSeconds > 0) unawaited(_report(seconds: 0));
+  }
+
+  /// Reads the buffer left by a previous run. Once per process — a second
+  /// call would add the same seconds again on top of whatever is already in
+  /// memory.
+  Future<void> _restorePending() async {
+    if (_pendingRestored) return;
+    _pendingRestored = true;
+    final prefs = await SharedPreferences.getInstance();
+    _pendingSeconds += prefs.getInt(_kPendingSeconds) ?? 0;
+    _pendingPages += prefs.getInt(_kPendingPages) ?? 0;
+    _pendingBookId ??= prefs.getInt(_kPendingBookId);
+    if (_pendingSeconds > 0 && kDebugMode) {
+      debugPrint('\x1B[32m\x1B[1m🔥 STREAK — restored \$_pendingSeconds s / '
+          '\$_pendingPages page(s) buffered offline\x1B[0m');
+    }
+  }
+
+  /// Sends the buffer the moment a connection comes back, instead of waiting
+  /// for the reader to open a book again — someone who read offline and then
+  /// put the phone down would otherwise not be credited until their next
+  /// reading session, which may be the next day, after the streak has
+  /// already broken.
+  void _watchConnectivity() {
+    if (_connectivitySub != null) return;
+    _connectivitySub =
+        Connectivity().onConnectivityChanged.listen((results) async {
+      final online = results.any((result) => result != ConnectivityResult.none);
+      if (!online || _pendingSeconds <= 0) return;
+      await _report(seconds: 0);
     });
   }
 
-  Future<void> load() async {
-    if (_loaded) return;
-    await _ensureLoaded();
-    notifyListeners();
-  }
-
-  Future<void> _ensureLoaded() async {
-    if (_loaded) return;
+  /// Mirrors the buffer to disk after every change to it.
+  Future<void> _savePending() async {
     final prefs = await SharedPreferences.getInstance();
-
-    final rawLog = prefs.getString(_kDailyLog);
-    if (rawLog != null) {
-      final decoded = jsonDecode(rawLog) as Map<String, dynamic>;
-      _dailyLog = decoded.map((k, v) => MapEntry(k, v as int));
+    if (_pendingSeconds <= 0 && _pendingPages <= 0) {
+      await prefs.remove(_kPendingSeconds);
+      await prefs.remove(_kPendingPages);
+      await prefs.remove(_kPendingBookId);
+      return;
     }
-    final rawPages = prefs.getString(_kDailyPages);
-    if (rawPages != null) {
-      final decoded = jsonDecode(rawPages) as Map<String, dynamic>;
-      _dailyPages = decoded.map((k, v) => MapEntry(k, v as int));
-    }
-    _currentStreak = prefs.getInt(_kCurrentStreak) ?? 0;
-    _bestStreak = prefs.getInt(_kBestStreak) ?? 0;
-    _balanceManat = prefs.getInt(_kBalanceManat) ?? 45;
-    _rewardedAtStreak = prefs.getInt(_kRewardedAtStreak) ?? 0;
-    final lastDateStr = prefs.getString(_kLastStreakDate);
-    _lastStreakDate = lastDateStr != null ? DateTime.parse(lastDateStr) : null;
-
-    _pruneOldEntries();
-
-    // A full day passed with no qualifying reading since the last counted
-    // day → the streak is broken: "bir gün okalmasa, streak 0-dan başlaýar".
-    final today = _dateOnly(DateTime.now());
-    var changed = false;
-    if (_lastStreakDate != null && today.difference(_lastStreakDate!).inDays > 1 && _currentStreak != 0) {
-      _currentStreak = 0;
-      changed = true;
-    }
-
-    _loaded = true;
-    if (changed) await _persist();
+    await prefs.setInt(_kPendingSeconds, _pendingSeconds);
+    await prefs.setInt(_kPendingPages, _pendingPages);
+    final bookId = _pendingBookId;
+    if (bookId != null) await prefs.setInt(_kPendingBookId, bookId);
   }
 
-  /// Records [seconds] of active reading against today's tally — the local
-  /// analog of the spec's 30-second server ping. Recomputes the streak once
-  /// today crosses the 15-minute goal, and pays out every 30-day milestone.
-  Future<void> recordActiveSeconds(int seconds) async {
-    if (seconds <= 0) return;
-    await _ensureLoaded();
-
-    final today = _dateOnly(DateTime.now());
-    final key = _dateKey(today);
-    final metGoalBefore = (_dailyLog[key] ?? 0) >= dailyGoalSeconds;
-    _dailyLog[key] = (_dailyLog[key] ?? 0) + seconds;
-    final metGoalNow = _dailyLog[key]! >= dailyGoalSeconds;
-
-    if (metGoalNow && !metGoalBefore) {
-      final yesterday = today.subtract(const Duration(days: 1));
-      _currentStreak = (_lastStreakDate == yesterday) ? _currentStreak + 1 : 1;
-      _lastStreakDate = today;
-      if (_currentStreak > _bestStreak) _bestStreak = _currentStreak;
-
-      if (_currentStreak % _rewardIntervalDays == 0 && _currentStreak != _rewardedAtStreak) {
-        _balanceManat += _rewardManat;
-        _rewardedAtStreak = _currentStreak;
-      }
+  Future<void> refresh() async {
+    // No `notifyListeners()` here, before the `await` below — `load()` is
+    // called straight from several screens' `initState`, and notifying
+    // synchronously at that point (before any widget has actually yielded
+    // back to the event loop) trips Provider's "setState() called during
+    // build" — a widget elsewhere in the same build pass can already be
+    // listening to this service. `isLoading` isn't rendered anywhere, so
+    // there's nothing lost by only notifying once this actually resolves.
+    _loading = true;
+    _error = null;
+    try {
+      _overview = await StreakApiService.getMe();
+      _loaded = true;
+      _logRewardRules();
+    } on ApiException catch (e) {
+      _error = e.message;
+    } finally {
+      _loading = false;
+      notifyListeners();
+      unawaited(HomeScreenWidgetService.syncStreak(
+        streak: currentStreak,
+        bestStreak: bestStreak,
+        todayPages: todayPages,
+        goalMinutes: goalMinMinutes,
+        weekRead: weekRead,
+      ));
     }
-
-    _pruneOldEntries();
-    await _persist();
-    notifyListeners();
   }
 
-  /// Deducts [manat] from the on-device balance for a book purchase, if the
-  /// balance covers it. Returns true on success, false if funds are short —
-  /// the caller then sends the user to top up. Mirrors the server-side
-  /// balance debit the real backend will do (§10.2 satyn alyş logikasy).
-  Future<bool> spendBalance(int manat) async {
-    if (manat <= 0) return true;
-    await _ensureLoaded();
-    if (_balanceManat < manat) return false;
-    _balanceManat -= manat;
-    await _persist();
-    notifyListeners();
-    return true;
+  /// Resets to page 1 — call when the Streak screen (re)opens.
+  Future<void> loadHistory() async {
+    _history.clear();
+    _historyPage = 0;
+    _historyHasMore = true;
+    await _loadHistoryPage();
   }
 
-  /// Tallies [count] pages turned today — feeds the "kaç sahypa okadyňyz"
-  /// history on the streak screen. Purely a reading-activity log; it has no
-  /// effect on the streak or balance, which are driven by [recordActiveSeconds].
-  Future<void> recordPageRead({int count = 1}) async {
+  /// The "Daha fazla" button's action — appends the next page.
+  Future<void> loadMoreHistory() async {
+    if (!_historyHasMore || _historyLoading) return;
+    await _loadHistoryPage();
+  }
+
+  /// Active-reading ping — call every 60s while the reader is in the
+  /// foreground with a book on screen (the contract's mandatory cadence).
+  Future<void> recordActiveSeconds(int seconds, {int? bookId}) =>
+      _report(seconds: seconds, bookId: bookId);
+
+  /// A page turned. Bundled into whichever report ([recordActiveSeconds]'s
+  /// next tick, or [flushResidual]) goes out next rather than its own
+  /// network call — the backend takes `pages` as part of the same `seconds`
+  /// report, not a separate endpoint.
+  void recordPageRead({int count = 1}) {
     if (count <= 0) return;
-    await _ensureLoaded();
-    final key = _dateKey(_dateOnly(DateTime.now()));
-    _dailyPages[key] = (_dailyPages[key] ?? 0) + count;
-    _pruneOldEntries();
-    await _persist();
-    notifyListeners();
+    _pendingPages += count;
+    unawaited(_savePending());
   }
 
-  void _pruneOldEntries() {
-    final cutoff = _dateOnly(DateTime.now()).subtract(const Duration(days: _logRetentionDays));
-    _dailyLog.removeWhere((k, _) => DateTime.parse(k).isBefore(cutoff));
-    _dailyPages.removeWhere((k, _) => DateTime.parse(k).isBefore(cutoff));
-  }
+  /// Call once on pause/background/close with whatever active-reading
+  /// seconds have elapsed since the last periodic tick (0 if none) — sends
+  /// them immediately with any buffered pages instead of waiting for the
+  /// next 60s mark, so a short reading burst still counts.
+  Future<void> flushResidual({int seconds = 0, int? bookId}) =>
+      _report(seconds: seconds, bookId: bookId);
 
-  Future<void> _persist() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kDailyLog, jsonEncode(_dailyLog));
-    await prefs.setString(_kDailyPages, jsonEncode(_dailyPages));
-    await prefs.setInt(_kCurrentStreak, _currentStreak);
-    await prefs.setInt(_kBestStreak, _bestStreak);
-    await prefs.setInt(_kBalanceManat, _balanceManat);
-    await prefs.setInt(_kRewardedAtStreak, _rewardedAtStreak);
-    if (_lastStreakDate != null) {
-      await prefs.setString(_kLastStreakDate, _dateKey(_lastStreakDate!));
+  // notifyListeners() is @protected — the history/report methods in
+  // streak_service_reporting.dart live in an extension, not a subclass, so
+  // they call this thin wrapper instead of notifyListeners directly.
+  /// Prints the reward configuration the backend is actually running with.
+  ///
+  /// None of it is decided here: `goal_min_minutes`, every `reward_rules`
+  /// entry, and whether a milestone was crossed all come from the server
+  /// (see [StreakRewardRule] and `POST /streaks/report`'s `rewards[]`). So
+  /// "is 30 days of 15 minutes really 10 TMT?" can only be answered by
+  /// looking at what it sends — which is this line.
+  void _logRewardRules() {
+    if (!kDebugMode) return;
+    final o = _overview;
+    if (o == null) return;
+    debugPrint('\x1B[32m\x1B[1m🔥 STREAK config — daily goal: '
+        '${o.goalMinMinutes} min, ${o.rewardRules.length} reward rule(s), '
+        'current streak: ${o.currentStreak}\x1B[0m');
+    for (final r in o.rewardRules) {
+      final prize = r.rewardType == StreakRewardType.balance
+          ? '${r.amount} TMT to balance'
+          : '${r.monthCount} month(s) of subscription';
+      debugPrint('\x1B[32m\x1B[1m🔥   ${r.dayCount} days in a row → $prize'
+          '${r.isRepeating ? " (repeats)" : " (once)"}\x1B[0m');
     }
   }
 
-  static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
-
-  static String _dateKey(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-}
-
-/// One day's entry in the reading history: pages turned + minutes read.
-class StreakDayLog {
-  final DateTime date;
-  final int seconds;
-  final int pages;
-  const StreakDayLog({required this.date, required this.seconds, required this.pages});
-
-  int get minutes => seconds ~/ 60;
-  bool get metGoal => seconds >= StreakService.dailyGoalSeconds;
+  void _notify() => notifyListeners();
 }

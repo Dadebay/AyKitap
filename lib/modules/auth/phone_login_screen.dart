@@ -1,11 +1,25 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../core/theme/app_colors.dart';
+
 import '../../core/localization/strings/auth_strings.dart';
+import '../../core/navigation/app_navigator.dart';
+import '../../core/network/api_exception.dart';
+import '../../core/services/contact_api_service.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/app_snackbar.dart';
+import '../../core/widgets/app_text_field.dart';
+import '../../core/widgets/gradient_icon_badge.dart';
+import '../../core/widgets/or_divider.dart';
+import '../../core/widgets/primary_button.dart';
+import 'international_login_screen.dart';
 import 'otp_verify_screen.dart';
+import 'provider/auth_provider.dart';
+import 'widgets/auth_provider_button.dart';
 
 /// Hasap Açmak / Giriş — TZ section 2.1, 2.3.
 /// A single phone-number entry screen serves both registration and login:
@@ -20,29 +34,45 @@ class PhoneLoginScreen extends StatefulWidget {
 class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   final _phoneController = TextEditingController();
   final _focusNode = FocusNode();
-  late final TapGestureRecognizer _termsTap = TapGestureRecognizer(debugOwner: this)..onTap = _openTerms;
+  late final TapGestureRecognizer _termsTap =
+      TapGestureRecognizer(debugOwner: this)..onTap = _openTerms;
 
-  static final Uri _termsUrl = Uri.parse('https://ayterek.com/ru/general-rules');
-
+  // Fetched on tap rather than on screen load — this link is rarely opened,
+  // so there's no point in a `/contacts` call every time this screen shows.
   Future<void> _openTerms() async {
-    await launchUrl(_termsUrl, mode: LaunchMode.externalApplication);
+    try {
+      final contacts = await ContactApiService.getContacts();
+      final link = contacts.userAgreementLink;
+      if (link == null || link.isEmpty) return;
+      final uri = Uri.tryParse(link);
+      if (uri == null) return;
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      context.showAppSnackBar(e.message, isError: true);
+    }
   }
 
   // Demo-only toggle so the "already logged in elsewhere" flow (TZ 2.2) can
   // be shown without a real backend behind it.
-  bool _simulateOtherDevice = false;
-  bool _sending = false;
+  final bool _simulateOtherDevice = false;
+  final _authProvider = AuthProvider();
 
   static const _digitsNeeded = 8; // XX XX XX XX
 
   String get _digits => _phoneController.text.replaceAll(RegExp(r'\D'), '');
   bool get _isValid => _digits.length == _digitsNeeded;
 
+  // The backend expects a plain `+993XXXXXXXX` string — the spaced
+  // "XX XX XX XX" grouping in [_phoneController] is display-only.
+  String get _apiPhone => '+993$_digits';
+
   @override
   void dispose() {
     _phoneController.dispose();
     _focusNode.dispose();
     _termsTap.dispose();
+    _authProvider.dispose();
     super.dispose();
   }
 
@@ -57,7 +87,8 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
 
   void _onPhoneChanged(String value) {
     final allDigits = value.replaceAll(RegExp(r'\D'), '');
-    final digits = allDigits.substring(0, allDigits.length.clamp(0, _digitsNeeded));
+    final digits =
+        allDigits.substring(0, allDigits.length.clamp(0, _digitsNeeded));
     final formatted = _formatPhone(digits);
     _phoneController.value = TextEditingValue(
       text: formatted,
@@ -67,159 +98,152 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   }
 
   Future<void> _sendCode() async {
-    if (!_isValid || _sending) return;
+    if (!_isValid || _authProvider.isLoading) return;
     HapticFeedback.lightImpact();
-    setState(() => _sending = true);
-    await Future.delayed(const Duration(milliseconds: 700)); // mock network
+    final ok = await _authProvider.sendCode(_apiPhone);
     if (!mounted) return;
-    setState(() => _sending = false);
+    if (!ok) {
+      context.showAppSnackBar(
+          _authProvider.errorMessage ?? AuthStrings.genericError,
+          isError: true);
+      return;
+    }
 
-    final loggedIn = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => OtpVerifyScreen(
-          phone: '+993 ${_phoneController.text}',
-          simulateOtherDevice: _simulateOtherDevice,
-        ),
-      ),
+    final loggedIn = await context.push<bool>(
+      OtpVerifyScreen(
+          phone: _apiPhone, simulateOtherDevice: _simulateOtherDevice),
     );
     if (loggedIn == true && mounted) {
-      Navigator.pop(context, true);
+      context.pop(true);
+    }
+  }
+
+  Future<void> _openOtherMethods() async {
+    final loggedIn = await context.push<bool>(const InternationalLoginScreen());
+    if (loggedIn == true && mounted) {
+      context.pop(true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _authProvider,
+      child: Consumer<AuthProvider>(
+          builder: (context, auth, _) => _buildScaffold(context, auth)),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context, AuthProvider auth) {
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
           child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).viewInsets.bottom - MediaQuery.of(context).padding.vertical - 32),
+            constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height -
+                    MediaQuery.of(context).viewInsets.bottom -
+                    MediaQuery.of(context).padding.vertical -
+                    32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IconButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () => Navigator.pop(context),
-                  icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: AppColors.white, size: 22),
-                ),
+                const AppBackButton(),
                 const SizedBox(height: 12),
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFFF77E68), Color(0xFFB44BE8)]),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Center(
-                    child: HugeIcon(icon: HugeIcons.strokeRoundedSmartPhone01, color: Colors.white, size: 30),
-                  ),
-                ),
+                const GradientIconBadge(
+                    icon: HugeIcons.strokeRoundedSmartPhone01),
                 const SizedBox(height: 24),
                 Text(
                   AuthStrings.phoneLoginTitle,
-                  style: TextStyle(color: AppColors.white, fontSize: 26, fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                      color: AppColors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   AuthStrings.phoneLoginSubtitle,
-                  style: TextStyle(color: AppColors.grey2, fontSize: 14.5, height: 1.5),
+                  style: TextStyle(
+                      color: AppColors.grey2, fontSize: 14.5, height: 1.5),
                 ),
                 const SizedBox(height: 32),
-                Text(AuthStrings.phoneNumberLabel, style: TextStyle(color: AppColors.grey1, fontSize: 13, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                Container(
-                  height: 56,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _focusNode.hasFocus ? AppColors.primary : AppColors.border),
-                  ),
-                  child: Row(
+                AppTextField(
+                  controller: _phoneController,
+                  focusNode: _focusNode,
+                  label: AuthStrings.phoneNumberLabel,
+                  hint: AuthStrings.phoneHint,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(11)
+                  ],
+                  style: TextStyle(
+                      color: AppColors.white, fontSize: 16, letterSpacing: 1),
+                  onChanged: _onPhoneChanged,
+                  prefix: Row(
                     children: [
                       const Text('🇹🇲', style: TextStyle(fontSize: 20)),
                       const SizedBox(width: 8),
-                      Text('+993', style: TextStyle(color: AppColors.grey1, fontSize: 16, fontWeight: FontWeight.w600)),
-                      Container(margin: const EdgeInsets.symmetric(horizontal: 10), width: 1, height: 22, color: AppColors.border),
-                      Expanded(
-                        child: TextField(
-                          controller: _phoneController,
-                          focusNode: _focusNode,
-                          onChanged: _onPhoneChanged,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(11)],
-                          style: TextStyle(color: AppColors.white, fontSize: 16, letterSpacing: 1),
-                          decoration: InputDecoration(hintText: AuthStrings.phoneHint, hintStyle: TextStyle(color: AppColors.grey3), border: InputBorder.none, isDense: true),
-                          onTap: () => setState(() {}),
-                        ),
-                      ),
+                      Text('+993',
+                          style: TextStyle(
+                              color: AppColors.grey1,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600)),
+                      Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 10),
+                          width: 1,
+                          height: 22,
+                          color: AppColors.border),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
-                // Demo-only: lets you preview the "logged in on another device"
-                // dialog (TZ 2.2) without a real second session.
-                InkWell(
-                  onTap: () => setState(() => _simulateOtherDevice = !_simulateOtherDevice),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
+                const SizedBox(height: 24),
+                PrimaryButton(
+                    label: AuthStrings.sendCodeButton,
+                    loading: auth.isLoading,
+                    onPressed: _isValid ? _sendCode : null),
+                const SizedBox(height: 14),
+                // Column above is left-aligned (crossAxisAlignment.start), so
+                // without this the RichText shrink-wraps to its own text
+                // width and sits at the left edge — textAlign.center only
+                // centers text *within* the widget's box, which does nothing
+                // once that box is already exactly as wide as the text.
+                SizedBox(
+                  width: double.infinity,
+                  child: RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      style: TextStyle(
+                          color: AppColors.grey3,
+                          fontFamily: 'GilroyRegular',
+                          fontSize: 11.5),
                       children: [
-                        HugeIcon(
-                          icon: _simulateOtherDevice ? HugeIcons.strokeRoundedCheckmarkCircle01 : HugeIcons.strokeRoundedCircle,
-                          color: _simulateOtherDevice ? AppColors.primary : AppColors.grey3,
-                          size: 18,
+                        TextSpan(text: AuthStrings.termsPrefix),
+                        TextSpan(
+                          text: AuthStrings.termsLink,
+                          style: TextStyle(
+                              color: AppColors.primary,
+                              fontFamily: 'GilroyRegular',
+                              fontWeight: FontWeight.w700,
+                              decoration: TextDecoration.underline),
+                          recognizer: _termsTap,
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            AuthStrings.simulateOtherDeviceLabel,
-                            style: TextStyle(color: AppColors.grey3, fontSize: 12),
-                          ),
-                        ),
+                        TextSpan(text: AuthStrings.termsSuffix),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isValid ? AppColors.primary : AppColors.card,
-                      disabledBackgroundColor: AppColors.card,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 0,
-                    ),
-                    onPressed: _isValid ? _sendCode : null,
-                    child: _sending
-                        ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white))
-                        : Text(
-                            AuthStrings.sendCodeButton,
-                            style: TextStyle(color: _isValid ? Colors.white : AppColors.grey3, fontSize: 16, fontWeight: FontWeight.w700),
-                          ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                RichText(
-                  textAlign: TextAlign.center,
-                  text: TextSpan(
-                    style: TextStyle(color: AppColors.grey3, fontFamily: 'GilroyRegular', fontSize: 11.5),
-                    children: [
-                      TextSpan(text: AuthStrings.termsPrefix),
-                      TextSpan(
-                        text: AuthStrings.termsLink,
-                        style: TextStyle(color: AppColors.primary, fontFamily: 'GilroyRegular', fontWeight: FontWeight.w700, decoration: TextDecoration.underline),
-                        recognizer: _termsTap,
-                      ),
-                      TextSpan(text: AuthStrings.termsSuffix),
-                    ],
-                  ),
+                const SizedBox(height: 28),
+                OrDivider(label: AuthStrings.orDivider),
+                const SizedBox(height: 16),
+                AuthProviderButton(
+                  icon: HugeIcon(
+                      icon: HugeIcons.strokeRoundedLoginCircle02,
+                      color: AppColors.white,
+                      size: 20),
+                  label: AuthStrings.otherMethodsLink,
+                  onPressed: _openOtherMethods,
                 ),
               ],
             ),

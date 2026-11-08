@@ -31,7 +31,8 @@ class DeviceFingerprint {
     try {
       if (kIsWeb) {
         final info = await plugin.webBrowserInfo;
-        return _persistedFallback(seed: '${info.vendor}-${info.userAgent}');
+        return await _persistedFallback(
+            seed: '${info.vendor}-${info.userAgent}');
       }
       if (Platform.isAndroid) {
         final info = await plugin.androidInfo;
@@ -39,12 +40,13 @@ class DeviceFingerprint {
       }
       if (Platform.isIOS) {
         final info = await plugin.iosInfo;
-        return info.identifierForVendor ?? await _persistedFallback(seed: info.identifierForVendor);
+        return info.identifierForVendor ??
+            await _persistedFallback(seed: info.identifierForVendor);
       }
     } catch (_) {
       // Plugin unsupported/failed on this platform — fall back below.
     }
-    return _persistedFallback();
+    return await _persistedFallback();
   }
 
   /// Used where there's no stable hardware identifier (web, desktop, or a
@@ -54,7 +56,8 @@ class DeviceFingerprint {
     final existing = prefs.getString(_kFallbackId);
     if (existing != null) return existing;
 
-    final raw = '${seed ?? ''}-${DateTime.now().microsecondsSinceEpoch}-${identityHashCode(prefs)}';
+    final raw =
+        '${seed ?? ''}-${DateTime.now().microsecondsSinceEpoch}-${identityHashCode(prefs)}';
     final id = sha256.convert(utf8.encode(raw)).toString();
     await prefs.setString(_kFallbackId, id);
     return id;

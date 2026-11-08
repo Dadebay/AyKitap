@@ -4,69 +4,508 @@ import '../strings_base.dart';
 class PaymentStrings {
   PaymentStrings._();
 
+  // payment_webview_screen.dart
+  static String get paymentPageTitle =>
+      t(tk: 'Töleg', ru: 'Оплата', tr: 'Ödeme', en: 'Payment');
+
   // book_purchase_screen.dart
-  static String get purchaseTitle => t(tk: 'Satyn alyş', ru: 'Покупка', tr: 'Satın alma');
+  static String get purchaseTitle =>
+      t(tk: 'Satyn alyş', ru: 'Покупка', tr: 'Satın alma', en: 'Purchase');
   static String purchasedSnackbar(String title) => t(
         tk: '«$title» satyn alyndy',
         ru: '«$title» приобретена',
         tr: '«$title» satın alındı',
+        en: '“$title” purchased',
       );
-  static String get balanceNotEnough => t(tk: 'Balans ýeterlik däl', ru: 'Недостаточно средств на балансе', tr: 'Bakiye yetersiz');
-  static String get bookPrice => t(tk: 'Kitabyň bahasy', ru: 'Цена книги', tr: 'Kitabın fiyatı');
-  static String get yourBalance => t(tk: 'Balansyňyz', ru: 'Ваш баланс', tr: 'Bakiyeniz');
-  static String get afterPurchase => t(tk: 'Satyn alandan soň', ru: 'После покупки', tr: 'Satın aldıktan sonra');
-  static String get notEnough => t(tk: 'Ýeterlik däl', ru: 'Недостаточно', tr: 'Yetersiz');
-  static String manat(num amount) => t(tk: '$amount manat', ru: '$amount манат', tr: '$amount manat');
+  static String get balanceNotEnough => t(
+      tk: 'Balans ýeterlik däl',
+      ru: 'Недостаточно средств на балансе',
+      tr: 'Bakiye yetersiz',
+      en: 'Insufficient balance');
+  static String get bookPrice => t(
+      tk: 'Kitabyň bahasy',
+      ru: 'Цена книги',
+      tr: 'Kitabın fiyatı',
+      en: 'Book price');
+  static String get yourBalance => t(
+      tk: 'Balansyňyz', ru: 'Ваш баланс', tr: 'Bakiyeniz', en: 'Your balance');
+  static String get afterPurchase => t(
+      tk: 'Satyn alandan soň',
+      ru: 'После покупки',
+      tr: 'Satın aldıktan sonra',
+      en: 'After purchase');
+  static String get notEnough => t(
+      tk: 'Ýeterlik däl', ru: 'Недостаточно', tr: 'Yetersiz', en: 'Not enough');
+
+  /// Currency code is deliberately the same in every language and screen.
+  static String manat(num amount) => '$amount TMT';
   static String get balanceInsufficientNote => t(
         tk: 'Balansyňyz bu kitaby almaga ýetmeýär. Balansy dolduryň.',
         ru: 'Вашего баланса недостаточно для покупки этой книги. Пополните баланс.',
         tr: 'Bakiyeniz bu kitabı almaya yetmiyor. Bakiyenizi yükleyin.',
+        en: 'Your balance isn\'t enough to buy this book. Top up your balance.',
+      );
+
+  /// Exact shortfall for [InsufficientBalanceDialog] — how much more the
+  /// balance needs before this purchase goes through.
+  static String balanceShortfall(num amount) => t(
+        tk: 'Bu kitaby almak üçin ýene $amount TMT gerek. Balansy dolduryň.',
+        ru: 'Для покупки этой книги не хватает $amount TMT. Пополните баланс.',
+        tr: 'Bu kitabı almak için $amount TMT daha gerekli. Bakiyenizi yükleyin.',
+        en: 'You need $amount TMT more to buy this book. Top up your balance.',
       );
   static String get booksOnlyInApp => t(
         tk: 'Kitaplar diňe programmada okalýar — telefona ýüklenmeýär.',
         ru: 'Книги читаются только в приложении — на телефон не скачиваются.',
         tr: 'Kitaplar yalnızca uygulama içinde okunur — telefona indirilmez.',
+        en: 'Books are read only in the app — they aren\'t downloaded to your phone.',
+      );
+  static const downloadFileWebsite = 'www.aykitap.com.tm';
+  static String get downloadFileWebsitePrefix => t(
+        tk: 'Faýly ýükläp almak üçin',
+        ru: 'Чтобы скачать файл, используйте сайт',
+        tr: 'Dosyayı indirmek için',
+        en: 'To download the file, use',
+      );
+  static String get downloadFileWebsiteSuffix => t(
+        tk: ' saýtyny ulanyň.',
+        ru: '.',
+        tr: ' adresini kullanın.',
+        en: '.',
+      );
+  static String get downloadFileWebsiteText =>
+      '$downloadFileWebsitePrefix $downloadFileWebsite$downloadFileWebsiteSuffix';
+  static String get downloadFileWebsiteOpenError => t(
+        tk: 'Web sahypasy açylmady.',
+        ru: 'Не удалось открыть сайт.',
+        tr: 'Web sitesi açılamadı.',
+        en: 'Couldn\'t open the website.',
       );
   static String confirmWithPrice(num amount) => t(
-        tk: 'Tassykla — $amount manat',
-        ru: 'Подтвердить — $amount манат',
-        tr: 'Onayla — $amount manat',
+        tk: 'Tassykla — $amount TMT',
+        ru: 'Подтвердить — $amount TMT',
+        tr: 'Onayla — $amount TMT',
+        en: 'Confirm — $amount TMT',
       );
-  static String get topUpBalance => t(tk: 'Balans doldur', ru: 'Пополнить баланс', tr: 'Bakiye yükle');
+  static String get topUpBalance => t(
+      tk: 'Balans doldur',
+      ru: 'Пополнить баланс',
+      tr: 'Bakiye yükle',
+      en: 'Top up balance');
+  static String get payNow =>
+      t(tk: 'Töle', ru: 'Оплатить', tr: 'Öde', en: 'Pay now');
+  static String get close =>
+      t(tk: 'Ýap', ru: 'Закрыть', tr: 'Kapat', en: 'Close');
 
   // subscription_screen.dart
-  static String get planWeekly => t(tk: 'Hepdelik', ru: 'Недельный', tr: 'Haftalık');
-  static String get planMonthly => t(tk: 'Aýlyk', ru: 'Месячный', tr: 'Aylık');
-  static String get plan3Months => t(tk: '3 Aýlyk', ru: '3 месяца', tr: '3 Aylık');
-  static String get plan6Months => t(tk: '6 Aýlyk', ru: '6 месяцев', tr: '6 Aylık');
-  static String get subscriptionTitle => t(tk: 'Abunalyk', ru: 'Подписка', tr: 'Abonelik');
+  static String get planMonthly =>
+      t(tk: 'Aýlyk', ru: 'Месячный', tr: 'Aylık', en: 'Monthly');
+  static String get plan3Months =>
+      t(tk: '3 Aýlyk', ru: '3 месяца', tr: '3 Aylık', en: '3 Months');
+  static String get plan6Months =>
+      t(tk: '6 Aýlyk', ru: '6 месяцев', tr: '6 Aylık', en: '6 Months');
+  static String get planYearly =>
+      t(tk: 'Ýyllyk', ru: 'Годовой', tr: 'Yıllık', en: 'Yearly');
+
+  /// Fallback label for any `month_count` the 4 named getters above don't
+  /// cover — keeps a future/unexpected tariff length from the backend from
+  /// showing up with no label at all.
+  static String planMonthsGeneric(int months) => t(
+      tk: '$months aýlyk',
+      ru: '$months месяцев',
+      tr: '$months aylık',
+      en: '$months months');
+
+  /// Plans shorter than a month carry no `month_count` at all and are
+  /// labelled from `day_count` instead — see [subscriptionPlanLabel].
+  static String get planWeekly =>
+      t(tk: 'Hepdelik', ru: 'Недельный', tr: 'Haftalık', en: 'Weekly');
+  static String planDaysGeneric(int days) => t(
+      tk: '$days günlük',
+      ru: '$days дней',
+      tr: '$days günlük',
+      en: '$days days');
+  static String get tariffsLoadError => t(
+        tk: 'Planlar ýüklenmedi',
+        ru: 'Не удалось загрузить планы',
+        tr: 'Planlar yüklenemedi',
+        en: 'Plans couldn\'t load',
+      );
+  static String get retry => t(
+      tk: 'Gaýtadan synanyş', ru: 'Повторить', tr: 'Tekrar dene', en: 'Retry');
+  static String get subscriptionTitle =>
+      t(tk: 'Abunalyk', ru: 'Подписка', tr: 'Abonelik', en: 'Subscription');
   static String get unlimitedAccessTitle => t(
         tk: 'Ähli kitaplara çäksiz giriş',
         ru: 'Неограниченный доступ ко всем книгам',
         tr: 'Tüm kitaplara sınırsız erişim',
+        en: 'Unlimited access to every book',
       );
   static String get unlimitedAccessSubtitle => t(
         tk: 'Abunalyk dowam edýänçä ähli kitaplary okap bilersiňiz.',
         ru: 'Пока подписка активна, вы можете читать все книги.',
         tr: 'Abonelik devam ettiği sürece tüm kitapları okuyabilirsiniz.',
+        en: 'You can read every book for as long as your subscription is active.',
+      );
+  static String get chooseYourPlan => t(
+        tk: 'Özüňize laýyk meýilnamany saýlaň',
+        ru: 'Выберите подходящий вариант',
+        tr: 'Size uygun seçeneği seçin',
+        en: 'Choose the option that suits you',
+      );
+
+  static String get chooseYourPlanSubtitle => t(
+        tk: 'Uzak möhletli meýilnamany bilen has köp tygşytlaň',
+        ru: 'Экономьте больше, выбирая долгосрочный вариант',
+        tr: 'Uzun vadeli seçeneği tercih ederek daha fazla tasarruf edin',
+        en: 'Save more with a long-term option',
+      );
+  static String get benefitAllBooks => t(
+      tk: 'Ähli kitaplar',
+      ru: 'Все книги',
+      tr: 'Tüm kitaplar',
+      en: 'Every book');
+  static String get benefitNoExtraPurchase => t(
+        tk: 'Aýratyn töleg ýok',
+        ru: 'Без доплат',
+        tr: 'Ek satın alma yok',
+        en: 'No extra purchase',
+      );
+  static String get benefitKeepProgress => t(
+        tk: 'Progresiňiz saklanýar',
+        ru: 'Прогресс сохраняется',
+        tr: 'İlerlemeniz korunur',
+        en: 'Progress stays synced',
+      );
+  static String monthlyEquivalent(num amount) => t(
+        tk: 'Aýda $amount TMT',
+        ru: '$amount TMT в месяц',
+        tr: 'Aylık $amount TMT',
+        en: '$amount TMT/month',
+      );
+
+  /// The same line for a plan shorter than a month, which a monthly rate
+  /// would misdescribe — see [Tariff.isShorterThanAMonth].
+  static String weeklyEquivalent(num amount) => t(
+        tk: 'Hepdede $amount TMT',
+        ru: '$amount TMT в неделю',
+        tr: 'Haftalık $amount TMT',
+        en: '$amount TMT/week',
       );
   static String planSelectedMock(String planName) => t(
         tk: '$planName plan saýlandy (mock)',
         ru: 'Выбран план $planName (демо)',
         tr: '$planName planı seçildi (mock)',
+        en: '$planName plan selected (mock)',
       );
   static String subscribeWithPrice(num amount) => t(
-        tk: '$amount manat — Abuna bol',
-        ru: '$amount манат — Оформить подписку',
-        tr: '$amount manat — Abone ol',
+        tk: '$amount TMT — Abuna bol',
+        ru: '$amount TMT — Оформить подписку',
+        tr: '$amount TMT — Abone ol',
+        en: '$amount TMT — Subscribe',
       );
-  static String get mostPopular => t(tk: 'Iň meşhur', ru: 'Самый популярный', tr: 'En popüler');
+  static String get mostPopular => t(
+      tk: 'Iň meşhur',
+      ru: 'Самый популярный',
+      tr: 'En popüler',
+      en: 'Most popular');
   static String subscriptionActivated(String planName) => t(
         tk: '$planName abunalyk işjeňleşdirildi',
         ru: 'Подписка «$planName» активирована',
         tr: '$planName aboneliği etkinleştirildi',
+        en: '$planName subscription activated',
       );
-  static String get activeSubscription => t(tk: 'Işjeň abunalyk', ru: 'Активная подписка', tr: 'Aktif abonelik');
-  static String activeUntil(String date) => t(tk: '$date çenli güýjünde', ru: 'Действует до $date', tr: '$date tarihine kadar geçerli');
-  static String get renew => t(tk: 'Uzalt', ru: 'Продлить', tr: 'Yenile');
+  // Store (RevenueCat) purchase path — no per-tariff name to show, unlike
+  // the TMT/balance flow's [subscriptionActivated].
+  static String get plusPlanName => t(
+      tk: 'Aýkitap Premium',
+      ru: 'Aýkitap Premium',
+      tr: 'Aýkitap Premium',
+      en: 'Aýkitap Premium');
+
+  // widgets/store_plan_card.dart, store_subscription_screen.dart — the
+  // custom store paywall that replaces RevenueCat's native paywall UI.
+  static String storeMonthlyEquivalent(String priceLabel) => t(
+        tk: '$priceLabel / aý',
+        ru: '$priceLabel / мес',
+        tr: '$priceLabel / ay',
+        en: '$priceLabel/mo',
+      );
+  static String storeSubscribeCta(String priceLabel) => t(
+        tk: '$priceLabel — Dowam et',
+        ru: '$priceLabel — Продолжить',
+        tr: '$priceLabel — Devam et',
+        en: 'Continue — $priceLabel',
+      );
+  static String get storePlansUnavailable => t(
+        tk: 'Meýilnamalar häzir elýeterli däl',
+        ru: 'Планы сейчас недоступны',
+        tr: 'Planlar şu anda kullanılamıyor',
+        en: 'Plans aren\'t available right now',
+      );
+  static String get restorePurchases => t(
+      tk: 'Satyn almalary dikelt',
+      ru: 'Восстановить покупки',
+      tr: 'Satın alımları geri yükle',
+      en: 'Restore purchases');
+  static String get restoreNoActiveFound => t(
+      tk: 'Işjeň satyn alma tapylmady',
+      ru: 'Активная покупка не найдена',
+      tr: 'Aktif satın alma bulunamadı',
+      en: 'No active purchase found');
+  static String get storePurchaseFailed => t(
+      tk: 'Satyn alyp bolmady',
+      ru: 'Не удалось совершить покупку',
+      tr: 'Satın alma başarısız oldu',
+      en: 'Purchase failed');
+
+  // widgets/subscription_success_dialog.dart
+  static String get subscriptionSuccessTitle => t(
+      tk: 'Gutlaýarys!', ru: 'Поздравляем!', tr: 'Tebrikler!', en: 'Congrats!');
+  static String get subscriptionRestoredTitle => t(
+      tk: 'Satyn almalar dikeldildi',
+      ru: 'Покупки восстановлены',
+      tr: 'Satın alımlar geri yüklendi',
+      en: 'Purchases restored');
+  static String get subscriptionSuccessCta => t(
+      tk: 'Okap başlaýyn',
+      ru: 'Начать читать',
+      tr: 'Okumaya başla',
+      en: 'Start reading');
+  static String get activeSubscription => t(
+      tk: 'Işjeň abunalyk',
+      ru: 'Активная подписка',
+      tr: 'Aktif abonelik',
+      en: 'Active subscription');
+  static String activeUntil(String date) => t(
+      tk: '$date çenli güýjünde',
+      ru: 'Действует до $date',
+      tr: '$date tarihine kadar geçerli',
+      en: 'Valid until $date');
+  static String get renew =>
+      t(tk: 'Uzalt', ru: 'Продлить', tr: 'Yenile', en: 'Renew');
+
+  // widgets/subscription_required_dialog.dart
+  static String get subscriptionRequiredTitle => t(
+      tk: 'Abunalyk gerek',
+      ru: 'Требуется подписка',
+      tr: 'Abonelik gerekli',
+      en: 'Subscription required');
+  static String get subscriptionRequiredBody => t(
+        tk: 'Bu kitaby okamak üçin abuna bolup ähli kitaplara giriş gazanyp bilersiňiz, ýa-da diňe şu kitaby satyn alyp bilersiňiz.',
+        ru: 'Чтобы читать эту книгу, оформите подписку и получите доступ ко всем книгам, либо купите только эту книгу.',
+        tr: 'Bu kitabı okumak için abone olup tüm kitaplara erişebilir, ya da yalnızca bu kitabı satın alabilirsiniz.',
+        en: 'To read this book, you can subscribe for access to every book, or just buy this one.',
+      );
+  static String get subscribeCta => t(
+      tk: 'Abuna bol',
+      ru: 'Оформить подписку',
+      tr: 'Abone ol',
+      en: 'Subscribe');
+  static String get subscriptionBalanceInsufficientNote => t(
+        tk: 'Balansyňyz bu meýilnamany satyn almaga ýetmeýär. Bank kartasy bilen töläp bilersiňiz.',
+        ru: 'Вашего баланса недостаточно для покупки этого плана. Вы можете оплатить банковской картой.',
+        tr: 'Bakiyeniz bu planı satın almaya yetmiyor. Banka kartıyla ödeyebilirsiniz.',
+        en: 'Your balance isn\'t enough to buy this plan. You can pay with a bank card.',
+      );
+
+  // widgets/bank_select_sheet.dart
+  static String get payWithCard => t(
+      tk: 'Bank karty bilen',
+      ru: 'Оплатить банковской картой',
+      tr: 'Banka kartıyla öde',
+      en: 'Pay with a bank card');
+  static String get selectBankTitle => t(
+      tk: 'Bank saýlaň',
+      ru: 'Выберите банк',
+      tr: 'Banka seçin',
+      en: 'Choose a bank');
+  static String get banksLoadError => t(
+      tk: 'Banklar ýüklenmedi',
+      ru: 'Не удалось загрузить банки',
+      tr: 'Bankalar yüklenemedi',
+      en: 'Banks couldn\'t load');
+
+  // widgets/payment_method_sheet.dart
+  static String get choosePaymentMethodTitle => t(
+      tk: 'Töleg usulyny saýlaň',
+      ru: 'Выберите способ оплаты',
+      tr: 'Ödeme yöntemini seçin',
+      en: 'Choose a payment method');
+  static String get payWithPromoCode => t(
+      tk: 'Promokod bilen',
+      ru: 'По промокоду',
+      tr: 'Promosyon koduyla',
+      en: 'With a promo code');
+  static String get payWithStore => t(
+      tk: 'App Store / Google Play arkaly kart bilen',
+      ru: 'Картой через App Store/Google Play',
+      tr: 'App Store/Google Play üzerinden kartla',
+      en: 'Card via App Store/Google Play');
+
+  // widgets/store_topup_sheet.dart
+  static String get storeTopUpTitle => t(
+      tk: 'Möçberi saýlaň',
+      ru: 'Выберите сумму',
+      tr: 'Tutarı seçin',
+      en: 'Choose an amount');
+  static String get storeTopUpUnavailable => t(
+      tk: 'Häzirlikçe elýeterli däl',
+      ru: 'Пока недоступно',
+      tr: 'Şu anda kullanılamıyor',
+      en: 'Not available right now');
+  static String get storeTopUpLoadError => t(
+      tk: 'Ýüklenmedi',
+      ru: 'Не удалось загрузить',
+      tr: 'Yüklenemedi',
+      en: 'Couldn\'t load');
+  static String get storeTopUpApplied => t(
+      tk: 'Satyn alyndy — balansyňyz ýakyn wagtda dolar',
+      ru: 'Покупка выполнена — баланс скоро пополнится',
+      tr: 'Satın alındı — bakiyeniz kısa süre içinde yüklenecek',
+      en: 'Purchased — your balance will update shortly');
+  static String get storeTopUpFailed => t(
+      tk: 'Satyn alyp bolmady',
+      ru: 'Не удалось совершить покупку',
+      tr: 'Satın alma başarısız oldu',
+      en: 'Purchase failed');
+
+  // balance_top_up.dart / widgets/top_up_amount_sheet.dart
+  static String get topUpTitle => t(
+      tk: 'Balansy doldur',
+      ru: 'Пополнить баланс',
+      tr: 'Bakiye yükle',
+      en: 'Top up balance');
+  static String get topUpAmountTitle => t(
+      tk: 'Näçe TMT dolduraly?',
+      ru: 'На какую сумму TMT пополнить?',
+      tr: 'Ne kadar TMT yükleyelim?',
+      en: 'How much TMT should we add?');
+  static String get topUpAmountHint => t(
+      tk: 'Möçberi giriziň',
+      ru: 'Введите сумму',
+      tr: 'Tutarı girin',
+      en: 'Enter amount');
+  static String get topUpContinue =>
+      t(tk: 'Dowam et', ru: 'Продолжить', tr: 'Devam et', en: 'Continue');
+
+  // widgets/promo_code_sheet.dart
+  static String get promoCodeTitle => t(
+      tk: 'Promokod giriziň',
+      ru: 'Введите промокод',
+      tr: 'Promosyon kodu girin',
+      en: 'Enter promo code');
+
+  // ── TMCELL balance transfer (see TmcellPaymentScreen) ────────────────
+  static String get payWithTmcell => t(
+      tk: 'TMCELL bilen',
+      ru: 'Оплата через TMCELL',
+      tr: 'TMCELL ile ödeme',
+      en: 'Pay with TMCELL');
+  static String get tmcellTitle => t(
+      tk: 'TMCELL arkaly töleg',
+      ru: 'Оплата через TMCELL',
+      tr: 'TMCELL ile ödeme',
+      en: 'Pay with TMCELL');
+  static String get tmcellAmountLabel => t(
+      tk: 'Näçe manat geçirmeli?',
+      ru: 'Сколько манат перевести?',
+      tr: 'Ne kadar manat aktarılsın?',
+      en: 'How much to transfer?');
+  static String get tmcellMyNumber =>
+      t(tk: 'Meniň belgim', ru: 'Мой номер', tr: 'Numaram', en: 'My number');
+
+  /// Caption for the line the money is transferred to — the number the admin
+  /// panel serves. Shown because it is what the reader will see inside the
+  /// SMS, and a number they can check before sending is one they can trust.
+  static String get tmcellReceiverNumber => t(
+      tk: 'Geçirilýän belgi',
+      ru: 'Номер получателя',
+      tr: 'Alıcı numara',
+      en: 'Receiving number');
+
+  /// The number could not be read and there is nothing hardcoded to fall
+  /// back to, so no SMS can be composed. Says what to do rather than just
+  /// reporting a failure — there is nothing wrong with the reader's phone.
+  static String get tmcellNumberUnavailable => t(
+        tk: 'Geçirim belgisi häzir elýeterli däl. Internetiňizi barlap, '
+            'gaýtadan synanyşyň.',
+        ru: 'Номер для перевода сейчас недоступен. Проверьте интернет и '
+            'попробуйте снова.',
+        tr: 'Aktarım numarası şu anda alınamıyor. İnternetinizi kontrol '
+            'edip tekrar deneyin.',
+        en: 'The transfer number is unavailable right now. Check your '
+            'connection and try again.',
+      );
+
+  static String get tmcellRetry =>
+      t(tk: 'Gaýtadan', ru: 'Повторить', tr: 'Tekrar dene', en: 'Retry');
+
+  /// The one-screen explanation of what is about to happen. Readers who have
+  /// not sent a TMCELL transfer before otherwise assume the app takes the
+  /// money itself and wait for a balance that never arrives.
+  static String tmcellHowItWorks(String shortCode) => t(
+        tk: 'Tölegi Aýkitap däl-de, TMCELL geçirýär. Aşakdaky düwmä '
+            'basanyňyzda telefonyňyzyň habar programmasy $shortCode belgä '
+            'taýýar SMS bilen açylýar — ony diňe ibermeli.',
+        ru: 'Перевод выполняет TMCELL, а не Aýkitap. По кнопке ниже '
+            'откроется приложение сообщений с готовым SMS на номер '
+            '$shortCode — вам останется только отправить его.',
+        tr: 'Aktarımı Aýkitap değil TMCELL yapar. Aşağıdaki düğmeye '
+            'bastığınızda mesaj uygulamanız $shortCode numarasına hazır bir '
+            'SMS ile açılır — sadece göndermeniz yeterli.',
+        en: 'The transfer is made by TMCELL, not Aýkitap. The button below '
+            'opens your messaging app with a ready SMS to $shortCode — you '
+            'only have to send it.',
+      );
+  static String get tmcellArrivesLater => t(
+      tk: 'Balans SMS ugradylandan soň birnäçe minudyň içinde dolýar.',
+      ru: 'Баланс пополнится в течение нескольких минут после отправки SMS.',
+      tr: 'Bakiye, SMS gönderildikten birkaç dakika sonra yüklenir.',
+      en: 'Your balance is credited within a few minutes of sending the SMS.');
+  static String get tmcellOnlyTmcell => t(
+      tk: 'Diňe TMCELL belgisinden işleýär.',
+      ru: 'Работает только с номера TMCELL.',
+      tr: 'Yalnızca TMCELL numarasından çalışır.',
+      en: 'Works only from a TMCELL number.');
+  static String get tmcellAgreement => t(
+      tk: 'Düşündirişi okadym we razylaşýaryn',
+      ru: 'Я прочитал(а) инструкцию и согласен(на)',
+      tr: 'Açıklamayı okudum ve kabul ediyorum',
+      en: 'I have read and agree to the instructions');
+  static String get tmcellSend => t(
+      tk: 'SMS taýýarla',
+      ru: 'Подготовить SMS',
+      tr: 'SMS hazırla',
+      en: 'Prepare SMS');
+  static String get tmcellAgreeFirst => t(
+      tk: 'Dowam etmek üçin düşündiriş bilen razylaşyň.',
+      ru: 'Чтобы продолжить, согласитесь с инструкцией.',
+      tr: 'Devam etmek için açıklamayı onaylayın.',
+      en: 'Agree to the instructions to continue.');
+  static String get tmcellSmsFailed => t(
+      tk: 'Habar programmasy açylmady. SMS-i elde ugradyp bilersiňiz.',
+      ru: 'Не удалось открыть приложение сообщений. SMS можно отправить вручную.',
+      tr: 'Mesaj uygulaması açılamadı. SMS\'i elle gönderebilirsiniz.',
+      en: 'The messaging app didn\'t open. You can send the SMS manually.');
+
+  /// Shown instead of charging for a book that carries no readable file —
+  /// see [BookPurchaseScreen].
+  static String get bookHasNoFileError => t(
+        tk: 'Bu kitabyň okalýan faýly ýok. Biraz soňra synanyşyň.',
+        ru: 'У этой книги нет файла для чтения. Попробуйте позже.',
+        tr: 'Bu kitabın okunabilir dosyası yok. Daha sonra tekrar deneyin.',
+        en: 'This book has no readable file. Please try again later.',
+      );
+
+  static String get promoCodeHint =>
+      t(tk: 'Promokod', ru: 'Промокод', tr: 'Promosyon kodu', en: 'Promo code');
+  static String get promoCodeApply =>
+      t(tk: 'Ulan', ru: 'Применить', tr: 'Uygula', en: 'Apply');
+  static String get promoCodeAppliedBalance => t(
+        tk: 'Promokod ulanyldy — balansyňyz dolduryldy',
+        ru: 'Промокод применён — баланс пополнен',
+        tr: 'Promosyon kodu uygulandı — bakiyeniz yüklendi',
+        en: 'Promo code applied — your balance was topped up',
+      );
 }

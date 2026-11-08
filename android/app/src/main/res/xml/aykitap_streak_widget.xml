@@ -1,0 +1,18 @@
+<!-- minHeight/minResizeHeight are the streak card's own content height: the
+     smallest the launcher may ever hand this widget, so nothing is
+     clipped. The layout now fills whatever cell it is given instead of
+     wrapping at the top, so a taller row no longer leaves transparent
+     dead space under the card in the placement/resize highlight; the
+     card itself is exactly the area the widget occupies.
+     targetCellHeight=1 still asks for the most compact default
+     placement most launchers' row height can cover. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="124dp"
+    android:minResizeHeight="124dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="1"
+    android:initialLayout="@layout/aykitap_streak_widget"
+    android:previewLayout="@layout/aykitap_streak_widget"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen" />

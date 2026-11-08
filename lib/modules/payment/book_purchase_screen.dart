@@ -1,17 +1,44 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/models/book.dart';
-import '../../core/services/streak_service.dart';
-import '../profile/finance_screen.dart';
-import '../../core/localization/strings/payment_strings.dart';
+import 'package:provider/provider.dart';
 
-/// Kitap satyn alyş sahypasy — TZ §10.2. A single-book checkout: shows the
-/// cover, price and the on-device balance, then debits the balance via
-/// [StreakService.spendBalance]. Pops `true` once the purchase succeeds so
-/// [BookDetailScreen] can flip its CTA from "Satyn al" to "Oka".
+import '../../core/localization/strings/book_detail_strings.dart';
+import '../../core/localization/strings/payment_strings.dart';
+import '../../core/models/book_detail.dart';
+import '../../core/navigation/app_navigator.dart';
+import '../../core/network/api_exception.dart';
+import '../../core/services/account_service.dart';
+import '../../core/services/analytics_service.dart';
+import '../../core/services/book_access_service.dart';
+import '../../core/services/book_file_picker.dart';
+import '../../core/services/book_purchase_api_service.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/app_snackbar.dart';
+import '../library/purchase_diagnostics.dart';
+import 'balance_top_up.dart';
+import 'widgets/book_purchase_confirm_button.dart';
+import 'widgets/book_purchase_download_hint.dart';
+import 'widgets/book_purchase_price_card.dart';
+import 'widgets/book_purchase_summary_card.dart';
+import 'widgets/insufficient_balance_dialog.dart';
+
+/// Kitap satyn alyş sahypasy — TZ §10.2. A single-book checkout for a real
+/// catalogue book: shows the cover, the price and the balance
+/// ([AccountService.balanceManat], the same number Profile/[BalanceScreen]
+/// show), then puts the purchase through [BookPurchaseApiService].
+///
+/// The balance is server-owned, so this never subtracts from it itself —
+/// once the backend confirms the purchase, it re-reads `/users/me` and lets
+/// the backend's number win.
+///
+/// Pops `true` once the purchase succeeds, which is
+/// [CatalogBookDetailScreen]'s cue to refresh its CTA and go straight on to
+/// downloading the book.
 class BookPurchaseScreen extends StatefulWidget {
-  final Book book;
+  final BookDetail book;
   const BookPurchaseScreen({super.key, required this.book});
 
   @override
@@ -21,168 +48,198 @@ class BookPurchaseScreen extends StatefulWidget {
 class _BookPurchaseScreenState extends State<BookPurchaseScreen> {
   bool _processing = false;
 
+  int get _price => widget.book.price!;
+
   Future<void> _confirm() async {
     if (_processing) return;
+    if (widget.book.price == null || widget.book.price! <= 0) {
+      context.showAppSnackBar(BookDetailStrings.priceUnavailable,
+          isError: true);
+      return;
+    }
+    final balance = context.read<AccountService>().balanceManat;
+    if (balance == null || balance < _price) {
+      unawaited(AnalyticsService.instance.logPurchaseStep(
+        step: 'blocked',
+        productType: 'book',
+        productId: '${widget.book.id}',
+        source: 'insufficient_balance',
+        value: _price,
+      ));
+      await _offerTopUp(balance);
+      return;
+    }
+
+    unawaited(AnalyticsService.instance.logPurchaseStep(
+      step: 'started',
+      productType: 'book',
+      productId: '${widget.book.id}',
+      source: 'backend_balance',
+      value: _price,
+    ));
+    // What is actually being sold: the file the reader will open, chosen by
+    // the same format priority the reader uses — see [preferredBookFile].
+    // The endpoint takes this file's id, not the book's (see
+    // [BookPurchaseApiService]).
+    final file = preferredBookFile(widget.book.bookFiles);
+    if (file == null) {
+      // A book with no files can't be read, so it must not be charged for.
+      // Previously unreachable only by luck: the request went out keyed on
+      // the book id and the backend charged for whatever file wore that
+      // number.
+      context.showAppSnackBar(PaymentStrings.bookHasNoFileError, isError: true);
+      return;
+    }
+    final account = context.read<AccountService>();
+    final bookAccess = context.read<BookAccessService>();
     setState(() => _processing = true);
-    final ok = await StreakService.instance.spendBalance(widget.book.priceManat);
+    try {
+      logBookPurchase(
+          step: 'sending',
+          bookId: widget.book.id,
+          bookFileId: file.id,
+          bookName: widget.book.name);
+      await BookPurchaseApiService.buy(file.id);
+      logBookPurchase(
+          step: 'server accepted',
+          bookId: widget.book.id,
+          bookFileId: file.id,
+          bookName: widget.book.name);
+    } on ApiException catch (e) {
+      unawaited(AnalyticsService.instance.logPurchaseStep(
+        step: 'failed',
+        productType: 'book',
+        productId: '${widget.book.id}',
+        source: 'backend_balance',
+        value: _price,
+      ));
+      if (!mounted) return;
+      setState(() => _processing = false);
+      context.showAppSnackBar(e.message, isError: true);
+      return;
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _processing = false);
+      context.showAppSnackBar(PaymentStrings.storePurchaseFailed,
+          isError: true);
+      return;
+    }
+
+    // The server has accepted the purchase. A cache or balance refresh error
+    // must never turn a completed charge into a visible purchase failure.
+    try {
+      await bookAccess.markPurchased(widget.book.id);
+    } catch (_) {
+      // The next library sync can restore the local ownership cache.
+    }
+    unawaited(account.refresh().catchError((Object _) {}));
     if (!mounted) return;
     setState(() => _processing = false);
-    if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(PaymentStrings.purchasedSnackbar(widget.book.title)), backgroundColor: AppColors.primary),
-      );
-      Navigator.pop(context, true);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(PaymentStrings.balanceNotEnough)),
-      );
-    }
+    AnalyticsService.instance.logPurchase(
+      bookId: '${widget.book.id}',
+      value: _price.toDouble(),
+      currency: 'TMT',
+    );
+    unawaited(AnalyticsService.instance.logPurchaseStep(
+      step: 'completed',
+      productType: 'book',
+      productId: '${widget.book.id}',
+      source: 'backend_balance',
+      value: _price,
+    ));
+    context.showAppSnackBar(PaymentStrings.purchasedSnackbar(widget.book.name));
+    context.pop(true);
+  }
+
+  /// Balance short: the shared dialog explains the shortfall and, on
+  /// "Töle", runs the normal money-in flow. Coming back with enough money
+  /// retries the purchase straight away instead of making the user find the
+  /// button again.
+  Future<void> _offerTopUp(int? balance) async {
+    final shortfall = balance == null ? null : _price - balance;
+    final pay = await InsufficientBalanceDialog.show(context,
+        shortfallManat: shortfall);
+    if (!pay || !mounted) return;
+    await startBalanceTopUp(context);
+    if (!mounted) return;
+    final refreshed = context.read<AccountService>().balanceManat;
+    if (refreshed != null && refreshed >= _price) await _confirm();
   }
 
   @override
   Widget build(BuildContext context) {
     final book = widget.book;
+    if (book.price == null || book.price! <= 0) {
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        appBar: AppBar(
+          backgroundColor: AppColors.bg,
+          leading: const AppBackButton(size: 20),
+          title: Text(PaymentStrings.purchaseTitle),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(BookDetailStrings.priceUnavailable),
+          ),
+        ),
+      );
+    }
+    final balance = context.watch<AccountService>().balanceManat;
+    final enough = balance != null && balance >= _price;
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: AppColors.bg,
-        leading: IconButton(
-          icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: AppColors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(PaymentStrings.purchaseTitle, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+        leading: const AppBackButton(size: 20),
+        title: Text(PaymentStrings.purchaseTitle,
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700)),
       ),
-      body: ListenableBuilder(
-        listenable: StreakService.instance,
-        builder: (context, _) {
-          final balance = StreakService.instance.balanceManat;
-          final enough = balance >= book.priceManat;
-          return SafeArea(
-            child: Column(
-              children: [
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                children: [
+                  BookPurchaseSummaryCard(book: book),
+                  const SizedBox(height: 20),
+                  BookPurchasePriceCard(price: _price, balance: balance),
+                  const SizedBox(height: 16),
+                  Row(
                     children: [
-                      // Book summary card
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16)),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 64,
-                              height: 92,
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: Image.asset(book.coverImage, fit: BoxFit.cover),
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(book.title, style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w800), maxLines: 2, overflow: TextOverflow.ellipsis),
-                                  const SizedBox(height: 4),
-                                  Text(book.author.name, style: TextStyle(color: AppColors.grey2, fontSize: 13)),
-                                  const SizedBox(height: 8),
-                                  Text(book.format.label, style: TextStyle(color: AppColors.grey3, fontSize: 12, fontWeight: FontWeight.w600)),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Price + balance breakdown
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16)),
-                        child: Column(
-                          children: [
-                            _row(PaymentStrings.bookPrice, PaymentStrings.manat(book.priceManat)),
-                            const SizedBox(height: 12),
-                            _row(PaymentStrings.yourBalance, PaymentStrings.manat(balance), valueColor: enough ? AppColors.grey1 : Colors.redAccent),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              child: Divider(color: AppColors.border, height: 1),
-                            ),
-                            _row(
-                              PaymentStrings.afterPurchase,
-                              enough ? PaymentStrings.manat(balance - book.priceManat) : PaymentStrings.notEnough,
-                              bold: true,
-                              valueColor: enough ? AppColors.white : Colors.redAccent,
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (!enough) ...[
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            HugeIcon(icon: HugeIcons.strokeRoundedInformationCircle, color: Colors.redAccent, size: 16),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(PaymentStrings.balanceInsufficientNote, style: TextStyle(color: AppColors.grey2, fontSize: 13, height: 1.4)),
-                            ),
-                          ],
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          HugeIcon(icon: HugeIcons.strokeRoundedShield01, color: AppColors.grey3, size: 15),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(PaymentStrings.booksOnlyInApp, style: TextStyle(color: AppColors.grey3, fontSize: 12.5, height: 1.4)),
-                          ),
-                        ],
+                      HugeIcon(
+                          icon: HugeIcons.strokeRoundedShield01,
+                          color: AppColors.grey3,
+                          size: 15),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(PaymentStrings.booksOnlyInApp,
+                            style: TextStyle(
+                                color: AppColors.grey3,
+                                fontSize: 12.5,
+                                height: 1.4)),
                       ),
                     ],
                   ),
-                ),
-                // Sticky action
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 54,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        elevation: 0,
-                      ),
-                      onPressed: _processing
-                          ? null
-                          : enough
-                              ? _confirm
-                              : () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FinanceScreen())),
-                      child: _processing
-                          ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.4))
-                          : Text(
-                              enough ? PaymentStrings.confirmWithPrice(book.priceManat) : PaymentStrings.topUpBalance,
-                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
-                            ),
-                    ),
-                  ),
-                ),
-              ],
+                  const SizedBox(height: 14),
+                  const BookPurchaseDownloadHint(),
+                ],
+              ),
             ),
-          );
-        },
+            BookPurchaseConfirmButton(
+              price: _price,
+              enough: enough,
+              processing: _processing,
+              onConfirm: _confirm,
+              onTopUp: () => _offerTopUp(balance),
+            ),
+          ],
+        ),
       ),
-    );
-  }
-
-  Widget _row(String label, String value, {bool bold = false, Color? valueColor}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: TextStyle(color: AppColors.grey2, fontSize: bold ? 14.5 : 14, fontWeight: bold ? FontWeight.w700 : FontWeight.w500)),
-        Text(value, style: TextStyle(color: valueColor ?? AppColors.grey1, fontSize: bold ? 16 : 14, fontWeight: bold ? FontWeight.w800 : FontWeight.w600)),
-      ],
     );
   }
 }

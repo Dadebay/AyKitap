@@ -1,13 +1,15 @@
 name: aykitap
 description: "Aykitap - E-book reading application"
 publish_to: "none"
-version: 1.0.0+1
+version: 1.1.7+19
 
 environment:
   sdk: ">=3.6.0 <4.0.0"
 
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
 
   #==================== STATE MANAGEMENT ====================#
@@ -21,6 +23,7 @@ dependencies:
   flutter_svg: ^2.0.12
   shimmer: ^3.0.0
   cached_network_image: ^3.3.1
+  flutter_cache_manager: ^3.4.1
   lottie: ^3.3.0
   hugeicons: ^1.1.7
   smooth_page_indicator: ^1.2.1
@@ -30,6 +33,8 @@ dependencies:
   flutter_secure_storage: ^9.2.4
 
   #==================== UTILITIES ====================#
+  file: ^7.0.1
+  path: ^1.9.1
   path_provider: ^2.1.5
   share_plus: ^10.1.4
   archive: ^4.0.9
@@ -38,60 +43,113 @@ dependencies:
   connectivity_plus: ^7.1.1
   url_launcher: ^6.3.1
   device_info_plus: ^11.2.0
+  # The installed build's version string, for [AppUpdateService] to compare
+  # against the store's — and for Settings, which printed a hardcoded
+  # "v1.0.0" long after the app had moved on.
+  package_info_plus: ^9.0.1
 
   #==================== EPUB READER ====================#
-  flutter_epub_viewer:
-    path: ./packages/flutter_epub_viewer
+  # sakura_epub — full-featured epub.js + flutter_inappwebview reader
+  # (annotations, search, themes, navigation). Vendored under packages/.
+  sakura_epub:
+    path: ./packages/sakura_epub
 
   #==================== PDF READER ====================#
-  flutter_pdfview: ^1.3.4
+  # pdfrx — the app's *only* PDF engine: it both renders the fixed pages
+  # (PdfReaderScreen) and extracts text to detect real text-layer PDFs for the
+  # EPUB-style reflow reader (PdfReflowService).
+  #
+  # flutter_pdfview used to draw the pages and was removed rather than fixed:
+  # it ships `libmodpdfium.so` and pdfrx ships `libpdfium.so`, but *both*
+  # declare `SONAME libpdfium.so` — the same name flutter_pdfview's
+  # `libjniPdfium.so` links against. Whichever loaded first won that name
+  # process-wide, so flutter_pdfview's renderer called into pdfrx's PDFium,
+  # hit its Dart FFI font callbacks from a native thread, and aborted with
+  # "Cannot invoke native callback outside an isolate". See
+  # [PdfReaderScreen]'s doc comment for the full story.
+  pdfrx: ^2.4.7
 
   #==================== FILE PICKING ====================#
   file_picker: ^9.2.3
 
+  #==================== IMAGE PROCESSING ====================#
+  # Pure-Dart JPEG re-encode/resize — used to shrink picked avatar photos
+  # below the backend's upload limit without a native codec dependency.
+  image: ^4.5.4
+
   #==================== WEBVIEW (needed by epub stub) ====================#
   webview_flutter: ^4.5.0
-  carousel_slider: ^5.1.2
+  # Direct dependency (not just transitive via webview_flutter) so
+  # PaymentWebViewScreen can reach AndroidWebViewController.setUseWideViewPort
+  # — the platform-interface controller defaults that to false, unlike plain
+  # android.webkit.WebView, which is why bank pages render zoomed-in/desktop-
+  # width until this is set explicitly.
+  webview_flutter_android: ^4.10.0
+
+  #==================== ANALYTICS ====================#
+  firebase_core: ^4.12.1
+  firebase_analytics: ^12.4.5
+
+  #==================== PUSH NOTIFICATIONS ====================#
+  # Two push providers, deliberately: see OneSignalService's doc comment for
+  # the split. Firebase carries account/purchase/security traffic the backend
+  # sends directly; OneSignal carries engagement campaigns. Neither replaces
+  # the other, and OneSignal being unreachable must never affect Firebase.
+  firebase_messaging: ^16.0.2
+  onesignal_flutter: ^5.6.8
+  flutter_local_notifications: ^19.0.0
+  screen_brightness: ^2.1.11
+  home_widget: ^0.9.3
+  purchases_flutter: ^10.9.1
+  purchases_ui_flutter: ^10.9.1
+  firebase_auth: ^6.6.0
+  google_sign_in: ^7.2.0
+  sign_in_with_apple: ^8.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  connectivity_plus_platform_interface: ^2.0.0
+  home_widget_generator: ^0.0.1
+  home_widget_cli: ^0.0.1
 
 flutter:
   uses-material-design: true
 
   assets:
     - assets/
-    - assets/books/
     - assets/fonts/
+    - assets/icons/reader/
     - assets/images/
     - assets/images/onboarding/
-    - assets/images/covers/
-    - assets/images/banners/
+    - assets/images/banks/
     - assets/icons/
     - assets/animations/
     - assets/flags/
 
   fonts:
-    - family: GilroyBold
-      fonts:
-        - asset: assets/fonts/Gilroy-Bold.ttf
-    - family: GilroyMedium
-      fonts:
-        - asset: assets/fonts/Gilroy-Medium.ttf
     - family: GilroyRegular
       fonts:
         - asset: assets/fonts/Gilroy-Regular.ttf
-    - family: GilroySemiBold
-      fonts:
-        - asset: assets/fonts/Gilroy-SemiBold.ttf
     - family: Gilroy
       fonts:
         - asset: assets/fonts/Gilroy-Regular.ttf
-    - family: SFPro
+    # Reader font options (TZ §12.4) — used both for the settings-sheet
+    # previews and injected into the epub WebView as @font-face. "San
+    # Francisco" is deliberately not embedded: Apple-provided fonts must not
+    # ship in the bundle (ITMS-91182), so that option uses the system font.
+    - family: Arial
       fonts:
-        - asset: assets/fonts/SF-Pro.ttf
-    - family: NewYork
+        - asset: assets/fonts/Arial-Regular.ttf
+    - family: NotoSerif
       fonts:
-        - asset: assets/fonts/NewYork.ttf
+        - asset: assets/fonts/NotoSerif-Regular.ttf
+    - family: OpenSans
+      fonts:
+        - asset: assets/fonts/OpenSans-Regular.ttf
+    # Splash wordmark only ("Aykitap" text) — not a reader font option.
+    - family: Congenial
+      fonts:
+        - asset: assets/fonts/Congenial-Medium.otf
+          weight: 500

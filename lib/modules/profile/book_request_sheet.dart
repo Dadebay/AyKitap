@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+
+import '../../core/localization/strings/profile_feedback_strings.dart';
+import '../../core/network/api_exception.dart';
+import '../../core/services/feedback_api_service.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/localization/strings/profile_strings.dart';
+import '../../core/widgets/app_snackbar.dart';
+import 'widgets/book_request_field.dart';
+import 'widgets/book_request_language_chips.dart';
+import 'widgets/book_request_submit_button.dart';
 
 /// "Kitap Haýyşy" — TZ 8.5.
 class BookRequestSheet extends StatefulWidget {
@@ -10,8 +17,11 @@ class BookRequestSheet extends StatefulWidget {
   @override
   State<BookRequestSheet> createState() => _BookRequestSheetState();
 
-  static void show(BuildContext context) {
-    showModalBottomSheet(
+  /// Returns `true` if a request was actually sent — callers that show a
+  /// list of the user's requests (e.g. [BookSuggestionsScreen]) use that to
+  /// know when to refresh instead of reloading on every dismissal.
+  static Future<bool?> show(BuildContext context) {
+    return showModalBottomSheet<bool>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
@@ -23,129 +33,135 @@ class BookRequestSheet extends StatefulWidget {
 class _BookRequestSheetState extends State<BookRequestSheet> {
   final _titleController = TextEditingController();
   final _authorController = TextEditingController();
-  String _language = ProfileStrings.languageTurkmen;
+  final _descriptionController = TextEditingController();
+  String _language = ProfileFeedbackStrings.languageTurkmen;
+  bool _sending = false;
 
   static List<String> get _languages => [
-        ProfileStrings.languageTurkmen,
-        ProfileStrings.languageTurkish,
-        ProfileStrings.languageRussian,
-        ProfileStrings.languageEnglish,
-        ProfileStrings.languageOther,
+        ProfileFeedbackStrings.languageTurkmen,
+        ProfileFeedbackStrings.languageTurkish,
+        ProfileFeedbackStrings.languageRussian,
+        ProfileFeedbackStrings.languageEnglish,
+        ProfileFeedbackStrings.languageOther,
       ];
+
+  // The sheet shows a localized label; the backend wants a stable code.
+  String get _languageCode {
+    if (_language == ProfileFeedbackStrings.languageTurkmen) return 'tk';
+    if (_language == ProfileFeedbackStrings.languageTurkish) return 'tr';
+    if (_language == ProfileFeedbackStrings.languageRussian) return 'ru';
+    if (_language == ProfileFeedbackStrings.languageEnglish) return 'en';
+    return 'other';
+  }
+
+  bool get _isValid =>
+      _titleController.text.trim().isNotEmpty &&
+      _authorController.text.trim().isNotEmpty;
 
   @override
   void dispose() {
     _titleController.dispose();
     _authorController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
-  void _submit() {
-    if (_titleController.text.trim().isEmpty) return;
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ProfileStrings.requestSentMock)),
-    );
+  Future<void> _submit() async {
+    if (!_isValid || _sending) return;
+    setState(() => _sending = true);
+    try {
+      await FeedbackApiService.createBookSuggestion(
+        name: _titleController.text.trim(),
+        author: _authorController.text.trim(),
+        description: _descriptionController.text.trim(),
+        language: _languageCode,
+      );
+      if (!mounted) return;
+      Navigator.pop(context, true);
+      context.showAppSnackBar(ProfileFeedbackStrings.bookRequestSentSuccess);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _sending = false);
+      context.showAppSnackBar(e.message, isError: true);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.grey3, borderRadius: BorderRadius.circular(2))),
-            ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                HugeIcon(icon: HugeIcons.strokeRoundedBookOpen01, color: AppColors.primary, size: 22),
-                SizedBox(width: 10),
-                Text(ProfileStrings.bookRequestTitle, style: TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w800)),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(ProfileStrings.bookRequestSubtitle, style: TextStyle(color: AppColors.grey2, fontSize: 13)),
-            const SizedBox(height: 20),
-            _FieldLabel(ProfileStrings.bookTitleLabel),
-            _TextField(controller: _titleController, hint: ProfileStrings.bookTitleHint),
-            const SizedBox(height: 14),
-            _FieldLabel(ProfileStrings.authorNameLabel),
-            _TextField(controller: _authorController, hint: ProfileStrings.authorNameHint),
-            const SizedBox(height: 14),
-            _FieldLabel(ProfileStrings.languageLabel),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _languages.map((l) {
-                final selected = l == _language;
-                return GestureDetector(
-                  onTap: () => setState(() => _language = l),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                    width: 40,
+                    height: 4,
                     decoration: BoxDecoration(
-                      color: selected ? AppColors.primary : AppColors.card,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: selected ? AppColors.primary : AppColors.border),
-                    ),
-                    child: Text(l, style: TextStyle(color: selected ? Colors.white : AppColors.grey1, fontSize: 12.5, fontWeight: FontWeight.w600)),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
-                onPressed: _submit,
-                child: Text(ProfileStrings.send, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                        color: AppColors.grey3,
+                        borderRadius: BorderRadius.circular(2))),
               ),
-            ),
-          ],
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  HugeIcon(
+                      icon: HugeIcons.strokeRoundedBookOpen01,
+                      color: AppColors.primary,
+                      size: 22),
+                  const SizedBox(width: 10),
+                  Text(ProfileFeedbackStrings.bookRequestTitle,
+                      style: TextStyle(
+                          color: AppColors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800)),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(ProfileFeedbackStrings.bookRequestSubtitle,
+                  style: TextStyle(color: AppColors.grey2, fontSize: 13)),
+              const SizedBox(height: 20),
+              BookRequestFieldLabel(ProfileFeedbackStrings.bookTitleLabel),
+              BookRequestTextField(
+                  controller: _titleController,
+                  hint: ProfileFeedbackStrings.bookTitleHint,
+                  onChanged: (_) => setState(() {})),
+              const SizedBox(height: 14),
+              BookRequestFieldLabel(ProfileFeedbackStrings.authorNameLabel),
+              BookRequestTextField(
+                  controller: _authorController,
+                  hint: ProfileFeedbackStrings.authorNameHint,
+                  onChanged: (_) => setState(() {})),
+              const SizedBox(height: 14),
+              BookRequestFieldLabel(ProfileFeedbackStrings.descriptionLabel),
+              BookRequestTextField(
+                  controller: _descriptionController,
+                  hint: ProfileFeedbackStrings.descriptionHint,
+                  maxLines: 3),
+              const SizedBox(height: 14),
+              BookRequestFieldLabel(ProfileFeedbackStrings.languageLabel),
+              const SizedBox(height: 8),
+              BookRequestLanguageChips(
+                languages: _languages,
+                selected: _language,
+                onSelected: (l) => setState(() => _language = l),
+              ),
+              const SizedBox(height: 24),
+              BookRequestSubmitButton(
+                sending: _sending,
+                onPressed: (_isValid && !_sending) ? _submit : null,
+              ),
+            ],
+          ),
         ),
-      ),
-    );
-  }
-}
-
-class _FieldLabel extends StatelessWidget {
-  final String label;
-  const _FieldLabel(this.label);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(label, style: TextStyle(color: AppColors.grey1, fontSize: 13, fontWeight: FontWeight.w600));
-  }
-}
-
-class _TextField extends StatelessWidget {
-  final TextEditingController controller;
-  final String hint;
-  const _TextField({required this.controller, required this.hint});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 50,
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14)),
-      child: TextField(
-        controller: controller,
-        style: TextStyle(color: AppColors.white, fontSize: 14),
-        decoration: InputDecoration(hintText: hint, hintStyle: TextStyle(color: AppColors.grey3), border: InputBorder.none),
       ),
     );
   }

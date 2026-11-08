@@ -1,0 +1,25 @@
+# Card 4 numbered book design
+
+## Outcome
+
+The Flutter client now recognizes backend `card_type: "card_4"` instead of
+silently falling back to Card 1. Card 4 renders as a horizontally scrolling
+editorial bestseller row inspired by the supplied reference.
+
+## Design
+
+- Large theme-aware rank number behind each real book cover.
+- A separate light number outline continues across the cover for the cutout
+  effect without modifying cover assets.
+- Author and title remain beneath the cover.
+- Supports light and dark themes, one- and two-digit ranks, missing covers,
+  press feedback, book-detail navigation, and the existing See all route.
+- A compact variant is used if Card 4 participates in a grouped queue row.
+
+## Files
+
+- `lib/core/models/collection.dart`
+- `lib/modules/home/home_screen.dart`
+- `lib/modules/home/home_screen_sections.dart`
+- `lib/modules/home/widgets/catalog_numbered_book_section.dart`
+

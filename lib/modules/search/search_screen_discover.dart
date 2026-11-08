@@ -1,0 +1,203 @@
+part of 'search_screen.dart';
+
+/// The pre-search "discover" grid: `GET /books/all` with a daily-rotating
+/// default sort (see [_discoverSort]) instead of the app asking the backend
+/// for genuine randomness, which would break pagination (no stable order
+/// underneath it to page against).
+extension _SearchScreenDiscover on _SearchScreenState {
+  // One (sort_by, sort_order) pair per weekday — the team's fix for the
+  // discover grid looking too static without ever breaking pagination (see
+  // [_discoverBooks]'s comment): true per-request random has no stable
+  // order underneath it, so instead the *default* order changes once a day,
+  // cycling through every sort the filter page itself offers plus their
+  // reverses. Stable all day (so `page`/`size` still lines up request to
+  // request), different from the day before — "looks random" over repeat
+  // visits without the backend ever being asked for one.
+  static const _discoverDailySorts = [
+    ('name', 'ASC'), // Monday — ady boýunça (A→Z)
+    ('year', 'DESC'), // Tuesday — çap senesi, täzeden
+    ('created_at', 'ASC'), // Wednesday — ýüklenen wagty, köneden
+    ('name', 'DESC'), // Thursday — ady boýunça (Z→A)
+    ('year', 'ASC'), // Friday — çap senesi, köneden
+    (
+      'created_at',
+      'DESC'
+    ), // Saturday — ýüklenen wagty, täzeden (the old fixed default)
+    ('year', 'DESC'), // Sunday — çap senesi, täzeden
+  ];
+
+  /// Only takes over while the filter page's own sort is still untouched —
+  /// picking a real sort there (even re-picking today's rotation's own
+  /// value, or [kDefaultSortBy] itself) keeps meaning exactly what it says
+  /// instead of drifting to a different order tomorrow underneath the user.
+  /// Keyed off [_sortChosenByUser] rather than `_filterSort !=
+  /// kDefaultSortBy`: [kDefaultSortBy] is itself a selectable option
+  /// ("Ýüklenen wagty (täzeden köne)"), so that comparison couldn't tell
+  /// "never opened the filter page" apart from "opened it and picked the
+  /// option that happens to match the default".
+  (String, String) get _discoverSort {
+    if (_sortChosenByUser) {
+      return (_filterSort.apiSortBy, _filterSort.apiSortOrder);
+    }
+    final weekday = DateTime.now().weekday; // 1 (Mon) .. 7 (Sun)
+    return _discoverDailySorts[(weekday - 1) % _discoverDailySorts.length];
+  }
+
+  // [loadMore] fetches the next page and appends it; the default (a fresh
+  // call, or the sort changing) replaces the grid from page 1.
+  Future<void> _loadDiscoverBooks({bool loadMore = false}) async {
+    if (loadMore) {
+      if (_discoverLoadingMore || !_discoverHasMore) return;
+    }
+    final requestId = ++_discoverRequestId;
+    if (loadMore) {
+      _setState(() => _discoverLoadingMore = true);
+    } else {
+      _discoverActiveSort = _discoverSort;
+      _setState(() {
+        _discoverLoading = true;
+        _discoverError = null;
+        _discoverPage = 1;
+        _discoverHasMore = true;
+        // See [_searchLoadingMore]'s reset in [_runSearch] — same stale
+        // in-flight-load-more concern.
+        _discoverLoadingMore = false;
+      });
+    }
+    // Paint the last grid this device saw before waiting on the network.
+    // [_buildDiscover] shows its shimmer only while `_discoverBooks` is null,
+    // and its error state likewise, so filling it in here is all it takes for
+    // a cold open — or a failed one — to show books instead of nothing.
+    if (!loadMore && _discoverBooks == null) {
+      final cached = await SearchDiscoverCache.readBooks();
+      if (!mounted || requestId != _discoverRequestId) return;
+      if (cached != null && cached.isNotEmpty) {
+        _setState(() => _discoverBooks = cached);
+      }
+    }
+
+    final page = loadMore ? _discoverPage + 1 : 1;
+    try {
+      final books = await BookListApiService.listBooks(
+        sortBy: _discoverActiveSort.$1,
+        sortOrder: _discoverActiveSort.$2,
+        page: page,
+        size: _SearchScreenState._pageSize,
+      );
+      if (!mounted || requestId != _discoverRequestId) return;
+      // The grid a reader lands on without typing anything — which is where
+      // the "the books look the same / these keep coming back" reports
+      // actually come from, so the same two diagnostics the typed search has
+      // (see [_runSearch]) have to cover it too. Run over the *accumulated*
+      // list, not just this page: a book that arrives again three pages down
+      // is exactly the case a per-page check would miss.
+      final accumulated =
+          loadMore ? [...?_discoverBooks, ...books] : List.of(books);
+      logLookalikeResults(query: '(discover)', page: page, books: accumulated);
+      logWatchedTitleSightings(
+          query: '(discover)', page: page, books: accumulated);
+      _setState(() {
+        _discoverBooks = loadMore ? [...?_discoverBooks, ...books] : books;
+        _discoverPage = page;
+        _discoverHasMore = books.length >= _SearchScreenState._pageSize;
+        _discoverLoading = false;
+        _discoverLoadingMore = false;
+      });
+      // See [_scheduleLoadMoreCheck]: appending rows fires no scroll
+      // notification, so without this the grid stopped paging at the bottom
+      // until the reader scrolled up and back down.
+      _scheduleLoadMoreCheck();
+      // Only the first page is worth keeping: it's what the next cold open
+      // needs to draw immediately, and re-caching each scrolled page would
+      // grow the entry without making that first paint any better. Replaces
+      // the previous entry outright — the server's page 1 is the authority on
+      // what still exists, so a book it no longer returns is gone from the
+      // cache too.
+      if (!loadMore) unawaited(SearchDiscoverCache.writeBooks(books));
+    } on ApiException catch (e) {
+      if (!mounted || requestId != _discoverRequestId) return;
+      _setState(() {
+        if (loadMore) {
+          _discoverLoadingMore = false;
+        } else {
+          _discoverError = e.message;
+        }
+        _discoverLoading = false;
+      });
+    }
+  }
+
+  /// Author mode's discover fetch — `GET /authors/search` with an empty
+  /// `search`, confirmed against the live backend to return a real default
+  /// list rather than erroring. Fetched lazily the first time Author mode is
+  /// opened (see [_setSearchMode]) and kept in [_discoverAuthors] rather than
+  /// re-fetched on every switch back to that tab; [retry] is the one path
+  /// that forces a fresh call after a failure.
+  ///
+  /// [loadMore] appends the next page as the grid is scrolled — the same
+  /// infinite scroll the book grid has always had. Without it this tab
+  /// stopped at whatever its first request returned, which is why it looked
+  /// like the catalogue held only a screenful of authors.
+  Future<void> _loadDiscoverAuthors({
+    bool retry = false,
+    bool loadMore = false,
+  }) async {
+    if (loadMore) {
+      // Nothing to extend yet, or nothing left to extend it with.
+      if (_discoverAuthors == null ||
+          _discoverAuthorsLoading ||
+          _discoverAuthorsLoadingMore ||
+          !_discoverAuthorsHasMore) {
+        return;
+      }
+    } else {
+      if (_discoverAuthorsLoading) return;
+      if (_discoverAuthors != null && !retry) return;
+    }
+    final requestId = ++_discoverAuthorsRequestId;
+    if (loadMore) {
+      _setState(() => _discoverAuthorsLoadingMore = true);
+    } else {
+      _setState(() {
+        _discoverAuthorsLoading = true;
+        _discoverAuthorsError = null;
+        _discoverAuthorsPage = 1;
+        _discoverAuthorsHasMore = true;
+        // See [_searchLoadingMore]'s reset in [_runSearch] — a stale
+        // load-more superseded by this fresh call would otherwise leave the
+        // footer spinning forever.
+        _discoverAuthorsLoadingMore = false;
+      });
+    }
+    final page = loadMore ? _discoverAuthorsPage + 1 : 1;
+    try {
+      final authors = await AuthorApiService.searchAuthors(
+        sortBy: 'created_at',
+        sortOrder: 'ASC',
+        page: page,
+        size: _SearchScreenState._pageSize,
+      );
+      if (!mounted || requestId != _discoverAuthorsRequestId) return;
+      final (merged, added) =
+          mergeAuthorPage(loadMore ? _discoverAuthors : null, authors);
+      _setState(() {
+        _discoverAuthors = merged;
+        _discoverAuthorsPage = page;
+        _discoverAuthorsHasMore = added > 0;
+        _discoverAuthorsLoading = false;
+        _discoverAuthorsLoadingMore = false;
+      });
+      _scheduleLoadMoreCheck();
+    } on ApiException catch (e) {
+      if (!mounted || requestId != _discoverAuthorsRequestId) return;
+      _setState(() {
+        if (loadMore) {
+          _discoverAuthorsLoadingMore = false;
+        } else {
+          _discoverAuthorsError = e.message;
+        }
+        _discoverAuthorsLoading = false;
+      });
+    }
+  }
+}

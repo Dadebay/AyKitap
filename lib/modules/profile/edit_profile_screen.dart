@@ -1,11 +1,16 @@
-import 'dart:convert';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/services/auth_session.dart';
-import '../../core/widgets/profile_avatar.dart';
 import '../../core/localization/strings/profile_strings.dart';
+import '../../core/network/api_exception.dart';
+import '../../core/services/auth_api_service.dart';
+import '../../core/services/auth_session.dart';
+import '../../core/services/profile_avatar_service.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/app_snackbar.dart';
+import 'widgets/avatar_picker_sheet.dart';
+import 'widgets/edit_profile_avatar_section.dart';
+import 'widgets/edit_profile_fields.dart';
+import 'widgets/edit_profile_save_button.dart';
 
 /// Standalone "edit profile" page (avatar + ulanyjy ady) — pushed as its own
 /// route rather than living inline on the Profile tab, so leaving it
@@ -24,6 +29,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _avatarImage;
   String _phone = '';
   bool _loading = true;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -38,7 +44,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final phone = await AuthSession.getPhone();
     if (!mounted) return;
     setState(() {
-      _nameController.text = (name != null && name.isNotEmpty) ? name : ProfileStrings.defaultReaderName;
+      _nameController.text = (name != null && name.isNotEmpty)
+          ? name
+          : ProfileStrings.defaultReaderName;
       _avatarIndex = avatar;
       _avatarImage = avatarImage;
       _phone = phone ?? '';
@@ -53,11 +61,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _pickAvatar() async {
-    final result = await showModalBottomSheet<_AvatarPickResult>(
+    final result = await showModalBottomSheet<AvatarPickResult>(
       context: context,
       backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => _AvatarPickerSheet(current: _avatarIndex),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => AvatarPickerSheet(current: _avatarIndex),
     );
     if (result == null) return;
     setState(() {
@@ -72,15 +81,47 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _save() async {
+    if (_saving) return;
     final name = _nameController.text.trim();
-    await AuthSession.saveName(name.isEmpty ? ProfileStrings.defaultReaderName : name);
+    final finalName = name.isEmpty ? ProfileStrings.defaultReaderName : name;
+    setState(() => _saving = true);
+
+    await AuthSession.saveName(finalName);
     await AuthSession.saveAvatar(_avatarIndex);
     if (_avatarImage != null) {
       await AuthSession.saveAvatarImage(_avatarImage!);
     } else {
       await AuthSession.clearAvatarImage();
     }
-    if (mounted) Navigator.pop(context, true);
+    // So the wheel nav bar's profile tab icon (which mirrors this) picks up
+    // the change immediately on navigating back, not just on next app start.
+    ProfileAvatarService.instance.set(index: _avatarIndex, image: _avatarImage);
+
+    // Local storage above is already what the rest of the app reads from,
+    // so a backend failure here (offline, ...) shouldn't trap the user on
+    // this screen — it's surfaced but the edit still stands locally.
+    //
+    // [_backendSynced] is what [ProfileScreen] pops back with, and matters
+    // beyond just this screen: on `pop`, [ProfileScreen] re-reads its own
+    // `/users/me` to pick up anything edited from another device. If this
+    // PATCH failed, that GET still answers with the *pre-edit* record — and
+    // without this flag, [ProfileScreen] couldn't tell that answer apart from
+    // a genuine "someone else changed it," and would use it to silently
+    // revert the edit that was just made and saved locally above.
+    var backendSynced = true;
+    try {
+      await AuthApiService.updateUsername(username: finalName);
+      // Only the picked-photo case has a real image to push — a preset
+      // avatar is a purely local concept the backend has no field for.
+      if (_avatarImage != null) {
+        await AuthApiService.updateImage(imageBase64: _avatarImage!);
+      }
+    } on ApiException catch (e) {
+      backendSynced = false;
+      if (mounted) context.showAppSnackBar(e.message, isError: true);
+    }
+
+    if (mounted) Navigator.pop(context, backendSynced);
   }
 
   @override
@@ -89,197 +130,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: AppColors.bg,
-        leading: IconButton(
-          icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: AppColors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
+        leading: const AppBackButton(size: 20),
         centerTitle: true,
-        title: Text(ProfileStrings.editProfileTitle, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+        title: Text(ProfileStrings.editProfileTitle,
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700)),
       ),
-      body: _loading
-          ? const SizedBox.shrink()
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-              children: [
-                Center(
-                  child: GestureDetector(
+      body: SafeArea(
+        top: false,
+        child: _loading
+            ? const SizedBox.shrink()
+            : ListView(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+                children: [
+                  EditProfileAvatarSection(
+                    avatarIndex: _avatarIndex,
+                    avatarImage: _avatarImage,
                     onTap: _pickAvatar,
-                    child: Stack(
-                      children: [
-                        ProfileAvatar(index: _avatarIndex, size: 96, imageBase64: _avatarImage),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            width: 30,
-                            height: 30,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: AppColors.bg, width: 2),
-                            ),
-                            child: const Center(child: HugeIcon(icon: HugeIcons.strokeRoundedCamera01, color: Colors.white, size: 14)),
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
-                ),
-                const SizedBox(height: 28),
-                Text(ProfileStrings.usernameLabel, style: TextStyle(color: AppColors.grey2, fontSize: 13, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14)),
-                  child: TextField(
-                    controller: _nameController,
-                    maxLength: 24,
-                    style: TextStyle(color: AppColors.white, fontSize: 15),
-                    decoration: InputDecoration(
-                      counterText: '',
-                      border: InputBorder.none,
-                      hintText: ProfileStrings.usernameHint,
-                      hintStyle: TextStyle(color: AppColors.grey3),
-                    ),
+                  const SizedBox(height: 28),
+                  EditProfileFields(
+                      nameController: _nameController, phone: _phone),
+                  const SizedBox(height: 32),
+                  EditProfileSaveButton(
+                    saving: _saving,
+                    onPressed: _saving ? null : _save,
                   ),
-                ),
-                const SizedBox(height: 20),
-                Text(ProfileStrings.phoneNumberLabel, style: TextStyle(color: AppColors.grey2, fontSize: 13, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14)),
-                  child: Text(_phone, style: TextStyle(color: AppColors.grey2, fontSize: 15)),
-                ),
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
-                    onPressed: _save,
-                    child: Text(ProfileStrings.save, style: const TextStyle(color: Colors.white, fontSize: 15.5, fontWeight: FontWeight.w700)),
-                  ),
-                ),
-              ],
-            ),
-    );
-  }
-}
-
-/// Either a preset avatar index or a custom photo the user picked.
-class _AvatarPickResult {
-  final int? presetIndex;
-  final String? imageBase64;
-  const _AvatarPickResult.preset(int index)
-      : presetIndex = index,
-        imageBase64 = null;
-  const _AvatarPickResult.image(String base64)
-      : presetIndex = null,
-        imageBase64 = base64;
-}
-
-/// Bottom sheet: pick a photo from the device, or fall back to one of the
-/// preset avatars (TZ 8.1). Returns an [_AvatarPickResult].
-class _AvatarPickerSheet extends StatefulWidget {
-  final int current;
-  const _AvatarPickerSheet({required this.current});
-
-  @override
-  State<_AvatarPickerSheet> createState() => _AvatarPickerSheetState();
-}
-
-class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
-  bool _picking = false;
-
-  Future<void> _pickOwnPhoto() async {
-    if (_picking) return;
-    setState(() => _picking = true);
-    try {
-      final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
-      final bytes = result?.files.single.bytes;
-      if (bytes == null) return;
-      if (mounted) Navigator.pop(context, _AvatarPickResult.image(base64Encode(bytes)));
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ProfileStrings.imageNotSelected(e))));
-      }
-    } finally {
-      if (mounted) setState(() => _picking = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
+                ],
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(ProfileStrings.chooseAvatarTitle, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: _pickOwnPhoto,
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14)),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.15), shape: BoxShape.circle),
-                      child: _picking
-                          ? Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)))
-                          : Center(child: HugeIcon(icon: HugeIcons.strokeRoundedImage01, color: AppColors.primary, size: 20)),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text(ProfileStrings.chooseOwnPhoto, style: TextStyle(color: AppColors.white, fontSize: 14.5, fontWeight: FontWeight.w600))),
-                    HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: AppColors.grey3, size: 18),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(ProfileStrings.presetAvatars, style: TextStyle(color: AppColors.grey2, fontSize: 13, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 12),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: kProfileAvatars.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-              ),
-              itemBuilder: (context, i) {
-                final selected = i == widget.current;
-                return GestureDetector(
-                  onTap: () => Navigator.pop(context, _AvatarPickResult.preset(i)),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: selected ? Border.all(color: AppColors.primary, width: 3) : null,
-                    ),
-                    padding: const EdgeInsets.all(3),
-                    child: ProfileAvatar(index: i, size: 60),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
       ),
     );
   }
