@@ -61,6 +61,8 @@ Apply the shared local Flutter project completion checklist. Work on a branch, u
 
 The repository's previous Turkmen README is kept at [docs/README-legacy-tk.md](docs/README-legacy-tk.md) for historical implementation notes. It predates the current version, tests, and PDF engine; use this README and current source code for build instructions.
 
+See [release readiness](docs/release-readiness.md) for the remaining signing, privacy, account deletion, and device checks before a new store submission.
+
 ## License
 
 No open-source license has been assigned. Source visibility does not grant redistribution rights.
