@@ -1,8 +1,8 @@
 """Cache the pinned PDFium Android assets for pdfium_dart 0.2.5 in CI.
 
 The package's native hook downloads from a GitHub release URL without retries.
-That URL has timed out on hosted runners. The GitHub asset API is reliable in
-the same environment, and its downloaded archives are checked before use.
+That URL has timed out on hosted runners. Use the authenticated GitHub asset
+API and check each downloaded archive before use.
 """
 
 import hashlib
