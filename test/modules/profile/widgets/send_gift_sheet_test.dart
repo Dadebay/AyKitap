@@ -46,10 +46,9 @@ class _GiftAdapter implements HttpClientAdapter {
           'data': {'id': 1, 'balance': balance}
         },
     };
-    return ResponseBody.fromString(jsonEncode(body), 200,
-        headers: {
-          Headers.contentTypeHeader: [Headers.jsonContentType]
-        });
+    return ResponseBody.fromString(jsonEncode(body), 200, headers: {
+      Headers.contentTypeHeader: [Headers.jsonContentType]
+    });
   }
 
   @override
@@ -84,6 +83,11 @@ Future<void> _fillIn(WidgetTester tester, {required String amount}) async {
   await tester.pump(const Duration(milliseconds: 600));
   await tester.pump();
   await tester.pump();
+  // The compact test viewport leaves the submit row below the fold.
+  // Scroll it into the hit-test area as a reader would on a small phone.
+  await tester
+      .ensureVisible(find.text(GiftStrings.sendWithAmount(int.parse(amount))));
+  await tester.pump();
 }
 
 void main() {
@@ -105,7 +109,7 @@ void main() {
 
   testWidgets('sending more than the balance is refused inside the sheet',
       (tester) async {
-    await useBalance(10);
+    await tester.runAsync(() => useBalance(10));
     await _pumpSheet(tester);
     await _fillIn(tester, amount: '101');
 
@@ -119,7 +123,7 @@ void main() {
 
   testWidgets('the refusal clears as soon as the amount is edited',
       (tester) async {
-    await useBalance(10);
+    await tester.runAsync(() => useBalance(10));
     await _pumpSheet(tester);
     await _fillIn(tester, amount: '101');
     await tester.tap(find.text(GiftStrings.sendWithAmount(101)));
@@ -133,13 +137,14 @@ void main() {
   });
 
   testWidgets('an amount the balance covers is sent', (tester) async {
-    await useBalance(500);
+    await tester.runAsync(() => useBalance(500));
     await _pumpSheet(tester);
     await _fillIn(tester, amount: '101');
 
     await tester.tap(find.text(GiftStrings.sendWithAmount(101)));
-    await tester.pump();
-    await tester.pump();
+    for (var i = 0; i < 10 && !adapter.sentGift; i++) {
+      await tester.pump(const Duration(milliseconds: 10));
+    }
 
     expect(adapter.sentGift, isTrue);
     expect(find.text(GiftStrings.insufficientBalance(500)), findsNothing);

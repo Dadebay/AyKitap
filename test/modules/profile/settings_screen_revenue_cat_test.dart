@@ -1,5 +1,4 @@
 import 'package:aykitap/core/localization/app_locale.dart';
-import 'package:aykitap/core/localization/strings/payment_strings.dart';
 import 'package:aykitap/core/localization/strings/settings_strings.dart';
 import 'package:aykitap/core/services/revenue_cat_client.dart';
 import 'package:aykitap/core/services/revenue_cat_service.dart';
@@ -36,17 +35,16 @@ EntitlementInfo _entitlement() => const EntitlementInfo(
       false,
     );
 
-/// Only the surface [SettingsScreen]'s store-subscription tile exercises.
 class _FakeClient implements RevenueCatClient {
   CustomerInfo info = _customerInfo();
-  PaywallResult paywallResult = PaywallResult.notPresented;
   int presentCustomerCenterCount = 0;
 
   @override
   Future<void> configure(String apiKey, {required bool debugLogging}) async {}
 
   @override
-  void addCustomerInfoUpdateListener(void Function(CustomerInfo info) listener) {}
+  void addCustomerInfoUpdateListener(
+      void Function(CustomerInfo info) listener) {}
 
   @override
   Future<CustomerInfo> getCustomerInfo() async => info;
@@ -67,10 +65,13 @@ class _FakeClient implements RevenueCatClient {
   Future<CustomerInfo> restorePurchases() async => info;
 
   @override
-  Future<PaywallResult> presentPaywall({Offering? offering}) async => paywallResult;
+  Future<PaywallResult> presentPaywall({Offering? offering}) async =>
+      PaywallResult.notPresented;
 
   @override
-  Future<PaywallResult> presentPaywallIfNeeded(String entitlementId, {Offering? offering}) async => paywallResult;
+  Future<PaywallResult> presentPaywallIfNeeded(String entitlementId,
+          {Offering? offering}) async =>
+      PaywallResult.notPresented;
 
   @override
   Future<void> presentCustomerCenter() async {
@@ -78,91 +79,53 @@ class _FakeClient implements RevenueCatClient {
   }
 }
 
-Widget _app(RevenueCatService revenueCat) => MultiProvider(
+Widget _app(RevenueCatService revenueCat,
+        Future<void> Function(BuildContext) openSubscription) =>
+    MultiProvider(
       providers: [
         ChangeNotifierProvider<AppTheme>.value(value: AppTheme.instance),
         ChangeNotifierProvider<AppLocale>.value(value: AppLocale.instance),
         ChangeNotifierProvider<RevenueCatService>.value(value: revenueCat),
       ],
-      child: const MaterialApp(home: SettingsScreen()),
+      child: MaterialApp(
+        home: SettingsScreen(openSubscription: openSubscription),
+      ),
     );
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  testWidgets('a purchased result shows the unlock dialog once', (tester) async {
-    final client = _FakeClient()..paywallResult = PaywallResult.purchased;
+  testWidgets('inactive subscriber opens the subscription route',
+      (tester) async {
+    final client = _FakeClient();
     final service = RevenueCatService.forTest(client);
     await service.init();
+    var routeCount = 0;
 
-    await tester.pumpWidget(_app(service));
+    await tester.pumpWidget(_app(service, (_) async => routeCount++));
     await tester.pumpAndSettle();
-
-    // The entitlement comes back active by the time the post-purchase
-    // refresh inside presentPaywallIfNeeded reads it.
-    client.info = _customerInfo(active: {RevenueCatService.entitlementId: _entitlement()});
     await tester.tap(find.text(SettingsStrings.storeSubscription));
     await tester.pumpAndSettle();
 
-    expect(find.text(PaymentStrings.subscriptionSuccessTitle), findsOneWidget);
-    expect(find.text(PaymentStrings.subscriptionRestoredTitle), findsNothing);
-
-    // Exactly once — dismissing it must not bring it back.
-    await tester.tap(find.text(PaymentStrings.subscriptionSuccessCta));
-    await tester.pumpAndSettle();
-    expect(find.text(PaymentStrings.subscriptionSuccessTitle), findsNothing);
+    expect(routeCount, 1);
+    expect(client.presentCustomerCenterCount, 0);
   });
 
-  testWidgets('a restored result shows the restored-purchases dialog', (tester) async {
-    final client = _FakeClient()..paywallResult = PaywallResult.restored;
+  testWidgets('active subscriber opens Customer Center', (tester) async {
+    final client = _FakeClient()
+      ..info = _customerInfo(active: {
+        RevenueCatService.entitlementId: _entitlement(),
+      });
     final service = RevenueCatService.forTest(client);
     await service.init();
+    var routeCount = 0;
 
-    await tester.pumpWidget(_app(service));
+    await tester.pumpWidget(_app(service, (_) async => routeCount++));
     await tester.pumpAndSettle();
-
-    client.info = _customerInfo(active: {RevenueCatService.entitlementId: _entitlement()});
-    await tester.tap(find.text(SettingsStrings.storeSubscription));
-    await tester.pumpAndSettle();
-
-    expect(find.text(PaymentStrings.subscriptionRestoredTitle), findsOneWidget);
-    expect(find.text(PaymentStrings.subscriptionSuccessTitle), findsNothing);
-  });
-
-  for (final result in [
-    PaywallResult.cancelled,
-    PaywallResult.error,
-    PaywallResult.notPresented,
-  ]) {
-    testWidgets('a $result result never shows the unlock dialog', (tester) async {
-      final client = _FakeClient()..paywallResult = result;
-      final service = RevenueCatService.forTest(client);
-      await service.init();
-
-      await tester.pumpWidget(_app(service));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text(SettingsStrings.storeSubscription));
-      await tester.pumpAndSettle();
-
-      expect(find.text(PaymentStrings.subscriptionSuccessTitle), findsNothing);
-      expect(find.text(PaymentStrings.subscriptionRestoredTitle), findsNothing);
-    });
-  }
-
-  testWidgets('an already-active subscriber opens the Customer Center instead of the paywall', (tester) async {
-    final client = _FakeClient()..info = _customerInfo(active: {RevenueCatService.entitlementId: _entitlement()});
-    final service = RevenueCatService.forTest(client);
-    await service.init();
-    expect(service.isPlusActive, isTrue);
-
-    await tester.pumpWidget(_app(service));
-    await tester.pumpAndSettle();
-
     await tester.tap(find.text(SettingsStrings.storeSubscription));
     await tester.pumpAndSettle();
 
     expect(client.presentCustomerCenterCount, 1);
-    expect(find.text(PaymentStrings.subscriptionSuccessTitle), findsNothing);
+    expect(routeCount, 0);
   });
 }
