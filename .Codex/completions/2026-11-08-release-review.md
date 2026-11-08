@@ -10,7 +10,7 @@ Applied the shared Flutter project completion checklist in an isolated worktree 
 - Made Android release signing fail when private signing properties are absent, and ignored signing files and local Gradle output.
 - Resolved analyzer warnings, repaired Settings taps, and updated affected tests.
 - Stopped a missing book price from granting free access or showing a 0 TMT checkout. Kept a server-confirmed book purchase successful even when later local refresh work fails.
-- Added CI for formatting, analysis, tests, Android debug compilation, and iOS compilation without signing. Its Android job prefetches and verifies the pinned PDFium native archives through GitHub's asset API because the package's direct release download timed out on a hosted runner.
+- Added CI for formatting, analysis, tests, Android debug compilation, and iOS compilation without signing. Its Linux job prefetches and verifies pinned PDFium native archives through GitHub's asset API before tests and Android compilation because the package's direct release downloads timed out on hosted runners.
 - Rewrote the root README in English with verified store links, development and release instructions; kept the old Turkmen README under `docs/`. Restored the project startup docs required by `AGENTS.md` and filled GitHub About.
 - Opened [PR #1](https://github.com/Dadebay/AyKitap/pull/1) to `main` with change details, test results, and release gates.
 
@@ -20,7 +20,7 @@ Applied the shared Flutter project completion checklist in an isolated worktree 
 - `flutter analyze --no-pub`: no issues.
 - `flutter test --no-pub --timeout 45s`: 441 passed.
 - `flutter build apk --debug --no-pub`: passed.
-- PDFium prefetch: fetched all three Android archives and verified their upstream SHA-256 digests in a clean temporary directory.
+- PDFium prefetch: fetched Linux x64 and all three Android archives and verified their upstream SHA-256 digests in a clean temporary directory.
 - iOS no-codesign build: passed on the earlier GitHub CI run. The latest PR checks are tracked on PR #1.
 
 ## Remaining release gates

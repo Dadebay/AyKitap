@@ -25,11 +25,11 @@ jobs:
       - run: flutter pub get
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze --no-pub
-      - run: flutter test --no-pub
-      - name: Cache verified PDFium Android assets
+      - name: Cache verified PDFium native assets
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: python3 tool/prefetch_pdfium.py
+      - run: flutter test --no-pub
       - run: flutter build apk --debug --no-pub
 
   ios-build:

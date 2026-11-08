@@ -1,4 +1,4 @@
-"""Cache the pinned PDFium Android assets for pdfium_dart 0.2.5 in CI.
+"""Cache pinned PDFium test and Android assets for pdfium_dart 0.2.5 in CI.
 
 The package's native hook downloads from a GitHub release URL without retries.
 That URL has timed out on hosted runners. Use the authenticated GitHub asset
@@ -16,6 +16,10 @@ import urllib.request
 
 
 ASSETS = {
+    "linux-x64": (
+        406428505,
+        "e76e0a37aefb843d56f04657475ce612157021b1ebc53d801f2fbfcc537ccf64",
+    ),
     "android-arm": (
         406428654,
         "bb9250eefb33343f56f27f7e60c81ab3236d932c40e21557bf02ca4c276eb832",
