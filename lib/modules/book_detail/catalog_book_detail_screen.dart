@@ -2,10 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../../core/layout/window_size_class.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:share_plus/share_plus.dart';
+
 import '../../core/constants/app_store_links.dart';
+import '../../core/layout/window_size_class.dart';
 import '../../core/localization/strings/book_detail_strings.dart';
 import '../../core/models/book_detail.dart';
 import '../../core/models/library_book.dart';
@@ -37,9 +38,9 @@ import 'widgets/catalog_detail_cta_section.dart';
 import 'widgets/catalog_detail_description.dart';
 import 'widgets/catalog_detail_header_art.dart';
 import 'widgets/catalog_detail_header_info.dart';
-import 'widgets/tablet_detail_info.dart';
 import 'widgets/detail_header_controls.dart';
 import 'widgets/detail_related_sections.dart';
+import 'widgets/tablet_detail_info.dart';
 
 part 'catalog_book_detail_actions.dart';
 part 'catalog_book_detail_body.dart';
@@ -81,8 +82,7 @@ class CatalogBookDetailScreen extends StatefulWidget {
   });
 
   @override
-  State<CatalogBookDetailScreen> createState() =>
-      _CatalogBookDetailScreenState();
+  State<CatalogBookDetailScreen> createState() => _CatalogBookDetailScreenState();
 }
 
 class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
@@ -105,8 +105,7 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
   static const _headerHeight = 400.0;
   static const _sheetOverlap = 30.0;
 
-  String get _heroTag =>
-      widget.heroTag ?? AppHeroTags.catalogBookCover(widget.bookId);
+  String get _heroTag => widget.heroTag ?? AppHeroTags.catalogBookCover(widget.bookId);
 
   @override
   void initState() {
@@ -143,8 +142,7 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
 
     final completer = Completer<void>();
     void listener(AnimationStatus status) {
-      if (status != AnimationStatus.completed &&
-          status != AnimationStatus.dismissed) {
+      if (status != AnimationStatus.completed && status != AnimationStatus.dismissed) {
         return;
       }
       animation.removeStatusListener(listener);
@@ -159,8 +157,7 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
     try {
       final favorites = await BookListApiService.listBooks(wantsTo: true);
       if (!mounted) return;
-      final isFavorite =
-          favorites.any((favorite) => favorite.id == widget.bookId);
+      final isFavorite = favorites.any((favorite) => favorite.id == widget.bookId);
       if (isFavorite != _isFavorite) {
         setState(() => _isFavorite = isFavorite);
       }
@@ -195,8 +192,7 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
       // Reaching this screen at all is the user having selected a book —
       // whichever shelf, grid or deep link they tapped it from. Fired here,
       // once per successful load, instead of at every tap site upstream.
-      unawaited(AnalyticsService.instance
-          .logSelectBook(id: '${widget.bookId}', title: book.name));
+      unawaited(AnalyticsService.instance.logSelectBook(id: '${widget.bookId}', title: book.name));
       // These secondary states update independently after useful content is
       // visible; neither belongs on the route-transition critical path.
       unawaited(_loadFavoriteStatus());
@@ -234,9 +230,7 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
       bookId: book.id,
       title: book.name,
       pageCount: book.pageCount,
-      coverUrl: book.image == null || book.image!.isEmpty
-          ? null
-          : ApiConfig.resolveImageUrl(book.image!),
+      coverUrl: book.image == null || book.image!.isEmpty ? null : ApiConfig.resolveImageUrl(book.image!),
       heroTag: _heroTag,
     );
     return true;

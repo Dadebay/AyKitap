@@ -1,27 +1,27 @@
-# Session Snapshot — 2026-10-13 15:21
+# Session Snapshot — 2026-11-09 21:38
 
 ## Files Changed
-- .Codex/completions/2026-10-09-subscription-pricing-toggle.md
-- .Codex/completions/2026-10-12-aykitap-premium-product-name.md
-- .Codex/completions/2026-10-12-cross-platform-version-label.md
-- .Codex/completions/2026-10-12-dismiss-search-focus-on-tab-switch.md
-- .Codex/completions/2026-10-12-hide-finished-book-progress.md
-- .Codex/completions/2026-10-12-home-series-card-height.md
-- .Codex/completions/2026-10-12-localized-api-errors.md
-- .Codex/completions/2026-10-12-merge-downloaded-into-reading-shelf.md
-- .Codex/completions/2026-10-12-optional-book-request-description.md
-- .Codex/completions/2026-10-12-platform-book-share-links.md
+- .claude/sessions/snapshot.md
+- .claude/sessions/token-log.md
+- android/app/build.gradle.kts
+- android/build.gradle.kts
+- android/gradle.properties
+- android/settings.gradle.kts
+- ios/Runner.xcodeproj/project.pbxproj.backup
+- lib/modules/book_detail/catalog_book_detail_body.dart
+- lib/modules/book_detail/catalog_book_detail_screen.dart
+- lib/modules/book_detail/widgets/catalog_detail_header_art.dart
 
 ## Recent Commits
-- 891b303 Oct 12
-- fab5980 Oct 9
-- 44f069a Last bugs Fixed
-- 7515caf Sep 26
-- 7ff7dd4 Sep 24 bug fixed
+- df2b2a2 Book detail tablet: bigger cover, panel-less title block on darkened backdrop
+- 584bfd2 Book detail: two-column tablet layout with large cover and info panel
+- fe9a103 Book detail: readable 720dp column on tablets
+- 16534bf Home banner: single taller full-width banner on tablets
+- d9a4515 Home banner: two cards per row on tablets
 
 ## Token Estimate
 ~703 tokens in auto-loaded files
 
 ## Last Turn
-Mümkin bolsa iki san goşuň — **ýükleme sany** we **abunaçy/sargyt sany**. Anketada iň köp täsir edýän şol.
+"Banner" derken `RankedCollectionBanner`'ı (sıralı koleksiyon sayfasının üstündeki görsel) kastettiysen, onda da benzer 
 

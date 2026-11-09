@@ -49,9 +49,8 @@ extension _OfflineLibraryScreenSections on _OfflineLibraryScreenState {
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
       sliver: SliverGrid(
-        delegate:
-            SliverChildBuilderDelegate(itemBuilder, childCount: itemCount),
-        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+        delegate: SliverChildBuilderDelegate(itemBuilder, childCount: itemCount),
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
           maxCrossAxisExtent: bookGridMaxExtent,
           mainAxisSpacing: 18,
           crossAxisSpacing: 14,

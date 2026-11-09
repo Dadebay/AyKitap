@@ -37,11 +37,9 @@ class BookApiService {
   /// POST `/books/:bookId/progress` — syncs reading progress (0..100)
   /// server-side. [CatalogBookDetailScreen]'s "mark as finished" flag
   /// sends 100, same fire-and-forget best-effort shape as [likeBook].
-  static Future<void> updateProgress(int bookId,
-      {required int progress}) async {
+  static Future<void> updateProgress(int bookId, {required int progress}) async {
     try {
-      await DioClient.instance.post(BookEndpoints.bookProgress(bookId),
-          data: {'progress': progress});
+      await DioClient.instance.post(BookEndpoints.bookProgress(bookId), data: {'progress': progress});
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -64,9 +62,7 @@ class BookApiService {
   /// stores 100% progress; unmarking it removes that progress record because
   /// the API has no separate `finished=false` field.
   static Future<void> setFinished(int bookId, {required bool finished}) {
-    return finished
-        ? updateProgress(bookId, progress: 100)
-        : deleteProgress(bookId);
+    return finished ? updateProgress(bookId, progress: 100) : deleteProgress(bookId);
   }
 
   /// POST `/books/:bookId/like`.

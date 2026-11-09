@@ -152,3 +152,14 @@ flutter:
       fonts:
         - asset: assets/fonts/Congenial-Medium.otf
           weight: 500
+
+dependency_overrides:
+  # Stable flutter_inappwebview 6.1.x breaks under AGP 9 (-dontoptimize proguard
+  # file); the 6.2 beta family fixes it. All parts must be on matching betas.
+  flutter_inappwebview: 6.2.0-beta.3
+  flutter_inappwebview_platform_interface: 1.4.0-beta.3
+  flutter_inappwebview_android: 1.2.0-beta.3
+  flutter_inappwebview_ios: 1.2.0-beta.3
+  flutter_inappwebview_macos: 1.2.0-beta.3
+  flutter_inappwebview_web: 1.2.0-beta.3
+  flutter_inappwebview_windows: 0.7.0-beta.3

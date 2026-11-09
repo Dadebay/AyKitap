@@ -182,17 +182,6 @@ class _BannerCard extends StatelessWidget {
                 height: double.infinity,
                 placeholder: (_) => Container(color: AppColors.card),
               ),
-              // Scrim so the white title stays legible over any photo.
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.78)],
-                    stops: const [0.3, 1.0],
-                  ),
-                ),
-              ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
                 child: Column(
