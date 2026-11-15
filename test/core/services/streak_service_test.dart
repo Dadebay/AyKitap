@@ -1,9 +1,13 @@
 import 'package:aykitap/core/models/streak.dart';
 import 'package:aykitap/core/navigation/root_navigator.dart';
+import 'package:aykitap/core/network/streak_endpoints.dart';
 import 'package:aykitap/core/services/streak_service.dart';
 import 'package:aykitap/core/widgets/streak_goal_celebration.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../support/fake_dio_adapter.dart';
 
 StreakOverview _overview({required bool goalMet}) {
   final base = DateTime(2026);
@@ -63,8 +67,40 @@ void main() {
   // StreakService is a process-lifetime singleton — every test needs a
   // clean slate, same reasoning as [StreakService.resetForTest]'s own doc
   // comment.
-  setUp(() => StreakService.instance.resetForTest());
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    StreakService.instance.resetForTest();
+  });
   tearDown(() => StreakService.instance.resetForTest());
+
+  test('restores offline reading before sending the next report', () async {
+    SharedPreferences.setMockInitialValues({
+      'streak_pending_seconds': 60,
+      'streak_pending_pages': 2,
+    });
+    final adapter = FakeDioAdapter.install();
+
+    await StreakService.instance.recordActiveSeconds(30);
+
+    final reports = adapter.requests.where((request) => request.path == StreakEndpoints.streakReport).toList();
+    expect(reports, hasLength(1));
+    expect((reports.single.data as Map)['seconds'], 90);
+    expect((reports.single.data as Map)['pages'], 2);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt('streak_pending_seconds'), isNull);
+  });
+
+  test('overlapping pings do not send the same seconds twice', () async {
+    final adapter = FakeDioAdapter.install();
+
+    await Future.wait([
+      StreakService.instance.recordActiveSeconds(60),
+      StreakService.instance.recordActiveSeconds(30),
+    ]);
+
+    final secondsSent = adapter.requests.where((request) => request.path == StreakEndpoints.streakReport).fold<int>(0, (sum, request) => sum + (request.data as Map)['seconds'] as int);
+    expect(secondsSent, 90);
+  });
 
   testWidgets('a false-to-true goal report shows the celebration once, with the right minutes/pages', (tester) async {
     await tester.pumpWidget(_appWithOuterOverlay());

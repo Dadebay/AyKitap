@@ -11,13 +11,13 @@ extension _CbzReaderScreenBody on _CbzReaderScreenState {
     // Decode target for each page image. Without this, Image.file decodes a
     // scanned page at its native resolution (often 3000-4000px on a side) —
     // full size for every page PageView keeps around (current + neighbours),
-    // which is what caused the stutter/OOM on lower-RAM devices. 2x the
-    // screen's physical pixels leaves headroom for InteractiveViewer's
-    // maxScale: 4 zoom without needing a re-decode.
-    final pageCacheWidth = (MediaQuery.sizeOf(context).width *
-            MediaQuery.devicePixelRatioOf(context) *
-            2)
-        .round();
+    // which is what caused the stutter/OOM on lower-RAM devices. Decode for
+    // the tablet page width, with modest zoom headroom and a hard pixel cap.
+    final pageWidth = MediaQuery.sizeOf(context).width.clamp(0.0, 860.0);
+    final pageCacheWidth =
+        (pageWidth * MediaQuery.devicePixelRatioOf(context) * 1.5)
+            .round()
+            .clamp(1, 2800);
 
     return Scaffold(
       backgroundColor: bg,
@@ -26,26 +26,27 @@ extension _CbzReaderScreenBody on _CbzReaderScreenState {
           if (_error == null && !_isLoading)
             Positioned.fill(
               child: GestureDetector(
-                onTap: _toggleControls,
-                behavior: HitTestBehavior.opaque,
-                child: _viewMode == CbzViewMode.scroll
-                    ? _buildScrollPages(bg, pageCacheWidth)
-                    : PageView.builder(
-                        controller: _pageController,
-                        itemCount: _totalPages,
-                        onPageChanged: _onPageChanged,
-                        itemBuilder: (_, i) => ColoredBox(
-                          color: bg,
-                          child: InteractiveViewer(
-                            maxScale: 4,
-                            child: Center(
-                              child: Image.file(File(_pagePaths[i]),
-                                  fit: _fit, cacheWidth: pageCacheWidth),
+                  onTap: _toggleControls,
+                  behavior: HitTestBehavior.opaque,
+                  child: ReaderPageViewport(
+                    child: _viewMode == CbzViewMode.scroll
+                        ? _buildScrollPages(bg, pageCacheWidth)
+                        : PageView.builder(
+                            controller: _pageController,
+                            itemCount: _totalPages,
+                            onPageChanged: _onPageChanged,
+                            itemBuilder: (_, i) => ColoredBox(
+                              color: bg,
+                              child: InteractiveViewer(
+                                maxScale: 4,
+                                child: Center(
+                                  child: Image.file(File(_pagePaths[i]),
+                                      fit: _fit, cacheWidth: pageCacheWidth),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-              ),
+                  )),
             ),
 
           // ── Eye-care (blue-light) wash ─────────────────────────────────
@@ -145,6 +146,14 @@ extension _CbzReaderScreenBody on _CbzReaderScreenState {
             visible: inFocus,
             color: focusColor,
             label: _totalPages > 0 ? '${_currentPage + 1} / $_totalPages' : '',
+          ),
+
+          // ── First-open "which way do pages move" hint ──────────────────
+          const SnowfallPause(),
+          ReaderScrollHint(
+            kind: 'cbz',
+            enabled: !_isLoading && _error == null,
+            vertical: _viewMode == CbzViewMode.scroll,
           ),
         ],
       ),

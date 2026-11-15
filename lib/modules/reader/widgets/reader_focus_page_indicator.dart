@@ -33,7 +33,9 @@ class ReaderFocusPageIndicator extends StatelessWidget {
                 label,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: color, fontSize: 13, fontWeight: FontWeight.w500),
+                    color: color,
+                    fontSize: MediaQuery.sizeOf(context).width >= 700 ? 16 : 13,
+                    fontWeight: FontWeight.w500),
               ),
             ),
           ),

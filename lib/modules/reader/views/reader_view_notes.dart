@@ -27,6 +27,7 @@ extension _ReaderViewNotes on _ReaderScreenState {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 720),
       builder: (_) => EditNoteSheet(
         initialText: '"$text"\n\n',
         title: ReaderNotesStrings.addNoteTitle,
@@ -55,7 +56,8 @@ extension _ReaderViewNotes on _ReaderScreenState {
         remoteId = created.id;
       } on ApiException {
         if (context.mounted) {
-          _showSnack(context, ReaderNotesStrings.noteSaveFailedMessage, isError: true);
+          _showSnack(context, ReaderNotesStrings.noteSaveFailedMessage,
+              isError: true);
         }
         return;
       }
@@ -63,7 +65,10 @@ extension _ReaderViewNotes on _ReaderScreenState {
 
     final si = _bookSeedIndex;
     if (cfi != null && cfi.isNotEmpty) {
-      provider.epubController.addHighlight(cfi: cfi, color: Color(draft.colorValue), opacity: HighlightColors.highlightOpacity);
+      provider.epubController.addHighlight(
+          cfi: cfi,
+          color: Color(draft.colorValue),
+          opacity: HighlightColors.highlightOpacity);
     }
     await NotesStore.instance.add(
       text: draft.text,
@@ -85,7 +90,8 @@ extension _ReaderViewNotes on _ReaderScreenState {
   /// [ReaderProvider.selectedHighlight] matches back to the note that
   /// created it — this erases both the paint on the page and the saved note,
   /// which was previously impossible to undo once a highlight was made.
-  Future<void> _removeHighlight(BuildContext context, ReaderProvider provider) async {
+  Future<void> _removeHighlight(
+      BuildContext context, ReaderProvider provider) async {
     final note = provider.selectedHighlight;
     provider.clearSelection();
     if (note == null) return;

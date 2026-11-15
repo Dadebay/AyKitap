@@ -3,8 +3,8 @@
 // than silently falling back to Türkmen.
 import 'package:aykitap/core/localization/app_locale.dart';
 import 'package:aykitap/core/localization/strings/settings_strings.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -14,8 +14,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('SettingsStrings render in English under the en locale',
-      (tester) async {
+  testWidgets('SettingsStrings render in English under the en locale', (tester) async {
     await AppLocale.instance.setLanguage(AppLanguageCode.en);
     addTearDown(() => AppLocale.instance.setLanguage(AppLanguageCode.tk));
 

@@ -31,6 +31,7 @@ class CatalogDetailDescription extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isTablet = MediaQuery.sizeOf(context).width >= 700;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -46,7 +47,7 @@ class CatalogDetailDescription extends StatelessWidget {
                   child: Text(BookDetailStrings.genres,
                       style: TextStyle(
                           color: AppColors.white,
-                          fontSize: 15,
+                          fontSize: isTablet ? 19 : 15,
                           fontWeight: FontWeight.w700)),
                 ),
                 const SizedBox(height: 10),
@@ -77,7 +78,7 @@ class CatalogDetailDescription extends StatelessWidget {
                   child: Text(BookDetailStrings.aboutBook,
                       style: TextStyle(
                           color: AppColors.white,
-                          fontSize: 15,
+                          fontSize: isTablet ? 19 : 15,
                           fontWeight: FontWeight.w700)),
                 ),
                 const SizedBox(height: 10),
@@ -87,7 +88,9 @@ class CatalogDetailDescription extends StatelessWidget {
                   overflow:
                       expanded ? TextOverflow.visible : TextOverflow.ellipsis,
                   style: TextStyle(
-                      color: AppColors.grey1, fontSize: 13.5, height: 1.5),
+                      color: AppColors.grey1,
+                      fontSize: isTablet ? 16 : 13.5,
+                      height: 1.5),
                 ),
                 const SizedBox(height: 6),
                 Align(
@@ -100,7 +103,7 @@ class CatalogDetailDescription extends StatelessWidget {
                           : BookDetailStrings.readFull,
                       style: TextStyle(
                           color: AppColors.primary,
-                          fontSize: 13,
+                          fontSize: isTablet ? 15 : 13,
                           fontWeight: FontWeight.w700),
                     ),
                   ),

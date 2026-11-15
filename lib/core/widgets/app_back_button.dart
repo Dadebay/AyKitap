@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:material_ui/material_ui.dart';
+
 import '../theme/app_colors.dart';
 import '../theme/theme_controller.dart';
 
@@ -28,10 +29,7 @@ class AppBackButton extends StatelessWidget {
       builder: (context, _) => IconButton(
         padding: EdgeInsets.zero,
         onPressed: onPressed ?? () => Navigator.pop(context),
-        icon: HugeIcon(
-            icon: HugeIcons.strokeRoundedArrowLeft01,
-            color: AppColors.white,
-            size: size),
+        icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: AppColors.white, size: size),
       ),
     );
   }

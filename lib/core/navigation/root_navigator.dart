@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Lets services outside the widget tree (e.g. [IncomingFileService],
 /// reacting to a native "Open with" callback) push a screen without a

@@ -1,7 +1,7 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/maybe_backdrop.dart';
 import '../../../core/widgets/network_cover_image.dart';
 
 /// [CatalogAuthorDetailScreen]'s hero — the author's photo shown whole,
@@ -41,8 +41,8 @@ class CatalogAuthorHeaderArt extends StatelessWidget {
                   // filler reads as depth rather than a second picture
                   // competing with the sharp one.
                   ClipRect(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+                    child: MaybeBackdrop(
+                      sigma: 28,
                       // Tinted with [AppColors.bg] rather than plain black so
                       // the filler settles toward the page behind it in both
                       // themes instead of turning a light UI's hero muddy.

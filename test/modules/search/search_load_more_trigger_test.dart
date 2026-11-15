@@ -2,11 +2,10 @@
 // came back — reported 21.09.2026 ("alta varinca yeni kitaplar eklenmiyor").
 import 'package:aykitap/core/models/library_book.dart';
 import 'package:aykitap/modules/search/widgets/search_result_grid.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
-List<LibraryBook> _books(int count) =>
-    [for (var i = 0; i < count; i++) LibraryBook(id: i, name: 'Kitap $i')];
+List<LibraryBook> _books(int count) => [for (var i = 0; i < count; i++) LibraryBook(id: i, name: 'Kitap $i')];
 
 void main() {
   testWidgets(
@@ -61,8 +60,7 @@ void main() {
     expect(position.maxScrollExtent - position.pixels, greaterThan(0));
   });
 
-  testWidgets('a first page too short to scroll can never trigger a scroll',
-      (tester) async {
+  testWidgets('a first page too short to scroll can never trigger a scroll', (tester) async {
     // The other half of the same defect: with nothing to scroll there is no
     // notification at all, so a short first page stayed the only page.
     final controller = ScrollController();

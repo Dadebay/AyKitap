@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The colour palette a reader can paint a highlight/note with (TZ §12.7).
 ///

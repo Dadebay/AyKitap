@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/layout/adaptive_content_width.dart';
+import '../../core/layout/two_column_layout.dart';
 import '../../core/localization/strings/streak_strings.dart';
 import '../../core/services/streak_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -36,24 +38,37 @@ class _StreakScreenState extends State<StreakScreen> {
         backgroundColor: AppColors.bg,
         leading: const AppBackButton(size: 20),
         centerTitle: true,
-        title: Text(StreakStrings.title, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+        title: Text(StreakStrings.title,
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700)),
       ),
       body: SafeArea(
         top: false,
-        child: ListView(
+        child: AdaptiveContentWidth(
+            // Wider than the 720 default: on an iPad the cards sit in two
+            // columns (see [TwoColumnLayout]).
+            maxWidth: 1000,
+            child: ListView(
           padding: const EdgeInsets.all(20),
           children: const [
-            StreakSummaryCard(),
-            SizedBox(height: 16),
-            StreakWeekCard(),
-            SizedBox(height: 16),
-            StreakMonthlyCard(),
-            SizedBox(height: 16),
-            StreakInfoCard(),
+            TwoColumnLayout(
+              left: [
+                StreakSummaryCard(),
+                SizedBox(height: 16),
+                StreakWeekCard(),
+              ],
+              right: [
+                StreakMonthlyCard(),
+                SizedBox(height: 16),
+                StreakInfoCard(),
+              ],
+            ),
             SizedBox(height: 16),
             StreakHistoryList(),
           ],
-        ),
+        )),
       ),
     );
   }

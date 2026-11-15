@@ -10,41 +10,49 @@ class ReaderEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 84,
-            height: 84,
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: HugeIcon(
-                icon: HugeIcons.strokeRoundedBook02,
-                color: AppColors.grey2,
-                size: 34,
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-          Text(
-            ReaderContinueStrings.noBookYetTitle,
-            style: TextStyle(
-                color: AppColors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            ReaderContinueStrings.noBookYetSubtitle,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.grey2, fontSize: 14, height: 1.5),
-          ),
-        ],
-      ),
+      child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: tablet ? 112 : 84,
+                    height: tablet ? 112 : 84,
+                    decoration: BoxDecoration(
+                      color: AppColors.card,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: HugeIcon(
+                        icon: HugeIcons.strokeRoundedBook02,
+                        color: AppColors.grey2,
+                        size: tablet ? 46 : 34,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    ReaderContinueStrings.noBookYetTitle,
+                    style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: tablet ? 21 : 17,
+                        fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    ReaderContinueStrings.noBookYetSubtitle,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: AppColors.grey2,
+                        fontSize: tablet ? 16 : 14,
+                        height: 1.5),
+                  ),
+                ],
+              ))),
     );
   }
 }

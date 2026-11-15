@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../../../core/layout/adaptive_content_width.dart';
 import '../../../core/localization/strings/reader_bookmark_strings.dart';
 import '../../../core/localization/strings/reader_notes_strings.dart';
 import '../../../core/localization/strings/reader_pdf_strings.dart';
@@ -62,17 +63,21 @@ class PdfBottomBar extends StatelessWidget {
     final bottomPad = MediaQuery.of(context).padding.bottom;
     // Landscape reading (see reader_orientation.dart) — same compaction as
     // [ReaderBottomBar], so both readers' bars shrink identically.
-    final compact = MediaQuery.of(context).orientation == Orientation.landscape;
+    final compact = MediaQuery.sizeOf(context).height < 500;
     final isDarkPage = pageColor.computeLuminance() < 0.4;
     final labelColor = isDarkPage ? Colors.white38 : Colors.black45;
     final iconColor = isDarkPage ? Colors.white70 : const Color(0xFF44444F);
     final borderColor = eyeCareTint(
-      isDarkPage ? Colors.white.withValues(alpha: 0.10) : Colors.black.withValues(alpha: 0.08),
+      isDarkPage
+          ? Colors.white.withValues(alpha: 0.10)
+          : Colors.black.withValues(alpha: 0.08),
       eyeCare,
       isDarkPage: isDarkPage,
     );
     final wellColor = eyeCareTint(
-      isDarkPage ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
+      isDarkPage
+          ? Colors.white.withValues(alpha: 0.08)
+          : Colors.black.withValues(alpha: 0.05),
       eyeCare,
       isDarkPage: isDarkPage,
     );
@@ -95,79 +100,85 @@ class PdfBottomBar extends StatelessWidget {
           stops: const [0.0, 0.45, 0.78, 1.0],
         ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Container(height: 1, margin: const EdgeInsets.symmetric(horizontal: 20), color: borderColor),
-          const SizedBox(height: 6),
+      child: AdaptiveContentWidth(
+          maxWidth: 860,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Container(
+                  height: 1,
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  color: borderColor),
+              const SizedBox(height: 6),
 
-          // ── Page scrubber ─────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: ReaderProgressScrubber(
-              progress: progress,
-              currentPage: currentPage,
-              totalPages: totalPages,
-              labelColor: labelColor,
-              activeColor: accent,
-              inactiveTrackColor: isDarkPage ? Colors.white24 : const Color(0xFFE0E0E0),
-              overlayColor: const Color(0x22E8712C),
-              onSeek: onProgressChanged,
-            ),
-          ),
+              // ── Page scrubber ─────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: ReaderProgressScrubber(
+                  progress: progress,
+                  currentPage: currentPage,
+                  totalPages: totalPages,
+                  labelColor: labelColor,
+                  activeColor: accent,
+                  inactiveTrackColor:
+                      isDarkPage ? Colors.white24 : const Color(0xFFE0E0E0),
+                  overlayColor: const Color(0x22E8712C),
+                  onSeek: onProgressChanged,
+                ),
+              ),
 
-          const SizedBox(height: 2),
+              const SizedBox(height: 2),
 
-          // ── Four labelled actions ─────────────────────────────────────
-          Padding(
-            padding: EdgeInsets.fromLTRB(8, 0, 8, bottomPad + 6),
-            child: Row(
-              children: [
-                ReaderToolbarBtn(
-                  icon: HugeIcons.strokeRoundedBookmark02,
-                  label: ReaderBookmarkStrings.bookmarksTitle,
-                  color: iconColor,
-                  labelColor: labelColor,
-                  wellColor: wellColor,
-                  onTap: onBookmarks,
-                  compact: compact,
+              // ── Four labelled actions ─────────────────────────────────────
+              Padding(
+                padding: EdgeInsets.fromLTRB(8, 0, 8, bottomPad + 6),
+                child: Row(
+                  children: [
+                    ReaderToolbarBtn(
+                      icon: HugeIcons.strokeRoundedBookmark02,
+                      label: ReaderBookmarkStrings.bookmarksTitle,
+                      color: iconColor,
+                      labelColor: labelColor,
+                      wellColor: wellColor,
+                      onTap: onBookmarks,
+                      compact: compact,
+                    ),
+                    // The EPUB reader hangs "Not" off a text selection; there is
+                    // no selection to hang it off here, so it lives in the bar.
+                    ReaderToolbarBtn(
+                      icon: HugeIcons.strokeRoundedNoteAdd,
+                      label: ReaderNotesStrings.noteLabel,
+                      color: iconColor,
+                      labelColor: labelColor,
+                      wellColor: wellColor,
+                      onTap: onAddNote,
+                      compact: compact,
+                    ),
+                    // Accented, matching the EPUB bar where settings is the
+                    // primary action.
+                    ReaderToolbarBtn(
+                      icon: HugeIcons.strokeRoundedFilterHorizontal,
+                      label: ReaderStrings.settingsTitle,
+                      color: accent,
+                      labelColor: accent,
+                      wellColor: accent.withValues(alpha: 0.16),
+                      onTap: onSettings,
+                      compact: compact,
+                    ),
+                    ReaderToolbarBtn(
+                      icon: HugeIcons.strokeRoundedGridView,
+                      label: ReaderPdfStrings.pdfGoToPageShort,
+                      color: iconColor,
+                      labelColor: labelColor,
+                      wellColor: wellColor,
+                      onTap: onGoToPage,
+                      compact: compact,
+                    ),
+                  ],
                 ),
-                // The EPUB reader hangs "Not" off a text selection; there is
-                // no selection to hang it off here, so it lives in the bar.
-                ReaderToolbarBtn(
-                  icon: HugeIcons.strokeRoundedNoteAdd,
-                  label: ReaderNotesStrings.noteLabel,
-                  color: iconColor,
-                  labelColor: labelColor,
-                  wellColor: wellColor,
-                  onTap: onAddNote,
-                  compact: compact,
-                ),
-                // Accented, matching the EPUB bar where settings is the
-                // primary action.
-                ReaderToolbarBtn(
-                  icon: HugeIcons.strokeRoundedFilterHorizontal,
-                  label: ReaderStrings.settingsTitle,
-                  color: accent,
-                  labelColor: accent,
-                  wellColor: accent.withValues(alpha: 0.16),
-                  onTap: onSettings,
-                  compact: compact,
-                ),
-                ReaderToolbarBtn(
-                  icon: HugeIcons.strokeRoundedGridView,
-                  label: ReaderPdfStrings.pdfGoToPageShort,
-                  color: iconColor,
-                  labelColor: labelColor,
-                  wellColor: wellColor,
-                  onTap: onGoToPage,
-                  compact: compact,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+              ),
+            ],
+          )),
     );
   }
 }

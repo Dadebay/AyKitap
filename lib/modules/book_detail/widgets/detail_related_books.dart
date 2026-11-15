@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../../core/models/library_book.dart';
 import '../../../core/navigation/app_hero_tags.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../home/widgets/catalog_book_card.dart';
 
@@ -75,10 +77,12 @@ class _DetailRelatedBooksState extends State<DetailRelatedBooks> {
   @override
   Widget build(BuildContext context) {
     final books = _books;
-    // Still loading, or nothing to show — either way the page reads as if
-    // this section simply isn't there, with no layout jump on arrival
-    // beyond the row appearing.
-    if (books == null || books.isEmpty) return const SizedBox.shrink();
+    final isTablet = MediaQuery.sizeOf(context).width >= 700;
+    // Nothing to show (or the fetch failed): the section simply isn't there.
+    if (books != null && books.isEmpty) return const SizedBox.shrink();
+    // Still loading: a shimmer row of the same size, so the sheet isn't an
+    // empty block while the cards load and nothing jumps when they land.
+    if (books == null) return _buildShimmer(isTablet);
 
     return Padding(
       padding: const EdgeInsets.only(top: 28),
@@ -89,22 +93,73 @@ class _DetailRelatedBooksState extends State<DetailRelatedBooks> {
           // header's own default 20px would double it.
           SectionHeader(
             title: widget.title,
+            large: isTablet,
             padding: const EdgeInsets.only(bottom: 12),
           ),
           SizedBox(
-            height: 200,
+            height: isTablet ? 248 : 200,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: EdgeInsets.zero,
               itemCount: books.length,
               itemBuilder: (_, i) => CatalogBookCard(
                 book: books[i],
+                width: isTablet ? 130 : 100,
+                coverHeight: isTablet ? 195 : 155,
                 heroTag: AppHeroTags.relatedBookCover(
                     widget.heroPrefix, books[i].id),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildShimmer(bool isTablet) {
+    final cardWidth = isTablet ? 130.0 : 100.0;
+    final coverHeight = isTablet ? 195.0 : 155.0;
+    Widget block(double w, double h, double r) => Container(
+        width: w,
+        height: h,
+        decoration: BoxDecoration(
+            color: Colors.white, borderRadius: BorderRadius.circular(r)));
+    return Padding(
+      padding: const EdgeInsets.only(top: 28),
+      child: Shimmer.fromColors(
+        baseColor: AppColors.card,
+        highlightColor: AppColors.border,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: block(150, isTablet ? 20 : 16, 6),
+            ),
+            SizedBox(
+              height: isTablet ? 248 : 200,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: EdgeInsets.zero,
+                itemCount: 8,
+                itemBuilder: (_, __) => Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      block(cardWidth, coverHeight, 10),
+                      const SizedBox(height: 8),
+                      block(cardWidth * 0.8, 10, 4),
+                      const SizedBox(height: 4),
+                      block(cardWidth * 0.6, 9, 4),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

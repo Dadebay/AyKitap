@@ -40,6 +40,7 @@ class ReaderThemeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     return Semantics(
       label: semanticLabel,
       selected: selected,
@@ -47,8 +48,8 @@ class ReaderThemeButton extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 64,
-          height: 44,
+          width: tablet ? 88 : 64,
+          height: tablet ? 56 : 44,
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(12),
@@ -62,7 +63,7 @@ class ReaderThemeButton extends StatelessWidget {
               ? HugeIcon(
                   icon: HugeIcons.strokeRoundedTick02,
                   color: checkColor,
-                  size: 18)
+                  size: tablet ? 22 : 18)
               : null,
         ),
       ),

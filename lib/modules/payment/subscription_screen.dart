@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/layout/adaptive_content_width.dart';
 import '../../core/localization/strings/payment_strings.dart';
 import '../../core/models/tariff.dart';
 import '../../core/network/api_exception.dart';
@@ -13,6 +14,7 @@ import '../../core/services/subscription_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/app_snackbar.dart';
+import 'balance_top_up.dart' show canOfferTmcell, openTmcellPayment;
 import 'payment_webview_screen.dart';
 import 'subscription_plan_helpers.dart';
 import 'widgets/bank_select_sheet.dart';
@@ -88,7 +90,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       ),
       body: SafeArea(
         top: false,
-        child: Column(
+        child: AdaptiveContentWidth(
+            child: Column(
           children: [
             Expanded(
               child: ListView(
@@ -134,7 +137,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               onPressed: _startCheckout,
             ),
           ],
-        ),
+        )),
       ),
     );
   }

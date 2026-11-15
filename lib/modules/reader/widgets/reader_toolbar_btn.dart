@@ -29,6 +29,7 @@ class ReaderToolbarBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     return Expanded(
       child: Material(
         color: Colors.transparent,
@@ -36,21 +37,31 @@ class ReaderToolbarBtn extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: EdgeInsets.symmetric(vertical: compact ? 4 : 6),
+            padding: EdgeInsets.symmetric(
+                vertical: compact
+                    ? 4
+                    : tablet
+                        ? 8
+                        : 6),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
                   padding: EdgeInsets.symmetric(
-                      horizontal: 20, vertical: compact ? 5 : 7),
+                      horizontal: tablet ? 24 : 20,
+                      vertical: compact
+                          ? 5
+                          : tablet
+                              ? 9
+                              : 7),
                   decoration: BoxDecoration(
                     color: wellColor,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: SizedBox(
-                    width: 22,
-                    height: 22,
+                    width: tablet ? 24 : 22,
+                    height: tablet ? 24 : 22,
                     child: FittedBox(
                         child: HugeIcon(icon: icon, color: color, size: 22)),
                   ),
@@ -63,7 +74,7 @@ class ReaderToolbarBtn extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         color: labelColor,
-                        fontSize: 11.5,
+                        fontSize: tablet ? 13.5 : 11.5,
                         fontWeight: FontWeight.w500),
                   ),
                 ],

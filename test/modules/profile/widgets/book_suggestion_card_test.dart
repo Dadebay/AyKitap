@@ -1,8 +1,8 @@
 import 'package:aykitap/core/localization/app_locale.dart';
 import 'package:aykitap/core/models/book_suggestion.dart';
 import 'package:aykitap/modules/profile/widgets/book_suggestion_card.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -12,8 +12,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('completed book request is not displayed as pending',
-      (tester) async {
+  testWidgets('completed book request is not displayed as pending', (tester) async {
     await AppLocale.instance.setLanguage(AppLanguageCode.en);
     addTearDown(() => AppLocale.instance.setLanguage(AppLanguageCode.tk));
 

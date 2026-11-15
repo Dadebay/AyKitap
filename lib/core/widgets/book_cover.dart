@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../theme/app_colors.dart';
 
 /// A book cover thumbnail: rounded, clipped [Image.asset] over a card-color
@@ -27,9 +27,7 @@ class BookCover extends StatelessWidget {
     return Container(
       width: width,
       height: height,
-      decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(borderRadius)),
+      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(borderRadius)),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: Image.asset(imagePath, fit: fit),

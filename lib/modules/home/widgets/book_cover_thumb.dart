@@ -14,14 +14,16 @@ import '../../../core/widgets/network_cover_image.dart';
 class BookCoverThumb extends StatelessWidget {
   final String? imageUrl;
   final String? heroTag;
-  const BookCoverThumb({super.key, this.imageUrl, this.heroTag});
+  final double width;
+  const BookCoverThumb(
+      {super.key, this.imageUrl, this.heroTag, this.width = 54});
 
   @override
   Widget build(BuildContext context) {
     final url = imageUrl;
     final hasImage = url != null && url.isNotEmpty;
     return SizedBox(
-      width: 54,
+      width: width,
       child: AspectRatio(
         aspectRatio: 0.62,
         child: BookCoverHero(

@@ -38,38 +38,58 @@ extension _StreakServiceReporting on StreakService {
   }
 
   Future<void> _report({required int seconds, int? bookId}) async {
+    await _restorePending();
     if (seconds > 0) _pendingSeconds += seconds;
     if (bookId != null) _pendingBookId = bookId;
     if (_pendingSeconds <= 0) return;
     // On disk before the request, not after: the app can be killed during
     // it, and reading that made it into the buffer must survive that.
-    unawaited(_savePending());
+    await _savePending();
 
-    final sendSeconds = _pendingSeconds;
-    final sendPages = _pendingPages;
+    // One request at a time. Each request sends the whole buffer, so two in
+    // flight (the 60s tick + a connectivity retry, or a tick + the
+    // pause/close flush) would both carry the same seconds and the server
+    // would count them twice. Whatever arrives while one is in flight stays
+    // in the buffer and is sent by the follow-up below.
+    if (_reportInFlight) return;
+    _reportInFlight = true;
     try {
-      final result = await StreakApiService.report(
-          seconds: sendSeconds,
-          pages: sendPages > 0 ? sendPages : null,
-          bookId: _pendingBookId);
-      _pendingSeconds = 0;
-      _pendingPages = 0;
-      unawaited(_savePending());
-      _applyReport(result);
-      _notify();
-      unawaited(HomeScreenWidgetService.syncStreak(
-        streak: currentStreak,
-        bestStreak: bestStreak,
-        todayPages: todayPages,
-        goalMinutes: goalMinMinutes,
-        weekRead: weekRead,
-      ));
-      if (result.rewards.isNotEmpty) unawaited(_showRewards(result.rewards));
-    } on ApiException {
-      // Offline or a server error: leave `_pendingSeconds`/`_pendingPages`
-      // as they are — the next successful call sends the running total, and
-      // the buffer is already on disk, so closing the app doesn't lose it.
-      // [_watchConnectivity] retries as soon as there is a connection again.
+      while (_pendingSeconds > 0) {
+        final sendSeconds = _pendingSeconds;
+        final sendPages = _pendingPages;
+        final StreakReportResult result;
+        try {
+          result = await StreakApiService.report(
+              seconds: sendSeconds,
+              pages: sendPages > 0 ? sendPages : null,
+              bookId: _pendingBookId);
+        } on ApiException {
+          // Offline or a server error: leave the buffer as it is — the next
+          // successful call sends the running total, and it is already on
+          // disk, so closing the app doesn't lose it. [_watchConnectivity]
+          // retries as soon as there is a connection again.
+          return;
+        }
+        // Subtract what was sent rather than zeroing: seconds/pages that
+        // were added while the request was in flight are not on the server
+        // yet, and `= 0` used to throw them away (reading that "didn't
+        // record").
+        _pendingSeconds -= sendSeconds;
+        _pendingPages -= sendPages;
+        await _savePending();
+        _applyReport(result);
+        _notify();
+        unawaited(HomeScreenWidgetService.syncStreak(
+          streak: currentStreak,
+          bestStreak: bestStreak,
+          todayPages: todayPages,
+          goalMinutes: goalMinMinutes,
+          weekRead: weekRead,
+        ));
+        if (result.rewards.isNotEmpty) unawaited(_showRewards(result.rewards));
+      }
+    } finally {
+      _reportInFlight = false;
     }
   }
 

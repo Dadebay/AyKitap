@@ -9,6 +9,7 @@ extension _CbzReaderScreenSheets on _CbzReaderScreenState {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 720),
       builder: (_) => StatefulBuilder(
         builder: (_, setSheetState) => CbzSettingsSheet(
           darkGutter: _darkGutter,
@@ -46,6 +47,7 @@ extension _CbzReaderScreenSheets on _CbzReaderScreenState {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 720),
       builder: (_) => StatefulBuilder(
         builder: (_, setSheetState) => PdfBookmarksSheet(
           bookmarks: BookmarksStore.instance.forBook(_bookId),
@@ -74,6 +76,7 @@ extension _CbzReaderScreenSheets on _CbzReaderScreenState {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 720),
       builder: (_) => PdfGoToPageSheet(
           currentPage: _currentPage + 1, totalPages: _totalPages),
     );

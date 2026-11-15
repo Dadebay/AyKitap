@@ -4,12 +4,11 @@ import 'package:aykitap/core/navigation/app_hero_tags.dart';
 import 'package:aykitap/modules/book_detail/widgets/catalog_detail_header_art.dart';
 import 'package:aykitap/modules/home/widgets/catalog_book_card.dart';
 import 'package:aykitap/modules/home/widgets/catalog_numbered_book_section.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
-  testWidgets('Card 4 and detail loading cover share one Hero tag',
-      (tester) async {
+  testWidgets('Card 4 and detail loading cover share one Hero tag', (tester) async {
     const book = LibraryBook(
       id: 42,
       name: 'Atomic Habits',
@@ -59,8 +58,7 @@ void main() {
     expect(destinationHero.tag, sourceHero.tag);
   });
 
-  testWidgets('regular Home book exposes its supplied Hero tag',
-      (tester) async {
+  testWidgets('regular Home book exposes its supplied Hero tag', (tester) async {
     const book = LibraryBook(
       id: 9,
       name: 'Oýunbaz',
@@ -89,8 +87,7 @@ void main() {
     );
   });
 
-  test('Hero rect travels directly between source and centered destination',
-      () {
+  test('Hero rect travels directly between source and centered destination', () {
     final tween = AppHeroTags.straightRectTween(
       const Rect.fromLTWH(20, 400, 100, 155),
       const Rect.fromLTWH(119, 90, 152, 224),

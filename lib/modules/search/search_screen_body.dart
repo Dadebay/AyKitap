@@ -18,50 +18,99 @@ extension _SearchScreenBody on _SearchScreenState {
   Widget _buildScreen(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Everything but the search field folds away once the grid is
-            // scrolled — see [_onResultsScroll].
-            _collapsibleHeader(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                child: Text(SearchStrings.title,
-                    style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800)),
-              ),
+      body: Stack(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Everything but the search field folds away once the grid is
+                // scrolled — see [_onResultsScroll].
+                _collapsibleHeader(
+                  child: AdaptiveContentWidth(
+                      maxWidth: double.infinity,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                        child: Text(SearchStrings.title,
+                            style: TextStyle(
+                                color: AppColors.white,
+                                fontSize:
+                                    MediaQuery.sizeOf(context).width >= 700
+                                        ? 30
+                                        : 26,
+                                fontWeight: FontWeight.w800)),
+                      )),
+                ),
+                AdaptiveContentWidth(
+                    maxWidth: double.infinity, child: _buildSearchBar()),
+                _collapsibleHeader(
+                  child: AdaptiveContentWidth(
+                      maxWidth: double.infinity,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 10),
+                          _buildSearchModeToggle(),
+                          const SizedBox(height: 12),
+                          _buildChipsRow(),
+                        ],
+                      )),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: _onResultsScroll,
+                    child: _shouldShowResults
+                        ? _buildSearchResults()
+                        // [_buildDiscoverGrid] is book-only — Author mode with
+                        // nothing typed yet gets its own discover grid instead
+                        // of falling through to book covers.
+                        : _searchMode == _SearchMode.author
+                            ? _buildAuthorDiscoverGrid()
+                            : _buildDiscoverGrid(),
+                  ),
+                ),
+              ],
             ),
-            _buildSearchBar(),
-            _collapsibleHeader(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 10),
-                  _buildSearchModeToggle(),
-                  const SizedBox(height: 12),
-                  _buildChipsRow(),
-                ],
-              ),
+          ),
+          // iPhone's keyboard has no "done" of its own once results are up:
+          // a button right above it puts it away.
+          if (MediaQuery.viewInsetsOf(context).bottom > 0)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _buildKeyboardDoneBar(),
             ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: NotificationListener<ScrollNotification>(
-                onNotification: _onResultsScroll,
-                child: _shouldShowResults
-                    ? _buildSearchResults()
-                    // [_buildDiscoverGrid] is book-only — Author mode with
-                    // nothing typed yet gets its own discover grid instead
-                    // of falling through to book covers.
-                    : _searchMode == _SearchMode.author
-                        ? _buildAuthorDiscoverGrid()
-                        : _buildDiscoverGrid(),
-              ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKeyboardDoneBar() {
+    return Material(
+      color: AppColors.bg,
+      elevation: 8,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+        child: SizedBox(
+          height: 46,
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () => FocusManager.instance.primaryFocus?.unfocus(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
             ),
-          ],
+            child: Text(SearchStrings.done,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700)),
+          ),
         ),
       ),
     );
@@ -121,26 +170,7 @@ extension _SearchScreenBody on _SearchScreenState {
       return Center(child: CircularProgressIndicator(color: AppColors.primary));
     }
     if (_discoverError != null && _discoverBooks == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(_discoverError!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.grey2, fontSize: 14)),
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: _loadDiscoverBooks,
-                child: Text(SearchStrings.retry,
-                    style: TextStyle(
-                        color: AppColors.primary, fontWeight: FontWeight.w700)),
-              ),
-            ],
-          ),
-        ),
-      );
+      return _discoverMessageState(_discoverError!, _loadDiscoverBooks);
     }
     final books = _discoverBooks ?? const [];
     // Not a legitimate "empty catalogue" state — the discover grid has no
@@ -151,26 +181,7 @@ extension _SearchScreenBody on _SearchScreenState {
     // [_loadDiscoverAuthors] retries on its own — this closes the same gap
     // for the case where Book mode was never left in the first place.
     if (books.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(SearchStrings.noResults,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.grey2, fontSize: 14)),
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: _loadDiscoverBooks,
-                child: Text(SearchStrings.retry,
-                    style: TextStyle(
-                        color: AppColors.primary, fontWeight: FontWeight.w700)),
-              ),
-            ],
-          ),
-        ),
-      );
+      return _discoverMessageState(SearchStrings.noResults, _loadDiscoverBooks);
     }
     return SearchResultGrid(
       books: books,
@@ -188,26 +199,8 @@ extension _SearchScreenBody on _SearchScreenState {
       return Center(child: CircularProgressIndicator(color: AppColors.primary));
     }
     if (_discoverAuthorsError != null && _discoverAuthors == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(_discoverAuthorsError!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.grey2, fontSize: 14)),
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: () => _loadDiscoverAuthors(retry: true),
-                child: Text(SearchStrings.retry,
-                    style: TextStyle(
-                        color: AppColors.primary, fontWeight: FontWeight.w700)),
-              ),
-            ],
-          ),
-        ),
-      );
+      return _discoverMessageState(
+          _discoverAuthorsError!, () => _loadDiscoverAuthors(retry: true));
     }
     final authors = _discoverAuthors ?? const [];
     // Only reachable if the backend genuinely has zero authors — the typed-
@@ -222,29 +215,58 @@ extension _SearchScreenBody on _SearchScreenState {
   }
 
   Widget _buildAuthorSearchPrompt() {
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
-                  shape: BoxShape.circle),
-              child: Center(
-                  child: HugeIcon(
-                      icon: HugeIcons.strokeRoundedUserSearch01,
-                      color: AppColors.primary,
-                      size: 28)),
-            ),
-            const SizedBox(height: 16),
-            Text(SearchStrings.authorSearchPrompt,
+        child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: tablet ? 88 : 64,
+                  height: tablet ? 88 : 64,
+                  decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      shape: BoxShape.circle),
+                  child: Center(
+                      child: HugeIcon(
+                          icon: HugeIcons.strokeRoundedUserSearch01,
+                          color: AppColors.primary,
+                          size: 28)),
+                ),
+                const SizedBox(height: 16),
+                Text(SearchStrings.authorSearchPrompt,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: AppColors.grey2, fontSize: tablet ? 17 : 14.5)),
+              ],
+            )),
+      ),
+    );
+  }
+
+  Widget _discoverMessageState(String message, VoidCallback onRetry) {
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(message,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.grey2, fontSize: 14.5)),
-          ],
+                style: TextStyle(
+                    color: AppColors.grey2, fontSize: tablet ? 16 : 14)),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: onRetry,
+              child: Text(SearchStrings.retry,
+                  style: TextStyle(
+                      color: AppColors.primary, fontWeight: FontWeight.w700)),
+            ),
+          ]),
         ),
       ),
     );

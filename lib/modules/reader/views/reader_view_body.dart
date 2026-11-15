@@ -60,25 +60,27 @@ extension _ReaderViewBody on _ReaderScreenState {
                   // a page transition is animating the iframe underneath the
                   // finger — see [ReaderTapGate]. Translucent so every event
                   // still reaches the viewer itself.
-                  child: Listener(
-                    behavior: HitTestBehavior.translucent,
-                    onPointerDown: (e) => _tapGate.pointerDown(e.position),
-                    onPointerMove: (e) => _tapGate.pointerMove(e.position),
-                    onPointerUp: (e) => _tapGate.pointerUp(e.position),
-                    onPointerCancel: (_) => _tapGate.pointerCancel(),
-                    child: provider.loadFailed
-                        ? EpubErrorView(
-                            bgColor: bgColor, isDarkPage: isDarkPage)
-                        // Held back until `initialize` has read the saved
-                        // position, font and appearance off disk — EpubViewer
-                        // reads all of those exactly once, so building it any
-                        // earlier races that read. The opening overlay covers
-                        // this gap, which is a few milliseconds of prefs and
-                        // one asset load. See ReaderProvider.isInitialized.
-                        : provider.isInitialized
-                            ? _buildEpubViewer(provider)
-                            : const SizedBox.shrink(),
-                  ),
+                  child: ReaderPageViewport(
+                      maxWidth: 720,
+                      child: Listener(
+                        behavior: HitTestBehavior.translucent,
+                        onPointerDown: (e) => _tapGate.pointerDown(e.position),
+                        onPointerMove: (e) => _tapGate.pointerMove(e.position),
+                        onPointerUp: (e) => _tapGate.pointerUp(e.position),
+                        onPointerCancel: (_) => _tapGate.pointerCancel(),
+                        child: provider.loadFailed
+                            ? EpubErrorView(
+                                bgColor: bgColor, isDarkPage: isDarkPage)
+                            // Held back until `initialize` has read the saved
+                            // position, font and appearance off disk — EpubViewer
+                            // reads all of those exactly once, so building it any
+                            // earlier races that read. The opening overlay covers
+                            // this gap, which is a few milliseconds of prefs and
+                            // one asset load. See ReaderProvider.isInitialized.
+                            : provider.isInitialized
+                                ? _buildEpubViewer(provider)
+                                : const SizedBox.shrink(),
+                      )),
                 ),
               ),
             ),
@@ -108,6 +110,17 @@ extension _ReaderViewBody on _ReaderScreenState {
                   if (mounted) _setState(() => _showLoadingOverlay = false);
                 },
               ),
+
+            // ── First-open "which way do pages move" hint ───────────────
+            const SnowfallPause(),
+            ReaderScrollHint(
+              kind: 'epub',
+              enabled: !_showLoadingOverlay &&
+                  !provider.isLoading &&
+                  provider.isInitialized &&
+                  !provider.loadFailed,
+              vertical: provider.pageTransition == ReaderPageTransition.scroll,
+            ),
 
             // ── Selection toolbar (TZ §12.7) ───────────────────────────
             if (provider.hasSelection)

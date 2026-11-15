@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../modules/auth/phone_login_screen.dart';
 import '../navigation/root_navigator.dart';
@@ -60,11 +60,9 @@ class SessionExpiryHandler {
       // ...and the engagement provider's identity and tags, so campaigns
       // segmented on this account stop reaching the device.
       await OneSignalService.instance.logout();
-      // Ödeme yüzeyi bu hesaba özeldi; oturum gidince yeniden çözülmeli.
-      // `/revenuecat/config` artık 401 döneceği için bu çağrı iOS'u güvenli
-      // tarafa ("yalnızca App Store") geri alıyor — bir sonraki kullanıcı
-      // öncekinin açık kalmış satın alma yüzeyini devralmıyor.
-      await PurchaseModeService.instance.refresh();
+      // The config belongs to the signed-out account. A 401 refresh would
+      // leave its previous Android purchase mode cached.
+      PurchaseModeService.instance.clearForSignedOutUser();
       final navigator = rootNavigatorKey.currentState;
       if (navigator == null) return;
       await navigator.push(MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));

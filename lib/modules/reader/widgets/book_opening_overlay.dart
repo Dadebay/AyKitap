@@ -83,6 +83,7 @@ class _BookOpeningOverlayState extends State<BookOpeningOverlay>
 
   @override
   Widget build(BuildContext context) {
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     final isDark = widget.bgColor.computeLuminance() < 0.4;
     final fg = isDark ? Colors.white : Colors.black87;
     final fgMuted = isDark ? Colors.white54 : Colors.black45;
@@ -98,8 +99,8 @@ class _BookOpeningOverlayState extends State<BookOpeningOverlay>
               mainAxisSize: MainAxisSize.min,
               children: [
                 SizedBox(
-                  width: 280,
-                  height: 280,
+                  width: tablet ? 340 : 280,
+                  height: tablet ? 340 : 280,
                   child: Lottie.asset(
                     'assets/animations/book_reading_boy.json',
                     repeat: true,
@@ -110,7 +111,9 @@ class _BookOpeningOverlayState extends State<BookOpeningOverlay>
                 Text(
                   '$shown%',
                   style: TextStyle(
-                      color: fg, fontSize: 22, fontWeight: FontWeight.w700),
+                      color: fg,
+                      fontSize: tablet ? 26 : 22,
+                      fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 10),
                 SizedBox(

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../localization/strings/streak_strings.dart';
 import '../theme/app_colors.dart';
@@ -40,8 +40,7 @@ class StreakGoalCelebration extends StatefulWidget {
   State<StreakGoalCelebration> createState() => _StreakGoalCelebrationState();
 }
 
-class _StreakGoalCelebrationState extends State<StreakGoalCelebration>
-    with SingleTickerProviderStateMixin {
+class _StreakGoalCelebrationState extends State<StreakGoalCelebration> with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: AppMotion.standard,

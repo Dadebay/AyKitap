@@ -33,7 +33,10 @@ class SearchResultGrid extends StatelessWidget {
   /// name on every card.
   static double _labelsHeight(BuildContext context) {
     final scaler = MediaQuery.textScalerOf(context);
-    return _gapUnderCover + scaler.scale(_titleFontSize) * 1.6 + scaler.scale(_authorFontSize) * 1.6;
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
+    return _gapUnderCover +
+        scaler.scale(tablet ? 14 : _titleFontSize) * 1.6 +
+        scaler.scale(tablet ? 12.5 : _authorFontSize) * 1.6;
   }
 
   final List<LibraryBook> books;
@@ -46,76 +49,90 @@ class SearchResultGrid extends StatelessWidget {
   /// notification — see `_maybeLoadMore`.
   final ScrollController? controller;
 
-  const SearchResultGrid({super.key, required this.books, required this.padding, required this.loadingMore, this.controller, this.footer});
+  const SearchResultGrid(
+      {super.key,
+      required this.books,
+      required this.padding,
+      required this.loadingMore,
+      this.controller,
+      this.footer});
 
   @override
   Widget build(BuildContext context) {
-    // The width one column actually gets, so the cell's height can be built
-    // from its contents instead of a ratio that only happens to fit on the
-    // screen it was tuned on.
-    final contentWidth = MediaQuery.sizeOf(context).width - padding.horizontal;
-    final crossAxisCount = bookGridColumns(contentWidth);
-    final columnWidth = (contentWidth - _crossAxisSpacing * (crossAxisCount - 1)) / crossAxisCount;
-    final coverHeight = columnWidth * _coverAspect;
-    // With a footer, the wheel clearance belongs after the footer rather
-    // than between the final cover row and the action.
-    final gridPadding = footer == null
-        ? padding
-        : EdgeInsets.fromLTRB(padding.left, padding.top, padding.right, 8);
-    return CustomScrollView(
-      controller: controller,
-      slivers: [
-        SliverPadding(
-          padding: gridPadding,
-          sliver: SliverGrid(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              crossAxisSpacing: _crossAxisSpacing,
-              mainAxisExtent: coverHeight + 20 + _labelsHeight(context),
-            ),
-            // Staggered by row (see [CatalogCollectionBooksScreen] for the
-            // same reasoning) — but unlike that one-shot grid, this one
-            // grows via infinite-scroll `loadMore`, and [StaggerFadeIn]
-            // keeps every cell it ever animates alive (that's how it avoids
-            // replaying on scroll-back). On a long search/discover session
-            // that's an unbounded number of kept-alive cards — acceptable
-            // for now, but worth revisiting with a non-keepAlive entrance
-            // if that turns out to matter on real devices.
-            delegate: SliverChildBuilderDelegate(
-              (_, i) => StaggerFadeIn(
-                index: i ~/ crossAxisCount,
-                child: CatalogBookCard(book: books[i], heroTag: AppHeroTags.catalogBookCover(books[i].id), width: double.infinity, coverHeight: coverHeight, margin: EdgeInsets.zero),
+    return LayoutBuilder(builder: (context, constraints) {
+      // The width one column actually gets, so the cell's height can be built
+      // from its contents instead of a ratio that only happens to fit on the
+      // screen it was tuned on.
+      final contentWidth = constraints.maxWidth - padding.horizontal;
+      final crossAxisCount = contentWidth >= 600
+          ? (contentWidth / 200).ceil().clamp(4, 6)
+          : bookGridColumns(contentWidth);
+      final columnWidth =
+          (contentWidth - _crossAxisSpacing * (crossAxisCount - 1)) /
+              crossAxisCount;
+      final coverHeight = columnWidth * _coverAspect;
+      // With a footer, the wheel clearance belongs after the footer rather
+      // than between the final cover row and the action.
+      final gridPadding = footer == null
+          ? padding
+          : EdgeInsets.fromLTRB(padding.left, padding.top, padding.right, 8);
+      return CustomScrollView(
+        controller: controller,
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        slivers: [
+          SliverPadding(
+            padding: gridPadding,
+            sliver: SliverGrid(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: _crossAxisSpacing,
+                mainAxisExtent: coverHeight + 20 + _labelsHeight(context),
               ),
-              childCount: books.length,
+              // Search can grow without a fixed limit, so recycled cards must
+              // not retain their widget and decoded cover off screen.
+              delegate: SliverChildBuilderDelegate(
+                (_, i) => StaggerFadeIn(
+                  index: i ~/ crossAxisCount,
+                  keepAlive: false,
+                  child: CatalogBookCard(
+                      book: books[i],
+                      heroTag: AppHeroTags.catalogBookCover(books[i].id),
+                      width: double.infinity,
+                      coverHeight: coverHeight,
+                      margin: EdgeInsets.zero),
+                ),
+                childCount: books.length,
+              ),
             ),
           ),
-        ),
-        if (loadingMore)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 20),
-              child: Center(
-                child: SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+          if (loadingMore)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 20),
+                child: Center(
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppColors.primary),
+                  ),
                 ),
               ),
             ),
-          ),
-        if (footer != null)
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(
-              padding.left,
-              12,
-              padding.right,
-              padding.bottom,
+          if (footer != null)
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                padding.left,
+                12,
+                padding.right,
+                padding.bottom,
+              ),
+              sliver: SliverToBoxAdapter(
+                child: Center(child: footer),
+              ),
             ),
-            sliver: SliverToBoxAdapter(
-              child: Center(child: footer),
-            ),
-          ),
-      ],
-    );
+        ],
+      );
+    });
   }
 }

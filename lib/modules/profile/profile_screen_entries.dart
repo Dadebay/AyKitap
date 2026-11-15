@@ -71,7 +71,10 @@ extension _ProfileScreenEntries on _ProfileScreenState {
           const SizedBox(width: 40, height: 40, child: StreakFlame(size: 32)),
       title: ProfileStrings.streakDays(streak.currentStreak),
       subtitle: ProfileStrings.bestStreak(streak.bestStreak),
-      extra: StreakWeekRow(weekRead: streak.weekRead, circleSize: 34),
+      extra: StreakWeekRow(
+          weekRead: streak.weekRead,
+          circleSize: 34,
+          todayDate: streak.today?.date),
       onTap: () => context.push(const StreakScreen()),
     );
   }

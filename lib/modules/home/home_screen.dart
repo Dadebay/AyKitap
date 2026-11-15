@@ -10,6 +10,7 @@ import '../../core/services/streak_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_motion.dart';
 import '../../core/widgets/section_header.dart';
+import '../main_nav/widgets/wheel_nav_bar.dart';
 import '../streak/streak_screen.dart';
 import 'catalog_collection_books_screen.dart';
 import 'widgets/banner_carousel.dart';
@@ -144,7 +145,8 @@ class _HomeScreenState extends State<HomeScreen>
                       context, _groupByQueuePosition(collections));
                 },
               ),
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              SliverToBoxAdapter(
+                  child: SizedBox(height: WheelNavBar.clearance(context) + 16)),
             ],
           ),
           Positioned(

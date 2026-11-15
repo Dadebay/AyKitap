@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_gradients.dart';
 
@@ -98,8 +98,7 @@ class JourneyGradientIconBadge extends StatelessWidget {
     // excludeSemantics: true — the icon underneath is decorative (an Icon/
     // HugeIcon carries no semantics of its own anyway) and without it a
     // screen reader could see both this label and whatever the icon exposes.
-    return Semantics(
-        label: semanticsLabel, excludeSemantics: true, child: content);
+    return Semantics(label: semanticsLabel, excludeSemantics: true, child: content);
   }
 }
 

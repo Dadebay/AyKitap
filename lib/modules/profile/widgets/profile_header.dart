@@ -15,6 +15,7 @@ class LoggedOutSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
       decoration: BoxDecoration(
@@ -29,32 +30,57 @@ class LoggedOutSection extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            width: 76,
-            height: 76,
-            decoration: BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
-            child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedUser, color: AppColors.grey2, size: 36)),
+            width: tablet ? 96 : 76,
+            height: tablet ? 96 : 76,
+            decoration:
+                BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
+            child: Center(
+                child: HugeIcon(
+                    icon: HugeIcons.strokeRoundedUser,
+                    color: AppColors.grey2,
+                    size: 36)),
           ),
           const SizedBox(height: 18),
-          Text(ProfileStrings.loginHeading, style: TextStyle(color: AppColors.white, fontSize: 19, fontWeight: FontWeight.w800)),
+          Text(ProfileStrings.loginHeading,
+              style: TextStyle(
+                  color: AppColors.white,
+                  fontSize: tablet ? 23 : 19,
+                  fontWeight: FontWeight.w800)),
           const SizedBox(height: 8),
           Text(
             ProfileStrings.loginBody,
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.grey2, fontSize: 13.5, height: 1.5),
+            style: TextStyle(
+                color: AppColors.grey2,
+                fontSize: tablet ? 16 : 13.5,
+                height: 1.5),
           ),
           Container(
             width: double.infinity,
-            height: 52,
+            constraints:
+                BoxConstraints(maxWidth: tablet ? 480 : double.infinity),
+            height: tablet ? 58 : 52,
             margin: const EdgeInsets.only(top: 24, bottom: 32),
             child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  elevation: 0),
               onPressed: onLogin,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const HugeIcon(icon: HugeIcons.strokeRoundedSmartPhone01, color: Colors.white, size: 19),
+                  const HugeIcon(
+                      icon: HugeIcons.strokeRoundedSmartPhone01,
+                      color: Colors.white,
+                      size: 19),
                   const SizedBox(width: 8),
-                  Text(ProfileStrings.login, style: const TextStyle(color: Colors.white, fontSize: 15.5, fontWeight: FontWeight.w700)),
+                  Text(ProfileStrings.login,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w700)),
                 ],
               ),
             ),
@@ -93,6 +119,7 @@ class ProfileTopSection extends StatelessWidget {
     // wider) to still read as a lifted disc rather than vanishing into the
     // page.
     final isDark = AppTheme.instance.isDark;
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     return Column(
       children: [
         GestureDetector(
@@ -104,14 +131,19 @@ class ProfileTopSection extends StatelessWidget {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.55 : 0.18),
+                      color:
+                          Colors.black.withValues(alpha: isDark ? 0.55 : 0.18),
                       blurRadius: isDark ? 24 : 16,
                       spreadRadius: isDark ? 1 : 0,
                       offset: const Offset(0, 8),
                     ),
                   ],
                 ),
-                child: ProfileAvatar(index: avatarIndex, imageBase64: avatarImage, imageUrl: avatarUrl),
+                child: ProfileAvatar(
+                    index: avatarIndex,
+                    imageBase64: avatarImage,
+                    imageUrl: avatarUrl,
+                    size: tablet ? 112 : 88),
               ),
               Positioned(
                 bottom: 0,
@@ -124,7 +156,11 @@ class ProfileTopSection extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.bg, width: 2),
                   ),
-                  child: const Center(child: HugeIcon(icon: HugeIcons.strokeRoundedCamera01, color: Colors.white, size: 13)),
+                  child: const Center(
+                      child: HugeIcon(
+                          icon: HugeIcons.strokeRoundedCamera01,
+                          color: Colors.white,
+                          size: 13)),
                 ),
               ),
             ],
@@ -136,13 +172,22 @@ class ProfileTopSection extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(name, style: TextStyle(color: AppColors.white, fontSize: 20, fontWeight: FontWeight.w700)),
+              Text(name,
+                  style: TextStyle(
+                      color: AppColors.white,
+                      fontSize: tablet ? 24 : 20,
+                      fontWeight: FontWeight.w700)),
               const SizedBox(width: 6),
-              HugeIcon(icon: HugeIcons.strokeRoundedEdit02, color: AppColors.grey3, size: 15),
+              HugeIcon(
+                  icon: HugeIcons.strokeRoundedEdit02,
+                  color: AppColors.grey3,
+                  size: 15),
             ],
           ),
         ),
-        Text(maskedPhone, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+        Text(maskedPhone,
+            style:
+                TextStyle(color: AppColors.grey2, fontSize: tablet ? 16 : 14)),
       ],
     );
   }

@@ -1,10 +1,9 @@
 import 'package:aykitap/modules/profile/widgets/settings_confirm_dialog.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
-  testWidgets('confirm closes only the dialog and returns true',
-      (tester) async {
+  testWidgets('confirm closes only the dialog and returns true', (tester) async {
     bool? result;
 
     await tester.pumpWidget(

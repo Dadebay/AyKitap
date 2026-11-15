@@ -7,9 +7,9 @@ import 'package:aykitap/core/services/streak_service.dart';
 import 'package:aykitap/modules/home/home_screen.dart';
 import 'package:aykitap/modules/home/widgets/home_header.dart';
 import 'package:connectivity_plus_platform_interface/connectivity_plus_platform_interface.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 /// Never emits, so [HomeConnectionBanner] never toggles state on its own —

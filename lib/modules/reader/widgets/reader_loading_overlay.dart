@@ -20,6 +20,7 @@ class ReaderLoadingOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     return Positioned.fill(
       child: ColoredBox(
         color: backgroundColor,
@@ -28,8 +29,8 @@ class ReaderLoadingOverlay extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
-                width: 240,
-                height: 240,
+                width: tablet ? 300 : 240,
+                height: tablet ? 300 : 240,
                 child: Lottie.asset(
                   'assets/animations/book_reading_boy.json',
                   repeat: true,
@@ -40,7 +41,7 @@ class ReaderLoadingOverlay extends StatelessWidget {
                 message,
                 style: TextStyle(
                   color: isDarkSurface ? Colors.white70 : Colors.black54,
-                  fontSize: 13.5,
+                  fontSize: tablet ? 16 : 13.5,
                   fontWeight: FontWeight.w500,
                 ),
               ),

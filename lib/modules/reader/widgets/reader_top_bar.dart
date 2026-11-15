@@ -39,10 +39,13 @@ class ReaderTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     final isDarkPage = pageColor.computeLuminance() < 0.4;
     final fg = isDarkPage ? Colors.white : const Color(0xFF1A1A22);
     final well = eyeCareTint(
-      isDarkPage ? Colors.white.withValues(alpha: 0.13) : Colors.black.withValues(alpha: 0.07),
+      isDarkPage
+          ? Colors.white.withValues(alpha: 0.13)
+          : Colors.black.withValues(alpha: 0.07),
       eyeCare,
       isDarkPage: isDarkPage,
     );
@@ -68,37 +71,48 @@ class ReaderTopBar extends StatelessWidget {
         child: Padding(
           // The extra bottom inset is the runway the gradient fades over.
           padding: const EdgeInsets.fromLTRB(14, 6, 14, 22),
-          child: Row(
-            children: [
-              IconCircleButton(
-                icon: HugeIcons.strokeRoundedArrowLeft01,
-                onTap: onBack,
-                iconSize: 19,
-                backgroundColor: well,
-                iconColor: fg,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: fg, fontSize: 15.5, fontWeight: FontWeight.w600),
-                ),
-              ),
-              const SizedBox(width: 10),
-              // HugeIcons ships no filled bookmark, so the marked state reads
-              // through the accent colour and a tinted well instead.
-              IconCircleButton(
-                icon: HugeIcons.strokeRoundedBookmark01,
-                onTap: onBookmark,
-                iconSize: 19,
-                backgroundColor: isBookmarked ? AppColors.primary.withValues(alpha: 0.20) : well,
-                iconColor: isBookmarked ? AppColors.primary : fg,
-              ),
-            ],
-          ),
+          child: Center(
+              heightFactor: 1,
+              child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 860),
+                  child: Row(
+                    children: [
+                      IconCircleButton(
+                        icon: HugeIcons.strokeRoundedArrowLeft01,
+                        onTap: onBack,
+                        size: tablet ? 48 : 40,
+                        iconSize: tablet ? 22 : 19,
+                        backgroundColor: well,
+                        iconColor: fg,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          title,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: fg,
+                              fontSize: tablet ? 18 : 15.5,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      // HugeIcons ships no filled bookmark, so the marked state reads
+                      // through the accent colour and a tinted well instead.
+                      IconCircleButton(
+                        icon: HugeIcons.strokeRoundedBookmark01,
+                        onTap: onBookmark,
+                        size: tablet ? 48 : 40,
+                        iconSize: tablet ? 22 : 19,
+                        backgroundColor: isBookmarked
+                            ? AppColors.primary.withValues(alpha: 0.20)
+                            : well,
+                        iconColor: isBookmarked ? AppColors.primary : fg,
+                      ),
+                    ],
+                  ))),
         ),
       ),
     );

@@ -1,7 +1,7 @@
 import 'package:aykitap/core/theme/app_motion.dart';
 import 'package:aykitap/core/widgets/pressable_scale.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 Widget _app(Widget child, {bool reduceMotion = false}) {
   return MaterialApp(
@@ -16,18 +16,11 @@ Widget _app(Widget child, {bool reduceMotion = false}) {
 // `Transform.scale` never touches Z (it stays 1.0) — so for any down-scale
 // (pressedScale < 1) that method always reports 1.0 regardless of the
 // actual scale. Reading the X-scale entry directly avoids that trap.
-double _scaleOf(WidgetTester tester) => tester
-    .widget<Transform>(find
-        .descendant(
-            of: find.byType(PressableScale), matching: find.byType(Transform))
-        .first)
-    .transform
-    .entry(0, 0);
+double _scaleOf(WidgetTester tester) => tester.widget<Transform>(find.descendant(of: find.byType(PressableScale), matching: find.byType(Transform)).first).transform.entry(0, 0);
 
 void main() {
   group('PressableScale', () {
-    testWidgets('scales down to 0.96 on press and back to 1.0 on release',
-        (tester) async {
+    testWidgets('scales down to 0.96 on press and back to 1.0 on release', (tester) async {
       await tester.pumpWidget(_app(
         PressableScale(onTap: () {}, child: const Text('Book')),
       ));
@@ -44,8 +37,7 @@ void main() {
       expect(_scaleOf(tester), closeTo(1.0, 0.001));
     });
 
-    testWidgets('a scroll drag cancels the press instead of completing it',
-        (tester) async {
+    testWidgets('a scroll drag cancels the press instead of completing it', (tester) async {
       var tapped = false;
       await tester.pumpWidget(_app(
         PressableScale(onTap: () => tapped = true, child: const Text('Book')),

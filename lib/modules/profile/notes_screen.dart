@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/layout/adaptive_content_width.dart';
+import '../../core/layout/two_column_layout.dart';
 
 import '../../core/localization/strings/profile_strings.dart';
 import '../../core/models/user_note.dart';
@@ -72,7 +74,9 @@ class _NotesScreenState extends State<NotesScreen> {
     await context.pushHero(CatalogBookDetailScreen(
       bookId: note.bookId,
       heroTag: AppHeroTags.noteBookCover(note.id, note.bookId),
-      initialCoverUrl: image != null && image.isNotEmpty ? ApiConfig.resolveImageUrl(image) : null,
+      initialCoverUrl: image != null && image.isNotEmpty
+          ? ApiConfig.resolveImageUrl(image)
+          : null,
     ));
     if (mounted) _load();
   }
@@ -82,13 +86,16 @@ class _NotesScreenState extends State<NotesScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 720),
       builder: (_) => EditNoteSheet(initialText: note.note),
     );
     if (draft == null || draft.text.isEmpty) return;
     try {
-      final updated = await UserNotesApiService.updateNote(note.id, note: draft.text);
+      final updated =
+          await UserNotesApiService.updateNote(note.id, note: draft.text);
       if (!mounted) return;
-      setState(() => _notes = _notes?.map((n) => n.id == note.id ? updated : n).toList());
+      setState(() =>
+          _notes = _notes?.map((n) => n.id == note.id ? updated : n).toList());
     } on ApiException catch (e) {
       if (!mounted) return;
       context.showAppSnackBar(e.message, isError: true);
@@ -120,9 +127,15 @@ class _NotesScreenState extends State<NotesScreen> {
         scrolledUnderElevation: 0,
         centerTitle: true,
         leading: const AppBackButton(size: 20),
-        title: Text(ProfileStrings.notesTitle, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+        title: Text(ProfileStrings.notesTitle,
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700)),
       ),
-      body: SafeArea(top: false, child: _buildBody()),
+      body: SafeArea(
+          top: false,
+          child: AdaptiveContentWidth(maxWidth: 1100, child: _buildBody())),
     );
   }
 
@@ -137,9 +150,16 @@ class _NotesScreenState extends State<NotesScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+              Text(_error!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.grey2, fontSize: 14)),
               const SizedBox(height: 12),
-              TextButton(onPressed: _load, child: Text(ProfileStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700))),
+              TextButton(
+                  onPressed: _load,
+                  child: Text(ProfileStrings.retry,
+                      style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700))),
             ],
           ),
         ),
@@ -148,16 +168,19 @@ class _NotesScreenState extends State<NotesScreen> {
     final notes = _notes ?? const [];
     return notes.isEmpty
         ? const NotesEmptyState()
-        : ListView.separated(
+        : ListView(
             padding: const EdgeInsets.all(20),
-            itemCount: notes.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 14),
-            itemBuilder: (_, i) => NoteCard(
-              note: notes[i],
-              onEdit: () => _editNote(notes[i]),
-              onDelete: () => _deleteNote(notes[i]),
-              onGoToBook: () => _goToBook(notes[i]),
-            ),
+            children: [
+              TwoColumnList(
+                itemCount: notes.length,
+                itemBuilder: (_, i) => NoteCard(
+                  note: notes[i],
+                  onEdit: () => _editNote(notes[i]),
+                  onDelete: () => _deleteNote(notes[i]),
+                  onGoToBook: () => _goToBook(notes[i]),
+                ),
+              ),
+            ],
           );
   }
 }

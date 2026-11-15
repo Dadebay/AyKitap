@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/layout/adaptive_content_width.dart';
 import '../../core/localization/strings/payment_strings.dart';
 import '../../core/localization/strings/settings_strings.dart';
 import '../../core/models/contact_info.dart';
@@ -240,7 +241,8 @@ class _StoreSubscriptionScreenState extends State<StoreSubscriptionScreen> {
       ),
       body: SafeArea(
         top: false,
-        child: Column(
+        child: AdaptiveContentWidth(
+            child: Column(
           children: [
             Expanded(
               child: ListView(
@@ -288,7 +290,7 @@ class _StoreSubscriptionScreenState extends State<StoreSubscriptionScreen> {
             ),
             _buildCheckoutButton(hasSelection, packages),
           ],
-        ),
+        )),
       ),
     );
   }

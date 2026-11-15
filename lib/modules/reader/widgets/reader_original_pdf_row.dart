@@ -28,7 +28,10 @@ class ReaderOriginalPdfRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              HugeIcon(icon: HugeIcons.strokeRoundedFile02, color: AppColors.primary, size: 19),
+              HugeIcon(
+                  icon: HugeIcons.strokeRoundedFile02,
+                  color: AppColors.primary,
+                  size: 19),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -36,7 +39,10 @@ class ReaderOriginalPdfRow extends StatelessWidget {
                   children: [
                     Text(
                       ReaderPdfStrings.pdfOriginalViewLabel,
-                      style: TextStyle(color: AppColors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          color: AppColors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 2),
                     Text(

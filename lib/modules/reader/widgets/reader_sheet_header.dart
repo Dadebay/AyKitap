@@ -13,6 +13,7 @@ class ReaderSheetHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -30,15 +31,15 @@ class ReaderSheetHeader extends StatelessWidget {
             Text(title,
                 style: TextStyle(
                     color: AppColors.white,
-                    fontSize: 17,
+                    fontSize: tablet ? 21 : 17,
                     fontWeight: FontWeight.w800)),
             const Spacer(),
             GestureDetector(
               onTap: () => Navigator.pop(context),
               behavior: HitTestBehavior.opaque,
               child: Container(
-                width: 30,
-                height: 30,
+                width: tablet ? 40 : 30,
+                height: tablet ? 40 : 30,
                 decoration: BoxDecoration(
                     color: AppColors.card, shape: BoxShape.circle),
                 child: closeIcon,

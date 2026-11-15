@@ -35,8 +35,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
   /// count — called on every rebuild (banner count can shrink as well as
   /// grow, e.g. a background refresh dropping to 0/1 banners) rather than
   /// only ever starting it once.
-  void _syncAutoAdvance(List<PromoBanner>? banners) {
-    final canAdvance = banners != null && banners.length > 1;
+  void _syncAutoAdvance(List<PromoBanner>? banners, bool visible) {
+    final canAdvance = visible && banners != null && banners.length > 1;
     if (canAdvance) {
       _startAutoAdvance();
     } else {
@@ -49,7 +49,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
     _autoAdvanceStarted = true;
     _timer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!_controller.hasClients) return;
-      _controller.nextPage(duration: const Duration(milliseconds: 500), curve: Curves.easeOut);
+      _controller.nextPage(
+          duration: const Duration(milliseconds: 500), curve: Curves.easeOut);
     });
   }
 
@@ -85,10 +86,11 @@ class _BannerCarouselState extends State<BannerCarousel> {
 
   @override
   Widget build(BuildContext context) {
+    final visible = TickerMode.valuesOf(context).enabled;
     return ValueListenableBuilder<List<PromoBanner>?>(
       valueListenable: HomeDataService.instance.bannersListenable,
       builder: (context, banners, _) {
-        _syncAutoAdvance(banners);
+        _syncAutoAdvance(banners, visible);
         return AnimatedSize(
           duration: const Duration(milliseconds: 260),
           curve: Curves.easeOutCubic,
@@ -104,83 +106,113 @@ class _BannerCarouselState extends State<BannerCarousel> {
   }
 
   Widget _buildCarousel(List<PromoBanner> banners) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          // A tablet's banner is full width, so it needs the extra height
-          // to keep the artwork from turning into a thin strip.
-          height: MediaQuery.sizeOf(context).width >= 600 ? 300 : 180,
-          child: PageView.builder(
-            controller: _controller,
-            // No itemCount — an infinite forward index range, wrapped into
-            // the real banners below, so paging past the last one loops
-            // straight back to the first.
-            itemBuilder: (_, i) {
-              final banner = banners[i % banners.length];
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _BannerCard(banner: banner, onTap: () => _openBanner(banner)),
-              );
-            },
-          ),
-        ),
-        if (banners.length > 1) ...[
-          const SizedBox(height: 10),
-          AnimatedBuilder(
-            // Read the active dot straight off the controller — same modulo
-            // math the itemBuilder above uses — instead of a separate int
-            // that can drift out of sync with what's actually on screen.
-            animation: _controller,
-            builder: (context, _) {
-              final raw = _controller.hasClients ? (_controller.page ?? 0) : 0.0;
-              final active = raw.round() % banners.length;
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(banners.length, (i) {
-                  final isActive = i == active;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    margin: const EdgeInsets.symmetric(horizontal: 2.5),
-                    width: isActive ? 16 : 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: isActive ? AppColors.primary : AppColors.border,
-                      borderRadius: BorderRadius.circular(3),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isTablet = constraints.maxWidth >= 600;
+        final cardWidth = (constraints.maxWidth - 40).clamp(0.0, 800.0);
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              // Keep the tablet artwork close to its source aspect ratio.
+              // The old 300-high, full-width card cropped nearly half of it.
+              height: isTablet ? cardWidth / 1.85 : 180,
+              child: PageView.builder(
+                controller: _controller,
+                // No itemCount — an infinite forward index range, wrapped
+                // into the real banners below.
+                itemBuilder: (_, i) {
+                  final banner = banners[i % banners.length];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 800),
+                        child: _BannerCard(
+                          banner: banner,
+                          isTablet: isTablet,
+                          onTap: () => _openBanner(banner),
+                        ),
+                      ),
                     ),
                   );
-                }),
-              );
-            },
-          ),
-        ],
-      ],
+                },
+              ),
+            ),
+            if (banners.length > 1) ...[
+              const SizedBox(height: 10),
+              AnimatedBuilder(
+                // Read the active dot straight off the controller — same modulo
+                // math the itemBuilder above uses — instead of a separate int
+                // that can drift out of sync with what's actually on screen.
+                animation: _controller,
+                builder: (context, _) {
+                  final raw =
+                      _controller.hasClients ? (_controller.page ?? 0) : 0.0;
+                  final active = raw.round() % banners.length;
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(banners.length, (i) {
+                      final isActive = i == active;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                        width: isActive ? 16 : 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color:
+                              isActive ? AppColors.primary : AppColors.border,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      );
+                    }),
+                  );
+                },
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }
 
 class _BannerCard extends StatelessWidget {
   final PromoBanner banner;
+  final bool isTablet;
   final VoidCallback onTap;
-  const _BannerCard({required this.banner, required this.onTap});
+  const _BannerCard({
+    required this.banner,
+    required this.isTablet,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final hasAction = banner.bookId != null || (banner.link != null && banner.link!.isNotEmpty);
+    final hasAction = banner.bookId != null ||
+        (banner.link != null && banner.link!.isNotEmpty);
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Material(
-        color: AppColors.card,
+        color: isTablet ? AppColors.bg : AppColors.card,
         child: InkWell(
           onTap: hasAction ? onTap : null,
           child: Stack(
             fit: StackFit.expand,
             children: [
-              NetworkCoverImage(
-                url: ApiConfig.resolveImageUrl(banner.mobileImage),
-                width: double.infinity,
-                height: double.infinity,
-                placeholder: (_) => Container(color: AppColors.card),
+              Transform.scale(
+                // The supplied web artwork has a thin black frame baked
+                // into its pixels. A small overscan hides it at both sizes.
+                scale: isTablet ? 1.05 : 1.03,
+                child: NetworkCoverImage(
+                  url: ApiConfig.resolveImageUrl(
+                      isTablet && banner.websiteImage.isNotEmpty
+                          ? banner.websiteImage
+                          : banner.mobileImage),
+                  width: double.infinity,
+                  height: double.infinity,
+                  placeholder: (_) => Container(color: AppColors.card),
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
@@ -190,7 +222,11 @@ class _BannerCard extends StatelessWidget {
                   children: [
                     Text(
                       banner.name,
-                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800, height: 1.2),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          height: 1.2),
                     ),
                   ],
                 ),

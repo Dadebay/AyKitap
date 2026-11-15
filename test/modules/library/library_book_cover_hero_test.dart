@@ -3,8 +3,8 @@ import 'package:aykitap/core/navigation/app_hero_tags.dart';
 import 'package:aykitap/core/services/book_access_service.dart';
 import 'package:aykitap/core/services/subscription_service.dart';
 import 'package:aykitap/modules/library/widgets/library_book_cover.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -56,18 +56,14 @@ void main() {
     expect(tags, hasLength(2));
   });
 
-  testWidgets('finished shelf can hide the redundant 100% badge',
-      (tester) async {
-    const finishedBook =
-        LibraryBook(id: 7, name: 'Finished book', progress: 100);
+  testWidgets('finished shelf can hide the redundant 100% badge', (tester) async {
+    const finishedBook = LibraryBook(id: 7, name: 'Finished book', progress: 100);
 
     await tester.pumpWidget(
       MultiProvider(
         providers: [
-          ChangeNotifierProvider<BookAccessService>.value(
-              value: BookAccessService.instance),
-          ChangeNotifierProvider<SubscriptionService>.value(
-              value: SubscriptionService.instance),
+          ChangeNotifierProvider<BookAccessService>.value(value: BookAccessService.instance),
+          ChangeNotifierProvider<SubscriptionService>.value(value: SubscriptionService.instance),
         ],
         child: const MaterialApp(
           home: Scaffold(

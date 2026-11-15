@@ -34,6 +34,7 @@ class CatalogBookCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final image = book.image;
     final isDark = AppTheme.instance.isDark;
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     return PressableScale(
       onTap: () => context.pushHero(CatalogBookDetailScreen(
         bookId: book.id,
@@ -79,12 +80,13 @@ class CatalogBookCard extends StatelessWidget {
             Text(book.name,
                 style: TextStyle(
                     color: AppColors.grey1,
-                    fontSize: 12,
+                    fontSize: tablet ? 14 : 12,
                     fontWeight: FontWeight.w600),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis),
             Text(book.authorNames,
-                style: TextStyle(color: AppColors.grey2, fontSize: 11),
+                style: TextStyle(
+                    color: AppColors.grey2, fontSize: tablet ? 12.5 : 11),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis),
           ],

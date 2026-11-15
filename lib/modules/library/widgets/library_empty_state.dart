@@ -18,35 +18,41 @@ class LibraryEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = AppTheme.instance.isDark;
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 220),
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Image.asset(
-                  isDark
-                      ? 'assets/images/library_empty_dark.webp'
-                      : 'assets/images/library_empty_light.webp',
-                  fit: BoxFit.contain,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: tablet ? 280 : 220),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Image.asset(
+                    isDark
+                        ? 'assets/images/library_empty_dark.webp'
+                        : 'assets/images/library_empty_light.webp',
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(label,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.grey2, fontSize: 15)),
-            if (sub != null) ...[
-              const SizedBox(height: 6),
-              Text(sub!,
+              const SizedBox(height: 20),
+              Text(label,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.grey3, fontSize: 13)),
+                  style: TextStyle(
+                      color: AppColors.grey2, fontSize: tablet ? 19 : 15)),
+              if (sub != null) ...[
+                const SizedBox(height: 6),
+                Text(sub!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: AppColors.grey3, fontSize: tablet ? 15 : 13)),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -78,46 +84,51 @@ class LibraryLoginRequiredState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = AppTheme.instance.isDark;
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 220),
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Image.asset(
-                  isDark
-                      ? 'assets/images/library_empty_dark.webp'
-                      : 'assets/images/library_empty_light.webp',
-                  fit: BoxFit.contain,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: tablet ? 280 : 220),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Image.asset(
+                    isDark
+                        ? 'assets/images/library_empty_dark.webp'
+                        : 'assets/images/library_empty_light.webp',
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              LibraryStrings.loginRequiredTitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              LibraryStrings.loginRequiredSub,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.grey3, fontSize: 13),
-            ),
-            const SizedBox(height: 24),
-            PrimaryButton(
-              label: ProfileStrings.login,
-              height: 48,
-              onPressed: () => _login(context),
-            ),
-          ],
+              const SizedBox(height: 20),
+              Text(
+                LibraryStrings.loginRequiredTitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: tablet ? 20 : 16,
+                    fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                LibraryStrings.loginRequiredSub,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: AppColors.grey2, fontSize: tablet ? 15 : 13),
+              ),
+              const SizedBox(height: 24),
+              PrimaryButton(
+                label: ProfileStrings.login,
+                height: tablet ? 56 : 48,
+                onPressed: () => _login(context),
+              ),
+            ],
+          ),
         ),
       ),
     );

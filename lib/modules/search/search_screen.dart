@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart' show CupertinoSlidingSegmentedControl;
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../../core/layout/adaptive_content_width.dart';
 import '../../core/localization/app_locale.dart';
 import '../../core/localization/strings/search_strings.dart';
 import '../../core/models/author_detail.dart';
@@ -18,7 +19,14 @@ import '../../core/services/book_list_api_service.dart';
 import '../../core/services/genre_api_service.dart';
 import '../../core/services/search_discover_cache.dart';
 import '../../core/theme/app_colors.dart';
-import '../filter/controller/filter_controller.dart' show BookFormatFilter, BookFormatFilterLabel, SortBy, SortByLabel, kDefaultSortBy, kDefaultYearRange;
+import '../filter/controller/filter_controller.dart'
+    show
+        BookFormatFilter,
+        BookFormatFilterLabel,
+        SortBy,
+        SortByLabel,
+        kDefaultSortBy,
+        kDefaultYearRange;
 import '../filter/filter_screen.dart';
 import '../home/widgets/stagger_fade_in.dart';
 import '../main_nav/widgets/wheel_nav_bar.dart';
@@ -223,7 +231,12 @@ class _SearchScreenState extends State<SearchScreen> {
   // so it needs actual typed text.
   bool get _shouldShowResults => _searchMode == _SearchMode.author
       ? _hasQuery
-      : _hasQuery || _selectedGenreIds.isNotEmpty || _filterLanguageIds.isNotEmpty || _filterFormats.isNotEmpty || _filterStartYear != null || _filterEndYear != null;
+      : _hasQuery ||
+          _selectedGenreIds.isNotEmpty ||
+          _filterLanguageIds.isNotEmpty ||
+          _filterFormats.isNotEmpty ||
+          _filterStartYear != null ||
+          _filterEndYear != null;
 
   // chips aren't in here on purpose: a selected one is already visibly
   // Any active filter lights the red badge on the filter button. The genre

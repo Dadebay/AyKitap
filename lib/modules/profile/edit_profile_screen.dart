@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/layout/adaptive_content_width.dart';
 import '../../core/localization/strings/profile_strings.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/services/auth_api_service.dart';
@@ -64,6 +65,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final result = await showModalBottomSheet<AvatarPickResult>(
       context: context,
       backgroundColor: AppColors.surface,
+      constraints: const BoxConstraints(maxWidth: 720),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => AvatarPickerSheet(current: _avatarIndex),
@@ -142,7 +144,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         top: false,
         child: _loading
             ? const SizedBox.shrink()
-            : ListView(
+            : AdaptiveContentWidth(
+                child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
                 children: [
                   EditProfileAvatarSection(
@@ -159,7 +162,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     onPressed: _saving ? null : _save,
                   ),
                 ],
-              ),
+              )),
       ),
     );
   }

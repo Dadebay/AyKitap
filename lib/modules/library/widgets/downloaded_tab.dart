@@ -65,23 +65,24 @@ class _DownloadedTabState extends State<DownloadedTab>
           label: LibraryStrings.emptyDownloaded,
           sub: LibraryStrings.emptyDownloadedSub);
     }
-    return SingleChildScrollView(
+    return CustomScrollView(
       // Clears the wheel the Scaffold draws over this content — see
       // [WheelNavBar.clearance].
-      padding: EdgeInsets.only(bottom: WheelNavBar.clearance(context) + 16),
-      child: ShelfGrid(
-        itemCount: books.length,
-        itemBuilder: (context, i) => LibraryBookCover(
-          book: books[i],
-          heroShelf: 'downloaded',
-          // Downloaded ≠ still readable: a book read on a subscription that
-          // has since lapsed keeps its file but not its access, so the
-          // cover carries a lock and opening it hits the normal gate.
-          showLockWhenNoAccess: true,
-          onTap: () => _openDownloaded(books[i]),
-          onLongPress: () => _confirmDeleteDownload(books[i]),
+      slivers: [
+        SliverPadding(
+          padding: EdgeInsets.only(bottom: WheelNavBar.clearance(context) + 16),
+          sliver: ShelfGridSliver(
+            itemCount: books.length,
+            itemBuilder: (context, i) => LibraryBookCover(
+              book: books[i],
+              heroShelf: 'downloaded',
+              showLockWhenNoAccess: true,
+              onTap: () => _openDownloaded(books[i]),
+              onLongPress: () => _confirmDeleteDownload(books[i]),
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 

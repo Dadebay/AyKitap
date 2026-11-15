@@ -5,14 +5,22 @@ import '../../../core/theme/app_colors.dart';
 /// flow a celebratory focus without using a heavyweight video or Lottie asset.
 class GiftSheetFrame extends StatelessWidget {
   const GiftSheetFrame(
-      {super.key, required this.progress, required this.child});
+      {super.key,
+      required this.progress,
+      required this.child,
+      this.fullRadius = false});
+
+  /// Round all four corners (centred dialog) instead of only the top (sheet).
+  final bool fullRadius;
 
   final double progress;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    const radius = BorderRadius.vertical(top: Radius.circular(28));
+    final radius = fullRadius
+        ? BorderRadius.circular(28)
+        : const BorderRadius.vertical(top: Radius.circular(28));
     final angle = progress * 6.28318530718;
     final colors = [
       AppColors.primary,
@@ -31,12 +39,14 @@ class GiftSheetFrame extends StatelessWidget {
             color: AppColors.primary.withValues(alpha: .24),
             blurRadius: 28,
             spreadRadius: 1,
-            offset: const Offset(0, -6),
+            offset: Offset(0, fullRadius ? 0 : -6),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.only(top: 1.5, left: 1.5, right: 1.5),
+        padding: fullRadius
+            ? const EdgeInsets.all(1.5)
+            : const EdgeInsets.only(top: 1.5, left: 1.5, right: 1.5),
         child: DecoratedBox(
           decoration:
               BoxDecoration(color: AppColors.surface, borderRadius: radius),

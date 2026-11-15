@@ -5,6 +5,7 @@ import '../../../core/network/api_config.dart';
 import '../../../core/services/last_read_book_store.dart' show LastReadBook;
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/network_cover_image.dart';
+import '../../main_nav/widgets/wheel_nav_bar.dart';
 
 /// The "Continue reading" card on [ReaderTabScreen] — cover, title, resume
 /// page and a play button, all tapping through to [openLastReadBook].
@@ -17,12 +18,14 @@ class ContinueReadingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     final page = book.page + 1;
     final pageLabel = book.pageCount == null
         ? ReaderContinueStrings.resumeAtPage(page)
         : ReaderContinueStrings.resumeAtPageOf(page, book.pageCount!);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 110),
+      padding: EdgeInsets.fromLTRB(
+          20, tablet ? 32 : 20, 20, WheelNavBar.clearance(context) + 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -30,7 +33,7 @@ class ContinueReadingCard extends StatelessWidget {
             ReaderContinueStrings.continueReading,
             style: TextStyle(
               color: AppColors.white,
-              fontSize: 24,
+              fontSize: tablet ? 28 : 24,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -38,7 +41,7 @@ class ContinueReadingCard extends StatelessWidget {
           GestureDetector(
             onTap: onTap,
             child: Container(
-              padding: const EdgeInsets.all(14),
+              padding: EdgeInsets.all(tablet ? 20 : 14),
               decoration: BoxDecoration(
                 color: AppColors.card,
                 borderRadius: BorderRadius.circular(22),
@@ -49,8 +52,8 @@ class ContinueReadingCard extends StatelessWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(14),
                     child: SizedBox(
-                      width: 76,
-                      height: 112,
+                      width: tablet ? 100 : 76,
+                      height: tablet ? 148 : 112,
                       child: book.image == null || book.image!.isEmpty
                           ? _coverPlaceholder()
                           : NetworkCoverImage(
@@ -70,7 +73,7 @@ class ContinueReadingCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: AppColors.white,
-                            fontSize: 17,
+                            fontSize: tablet ? 21 : 17,
                             fontWeight: FontWeight.w800,
                             height: 1.2,
                           ),
@@ -80,7 +83,7 @@ class ContinueReadingCard extends StatelessWidget {
                           pageLabel,
                           style: TextStyle(
                             color: AppColors.grey2,
-                            fontSize: 13.5,
+                            fontSize: tablet ? 16 : 13.5,
                             fontWeight: FontWeight.w600,
                           ),
                         ),

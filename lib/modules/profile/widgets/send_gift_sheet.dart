@@ -22,16 +22,37 @@ part 'send_gift_sheet_actions.dart';
 /// they're a registered user, send it via [GiftApiService.sendToFriend].
 /// Pops `true` after the success celebration so [ProfileScreen] can refresh.
 class SendGiftSheet extends StatefulWidget {
-  const SendGiftSheet({super.key});
+  const SendGiftSheet({super.key, this.asDialog = false});
+
+  /// iPad: shown in a centred dialog, so the frame is rounded on every side
+  /// and the sheet's drag handle is dropped.
+  final bool asDialog;
 
   static const _presets = [10, 20, 50, 100];
   static const _digitsNeeded = 8; // XX XX XX XX, same as PhoneLoginScreen
 
   static Future<bool?> show(BuildContext context) {
+    // iPad: a centred card instead of a sheet stretched along the bottom edge.
+    if (MediaQuery.sizeOf(context).width >= 700) {
+      return showDialog<bool>(
+        context: context,
+        builder: (_) => Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: const SendGiftSheet(asDialog: true),
+          ),
+        ),
+      );
+    }
     return showModalBottomSheet<bool>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 720),
       builder: (_) => const SendGiftSheet(),
     );
   }
@@ -110,12 +131,15 @@ class _SendGiftSheetState extends State<SendGiftSheet>
   Widget build(BuildContext context) {
     final amount = _amount;
     return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+          bottom: widget.asDialog
+              ? 0
+              : MediaQuery.of(context).viewInsets.bottom),
       child: AnimatedBuilder(
         animation: _borderController,
         builder: (context, child) => GiftSheetFrame(
           progress: _borderController.value,
+          fullRadius: widget.asDialog,
           child: child!,
         ),
         child: Container(
@@ -127,17 +151,20 @@ class _SendGiftSheetState extends State<SendGiftSheet>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(
-                  child: Container(
-                    width: 42,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.grey3,
-                      borderRadius: BorderRadius.circular(2),
+                if (!widget.asDialog) ...[
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.grey3,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 18),
+                  const SizedBox(height: 18),
+                ] else
+                  const SizedBox(height: 8),
                 const GiftHero(),
                 const SizedBox(height: 24),
                 GiftAmountSection(

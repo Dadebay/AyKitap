@@ -11,9 +11,11 @@ extension _ReaderViewSheets on _ReaderScreenState {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 720),
       builder: (_) => ChangeNotifierProvider.value(
         value: provider,
-        child: ReaderSettingsSheet(showOriginalPdfOption: widget.originalPdfPath != null),
+        child: ReaderSettingsSheet(
+            showOriginalPdfOption: widget.originalPdfPath != null),
       ),
     );
     final pdfPath = widget.originalPdfPath;
@@ -41,6 +43,7 @@ extension _ReaderViewSheets on _ReaderScreenState {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 720),
       builder: (_) => ChangeNotifierProvider.value(
         value: provider,
         child: ChapterListSheet(
@@ -57,6 +60,7 @@ extension _ReaderViewSheets on _ReaderScreenState {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 720),
       builder: (_) => ChangeNotifierProvider.value(
         value: provider,
         child: const BookmarksSheet(),
@@ -69,6 +73,7 @@ extension _ReaderViewSheets on _ReaderScreenState {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 720),
       builder: (_) => SearchSheet(provider: provider),
     );
   }

@@ -61,7 +61,8 @@ class ProfileEntryCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding:
+            EdgeInsets.all(MediaQuery.sizeOf(context).width >= 700 ? 20 : 16),
         decoration: BoxDecoration(
           color: highlighted
               ? AppColors.primary.withValues(alpha: 0.12)
@@ -71,7 +72,7 @@ class ProfileEntryCard extends StatelessWidget {
               ? Border.all(color: AppColors.primary.withValues(alpha: 0.3))
               : null,
         ),
-        child: _content(titleColor),
+        child: _content(context, titleColor),
       ),
     );
   }
@@ -120,7 +121,7 @@ class ProfileEntryCard extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 16, 16, 16),
-              child: _content(accentColor),
+              child: _content(context, accentColor),
             ),
             // The full-strength bar, on top of the wash and the content's
             // own padding, pinned to the left edge.
@@ -145,7 +146,8 @@ class ProfileEntryCard extends StatelessWidget {
     );
   }
 
-  Widget _content(Color titleColor) {
+  Widget _content(BuildContext context, Color titleColor) {
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -160,14 +162,14 @@ class ProfileEntryCard extends StatelessWidget {
                   Text(title,
                       style: TextStyle(
                           color: titleColor,
-                          fontSize: 14.5,
+                          fontSize: tablet ? 17 : 14.5,
                           fontWeight: FontWeight.w700)),
                   if (subtitle != null) ...[
                     const SizedBox(height: 2),
                     Text(subtitle!,
                         style: TextStyle(
                             color: AppColors.grey2,
-                            fontSize: 12.5,
+                            fontSize: tablet ? 14 : 12.5,
                             fontWeight: FontWeight.w600)),
                   ],
                 ],

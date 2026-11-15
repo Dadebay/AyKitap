@@ -10,8 +10,8 @@
 import 'package:aykitap/core/network/streak_endpoints.dart';
 import 'package:aykitap/core/services/streak_service.dart';
 import 'package:aykitap/modules/reader/provider/reader_provider.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:sakura_epub/sakura_epub.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -44,18 +44,12 @@ void main() {
   });
 
   group('progressListenable content', () {
-    test('onRelocated publishes progress/page/cfi/href/toc into the snapshot',
-        () async {
+    test('onRelocated publishes progress/page/cfi/href/toc into the snapshot', () async {
       FakeDioAdapter.install();
       final provider = ReaderProvider();
       await provider.initialize(bookId: 100, bookTitle: 'Test');
 
-      provider.onRelocated(_location(
-          progress: 0.5,
-          cfi: 'epubcfi(/6/4)',
-          page: 10,
-          totalPages: 20,
-          href: 'ch3.xhtml'));
+      provider.onRelocated(_location(progress: 0.5, cfi: 'epubcfi(/6/4)', page: 10, totalPages: 20, href: 'ch3.xhtml'));
 
       final snapshot = provider.progressListenable.value;
       expect(snapshot.progress, 0.5);
@@ -79,13 +73,11 @@ void main() {
       provider.dispose();
     });
 
-    test('toggling a bookmark at the current position updates isBookmarked',
-        () async {
+    test('toggling a bookmark at the current position updates isBookmarked', () async {
       FakeDioAdapter.install();
       final provider = ReaderProvider();
       await provider.initialize(bookId: 101, bookTitle: 'Test');
-      provider.onRelocated(_location(
-          progress: 0.1, cfi: 'epubcfi(/6/1)', page: 1, totalPages: 10));
+      provider.onRelocated(_location(progress: 0.1, cfi: 'epubcfi(/6/1)', page: 1, totalPages: 10));
 
       expect(provider.progressListenable.value.isBookmarked, isFalse);
 
@@ -101,8 +93,7 @@ void main() {
   });
 
   group('notification scoping', () {
-    test('onRelocated does not call the provider\'s own notifyListeners',
-        () async {
+    test('onRelocated does not call the provider\'s own notifyListeners', () async {
       FakeDioAdapter.install();
       final provider = ReaderProvider();
       await provider.initialize(bookId: 102, bookTitle: 'Test');
@@ -110,10 +101,8 @@ void main() {
       var generalNotifyCount = 0;
       provider.addListener(() => generalNotifyCount++);
 
-      provider.onRelocated(_location(
-          progress: 0.2, cfi: 'epubcfi(/6/2)', page: 2, totalPages: 10));
-      provider.onRelocated(_location(
-          progress: 0.3, cfi: 'epubcfi(/6/3)', page: 3, totalPages: 10));
+      provider.onRelocated(_location(progress: 0.2, cfi: 'epubcfi(/6/2)', page: 2, totalPages: 10));
+      provider.onRelocated(_location(progress: 0.3, cfi: 'epubcfi(/6/3)', page: 3, totalPages: 10));
 
       expect(generalNotifyCount, 0);
 
@@ -121,8 +110,7 @@ void main() {
       provider.dispose();
     });
 
-    test('a genuinely general change (eye-care) still calls notifyListeners',
-        () async {
+    test('a genuinely general change (eye-care) still calls notifyListeners', () async {
       // Not setTheme: that pushes into epubController.updateTheme, which
       // throws unless a real WebView has attached — no EpubViewer is mounted
       // in this provider-only test. setEyeCare is notify-only appearance
@@ -153,8 +141,7 @@ void main() {
       var progressNotifyCount = 0;
       provider.progressListenable.addListener(() => progressNotifyCount++);
 
-      final location = _location(
-          progress: 0.5, cfi: 'epubcfi(/6/4)', page: 10, totalPages: 20);
+      final location = _location(progress: 0.5, cfi: 'epubcfi(/6/4)', page: 10, totalPages: 20);
       provider.onRelocated(location);
       provider.onRelocated(location);
       provider.onRelocated(location);
@@ -167,14 +154,12 @@ void main() {
   });
 
   group('streak counting is unaffected by the notifier split', () {
-    test('the first relocation after init is never counted as a page read',
-        () async {
+    test('the first relocation after init is never counted as a page read', () async {
       final adapter = FakeDioAdapter.install();
       final provider = ReaderProvider();
       await provider.initialize(bookId: 105, bookTitle: 'Test');
 
-      provider.onRelocated(_location(
-          progress: 0.3, cfi: 'epubcfi(/6/1)', page: 15, totalPages: 50));
+      provider.onRelocated(_location(progress: 0.3, cfi: 'epubcfi(/6/1)', page: 15, totalPages: 50));
 
       await Future<void>.delayed(const Duration(seconds: 1));
       await provider.saveAndClose();
@@ -186,21 +171,17 @@ void main() {
       // adapter before asserting on what it received.
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      final report = adapter.requests
-          .firstWhere((r) => r.path == StreakEndpoints.streakReport);
+      final report = adapter.requests.firstWhere((r) => r.path == StreakEndpoints.streakReport);
       expect((report.data as Map)['pages'], isNull);
     });
 
-    test('a forward page move reports the page delta on the next streak flush',
-        () async {
+    test('a forward page move reports the page delta on the next streak flush', () async {
       final adapter = FakeDioAdapter.install();
       final provider = ReaderProvider();
       await provider.initialize(bookId: 106, bookTitle: 'Test');
 
-      provider.onRelocated(_location(
-          progress: 0.1, cfi: 'epubcfi(/6/1)', page: 1, totalPages: 50));
-      provider.onRelocated(_location(
-          progress: 0.12, cfi: 'epubcfi(/6/2)', page: 3, totalPages: 50));
+      provider.onRelocated(_location(progress: 0.1, cfi: 'epubcfi(/6/1)', page: 1, totalPages: 50));
+      provider.onRelocated(_location(progress: 0.12, cfi: 'epubcfi(/6/2)', page: 3, totalPages: 50));
 
       await Future<void>.delayed(const Duration(seconds: 1));
       await provider.saveAndClose();
@@ -208,8 +189,7 @@ void main() {
       // See the identical comment above.
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      final report = adapter.requests
-          .firstWhere((r) => r.path == StreakEndpoints.streakReport);
+      final report = adapter.requests.firstWhere((r) => r.path == StreakEndpoints.streakReport);
       expect((report.data as Map)['pages'], 2);
     });
 
@@ -218,10 +198,8 @@ void main() {
       final provider = ReaderProvider();
       await provider.initialize(bookId: 107, bookTitle: 'Test');
 
-      provider.onRelocated(_location(
-          progress: 0.4, cfi: 'epubcfi(/6/5)', page: 5, totalPages: 50));
-      provider.onRelocated(_location(
-          progress: 0.2, cfi: 'epubcfi(/6/2)', page: 2, totalPages: 50));
+      provider.onRelocated(_location(progress: 0.4, cfi: 'epubcfi(/6/5)', page: 5, totalPages: 50));
+      provider.onRelocated(_location(progress: 0.2, cfi: 'epubcfi(/6/2)', page: 2, totalPages: 50));
 
       await Future<void>.delayed(const Duration(seconds: 1));
       await provider.saveAndClose();
@@ -229,8 +207,7 @@ void main() {
       // See the identical comment above.
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      final report = adapter.requests
-          .firstWhere((r) => r.path == StreakEndpoints.streakReport);
+      final report = adapter.requests.firstWhere((r) => r.path == StreakEndpoints.streakReport);
       expect((report.data as Map)['pages'], isNull);
     });
   });
@@ -242,8 +219,7 @@ void main() {
       FakeDioAdapter.install();
       final provider = ReaderProvider();
       await provider.initialize(bookId: 108, bookTitle: 'Test');
-      provider.onRelocated(_location(
-          progress: 0.4, cfi: 'epubcfi(/6/4)', page: 4, totalPages: 10));
+      provider.onRelocated(_location(progress: 0.4, cfi: 'epubcfi(/6/4)', page: 4, totalPages: 10));
 
       await provider.saveAndClose();
       provider.dispose();
@@ -252,8 +228,7 @@ void main() {
       final snapshotAfterDispose = provider.progressListenable.value;
 
       expect(
-        () => provider.onRelocated(_location(
-            progress: 0.9, cfi: 'epubcfi(/6/9)', page: 9, totalPages: 10)),
+        () => provider.onRelocated(_location(progress: 0.9, cfi: 'epubcfi(/6/9)', page: 9, totalPages: 10)),
         returnsNormally,
       );
       expect(provider.progressListenable.value, snapshotAfterDispose);
@@ -264,8 +239,7 @@ void main() {
       final provider = ReaderProvider();
       await provider.initialize(bookId: 109, bookTitle: 'Test');
 
-      provider.onRelocated(_location(
-          progress: 0.5, cfi: 'epubcfi(/6/5)', page: 5, totalPages: 10));
+      provider.onRelocated(_location(progress: 0.5, cfi: 'epubcfi(/6/5)', page: 5, totalPages: 10));
       // Dispose well inside the 2s debounce window, without saveAndClose —
       // _disposeCleanup must cancel the pending timer outright.
       provider.dispose();
@@ -274,9 +248,7 @@ void main() {
 
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getInt('book_109_page'), isNull);
-      expect(
-          adapter.requests.where((r) => r.path == StreakEndpoints.streakReport),
-          isEmpty);
+      expect(adapter.requests.where((r) => r.path == StreakEndpoints.streakReport), isEmpty);
     });
   });
 
@@ -316,8 +288,7 @@ void main() {
                       valueListenable: p.progressListenable,
                       builder: (context, snapshot, _) {
                         progressBarBuilds++;
-                        return Text(
-                            '${snapshot.currentPage}/${snapshot.totalPages}');
+                        return Text('${snapshot.currentPage}/${snapshot.totalPages}');
                       },
                     ),
                   ],
@@ -332,8 +303,7 @@ void main() {
       final consumerBuildsAfterMount = consumerScopeBuilds;
       final epubViewerBuildsAfterMount = epubViewerStandInBuilds;
 
-      provider.onRelocated(_location(
-          progress: 0.5, cfi: 'epubcfi(/6/4)', page: 7, totalPages: 40));
+      provider.onRelocated(_location(progress: 0.5, cfi: 'epubcfi(/6/4)', page: 7, totalPages: 40));
       await tester.pump();
 
       expect(find.text('7/40'), findsOneWidget);

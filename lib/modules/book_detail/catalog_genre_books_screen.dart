@@ -14,13 +14,15 @@ import '../home/widgets/catalog_book_card.dart';
 /// Books returned by `GET /books/all?genre_id=:id`, reached from a genre
 /// chip on [CatalogBookDetailScreen].
 class CatalogGenreBooksScreen extends StatefulWidget {
-  const CatalogGenreBooksScreen({super.key, required this.genreId, required this.genreName});
+  const CatalogGenreBooksScreen(
+      {super.key, required this.genreId, required this.genreName});
 
   final int genreId;
   final String genreName;
 
   @override
-  State<CatalogGenreBooksScreen> createState() => _CatalogGenreBooksScreenState();
+  State<CatalogGenreBooksScreen> createState() =>
+      _CatalogGenreBooksScreenState();
 }
 
 class _CatalogGenreBooksScreenState extends State<CatalogGenreBooksScreen> {
@@ -36,7 +38,8 @@ class _CatalogGenreBooksScreenState extends State<CatalogGenreBooksScreen> {
   Future<void> _load() async {
     setState(() => _error = null);
     try {
-      final books = await BookListApiService.listBooks(genreIds: [widget.genreId]);
+      final books =
+          await BookListApiService.listBooks(genreIds: [widget.genreId]);
       if (!mounted) return;
       setState(() => _books = books);
     } on ApiException catch (e) {
@@ -54,13 +57,18 @@ class _CatalogGenreBooksScreenState extends State<CatalogGenreBooksScreen> {
         scrolledUnderElevation: 0,
         centerTitle: true,
         leading: const AppBackButton(size: 20),
-        title: Text(widget.genreName, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+        title: Text(widget.genreName,
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700)),
       ),
       body: SafeArea(top: false, child: _buildBody()),
     );
   }
 
   Widget _buildBody() {
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     if (_books == null && _error == null) {
       return Center(child: CircularProgressIndicator(color: AppColors.primary));
     }
@@ -70,7 +78,13 @@ class _CatalogGenreBooksScreenState extends State<CatalogGenreBooksScreen> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text(BookDetailStrings.noBooksInGenre, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Text(BookDetailStrings.noBooksInGenre,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: AppColors.grey2, fontSize: tablet ? 18 : 14)),
+          ),
         ),
       );
     }
@@ -78,12 +92,29 @@ class _CatalogGenreBooksScreenState extends State<CatalogGenreBooksScreen> {
       onRefresh: _load,
       color: AppColors.primary,
       backgroundColor: AppColors.surface,
-      child: GridView.builder(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        itemCount: books.length,
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: bookGridMaxExtent, mainAxisSpacing: 20, crossAxisSpacing: 12, childAspectRatio: 0.50),
-        itemBuilder: (context, index) => CatalogBookCard(book: books[index], heroTag: AppHeroTags.catalogBookCover(books[index].id), width: double.infinity, coverHeight: 170, margin: EdgeInsets.zero),
-      ),
+      child: LayoutBuilder(builder: (context, constraints) {
+        final contentWidth = constraints.maxWidth - 40;
+        final columns = contentWidth >= 600
+            ? (contentWidth / 200).ceil().clamp(4, 6)
+            : bookGridColumns(contentWidth);
+        final coverHeight = (contentWidth - 12 * (columns - 1)) / columns * 1.5;
+        return GridView.builder(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          itemCount: books.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisSpacing: 20,
+            crossAxisSpacing: 12,
+            mainAxisExtent: coverHeight + (tablet ? 66 : 56),
+          ),
+          itemBuilder: (context, index) => CatalogBookCard(
+              book: books[index],
+              heroTag: AppHeroTags.catalogBookCover(books[index].id),
+              width: double.infinity,
+              coverHeight: coverHeight,
+              margin: EdgeInsets.zero),
+        );
+      }),
     );
   }
 }

@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../localization/strings/common_strings.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_motion.dart';
@@ -13,16 +13,15 @@ class StreakWeekRow extends StatefulWidget {
   /// Mon..Sun, true where the daily reading goal was met.
   final List<bool> weekRead;
   final double circleSize;
+  final DateTime? todayDate;
 
-  const StreakWeekRow(
-      {super.key, required this.weekRead, this.circleSize = 36});
+  const StreakWeekRow({super.key, required this.weekRead, this.circleSize = 36, this.todayDate});
 
   @override
   State<StreakWeekRow> createState() => _StreakWeekRowState();
 }
 
-class _StreakWeekRowState extends State<StreakWeekRow>
-    with SingleTickerProviderStateMixin {
+class _StreakWeekRowState extends State<StreakWeekRow> with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: AppMotion.celebration,
@@ -55,7 +54,7 @@ class _StreakWeekRowState extends State<StreakWeekRow>
   @override
   Widget build(BuildContext context) {
     final letters = CommonStrings.weekdayLetters;
-    final todayIndex = DateTime.now().weekday - 1; // 0 = Monday
+    final todayIndex = (widget.todayDate ?? DateTime.now()).weekday - 1;
     final flameScale = TweenSequence<double>([
       TweenSequenceItem(tween: Tween(begin: 0.9, end: 1.12), weight: 55),
       TweenSequenceItem(tween: Tween(begin: 1.12, end: 1), weight: 45),
@@ -79,17 +78,13 @@ class _StreakWeekRowState extends State<StreakWeekRow>
           final isToday = i == todayIndex;
           final isFuture = i > todayIndex;
           final celebrating = read && i == _celebratingIndex;
-          final ringSweep = isToday && celebrating
-              ? Curves.easeOut.transform(_controller.value)
-              : 1.0;
-          Widget flame =
-              Text('🔥', style: TextStyle(fontSize: widget.circleSize * 0.5));
+          final ringSweep = isToday && celebrating ? Curves.easeOut.transform(_controller.value) : 1.0;
+          Widget flame = Text('🔥', style: TextStyle(fontSize: widget.circleSize * 0.5));
           if (celebrating) {
             flame = Opacity(
               opacity: flameEntrance.value,
               child: Transform.translate(
-                offset: Offset(
-                    0, (1 - flameEntrance.value) * widget.circleSize * 0.25),
+                offset: Offset(0, (1 - flameEntrance.value) * widget.circleSize * 0.25),
                 child: flame,
               ),
             );
@@ -103,8 +98,7 @@ class _StreakWeekRowState extends State<StreakWeekRow>
                   clipBehavior: Clip.none,
                   alignment: Alignment.center,
                   children: [
-                    if (celebrating)
-                      ..._buildParticles(widget.circleSize, _controller.value),
+                    if (celebrating) ..._buildParticles(widget.circleSize, _controller.value),
                     Transform.scale(
                       scale: celebrating ? flameScale.value : 1,
                       child: Container(
@@ -113,21 +107,10 @@ class _StreakWeekRowState extends State<StreakWeekRow>
                         decoration: BoxDecoration(
                           color: read ? AppColors.primary : AppColors.surface,
                           shape: BoxShape.circle,
-                          border: isToday
-                              ? null
-                              : (read
-                                  ? null
-                                  : Border.all(color: AppColors.border)),
+                          border: isToday ? null : (read ? null : Border.all(color: AppColors.border)),
                         ),
                         child: Center(
-                          child: read
-                              ? flame
-                              : (isToday
-                                  ? Icon(Icons.circle,
-                                      color: AppColors.primary
-                                          .withValues(alpha: 0.5),
-                                      size: widget.circleSize * 0.28)
-                                  : null),
+                          child: read ? flame : (isToday ? Icon(Icons.circle, color: AppColors.primary.withValues(alpha: 0.5), size: widget.circleSize * 0.28) : null),
                         ),
                       ),
                     ),
@@ -147,9 +130,7 @@ class _StreakWeekRowState extends State<StreakWeekRow>
               Text(
                 letters[i],
                 style: TextStyle(
-                  color: isToday
-                      ? AppColors.primary
-                      : (isFuture ? AppColors.grey3 : AppColors.grey2),
+                  color: isToday ? AppColors.primary : (isFuture ? AppColors.grey3 : AppColors.grey2),
                   fontSize: 11,
                   fontWeight: isToday ? FontWeight.w800 : FontWeight.w500,
                 ),
@@ -224,6 +205,5 @@ class _RingSweepPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _RingSweepPainter oldDelegate) =>
-      oldDelegate.progress != progress || oldDelegate.color != color;
+  bool shouldRepaint(covariant _RingSweepPainter oldDelegate) => oldDelegate.progress != progress || oldDelegate.color != color;
 }

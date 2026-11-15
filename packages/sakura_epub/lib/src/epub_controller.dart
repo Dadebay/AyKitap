@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:developer' as developer;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:sakura_epub/sakura_epub.dart';
 import 'package:sakura_epub/src/utils.dart';
@@ -118,8 +118,7 @@ class EpubController {
     return EpubMetadata.fromJson(result);
   }
 
-  Completer<List<EpubSearchResult>> searchResultCompleter =
-      Completer<List<EpubSearchResult>>();
+  Completer<List<EpubSearchResult>> searchResultCompleter = Completer<List<EpubSearchResult>>();
 
   ///Search in epub using query string
   ///Returns a list of [EpubSearchResult]

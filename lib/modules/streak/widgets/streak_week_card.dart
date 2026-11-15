@@ -26,7 +26,10 @@ class StreakWeekCard extends StatelessWidget {
                   fontSize: 15,
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 16),
-          StreakWeekRow(weekRead: streak.weekRead, circleSize: 38),
+          StreakWeekRow(
+              weekRead: streak.weekRead,
+              circleSize: 38,
+              todayDate: streak.today?.date),
         ],
       ),
     );

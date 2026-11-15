@@ -29,14 +29,16 @@ class AuthorResultGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     return CustomScrollView(
       controller: controller,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       slivers: [
         SliverPadding(
           padding: padding,
           sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 130,
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: tablet ? 185 : 130,
               mainAxisSpacing: 16,
               crossAxisSpacing: 14,
               // A fixed pixel height instead of childAspectRatio: the card's
@@ -46,7 +48,7 @@ class AuthorResultGrid extends StatelessWidget {
               // more columns are added — which is what overflowed at 3
               // columns. Matches the Home author rail's row height — see
               // [CatalogAuthorAvatar].
-              mainAxisExtent: 160,
+              mainAxisExtent: tablet ? 200 : 160,
             ),
             delegate: SliverChildBuilderDelegate(
               (_, i) => CatalogAuthorAvatar(
@@ -54,6 +56,7 @@ class AuthorResultGrid extends StatelessWidget {
                 name: authors[i].name,
                 image: authors[i].image,
                 width: double.infinity,
+                diameter: tablet ? 112 : 88,
               ),
               childCount: authors.length,
             ),

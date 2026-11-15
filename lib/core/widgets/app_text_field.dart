@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:material_ui/material_ui.dart';
+
 import '../constants/app_radius.dart';
 import '../constants/app_spacing.dart';
 import '../theme/app_colors.dart';
@@ -31,8 +32,7 @@ class AppTextField extends StatefulWidget {
     this.autofocus = false,
     this.obscureText = false,
     this.textCapitalization = TextCapitalization.none,
-  }) : assert(prefix == null || leadingIcon == null,
-            'use either prefix or leadingIcon, not both');
+  }) : assert(prefix == null || leadingIcon == null, 'use either prefix or leadingIcon, not both');
 
   final TextEditingController controller;
   final FocusNode? focusNode;
@@ -97,22 +97,14 @@ class _AppTextFieldState extends State<AppTextField> {
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: AppRadius.brLg,
-        border:
-            Border.all(color: hasFocus ? AppColors.primary : AppColors.border),
+        border: Border.all(color: hasFocus ? AppColors.primary : AppColors.border),
       ),
       child: Row(
         children: [
           if (widget.prefix != null) widget.prefix!,
           if (widget.leadingIcon != null) ...[
-            HugeIcon(
-                icon: widget.leadingIcon!,
-                color: hasFocus ? AppColors.primary : AppColors.grey3,
-                size: 20),
-            Container(
-                margin: const EdgeInsets.symmetric(horizontal: 10),
-                width: 1,
-                height: 22,
-                color: AppColors.border),
+            HugeIcon(icon: widget.leadingIcon!, color: hasFocus ? AppColors.primary : AppColors.grey3, size: 20),
+            Container(margin: const EdgeInsets.symmetric(horizontal: 10), width: 1, height: 22, color: AppColors.border),
           ],
           Expanded(
             child: TextField(
@@ -125,8 +117,7 @@ class _AppTextFieldState extends State<AppTextField> {
               maxLines: widget.obscureText ? 1 : widget.maxLines,
               obscureText: widget.obscureText,
               maxLength: widget.maxLength,
-              style: widget.style ??
-                  TextStyle(color: AppColors.white, fontSize: 16),
+              style: widget.style ?? TextStyle(color: AppColors.white, fontSize: 16),
               decoration: InputDecoration(
                 counterText: widget.maxLength != null ? '' : null,
                 hintText: widget.hint,

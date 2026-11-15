@@ -5,13 +5,12 @@ import 'package:aykitap/core/services/book_access_service.dart';
 import 'package:aykitap/core/services/subscription_service.dart';
 import 'package:aykitap/modules/library/widgets/api_books_tab.dart';
 import 'package:aykitap/modules/library/widgets/library_book_cover.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 void main() {
-  testWidgets('locally opened book appears while backend fetch is pending',
-      (tester) async {
+  testWidgets('locally opened book appears while backend fetch is pending', (tester) async {
     final localChanges = ChangeNotifier();
     final backendResult = Completer<List<LibraryBook>>();
     var localBooks = <LibraryBook>[];
@@ -19,10 +18,8 @@ void main() {
     await tester.pumpWidget(
       MultiProvider(
         providers: [
-          ChangeNotifierProvider<BookAccessService>.value(
-              value: BookAccessService.instance),
-          ChangeNotifierProvider<SubscriptionService>.value(
-              value: SubscriptionService.instance),
+          ChangeNotifierProvider<BookAccessService>.value(value: BookAccessService.instance),
+          ChangeNotifierProvider<SubscriptionService>.value(value: SubscriptionService.instance),
         ],
         child: MaterialApp(
           home: Scaffold(

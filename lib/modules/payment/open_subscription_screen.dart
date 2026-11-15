@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/localization/strings/payment_strings.dart';
 import '../../core/services/purchase_mode_service.dart';
+import '../../core/widgets/app_snackbar.dart';
 import 'store_subscription_screen.dart';
 import 'subscription_screen.dart';
 
@@ -13,12 +15,9 @@ import 'subscription_screen.dart';
 /// of the resolved screen once the awaits all resolve.
 bool _isOpening = false;
 
-/// Routes every subscription entry point using the admin-controlled
-/// `iosStoreIapOnlyEnabled` value exposed by
-/// [PurchaseModeService.useStoreSubscription]. When enabled, every account
-/// sees the store-billed [StoreSubscriptionScreen] and its localized store
-/// prices (for example `$`). When disabled, every account — including Gmail
-/// sign-ins — sees the wallet-funded [SubscriptionScreen] and TMT tariffs.
+/// Routes subscriptions using the account-specific purchase mode returned by
+/// the backend. Store accounts see localized App Store/Play prices; wallet
+/// accounts see the existing TMT tariffs, subject to the iOS store-only gate.
 ///
 /// [PurchaseModeService.refresh] never throws — a config error fails closed
 /// to the store screen on iOS (never quietly reopening a payment path Apple
@@ -68,6 +67,15 @@ Future<void> openSubscriptionScreen(BuildContext context) async {
     _isOpening = false;
     final spinner = spinnerContext;
     if (spinner != null && spinner.mounted) Navigator.of(spinner).pop();
+  }
+  // Android's default before config is wallet. An unresolved foreign account
+  // must not be shown TMT tariffs simply because the request timed out.
+  if (!purchaseMode.hasAccountConfig && !purchaseMode.isIOSStoreOnly) {
+    if (context.mounted) {
+      context.showAppSnackBar(PaymentStrings.billingModeUnavailable,
+          isError: true);
+    }
+    return;
   }
   await navigator.push(MaterialPageRoute(
     builder: (_) => purchaseMode.useStoreSubscription

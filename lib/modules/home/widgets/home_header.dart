@@ -19,6 +19,7 @@ class HomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isTablet = MediaQuery.sizeOf(context).width >= 600;
     return Container(
       padding: EdgeInsets.fromLTRB(
           20, MediaQuery.of(context).padding.top + 16, 20, 16),
@@ -30,12 +31,14 @@ class HomeHeader extends StatelessWidget {
                 children: [
                   TextSpan(
                       text: HomeStrings.welcomePrefix,
-                      style: TextStyle(color: AppColors.grey2, fontSize: 18)),
+                      style: TextStyle(
+                          color: AppColors.grey2,
+                          fontSize: isTablet ? 22 : 18)),
                   TextSpan(
                       text: name,
                       style: TextStyle(
                           color: AppColors.white,
-                          fontSize: 18,
+                          fontSize: isTablet ? 22 : 18,
                           fontWeight: FontWeight.w800)),
                 ],
               ),
@@ -59,10 +62,11 @@ class _StreakPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isTablet = MediaQuery.sizeOf(context).width >= 600;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 38,
+        height: isTablet ? 46 : 38,
         // margin: const EdgeInsets.only(right: 10),
         padding: const EdgeInsets.only(left: 4, right: 16),
         decoration: BoxDecoration(
@@ -70,12 +74,12 @@ class _StreakPill extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const StreakFlame(size: 30),
+            StreakFlame(size: isTablet ? 36 : 30),
             const SizedBox(width: 3),
             Text('$days',
                 style: TextStyle(
                     color: AppColors.white,
-                    fontSize: 16,
+                    fontSize: isTablet ? 19 : 16,
                     fontWeight: FontWeight.w700)),
           ],
         ),

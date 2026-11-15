@@ -34,13 +34,17 @@ class MainNavScreen extends StatefulWidget {
   State<MainNavScreen> createState() => _MainNavScreenState();
 }
 
-class _MainNavScreenState extends State<MainNavScreen> with SingleTickerProviderStateMixin {
+class _MainNavScreenState extends State<MainNavScreen>
+    with SingleTickerProviderStateMixin {
   // Tab order: Profile, Kitaplyk, Ana sayfa (centre — opens by default),
   // Çytalka (reader), Poisk. Must stay in lockstep with _icons in
   // WheelNavBar, which draws the wheel in this same order.
   static const _readerTabIndex = 3;
   late int _selectedIndex;
   late int _prevIndex;
+  // A tab does not allocate its screen, controllers, images, or initial API
+  // requests until the reader opens it for the first time.
+  late final Set<int> _visitedTabs = {widget.initialIndex};
   // +1 → the new page slides in from the right (wheel spins forward);
   // -1 → in from the left. Kept in sync with the wheel's rotation direction.
   int _slideDir = 1;
@@ -63,7 +67,9 @@ class _MainNavScreenState extends State<MainNavScreen> with SingleTickerProvider
   // window width on a wide window, not the capped content width.
   List<Widget> _buildPages() => [
         const PhoneSafeCanvas(child: ProfileScreen()),
-        PhoneSafeCanvas(child: LibraryScreen(initialTabIndex: widget.libraryInitialTabIndex)),
+        PhoneSafeCanvas(
+            child:
+                LibraryScreen(initialTabIndex: widget.libraryInitialTabIndex)),
         const PhoneSafeCanvas(child: HomeScreen()),
         const PhoneSafeCanvas(child: ReaderTabScreen()),
         const PhoneSafeCanvas(child: SearchScreen()),
@@ -168,6 +174,7 @@ class _MainNavScreenState extends State<MainNavScreen> with SingleTickerProvider
       _prevIndex = _selectedIndex;
       _slideDir = _circularDir(_selectedIndex, index, _pages.length);
       _selectedIndex = index;
+      _visitedTabs.add(index);
     });
     _pageCtrl.forward(from: 0);
   }
@@ -210,20 +217,34 @@ class _MainNavScreenState extends State<MainNavScreen> with SingleTickerProvider
         return Stack(
           fit: StackFit.expand,
           children: List.generate(_pages.length, (i) {
+            if (!_visitedTabs.contains(i)) return const SizedBox.shrink();
             double dx;
             if (i == _selectedIndex) {
-              dx = _slideDir * (1 - t); // incoming: from the _slideDir side to 0
+              dx =
+                  _slideDir * (1 - t); // incoming: from the _slideDir side to 0
             } else if (i == _prevIndex && t < 1.0) {
               dx = -_slideDir * t; // outgoing: 0 → off the opposite side
             } else {
               dx = 2.0; // parked off-screen (clipped away, invisible)
             }
+            // Parked pages stay mounted *and laid out* (so a switch doesn't
+            // pay a full layout on its first frame) but their tickers —
+            // shimmer, banner autoplay, flame — are paused while off
+            // screen, so they cost nothing until shown again.
+            final onScreen =
+                i == _selectedIndex || (i == _prevIndex && t < 1.0);
             return Positioned.fill(
-              child: FractionalTranslation(
-                translation: Offset(dx, 0),
-                child: IgnorePointer(
-                  ignoring: i != _selectedIndex,
-                  child: _pages[i],
+              child: TickerMode(
+                enabled: onScreen,
+                child: FractionalTranslation(
+                  translation: Offset(dx, 0),
+                  child: IgnorePointer(
+                    ignoring: i != _selectedIndex,
+                    // Own compositing layer: while the page slides, the
+                    // engine just moves the cached layer instead of
+                    // re-recording the whole page's paint every frame.
+                    child: RepaintBoundary(child: _pages[i]),
+                  ),
                 ),
               ),
             );

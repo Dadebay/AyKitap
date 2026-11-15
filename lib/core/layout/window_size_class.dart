@@ -107,9 +107,56 @@ const double bookGridMaxExtent = 140.0;
 
 /// Column count matching [bookGridMaxExtent] for grids that need the number
 /// itself (to size a cell from its column width), never fewer than three.
+///
+/// Tablets (600dp+ of content) get 4–6 columns of roughly 200dp — 5 on a
+/// portrait iPad — instead of the phone rule's one-column-per-140dp, which
+/// squeezed 7 small covers into the same row.
 int bookGridColumns(double availableWidth) {
+  if (availableWidth >= 600) return (availableWidth / 200).ceil().clamp(4, 6);
   final n = (availableWidth / bookGridMaxExtent).ceil();
   return n < 3 ? 3 : n;
+}
+
+/// A book grid's delegate plus the cover height its cards must be built with.
+class BookGridSpec {
+  const BookGridSpec(this.delegate, this.coverHeight);
+  final SliverGridDelegate delegate;
+  final double coverHeight;
+}
+
+/// The grid used by the plain "all books of X" screens. Phones keep the
+/// exact layout they always had; a tablet gets [bookGridColumns] columns with
+/// the cover height derived from the real column width.
+BookGridSpec bookGridSpec(
+  double contentWidth, {
+  double mainSpacing = 20,
+  double crossSpacing = 12,
+  double phoneAspectRatio = 0.5,
+  double phoneCoverHeight = 170,
+}) {
+  if (contentWidth < 600) {
+    return BookGridSpec(
+      SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: bookGridMaxExtent,
+        mainAxisSpacing: mainSpacing,
+        crossAxisSpacing: crossSpacing,
+        childAspectRatio: phoneAspectRatio,
+      ),
+      phoneCoverHeight,
+    );
+  }
+  final columns = bookGridColumns(contentWidth);
+  final coverHeight =
+      (contentWidth - crossSpacing * (columns - 1)) / columns * 1.5;
+  return BookGridSpec(
+    SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: columns,
+      mainAxisSpacing: mainSpacing,
+      crossAxisSpacing: crossSpacing,
+      mainAxisExtent: coverHeight + 66,
+    ),
+    coverHeight,
+  );
 }
 
 /// Horizontal padding that keeps detail-screen content at most 720dp wide.

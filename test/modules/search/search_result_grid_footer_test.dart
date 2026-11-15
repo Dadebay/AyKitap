@@ -1,11 +1,10 @@
 import 'package:aykitap/core/models/library_book.dart';
 import 'package:aykitap/modules/search/widgets/search_result_grid.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
-  testWidgets('renders an optional action after non-empty book results',
-      (tester) async {
+  testWidgets('renders an optional action after non-empty book results', (tester) async {
     const footerKey = ValueKey('suggest-footer');
 
     await tester.pumpWidget(

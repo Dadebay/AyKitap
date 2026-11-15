@@ -37,6 +37,7 @@ class CatalogNumberedBookSection extends StatelessWidget {
     if (books.isEmpty) return const SizedBox.shrink();
 
     final screenWidth = MediaQuery.sizeOf(context).width;
+    final isTablet = screenWidth >= 600;
     // Sized against the plain book row this section sits next to on Home,
     // whose covers are 100×155 ([CatalogBookCard]'s defaults). At 0.56 of the
     // screen a card's cover came out around 179×269 — nearly twice the
@@ -44,8 +45,11 @@ class CatalogNumberedBookSection extends StatelessWidget {
     // screen rather than as a featured shelf. 0.36 lands it a shade above
     // them (~115×173), enough to mark the shelf as the ranked one while the
     // numerals, not the size, carry that weight.
-    final itemWidth =
-        compact ? 150.0 : (screenWidth * 0.36).clamp(140.0, 165.0).toDouble();
+    final itemWidth = compact
+        ? (isTablet ? 165.0 : 150.0)
+        : (isTablet
+            ? 185.0
+            : (screenWidth * 0.36).clamp(140.0, 165.0).toDouble());
     final coverHeight = itemWidth * 0.78 * 1.5;
     final listHeight = coverHeight + (compact ? 45 : 54);
 
@@ -98,6 +102,7 @@ class _Card4SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isTablet = MediaQuery.sizeOf(context).width >= 600;
     final subtitle = collection.subTitle;
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -114,7 +119,7 @@ class _Card4SectionHeader extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: AppTextStyles.sectionTitle.copyWith(
-              fontSize: compact ? 17 : 20,
+              fontSize: compact ? (isTablet ? 19 : 17) : (isTablet ? 23 : 20),
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -138,7 +143,8 @@ class _Card4SectionHeader extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.sectionSubtitle.copyWith(
-                    fontSize: compact ? 11.5 : 13,
+                    fontSize:
+                        compact ? (isTablet ? 13 : 11.5) : (isTablet ? 15 : 13),
                   ),
                 ),
               ),
@@ -150,7 +156,9 @@ class _Card4SectionHeader extends StatelessWidget {
                   child: Text(
                     HomeStrings.seeAll,
                     style: AppTextStyles.link.copyWith(
-                      fontSize: compact ? 12 : 13.5,
+                      fontSize: compact
+                          ? (isTablet ? 14 : 12)
+                          : (isTablet ? 15 : 13.5),
                       fontWeight: FontWeight.w600,
                     ),
                   ),

@@ -26,6 +26,7 @@ extension _HomeScreenSections on _HomeScreenState {
   }
 
   Widget _buildGenreShelfRow(BuildContext context, List<Collection> group) {
+    final isTablet = MediaQuery.sizeOf(context).width >= 600;
     final shelves = group
         .where((c) => c.type == CollectionType.book && c.books.isNotEmpty)
         .toList();
@@ -38,7 +39,11 @@ extension _HomeScreenSections on _HomeScreenState {
     // Series artwork is portrait-oriented. Keep the existing 320px card
     // width, but give it a little more vertical room so the cover is not
     // cropped into a squat landscape shape in grouped horizontal rows.
-    final rowHeight = hasRankShelf ? 460.0 : (hasSeriesCard ? 350.0 : 300.0);
+    final rowHeight = hasRankShelf
+        ? (isTablet ? 720.0 : 460.0)
+        : (hasSeriesCard
+            ? (isTablet ? 390.0 : 350.0)
+            : (isTablet ? 340.0 : 300.0));
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 20, 0, 20),
       child: SizedBox(
@@ -48,31 +53,33 @@ extension _HomeScreenSections on _HomeScreenState {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           itemCount: shelves.length,
           separatorBuilder: (_, __) => const SizedBox(width: 12),
-          itemBuilder: (_, i) => _buildGenreShelfTile(shelves[i]),
+          itemBuilder: (_, i) => _buildGenreShelfTile(shelves[i], isTablet),
         ),
       ),
     );
   }
 
-  Widget _buildGenreShelfTile(Collection collection) {
+  Widget _buildGenreShelfTile(Collection collection, bool isTablet) {
     switch (collection.cardType) {
       case CollectionCardType.card4:
         return SizedBox(
-            width: 360,
+            width: isTablet ? 460 : 360,
             child: CatalogNumberedBookSection(
                 collection: collection, compact: true));
       case CollectionCardType.card2:
         return Container(
             padding: const EdgeInsets.only(bottom: 20),
-            width: 320,
+            width: isTablet ? 480 : 320,
             child:
                 CatalogRankShelfCard(collection: collection, fillHeight: true));
       case CollectionCardType.card3:
         return SizedBox(
-            width: 320, child: CatalogSeriesCard(collection: collection));
+            width: isTablet ? 420 : 320,
+            child: CatalogSeriesCard(collection: collection));
       case CollectionCardType.card1:
         return SizedBox(
-            width: 320, child: CatalogSeriesCard(collection: collection));
+            width: isTablet ? 420 : 320,
+            child: CatalogSeriesCard(collection: collection));
     }
   }
 
@@ -119,18 +126,20 @@ extension _HomeScreenSections on _HomeScreenState {
 
   Widget _buildCatalogBookSection(
       BuildContext context, Collection collection, Duration sectionDelay) {
+    final isTablet = MediaQuery.sizeOf(context).width >= 600;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionHeader(
           title: collection.name,
           subtitle: collection.subTitle,
+          large: isTablet,
           seeAllLabel: HomeStrings.seeAll,
           onSeeAll: () => context.pushFade(CatalogCollectionBooksScreen(
               title: collection.name, books: collection.books)),
         ),
         SizedBox(
-          height: 200,
+          height: isTablet ? 316 : 200,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -143,6 +152,8 @@ extension _HomeScreenSections on _HomeScreenState {
               slideFrom: const Offset(24, 0),
               child: CatalogBookCard(
                 book: collection.books[i],
+                width: isTablet ? 170 : 100,
+                coverHeight: isTablet ? 255 : 155,
                 heroTag: AppHeroTags.homeCollectionBookCover(
                   collection.id,
                   collection.books[i].id,
@@ -157,10 +168,14 @@ extension _HomeScreenSections on _HomeScreenState {
 
   Widget _buildCatalogAuthorsRow(
       Collection collection, List<LibraryBookAuthor> authors) {
+    final isTablet = MediaQuery.sizeOf(context).width >= 600;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionHeader(title: collection.name, subtitle: collection.subTitle),
+        SectionHeader(
+            title: collection.name,
+            subtitle: collection.subTitle,
+            large: isTablet),
         SizedBox(
           // Tall enough for the 88-diameter ring avatar, up to two lines of
           // name, and the card's own vertical padding — see

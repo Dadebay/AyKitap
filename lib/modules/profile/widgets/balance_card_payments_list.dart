@@ -12,6 +12,7 @@ class BalanceCardPaymentsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final orders = context.watch<BalanceController>().orders;
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     if (orders == null) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 32),
@@ -25,21 +26,22 @@ class BalanceCardPaymentsList extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.credit_card_off_rounded,
-                color: AppColors.grey2, size: 36),
+                color: AppColors.grey2, size: tablet ? 48 : 36),
             const SizedBox(height: 12),
             Text(
               ProfileStrings.cardPaymentsEmpty,
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: AppColors.white,
-                  fontSize: 15,
+                  fontSize: tablet ? 19 : 15,
                   fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 6),
             Text(
               ProfileStrings.cardPaymentsEmptySubtitle,
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.grey2, fontSize: 13),
+              style:
+                  TextStyle(color: AppColors.grey2, fontSize: tablet ? 15 : 13),
             ),
           ],
         ),

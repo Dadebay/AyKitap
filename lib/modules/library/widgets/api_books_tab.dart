@@ -102,7 +102,8 @@ class ApiBooksTab extends StatefulWidget {
   State<ApiBooksTab> createState() => _ApiBooksTabState();
 }
 
-class _ApiBooksTabState extends State<ApiBooksTab> with AutomaticKeepAliveClientMixin {
+class _ApiBooksTabState extends State<ApiBooksTab>
+    with AutomaticKeepAliveClientMixin {
   List<LibraryBook>? _books;
   bool _loading = true;
   String? _error;
@@ -152,9 +153,16 @@ class _ApiBooksTabState extends State<ApiBooksTab> with AutomaticKeepAliveClient
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+              Text(_error!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.grey2, fontSize: 14)),
               const SizedBox(height: 12),
-              TextButton(onPressed: _load, child: Text(LibraryStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700))),
+              TextButton(
+                  onPressed: _load,
+                  child: Text(LibraryStrings.retry,
+                      style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700))),
             ],
           ),
         ),
@@ -164,40 +172,45 @@ class _ApiBooksTabState extends State<ApiBooksTab> with AutomaticKeepAliveClient
     // reorders the shelf straight away: this tab is kept alive across tab
     // switches and doesn't re-fetch on its own, so a shelf ordered at load
     // time would keep yesterday's order until a pull-to-refresh.
-    final books = widget.sortByLastOpened ? context.watch<BookOpenHistory>().sortByRecency(_books ?? const []) : _books ?? const [];
+    final books = widget.sortByLastOpened
+        ? context.watch<BookOpenHistory>().sortByRecency(_books ?? const [])
+        : _books ?? const [];
     if (books.isEmpty) return LibraryEmptyState(label: widget.emptyLabel);
     return RefreshIndicator(
       onRefresh: _load,
       color: AppColors.primary,
       backgroundColor: AppColors.surface,
-      child: SingleChildScrollView(
+      child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         // Clears the wheel the Scaffold draws over this content — see
         // [WheelNavBar.clearance] — plus a little breathing room, so the last
         // shelf ends above the dome instead of behind it.
-        padding: EdgeInsets.only(bottom: WheelNavBar.clearance(context) + 16),
-        child: ShelfGrid(
-          itemCount: books.length,
-          // Keyed by book id — without it, removing an item (unfavoriting,
-          // removing a purchase) shifts every following cover into the
-          // slot the removed one used to hold, and Flutter's default
-          // position-based reconciliation can keep that slot's element
-          // (and pending gesture/image state) around across the shrink
-          // instead of cleanly rebuilding it for the book now there.
-          itemBuilder: (context, i) => LibraryBookCover(
-            key: ValueKey(books[i].id),
-            book: books[i],
-            heroShelf: widget.heroShelf,
-            showProgress: widget.showProgress,
-            canRemoveFromPurchased: widget.allowRemovingPurchasedBooks,
-            onPurchasedBookRemoved: _load,
-            onTap: widget.openLocalWhenOffline ? () => _openBook(books[i]) : null,
-            onLongPress: widget.removal == null ? null : () => _confirmDelete(books[i]),
-            // Derived rather than a second flag: the heart *is* this
-            // shelf's removal, so the two can't drift apart.
-            onUnfavorite: widget.removal == ShelfRemoval.favorite ? () => _unfavorite(books[i]) : null,
+        slivers: [
+          SliverPadding(
+            padding:
+                EdgeInsets.only(bottom: WheelNavBar.clearance(context) + 16),
+            sliver: ShelfGridSliver(
+              itemCount: books.length,
+              itemBuilder: (context, i) => LibraryBookCover(
+                key: ValueKey(books[i].id),
+                book: books[i],
+                heroShelf: widget.heroShelf,
+                showProgress: widget.showProgress,
+                canRemoveFromPurchased: widget.allowRemovingPurchasedBooks,
+                onPurchasedBookRemoved: _load,
+                onTap: widget.openLocalWhenOffline
+                    ? () => _openBook(books[i])
+                    : null,
+                onLongPress: widget.removal == null
+                    ? null
+                    : () => _confirmDelete(books[i]),
+                onUnfavorite: widget.removal == ShelfRemoval.favorite
+                    ? () => _unfavorite(books[i])
+                    : null,
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

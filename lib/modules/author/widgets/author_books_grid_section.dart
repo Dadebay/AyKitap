@@ -41,23 +41,21 @@ class AuthorBooksGridSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: sortedBooks.length,
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: bookGridMaxExtent,
-            mainAxisSpacing: 20,
-            crossAxisSpacing: 12,
-            childAspectRatio: 0.50,
-          ),
-          itemBuilder: (context, i) => CatalogBookCard(
-              book: sortedBooks[i],
-              heroTag: AppHeroTags.catalogBookCover(sortedBooks[i].id),
-              width: double.infinity,
-              coverHeight: 170,
-              margin: EdgeInsets.zero),
-        ),
+        LayoutBuilder(builder: (context, constraints) {
+          final spec = bookGridSpec(constraints.maxWidth);
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: sortedBooks.length,
+            gridDelegate: spec.delegate,
+            itemBuilder: (context, i) => CatalogBookCard(
+                book: sortedBooks[i],
+                heroTag: AppHeroTags.catalogBookCover(sortedBooks[i].id),
+                width: double.infinity,
+                coverHeight: spec.coverHeight,
+                margin: EdgeInsets.zero),
+          );
+        }),
       ],
     );
   }

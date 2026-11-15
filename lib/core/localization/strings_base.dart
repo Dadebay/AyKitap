@@ -1,3 +1,4 @@
+import '../services/currency.dart';
 import 'app_locale.dart';
 
 /// A string with its Türkmen / Russian / Turkish translations. Every
@@ -9,14 +10,17 @@ import 'app_locale.dart';
 /// shipped with — [ru], [tr] and [en] are optional while translations are
 /// filled in incrementally; each falls back to [tk] when missing.
 String t({required String tk, String? ru, String? tr, String? en}) {
+  final String text;
   switch (AppLocale.instance.current) {
     case AppLanguageCode.tk:
-      return tk;
+      text = tk;
     case AppLanguageCode.ru:
-      return ru ?? tk;
+      text = ru ?? tk;
     case AppLanguageCode.tr:
-      return tr ?? tk;
+      text = tr ?? tk;
     case AppLanguageCode.en:
-      return en ?? tk;
+      text = en ?? tk;
   }
+  // "TMT" -> "$" for accounts that signed in with Google/Apple/email.
+  return Currency.localize(text);
 }

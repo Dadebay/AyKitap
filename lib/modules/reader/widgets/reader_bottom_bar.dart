@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import '../../../core/layout/adaptive_content_width.dart';
 import '../../../core/localization/strings/reader_strings.dart';
 import '../utils/eye_care.dart';
 import 'reader_progress_scrubber.dart';
@@ -46,7 +47,7 @@ class ReaderBottomBar extends StatelessWidget {
     // The readers can be rotated (see reader_orientation.dart); everything
     // below keys off this rather than a width breakpoint, since it's the lost
     // *height* that the bar has to give back to the page.
-    final compact = MediaQuery.of(context).orientation == Orientation.landscape;
+    final compact = MediaQuery.sizeOf(context).height < 500;
     final isDarkPage = pageColor.computeLuminance() < 0.4;
     final labelColor = isDarkPage ? Colors.white38 : Colors.black45;
     // Buttons sit straight on the scrim now (no filled bar), so they take the
@@ -90,80 +91,82 @@ class ReaderBottomBar extends StatelessWidget {
           stops: const [0.0, 0.45, 0.78, 1.0],
         ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          // A hairline is all that separates the controls from the page now
-          // that the filled bar is gone.
-          Container(
-            height: 1,
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            color: borderColor,
-          ),
-          const SizedBox(height: 6),
+      child: AdaptiveContentWidth(
+          maxWidth: 860,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              // A hairline is all that separates the controls from the page now
+              // that the filled bar is gone.
+              Container(
+                height: 1,
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                color: borderColor,
+              ),
+              const SizedBox(height: 6),
 
-          // ── Progress scrubber ─────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: ReaderProgressScrubber(
-              progress: progress,
-              currentPage: currentPage,
-              totalPages: totalPages,
-              // Reflowable text has no fixed pages, so the derived count
-              // shifts between sessions — see ReaderProgressScrubber. The
-              // percentage is the figure that actually holds still.
-              showPercentage: true,
-              labelColor: labelColor,
-              activeColor: accent,
-              inactiveTrackColor:
-                  isDarkPage ? Colors.white24 : const Color(0xFFE0E0E0),
-              overlayColor: const Color(0x22E8712C),
-              onSeek: onProgressChanged,
-            ),
-          ),
-
-          const SizedBox(height: 2),
-
-          // ── Three labelled buttons, straight on the scrim ─────────────
-          Padding(
-            padding: EdgeInsets.fromLTRB(8, 0, 8, bottomPad + 6),
-            child: Row(
-              children: [
-                // Содержание — chapters list
-                ReaderToolbarBtn(
-                  icon: HugeIcons.strokeRoundedBookOpen01,
-                  label: ReaderStrings.contentsLabel,
-                  color: iconColor,
+              // ── Progress scrubber ─────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: ReaderProgressScrubber(
+                  progress: progress,
+                  currentPage: currentPage,
+                  totalPages: totalPages,
+                  // Reflowable text has no fixed pages, so the derived count
+                  // shifts between sessions — see ReaderProgressScrubber. The
+                  // percentage is the figure that actually holds still.
+                  showPercentage: true,
                   labelColor: labelColor,
-                  wellColor: wellColor,
-                  onTap: onChapters,
-                  compact: compact,
+                  activeColor: accent,
+                  inactiveTrackColor:
+                      isDarkPage ? Colors.white24 : const Color(0xFFE0E0E0),
+                  overlayColor: const Color(0x22E8712C),
+                  onSeek: onProgressChanged,
                 ),
-                // Настройки — reader settings (accented, like the reference)
-                ReaderToolbarBtn(
-                  icon: HugeIcons.strokeRoundedFilterHorizontal,
-                  label: ReaderStrings.settingsTitle,
-                  color: accent,
-                  labelColor: accent,
-                  wellColor: accent.withValues(alpha: 0.16),
-                  onTap: onSettings,
-                  compact: compact,
+              ),
+
+              const SizedBox(height: 2),
+
+              // ── Three labelled buttons, straight on the scrim ─────────────
+              Padding(
+                padding: EdgeInsets.fromLTRB(8, 0, 8, bottomPad + 6),
+                child: Row(
+                  children: [
+                    // Содержание — chapters list
+                    ReaderToolbarBtn(
+                      icon: HugeIcons.strokeRoundedBookOpen01,
+                      label: ReaderStrings.contentsLabel,
+                      color: iconColor,
+                      labelColor: labelColor,
+                      wellColor: wellColor,
+                      onTap: onChapters,
+                      compact: compact,
+                    ),
+                    // Настройки — reader settings (accented, like the reference)
+                    ReaderToolbarBtn(
+                      icon: HugeIcons.strokeRoundedFilterHorizontal,
+                      label: ReaderStrings.settingsTitle,
+                      color: accent,
+                      labelColor: accent,
+                      wellColor: accent.withValues(alpha: 0.16),
+                      onTap: onSettings,
+                      compact: compact,
+                    ),
+                    // Поиск — in-book search
+                    ReaderToolbarBtn(
+                      icon: HugeIcons.strokeRoundedSearch01,
+                      label: ReaderStrings.searchShortLabel,
+                      color: iconColor,
+                      labelColor: labelColor,
+                      wellColor: wellColor,
+                      onTap: onSearch,
+                      compact: compact,
+                    ),
+                  ],
                 ),
-                // Поиск — in-book search
-                ReaderToolbarBtn(
-                  icon: HugeIcons.strokeRoundedSearch01,
-                  label: ReaderStrings.searchShortLabel,
-                  color: iconColor,
-                  labelColor: labelColor,
-                  wellColor: wellColor,
-                  onTap: onSearch,
-                  compact: compact,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+              ),
+            ],
+          )),
     );
   }
 }

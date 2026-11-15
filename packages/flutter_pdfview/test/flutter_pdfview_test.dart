@@ -76,12 +76,9 @@ void main() {
     });
 
     testWidgets('PDFView with onViewCreated callback', (WidgetTester tester) async {
-      PDFViewController? controller;
       final pdfViewWithCallback = PDFView(
         filePath: 'test.pdf',
-        onViewCreated: (PDFViewController c) {
-          controller = c;
-        },
+        onViewCreated: (PDFViewController c) {},
       );
 
       await tester.pumpWidget(
@@ -100,12 +97,9 @@ void main() {
     });
 
     testWidgets('PDFView with onRender callback', (WidgetTester tester) async {
-      int? pageCount;
       final pdfViewWithCallback = PDFView(
         filePath: 'test.pdf',
-        onRender: (int? pages) {
-          pageCount = pages;
-        },
+        onRender: (int? pages) {},
       );
 
       await tester.pumpWidget(

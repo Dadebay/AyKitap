@@ -6,6 +6,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../../core/services/profile_avatar_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
+import '../../../core/widgets/snowfall.dart';
 import 'wheel_nav_bar_disk_painter.dart';
 import 'wheel_nav_glyph.dart';
 
@@ -33,7 +34,21 @@ class WheelNavBar extends StatefulWidget {
   ///
   /// Kept here, next to the geometry it is made of, so a page can't drift out
   /// of step with the bar by hardcoding a number that was right once.
-  static double clearance(BuildContext context) => _barHeight + _domeHitOverhang + MediaQuery.viewPaddingOf(context).bottom;
+  static double clearance(BuildContext context) {
+    final isTablet = MediaQuery.sizeOf(context).width >= 600;
+    final isIpad = _isFullSizeIpad(context);
+    return (isIpad
+            ? _ipadBarHeight
+            : isTablet
+                ? _tabletBarHeight
+                : _barHeight) +
+        (isIpad
+            ? _ipadDomeHitOverhang
+            : isTablet
+                ? _tabletDomeHitOverhang
+                : _domeHitOverhang) +
+        MediaQuery.viewPaddingOf(context).bottom;
+  }
 
   final int selectedIndex;
   final ValueChanged<int> onTap;
@@ -48,7 +63,8 @@ class WheelNavBar extends StatefulWidget {
   State<WheelNavBar> createState() => _WheelNavBarState();
 }
 
-class _WheelNavBarState extends State<WheelNavBar> with SingleTickerProviderStateMixin {
+class _WheelNavBarState extends State<WheelNavBar>
+    with SingleTickerProviderStateMixin {
   // Every geometry/timing constant this class and its part files use lives
   // in wheel_nav_bar_geometry.dart — _icons, _barHeight, _diskR, _pathR,
   // _stepRad, _domeLift, _domeHitOverhang, _windowRad, _fadeStart,
@@ -125,6 +141,18 @@ class _WheelNavBarState extends State<WheelNavBar> with SingleTickerProviderStat
     // viewPadding is the raw OS inset and isn't zeroed by ancestor SafeAreas.
     final bottomPad = MediaQuery.of(context).viewPadding.bottom;
     final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth >= 600;
+    final isIpad = _isFullSizeIpad(context);
+    final barHeight = isIpad
+        ? _ipadBarHeight
+        : isTablet
+            ? _tabletBarHeight
+            : _barHeight;
+    final overhang = isIpad
+        ? _ipadDomeHitOverhang
+        : isTablet
+            ? _tabletDomeHitOverhang
+            : _domeHitOverhang;
     final n = _icons.length;
     final centreX = screenWidth / 2;
     // The icons ride on a dome that pokes _domeLift px *above* the bar's top
@@ -139,12 +167,12 @@ class _WheelNavBarState extends State<WheelNavBar> with SingleTickerProviderStat
     // Nothing here paints a solid background, and the dome CustomPaint doesn't
     // absorb touches, so this added strip still lets taps fall through to the
     // body everywhere except on an actual icon.
-    final diskCenterY = _domeHitOverhang + (_diskR - _domeLift);
-    final boxTop = _domeHitOverhang - (_domeLift + 2); // +2px so the apex isn't clipped
-    final boxHeight = (_barHeight + _domeHitOverhang) - boxTop;
+    final diskCenterY = overhang + (_diskR - _domeLift);
+    final boxTop = overhang - (_domeLift + 2); // +2px so the apex isn't clipped
+    final boxHeight = (barHeight + overhang) - boxTop;
 
     return SizedBox(
-      height: _barHeight + _domeHitOverhang + bottomPad,
+      height: barHeight + overhang + bottomPad,
       width: screenWidth,
       // Translucent, deliberately: the drag recognizer needs to see pointers
       // anywhere over the bar, but this box also overhangs body content (the
@@ -161,42 +189,55 @@ class _WheelNavBarState extends State<WheelNavBar> with SingleTickerProviderStat
         child: SafeArea(
           top: false,
           child: SizedBox(
-            height: _barHeight + _domeHitOverhang,
-            child: AnimatedBuilder(
-              animation: _anim,
-              builder: (context, _) {
-                // Fractional selected index — the finger's position while the
-                // wheel is being turned by hand, otherwise the old → new
-                // settle animation.
-                final selFloat = _dragFloat ?? _selFloatFor(widget.selectedIndex);
+            height: barHeight + overhang,
+            // Isolated layer: the wheel repaints every frame of a tab
+            // switch, and must not drag the page layers behind it along.
+            child: RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: _anim,
+                builder: (context, _) {
+                  // Fractional selected index — the finger's position while the
+                  // wheel is being turned by hand, otherwise the old → new
+                  // settle animation.
+                  final selFloat =
+                      _dragFloat ?? _selFloatFor(widget.selectedIndex);
 
-                return Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    // ── The disk (dome), raised above the bar's top edge ──
-                    Positioned(
-                      top: boxTop,
-                      left: 0,
-                      right: 0,
-                      height: boxHeight,
-                      child: ClipRect(
-                        child: CustomPaint(
-                          size: Size(screenWidth, boxHeight),
-                          painter: DiskPainter(
-                            centerX: centreX,
-                            centerY: _diskR + 2, // local to this raised box
-                            radius: _diskR,
-                            selFloat: selFloat,
-                            isDark: AppTheme.instance.isDark,
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // ── The disk (dome), raised above the bar's top edge ──
+                      Positioned(
+                        top: boxTop,
+                        left: 0,
+                        right: 0,
+                        height: boxHeight,
+                        child: ClipRect(
+                          child: CustomPaint(
+                            size: Size(screenWidth, boxHeight),
+                            painter: DiskPainter(
+                              centerX: centreX,
+                              centerY: _diskR + 2, // local to this raised box
+                              radius: _diskR,
+                              isDark: AppTheme.instance.isDark,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    // ── The icons riding on the disk ─────────────────────
-                    ..._buildIcons(n, centreX, diskCenterY, selFloat),
-                  ],
-                );
-              },
+                      // ── New Year: Santa's sleigh team rides the wheel ────
+                      // Sits on the dome's rim like one more (wide) slot, so
+                      // it turns with the icons; drawn under them.
+                      // Two of them, mirrored around the home tab at rest.
+                      if (kNewYearTheme)
+                        for (final slot in const [0.5, 3.5])
+                          _buildSantaOnWheel(
+                              n, centreX, diskCenterY, selFloat, isIpad, slot),
+                      // ── The icons riding on the disk ─────────────────────
+                      ..._buildIcons(
+                          n, centreX, diskCenterY, selFloat, isTablet, isIpad),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ),

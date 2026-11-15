@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
+
 import '../../../core/localization/strings/gift_strings.dart';
+import '../../../core/services/currency.dart';
 import '../../../core/theme/app_colors.dart';
 import 'gift_section_label.dart';
 
@@ -48,20 +50,16 @@ class GiftAmountSection extends StatelessWidget {
                       height: 48,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: selected
-                            ? AppColors.primary.withValues(alpha: .14)
-                            : AppColors.card,
+                        color: selected ? AppColors.primary.withValues(alpha: .14) : AppColors.card,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color:
-                              selected ? AppColors.primary : AppColors.border,
+                          color: selected ? AppColors.primary : AppColors.border,
                           width: selected ? 1.5 : 1,
                         ),
                         boxShadow: selected
                             ? [
                                 BoxShadow(
-                                  color:
-                                      AppColors.primary.withValues(alpha: .15),
+                                  color: AppColors.primary.withValues(alpha: .15),
                                   blurRadius: 12,
                                 ),
                               ]
@@ -89,9 +87,7 @@ class GiftAmountSection extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.card,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-                color:
-                    focusNode.hasFocus ? AppColors.primary : AppColors.border),
+            border: Border.all(color: focusNode.hasFocus ? AppColors.primary : AppColors.border),
           ),
           child: Row(
             children: [
@@ -116,27 +112,18 @@ class GiftAmountSection extends StatelessWidget {
                     LengthLimitingTextInputFormatter(6),
                   ],
                   onChanged: (_) => onChanged(),
-                  style: TextStyle(
-                      color: AppColors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800),
+                  style: TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w800),
                   decoration: InputDecoration(
                     hintText: GiftStrings.amountHint,
-                    hintStyle: TextStyle(
-                        color: AppColors.grey3,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500),
+                    hintStyle: TextStyle(color: AppColors.grey3, fontSize: 14, fontWeight: FontWeight.w500),
                     border: InputBorder.none,
                     isDense: true,
                   ),
                 ),
               ),
               Text(
-                'TMT',
-                style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800),
+                Currency.symbol,
+                style: TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w800),
               ),
             ],
           ),

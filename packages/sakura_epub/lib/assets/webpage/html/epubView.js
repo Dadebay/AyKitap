@@ -138,6 +138,9 @@ function _resetPageMetrics() {
 }
 
 function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScriptedContent, direction, useCustomSwipe, backgroundColor, foregroundColor, fontSize, clearSelectionOnNav, selectAnnotationRangeParam, customCss, savedLocations, fontFamily, fontBase64, fontMimeType) {
+  // A WebView can load another book without reloading this script. Release
+  // selection polling from the previous rendition before registering hooks.
+  if (window._stopEpubSelectionPolling) window._stopEpubSelectionPolling();
   // Reset flags for new book
   initialXPathProcessed = false;
   xpathDisplayInProgress = false;
@@ -380,10 +383,19 @@ function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScr
   // Continuous polling for iPad (as last resort when events don't fire)
   var pollIntervals = []; // Store intervals for each content frame
   var lastPolledSelections = new Map(); // Track last selection per contents
+  var framePollInterval = null;
+
+  function forgetPoll(interval) {
+    pollIntervals = pollIntervals.filter(function (item) {
+      return item.interval !== interval;
+    });
+  }
 
   function startPolling(contents) {
     // Check if we're already polling this contents
-    var contentsId = contents.document ? contents.document.URL : 'unknown';
+    // Document identity matters: different sections may share a URL while
+    // their old iframe has already been removed.
+    var contentsId = contents.document || contents.window || contents;
     if (lastPolledSelections.has(contentsId)) {
       return;
     }
@@ -401,6 +413,7 @@ function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScr
         if (pollCount > 50 && noSelectionCount > 40) {
           clearInterval(interval);
           lastPolledSelections.delete(contentsId);
+          forgetPoll(interval);
           return;
         }
 
@@ -463,12 +476,17 @@ function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScr
   }
 
   function stopPolling() {
+    if (framePollInterval !== null) {
+      clearInterval(framePollInterval);
+      framePollInterval = null;
+    }
     pollIntervals.forEach(function (item) {
       clearInterval(item.interval);
     });
     pollIntervals = [];
     lastPolledSelections.clear();
   }
+  window._stopEpubSelectionPolling = stopPolling;
 
   // Handle selection clearing and changes
   rendition.hooks.content.register(function (contents) {
@@ -690,8 +708,8 @@ function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScr
     // Also try to get all contents and poll them (important for spread layout with 2 pages)
     try {
       var allContents = rendition.getContents();
-      allContents.forEach(function (cont, index) {
-        var frameId = cont.document ? cont.document.URL : ('frame' + index);
+      allContents.forEach(function (cont) {
+        var frameId = cont.document || cont.window || cont;
         if (cont.window && !lastPolledSelections.has(frameId)) {
           startPolling(cont);
         }
@@ -699,11 +717,24 @@ function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScr
 
       // Set up a periodic check to ensure all frames are being polled
       // (in case frames are added/removed dynamically)
-      setInterval(function () {
+      if (framePollInterval === null) framePollInterval = setInterval(function () {
         try {
           var currentContents = rendition.getContents();
-          currentContents.forEach(function (cont, index) {
-            var frameId = cont.document ? cont.document.URL : ('frame' + index);
+          var liveFrames = new Set(currentContents.map(function (cont) {
+            return cont.document || cont.window || cont;
+          }));
+          // A detached chapter can retain a selection forever. Its 200 ms
+          // poller would otherwise keep the old iframe and DOM in memory.
+          pollIntervals = pollIntervals.filter(function (item) {
+            if (item.contentsId === 'parent' || liveFrames.has(item.contentsId)) {
+              return true;
+            }
+            clearInterval(item.interval);
+            lastPolledSelections.delete(item.contentsId);
+            return false;
+          });
+          currentContents.forEach(function (cont) {
+            var frameId = cont.document || cont.window || cont;
             if (cont.window && !lastPolledSelections.has(frameId)) {
               startPolling(cont);
             }
@@ -755,6 +786,7 @@ function loadBook(data, cfi, initialXPath, manager, flow, spread, snap, allowScr
           if (parentNoSelectionCount > 25) {
             clearInterval(parentInterval);
             lastPolledSelections.delete('parent');
+            forgetPoll(parentInterval);
           }
         } catch (e) {
           // Ignore errors
@@ -1664,19 +1696,10 @@ function sendRelocated(location) {
           }
 
           if (_pageTransition === 'scroll') {
-            // Sections here render one screen at a time (no free-scrolling
-            // *within* one), so — same as every other transition — moving to
-            // the next/previous one is still a discrete swipe, just on the
-            // vertical axis a continuous-scroll layout reads naturally on:
-            // swipe up advances, swipe down goes back. A left/right swipe
-            // reaching here is incidental (a mostly-vertical drag can read as
-            // horizontal too) and must NOT also turn a page, or scrolling
-            // occasionally double-jumps a section.
-            if (direction == 'u') {
-              rendition.next();
-            } else if (direction == 'd') {
-              rendition.prev();
-            }
+            // The Flutter pointer listener owns vertical turns on both
+            // platforms. Android WebView may cancel an iframe's touch stream
+            // during a vertical drag, so this callback misses the gesture;
+            // letting it also navigate would sometimes double-turn instead.
             return;
           }
 
@@ -2203,7 +2226,9 @@ function _animatedTurn(dir, commit) {
   // ran on epub.js's continuous scrolled flow; it's now a vertical *paginated*
   // mode with its own bottom-to-top tween — see _transitionSpec's 'scroll'
   // case — so it animates like every other paginated turn.)
-  if (!el || !_pageTransition || _pageTransition === 'none' || _turnAnimating) {
+  if (_turnAnimating) return Promise.resolve();
+  _lastNavDirection = dir;
+  if (!el || !_pageTransition || _pageTransition === 'none') {
     return commit();
   }
 
@@ -2304,8 +2329,8 @@ function _installPageTransitions(r) {
   // alike — reaches the reader through exactly one of these two calls, since
   // nothing else in this file calls rendition.next()/prev(). One log here is a
   // log of every real page turn, without duplicating it at each gesture source.
-  r.next = function () { console.log('👉 SWIPE: next page (mode=' + _pageTransition + ')'); _lastNavDirection = 1; return _animatedTurn(1, origNext); };
-  r.prev = function () { console.log('👈 SWIPE: previous page (mode=' + _pageTransition + ')'); _lastNavDirection = -1; return _animatedTurn(-1, origPrev); };
+  r.next = function () { console.log('👉 SWIPE: next page (mode=' + _pageTransition + ')'); return _animatedTurn(1, origNext); };
+  r.prev = function () { console.log('👈 SWIPE: previous page (mode=' + _pageTransition + ')'); return _animatedTurn(-1, origPrev); };
   r.__transitionsInstalled = true;
 }
 

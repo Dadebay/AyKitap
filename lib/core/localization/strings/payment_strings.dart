@@ -1,3 +1,4 @@
+import '../../services/currency.dart';
 import '../strings_base.dart';
 
 /// Strings for [BookPurchaseScreen] and [SubscriptionScreen] (payment module).
@@ -22,7 +23,7 @@ class PaymentStrings {
   static String get notEnough => t(tk: 'Ýeterlik däl', ru: 'Недостаточно', tr: 'Yetersiz', en: 'Not enough');
 
   /// Currency code is deliberately the same in every language and screen.
-  static String manat(num amount) => '$amount TMT';
+  static String manat(num amount) => Currency.localize('$amount TMT');
   static String get balanceInsufficientNote => t(
         tk: 'Balansyňyz bu kitaby almaga ýetmeýär. Balansy dolduryň.',
         ru: 'Вашего баланса недостаточно для покупки этой книги. Пополните баланс.',
@@ -57,8 +58,7 @@ class PaymentStrings {
         tr: ' adresini kullanın.',
         en: '.',
       );
-  static String get downloadFileWebsiteText =>
-      '$downloadFileWebsitePrefix $downloadFileWebsite$downloadFileWebsiteSuffix';
+  static String get downloadFileWebsiteText => '$downloadFileWebsitePrefix $downloadFileWebsite$downloadFileWebsiteSuffix';
   static String get downloadFileWebsiteOpenError => t(
         tk: 'Web sahypasy açylmady.',
         ru: 'Не удалось открыть сайт.',
@@ -96,6 +96,12 @@ class PaymentStrings {
         tr: 'Planlar yüklenemedi',
         en: 'Plans couldn\'t load',
       );
+  static String get billingModeUnavailable => t(
+        tk: 'Töleg usuly ýüklenmedi. Gaýtadan synanyşyň.',
+        ru: 'Не удалось загрузить способ оплаты. Попробуйте снова.',
+        tr: 'Ödeme yöntemi yüklenemedi. Tekrar deneyin.',
+        en: 'Payment method could not load. Please try again.',
+      );
   static String get retry => t(tk: 'Gaýtadan synanyş', ru: 'Повторить', tr: 'Tekrar dene', en: 'Retry');
   static String get subscriptionTitle => t(tk: 'Abunalyk', ru: 'Подписка', tr: 'Abonelik', en: 'Subscription');
   static String get unlimitedAccessTitle => t(
@@ -118,7 +124,7 @@ class PaymentStrings {
       );
 
   static String get chooseYourPlanSubtitle => t(
-        tk: 'Uzak möhletli meýilnamany bilen has köp tygşytlaň',
+        tk: 'Uzak möhletli meýilnama bilen has köp tygşytlaň',
         ru: 'Экономьте больше, выбирая долгосрочный вариант',
         tr: 'Uzun vadeli seçeneği tercih ederek daha fazla tasarruf edin',
         en: 'Save more with a long-term option',
@@ -230,8 +236,7 @@ class PaymentStrings {
   // widgets/payment_method_sheet.dart
   static String get choosePaymentMethodTitle => t(tk: 'Töleg usulyny saýlaň', ru: 'Выберите способ оплаты', tr: 'Ödeme yöntemini seçin', en: 'Choose a payment method');
   static String get payWithPromoCode => t(tk: 'Promokod bilen', ru: 'По промокоду', tr: 'Promosyon koduyla', en: 'With a promo code');
-  static String get payWithStore =>
-      t(tk: 'App Store / Google Play arkaly kart bilen', ru: 'Картой через App Store/Google Play', tr: 'App Store/Google Play üzerinden kartla', en: 'Card via App Store/Google Play');
+  static String get payWithStore => t(tk: 'Abuna satyn al', ru: 'Купить подписку', tr: 'Abonelik satın al', en: 'Buy a subscription');
 
   // widgets/store_topup_sheet.dart
   static String get storeTopUpTitle => t(tk: 'Möçberi saýlaň', ru: 'Выберите сумму', tr: 'Tutarı seçin', en: 'Choose an amount');

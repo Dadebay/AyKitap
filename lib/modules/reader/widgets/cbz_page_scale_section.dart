@@ -13,7 +13,8 @@ class CbzPageScaleSection extends StatelessWidget {
   final BoxFit fit;
   final ValueChanged<BoxFit> onFitChanged;
 
-  const CbzPageScaleSection({super.key, required this.fit, required this.onFitChanged});
+  const CbzPageScaleSection(
+      {super.key, required this.fit, required this.onFitChanged});
 
   @override
   Widget build(BuildContext context) {

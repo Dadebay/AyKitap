@@ -3,8 +3,8 @@
 // look like. Reported as: theme set to "Gije", but in paged mode the page sat
 // in a bright white surround.
 import 'package:aykitap/modules/reader/widgets/pdf_night_mode_filter.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The night-mode gutter colour the PDF reader asks for.
 const _nightGutter = Color(0xFF1C1C1E);
@@ -21,8 +21,7 @@ Color _asTheFilterWouldPaint(Color c) => Color.from(
 
 void main() {
   test('the night gutter survives the filter as the colour asked for', () {
-    final onScreen =
-        _asTheFilterWouldPaint(PdfNightModeFilter.preInverted(_nightGutter));
+    final onScreen = _asTheFilterWouldPaint(PdfNightModeFilter.preInverted(_nightGutter));
 
     expect(onScreen.r, closeTo(_nightGutter.r, 0.001));
     expect(onScreen.g, closeTo(_nightGutter.g, 0.001));
@@ -47,8 +46,7 @@ void main() {
   test('alpha is left alone, matching the filter matrix', () {
     const translucent = Color(0x801C1C1E);
 
-    expect(PdfNightModeFilter.preInverted(translucent).a,
-        closeTo(translucent.a, 0.001));
+    expect(PdfNightModeFilter.preInverted(translucent).a, closeTo(translucent.a, 0.001));
   });
 
   test('inverting twice returns the original colour', () {
@@ -72,8 +70,7 @@ void main() {
 
     test('the gutter lands on exactly that, so the page does not float', () {
       // What the page layer hands pdfrx as its background in night mode.
-      final gutter =
-          _asTheFilterWouldPaint(PdfNightModeFilter.preInverted(Colors.black));
+      final gutter = _asTheFilterWouldPaint(PdfNightModeFilter.preInverted(Colors.black));
 
       expect(gutter.r, closeTo(invertedPaper.r, 0.001));
       expect(gutter.g, closeTo(invertedPaper.g, 0.001));
@@ -83,8 +80,7 @@ void main() {
     test('the theme surface would not have matched it', () {
       // [bg] for night mode — right for the chrome outside the filter, but
       // visibly lighter than the page it would have surrounded.
-      final surface =
-          _asTheFilterWouldPaint(PdfNightModeFilter.preInverted(_nightGutter));
+      final surface = _asTheFilterWouldPaint(PdfNightModeFilter.preInverted(_nightGutter));
 
       expect(surface.r, greaterThan(invertedPaper.r + 0.05));
     });
@@ -100,12 +96,10 @@ void main() {
   });
 
   testWidgets('the filter only wraps its child when enabled', (tester) async {
-    await tester.pumpWidget(const PdfNightModeFilter(
-        enabled: false, child: SizedBox(key: Key('page'))));
+    await tester.pumpWidget(const PdfNightModeFilter(enabled: false, child: SizedBox(key: Key('page'))));
     expect(find.byType(ColorFiltered), findsNothing);
 
-    await tester.pumpWidget(const PdfNightModeFilter(
-        enabled: true, child: SizedBox(key: Key('page'))));
+    await tester.pumpWidget(const PdfNightModeFilter(enabled: true, child: SizedBox(key: Key('page'))));
     expect(find.byType(ColorFiltered), findsOneWidget);
   });
 }

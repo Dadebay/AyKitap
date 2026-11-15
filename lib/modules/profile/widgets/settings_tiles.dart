@@ -8,8 +8,14 @@ class SettingsGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16)),
+    // A Material (not a coloured DecoratedBox): the ListTiles inside paint
+    // their tap splash on the nearest Material, and a plain coloured box
+    // between them and the Scaffold would hide it ("ListTile background
+    // color or ink splashes may be invisible").
+    return Material(
+      color: AppColors.card,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
       child: Column(children: children),
     );
   }

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'color_converter.dart';
 
@@ -106,7 +106,6 @@ class EpubTheme {
     );
   }
 
-  factory EpubTheme.fromJson(Map<String, dynamic> json) =>
-      _$EpubThemeFromJson(json);
+  factory EpubTheme.fromJson(Map<String, dynamic> json) => _$EpubThemeFromJson(json);
   Map<String, dynamic> toJson() => _$EpubThemeToJson(this);
 }

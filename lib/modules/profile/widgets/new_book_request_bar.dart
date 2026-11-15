@@ -19,7 +19,8 @@ class NewBookRequestBar extends StatefulWidget {
   State<NewBookRequestBar> createState() => _NewBookRequestBarState();
 }
 
-class _NewBookRequestBarState extends State<NewBookRequestBar> with TickerProviderStateMixin {
+class _NewBookRequestBarState extends State<NewBookRequestBar>
+    with TickerProviderStateMixin {
   late final AnimationController _entrance;
   late final AnimationController _press;
   late final AnimationController _glow;
@@ -65,7 +66,9 @@ class _NewBookRequestBarState extends State<NewBookRequestBar> with TickerProvid
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     return SlideTransition(
-      position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(CurvedAnimation(parent: _entrance, curve: Curves.easeOutCubic)),
+      position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+          .animate(
+              CurvedAnimation(parent: _entrance, curve: Curves.easeOutCubic)),
       child: AnimatedBuilder(
         animation: Listenable.merge([_press, _glow]),
         builder: (context, child) {
@@ -82,57 +85,64 @@ class _NewBookRequestBarState extends State<NewBookRequestBar> with TickerProvid
                 ),
               ],
             ),
-            child: Transform.scale(
-              scale: _press.value,
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: widget.onPressed,
-                  onTapDown: (_) => _setPressed(true),
-                  onTapUp: (_) => _setPressed(false),
-                  onTapCancel: () => _setPressed(false),
-                  borderRadius: BorderRadius.circular(18),
-                  child: Ink(
-                    height: 56,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.primary, AppColors.primaryDark],
+            child: Center(
+                heightFactor: 1,
+                child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 680),
+                    child: Transform.scale(
+                      scale: _press.value,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: widget.onPressed,
+                          onTapDown: (_) => _setPressed(true),
+                          onTapUp: (_) => _setPressed(false),
+                          onTapCancel: () => _setPressed(false),
+                          borderRadius: BorderRadius.circular(18),
+                          child: Ink(
+                            height: 56,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  AppColors.primary,
+                                  AppColors.primaryDark
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(
+                                    alpha: .35 + glowT * .25,
+                                  ),
+                                  blurRadius: 16 + glowT * 12,
+                                  spreadRadius: glowT * 2,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const HugeIcon(
+                                  icon: HugeIcons.strokeRoundedAdd01,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  ProfileStrings.newBookRequest,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15.5,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(
-                            alpha: .35 + glowT * .25,
-                          ),
-                          blurRadius: 16 + glowT * 12,
-                          spreadRadius: glowT * 2,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const HugeIcon(
-                          icon: HugeIcons.strokeRoundedAdd01,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          ProfileStrings.newBookRequest,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
+                    ))),
           );
         },
       ),

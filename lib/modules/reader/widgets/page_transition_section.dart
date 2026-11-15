@@ -65,6 +65,7 @@ class PageTransitionRow extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 720),
       builder: (_) => ChangeNotifierProvider.value(
         value: provider,
         child: const PageTransitionSheet(),

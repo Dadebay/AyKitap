@@ -3,9 +3,9 @@ import 'package:aykitap/core/theme/app_gradients.dart';
 import 'package:aykitap/core/theme/theme_controller.dart';
 import 'package:aykitap/core/widgets/journey_gradient_icon_badge.dart';
 import 'package:aykitap/modules/profile/widgets/profile_entry_card.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -19,17 +19,11 @@ void main() {
   }
 
   Container outerContainer(WidgetTester tester) => tester.widget<Container>(
-        find
-            .descendant(
-                of: find.byType(ProfileEntryCard),
-                matching: find.byType(Container))
-            .first,
+        find.descendant(of: find.byType(ProfileEntryCard), matching: find.byType(Container)).first,
       );
 
   group('plain (default) path — must stay exactly as it always looked', () {
-    testWidgets(
-        'white card, no border, grey1 title, corner radius in the 16-20dp spec',
-        (tester) async {
+    testWidgets('white card, no border, grey1 title, corner radius in the 16-20dp spec', (tester) async {
       await AppTheme.instance.setDark(false);
       var tapped = false;
       await pump(
@@ -55,11 +49,8 @@ void main() {
     });
   });
 
-  group('highlighted path — the book-request CTA\'s existing look, untouched',
-      () {
-    testWidgets(
-        'orange tint + border + orange title, same as before accentGradient existed',
-        (tester) async {
+  group('highlighted path — the book-request CTA\'s existing look, untouched', () {
+    testWidgets('orange tint + border + orange title, same as before accentGradient existed', (tester) async {
       await pump(
         tester,
         ProfileEntryCard(
@@ -79,16 +70,12 @@ void main() {
 
       // The accent bar is unique to accentGradient — confirms the two paths
       // don't bleed into each other.
-      expect(
-          find.byWidgetPredicate(
-              (w) => w is Container && w.constraints?.maxWidth == 4),
-          findsNothing);
+      expect(find.byWidgetPredicate((w) => w is Container && w.constraints?.maxWidth == 4), findsNothing);
     });
   });
 
   group('accentGradient path — the new subscription-row treatment', () {
-    testWidgets('draws a thin left gradient bar instead of a border',
-        (tester) async {
+    testWidgets('draws a thin left gradient bar instead of a border', (tester) async {
       await AppTheme.instance.setDark(false);
       await pump(
         tester,
@@ -104,10 +91,7 @@ void main() {
       // left edge, filled with the full-strength gradient.
       final barPositioned = tester.widget<Positioned>(
         find.ancestor(
-          of: find.byWidgetPredicate((w) =>
-              w is DecoratedBox &&
-              (w.decoration as BoxDecoration?)?.gradient?.colors ==
-                  AppGradients.journeyRoseVioletColors),
+          of: find.byWidgetPredicate((w) => w is DecoratedBox && (w.decoration as BoxDecoration?)?.gradient?.colors == AppGradients.journeyRoseVioletColors),
           matching: find.byType(Positioned),
         ),
       );
@@ -119,8 +103,7 @@ void main() {
       expect(title.style!.color, AppGradients.journeyRoseVioletColors.first);
     });
 
-    testWidgets('tap still fires through the gradient-bar layout',
-        (tester) async {
+    testWidgets('tap still fires through the gradient-bar layout', (tester) async {
       var tapped = false;
       await pump(
         tester,
@@ -148,9 +131,7 @@ void main() {
     // just enough accidental height from Scaffold to mask it. So this pins
     // the exact production shape: several ProfileEntryCards, one of them
     // accented, inside a plain ListView.
-    testWidgets(
-        'renders with real height and stays tappable inside a ListView of siblings',
-        (tester) async {
+    testWidgets('renders with real height and stays tappable inside a ListView of siblings', (tester) async {
       var tapped = false;
       await tester.pumpWidget(
         MaterialApp(
@@ -183,9 +164,7 @@ void main() {
 
       final cards = find.byType(ProfileEntryCard);
       expect(cards, findsNWidgets(3));
-      for (final size in tester
-          .widgetList(cards)
-          .map((w) => tester.getSize(find.byWidget(w)))) {
+      for (final size in tester.widgetList(cards).map((w) => tester.getSize(find.byWidget(w)))) {
         expect(size.height, greaterThan(0));
       }
       // Every title actually painted — nothing below the accented card was
@@ -199,8 +178,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('adapts to the dark-mode build of the gradient automatically',
-        (tester) async {
+    testWidgets('adapts to the dark-mode build of the gradient automatically', (tester) async {
       await AppTheme.instance.setDark(true);
       await pump(
         tester,
@@ -219,9 +197,7 @@ void main() {
     });
   });
 
-  testWidgets(
-      'composes with JourneyGradientIconBadge as leading — the real profile-row shape',
-      (tester) async {
+  testWidgets('composes with JourneyGradientIconBadge as leading — the real profile-row shape', (tester) async {
     // Mirrors exactly how _buildBalanceEntry/_buildSettingsEntry/etc. in
     // profile_screen_entries.dart build their leading widget now.
     await pump(

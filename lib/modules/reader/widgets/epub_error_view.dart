@@ -20,42 +20,45 @@ class EpubErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     return ColoredBox(
       color: bgColor,
       child: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: HugeIcon(
-                    icon: HugeIcons.strokeRoundedFileNotFound,
-                    color: AppColors.primary,
-                    size: 28,
+        child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: tablet ? 88 : 64,
+                    height: tablet ? 88 : 64,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: HugeIcon(
+                        icon: HugeIcons.strokeRoundedFileNotFound,
+                        color: AppColors.primary,
+                        size: tablet ? 38 : 28,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+                  Text(
+                    ReaderStrings.epubOpenError,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: isDarkPage ? Colors.white70 : Colors.black54,
+                      fontSize: tablet ? 16 : 13.5,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              Text(
-                ReaderStrings.epubOpenError,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: isDarkPage ? Colors.white70 : Colors.black54,
-                  fontSize: 13.5,
-                  height: 1.45,
-                ),
-              ),
-            ],
-          ),
-        ),
+            )),
       ),
     );
   }

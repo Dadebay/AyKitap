@@ -17,10 +17,6 @@ import 'widgets/stagger_fade_in.dart';
 ///
 /// [ranked] switches to [RankedCollectionView] — see its own doc comment.
 class CatalogCollectionBooksScreen extends StatelessWidget {
-  /// Shared by the grid delegate and the entrance stagger, so the two can't
-  /// drift out of sync and start cascading against the real row layout.
-  static const _crossAxisCount = 3;
-
   final String title;
   final List<LibraryBook> books;
 
@@ -79,31 +75,31 @@ class CatalogCollectionBooksScreen extends StatelessWidget {
       ),
       body: SafeArea(
         top: false,
-        child: GridView.builder(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-          itemCount: sorted.length,
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: bookGridMaxExtent,
-            mainAxisSpacing: 20,
-            crossAxisSpacing: 12,
-            childAspectRatio: 0.5,
-          ),
-          // Staggered by *row* (`i ~/ _crossAxisCount`), not by raw index:
-          // the three cards sharing a row read as one unit, so cascading
-          // them individually looks like a stutter rather than an
-          // entrance. [StaggerFadeIn] clamps the delay it derives from
-          // this, so a long collection still finishes entering promptly
-          // instead of trickling in for the length of the list.
-          itemBuilder: (context, i) => StaggerFadeIn(
-            index: i ~/ _crossAxisCount,
-            child: CatalogBookCard(
-                book: sorted[i],
-                heroTag: AppHeroTags.catalogBookCover(sorted[i].id),
-                width: double.infinity,
-                coverHeight: 170,
-                margin: EdgeInsets.zero),
-          ),
-        ),
+        child: LayoutBuilder(builder: (context, constraints) {
+          final contentWidth = constraints.maxWidth - 40;
+          final spec = bookGridSpec(contentWidth);
+          final columns =
+              contentWidth < 600 ? 3 : bookGridColumns(contentWidth);
+          return GridView.builder(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            itemCount: sorted.length,
+            gridDelegate: spec.delegate,
+            // Staggered by *row* (`i ~/ columns`), not by raw index: the
+            // cards sharing a row read as one unit, so cascading them
+            // individually looks like a stutter rather than an entrance.
+            // [StaggerFadeIn] clamps the delay it derives from this, so a
+            // long collection still finishes entering promptly.
+            itemBuilder: (context, i) => StaggerFadeIn(
+              index: i ~/ columns,
+              child: CatalogBookCard(
+                  book: sorted[i],
+                  heroTag: AppHeroTags.catalogBookCover(sorted[i].id),
+                  width: double.infinity,
+                  coverHeight: spec.coverHeight,
+                  margin: EdgeInsets.zero),
+            ),
+          );
+        }),
       ),
     );
   }

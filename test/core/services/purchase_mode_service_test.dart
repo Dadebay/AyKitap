@@ -49,7 +49,8 @@ void main() {
         'region decision, not the toggle', () async {
       final service = PurchaseModeService.forTest(
         isIOS: true,
-        fetchConfig: (_) async => _config(purchaseMode: 'store_iap', iosStoreIapOnlyEnabled: false),
+        fetchConfig: (_) async =>
+            _config(purchaseMode: 'store_iap', iosStoreIapOnlyEnabled: false),
       );
       await service.refresh();
       expect(service.isIOSStoreOnly, isFalse);
@@ -88,7 +89,8 @@ void main() {
   });
 
   group('Android', () {
-    test('ignores the iOS toggle entirely even when the backend sends true', () async {
+    test('ignores the iOS toggle entirely even when the backend sends true',
+        () async {
       final service = PurchaseModeService.forTest(
         isIOS: false,
         fetchConfig: (_) async => _config(),
@@ -98,7 +100,8 @@ void main() {
       expect(service.useStoreCheckout, isFalse);
     });
 
-    test('foreign region resolves to store checkout via the region decision', () async {
+    test('foreign region resolves to store checkout via the region decision',
+        () async {
       final service = PurchaseModeService.forTest(
         isIOS: false,
         fetchConfig: (_) async => _config(purchaseMode: 'store_iap'),
@@ -122,8 +125,21 @@ void main() {
     });
   });
 
-  group('subscription pricing toggle', () {
-    test('enabled shows store prices on Android even for a wallet account', () async {
+  group('subscription routing', () {
+    test('logout clears the previous account billing route', () async {
+      final service = PurchaseModeService.forTest(
+        isIOS: false,
+        fetchConfig: (_) async => _config(purchaseMode: 'store_iap'),
+      );
+      await service.refresh();
+      expect(service.useStoreSubscription, isTrue);
+
+      service.clearForSignedOutUser();
+      expect(service.useStoreSubscription, isFalse);
+      expect(service.hasAccountConfig, isFalse);
+    });
+    test('Android wallet account sees TMT despite the iOS-only toggle',
+        () async {
       final service = PurchaseModeService.forTest(
         isIOS: false,
         fetchConfig: (_) async => _config(),
@@ -131,10 +147,10 @@ void main() {
 
       await service.refresh();
 
-      expect(service.useStoreSubscription, isTrue);
+      expect(service.useStoreSubscription, isFalse);
     });
 
-    test('disabled shows TMT on Android even for a Gmail/foreign account', () async {
+    test('Android foreign account sees Google Play subscriptions', () async {
       final service = PurchaseModeService.forTest(
         isIOS: false,
         fetchConfig: (_) async => _config(
@@ -145,11 +161,13 @@ void main() {
 
       await service.refresh();
 
-      expect(service.isRegionStoreIap, isTrue, reason: 'the Gmail/foreign account still comes from the backend');
-      expect(service.useStoreSubscription, isFalse, reason: 'the admin toggle alone selects TMT pricing');
+      expect(service.isRegionStoreIap, isTrue,
+          reason: 'the Gmail/foreign account still comes from the backend');
+      expect(service.useStoreSubscription, isTrue);
     });
 
-    test('disabled shows TMT on iOS too', () async {
+    test('iOS foreign account sees App Store subscriptions with toggle off',
+        () async {
       final service = PurchaseModeService.forTest(
         isIOS: true,
         fetchConfig: (_) async => _config(
@@ -160,10 +178,21 @@ void main() {
 
       await service.refresh();
 
+      expect(service.useStoreSubscription, isTrue);
+    });
+
+    test('iOS wallet account sees TMT only with store-only toggle off',
+        () async {
+      final service = PurchaseModeService.forTest(
+        isIOS: true,
+        fetchConfig: (_) async => _config(iosStoreIapOnlyEnabled: false),
+      );
+      await service.refresh();
       expect(service.useStoreSubscription, isFalse);
     });
 
-    test('iOS falls back to store prices when config cannot be loaded', () async {
+    test('iOS falls back to store prices when config cannot be loaded',
+        () async {
       final service = PurchaseModeService.forTest(
         isIOS: true,
         fetchConfig: (_) async => throw Exception('network down'),
@@ -193,7 +222,8 @@ void main() {
     var iosStoreIapOnlyEnabled = true;
     final service = PurchaseModeService.forTest(
       isIOS: true,
-      fetchConfig: (_) async => _config(iosStoreIapOnlyEnabled: iosStoreIapOnlyEnabled),
+      fetchConfig: (_) async =>
+          _config(iosStoreIapOnlyEnabled: iosStoreIapOnlyEnabled),
     );
     await service.refresh();
     expect(service.isIOSStoreOnly, isTrue);
@@ -203,7 +233,8 @@ void main() {
     expect(service.isIOSStoreOnly, isFalse);
   });
 
-  test('notifies listeners after each refresh so watching widgets rebuild', () async {
+  test('notifies listeners after each refresh so watching widgets rebuild',
+      () async {
     final service = PurchaseModeService.forTest(
       isIOS: true,
       fetchConfig: (_) async => _config(),

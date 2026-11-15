@@ -8,14 +8,12 @@ class DiskPainter extends CustomPainter {
   final double centerX;
   final double centerY;
   final double radius;
-  final double selFloat;
   final bool isDark;
 
   const DiskPainter({
     required this.centerX,
     required this.centerY,
     required this.radius,
-    required this.selFloat,
     required this.isDark,
   });
 
@@ -62,6 +60,5 @@ class DiskPainter extends CustomPainter {
       old.centerX != centerX ||
       old.centerY != centerY ||
       old.radius != radius ||
-      old.selFloat != selFloat ||
       old.isDark != isDark;
 }

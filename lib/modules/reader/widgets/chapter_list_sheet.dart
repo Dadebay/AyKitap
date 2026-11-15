@@ -34,7 +34,8 @@ class ChapterListSheet extends StatelessWidget {
         final entries = _flatten(provider.chapters);
         // isChapterCurrent is anchor-exact, so at most one entry matches even
         // when a whole part of the book lives in a single xhtml file.
-        final currentIndex = entries.indexWhere((e) => provider.isChapterCurrent(e.chapter));
+        final currentIndex =
+            entries.indexWhere((e) => provider.isChapterCurrent(e.chapter));
         log(
           '📚 chapter list opened: entries=${entries.length} currentIndex=$currentIndex '
           'title=${currentIndex >= 0 ? entries[currentIndex].chapter.title : '—'}',
@@ -52,7 +53,9 @@ class ChapterListSheet extends StatelessWidget {
                 child: Container(
                   width: 40,
                   height: 4,
-                  decoration: BoxDecoration(color: AppColors.grey3, borderRadius: BorderRadius.circular(2)),
+                  decoration: BoxDecoration(
+                      color: AppColors.grey3,
+                      borderRadius: BorderRadius.circular(2)),
                 ),
               ),
               const SizedBox(height: 14),
@@ -85,7 +88,8 @@ class ChapterListSheet extends StatelessWidget {
                             const SizedBox(height: 6),
                             Text(
                               _positionLabel(provider.progress),
-                              style: TextStyle(color: AppColors.grey2, fontSize: 12.5),
+                              style: TextStyle(
+                                  color: AppColors.grey2, fontSize: 12.5),
                             ),
                           ],
                         ),
@@ -98,8 +102,10 @@ class ChapterListSheet extends StatelessWidget {
                       child: Container(
                         width: 30,
                         height: 30,
-                        decoration: BoxDecoration(color: AppColors.card, shape: BoxShape.circle),
-                        child: Icon(Icons.close, color: AppColors.grey2, size: 17),
+                        decoration: BoxDecoration(
+                            color: AppColors.card, shape: BoxShape.circle),
+                        child:
+                            Icon(Icons.close, color: AppColors.grey2, size: 17),
                       ),
                     ),
                   ],
@@ -125,12 +131,18 @@ class ChapterListSheet extends StatelessWidget {
               Expanded(
                 child: entries.isEmpty
                     ? Center(
-                        child: Text(ReaderStrings.noChaptersFound, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+                        child: Text(ReaderStrings.noChaptersFound,
+                            style: TextStyle(
+                                color: AppColors.grey2, fontSize: 14)),
                       )
                     : ListView.separated(
                         padding: const EdgeInsets.only(top: 4, bottom: 8),
                         itemCount: entries.length,
-                        separatorBuilder: (_, __) => Divider(color: AppColors.border, height: 1, indent: 20, endIndent: 20),
+                        separatorBuilder: (_, __) => Divider(
+                            color: AppColors.border,
+                            height: 1,
+                            indent: 20,
+                            endIndent: 20),
                         itemBuilder: (_, i) => ChapterTile(
                           entry: entries[i],
                           current: i == currentIndex,

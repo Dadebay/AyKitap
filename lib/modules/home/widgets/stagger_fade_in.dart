@@ -18,6 +18,9 @@ class StaggerFadeIn extends StatefulWidget {
   final int index;
   final Widget child;
 
+  /// Sliver items such as long shelves should be recycled after scrolling.
+  final bool keepAlive;
+
   /// Extra lead-in added on top of the (clamped) index-based delay —
   /// unclamped, unlike [index]'s own contribution. For a [StaggerFadeIn]
   /// nested inside another one (a book card inside a section that itself
@@ -41,6 +44,7 @@ class StaggerFadeIn extends StatefulWidget {
     super.key,
     required this.index,
     required this.child,
+    this.keepAlive = true,
     this.extraDelay = Duration.zero,
     this.slideFrom = const Offset(0, 10),
   });
@@ -69,7 +73,7 @@ class _StaggerFadeInState extends State<StaggerFadeIn>
   bool _configured = false;
 
   @override
-  bool get wantKeepAlive => true;
+  bool get wantKeepAlive => widget.keepAlive;
 
   @override
   void didChangeDependencies() {

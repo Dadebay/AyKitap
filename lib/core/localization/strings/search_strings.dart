@@ -6,6 +6,7 @@ class SearchStrings {
 
   static String get title => t(tk: 'Gözleg', ru: 'Поиск', tr: 'Arama', en: 'Search');
   static String get searchHint => t(tk: 'Kitaplary, awtorlary gözlemek', ru: 'Поиск по названиям и авторам', tr: 'Kitap ismi ve yazar ara', en: 'Search titles and authors');
+  static String get done => t(tk: 'Tamam', ru: 'Готово', tr: 'Tamam', en: 'Done');
   static String get noResults => t(tk: 'Netije tapylmady', ru: 'Результаты не найдены', tr: 'Sonuç bulunamadı', en: 'No results found');
   static String get retry => t(tk: 'Gaýtadan synanyş', ru: 'Повторить', tr: 'Tekrar dene', en: 'Retry');
 

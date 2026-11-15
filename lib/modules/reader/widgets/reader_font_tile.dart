@@ -34,12 +34,13 @@ class ReaderFontTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     final fg = selected ? Colors.white : AppColors.white;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        height: 74,
+        height: tablet ? 92 : 74,
         decoration: BoxDecoration(
           color: selected ? AppColors.primary : AppColors.card,
           borderRadius: BorderRadius.circular(14),
@@ -55,7 +56,7 @@ class ReaderFontTile extends StatelessWidget {
               style: TextStyle(
                   color: fg,
                   fontFamily: fontFamily,
-                  fontSize: 22,
+                  fontSize: tablet ? 27 : 22,
                   fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 4),
@@ -66,7 +67,7 @@ class ReaderFontTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: selected ? Colors.white : AppColors.grey2,
-                fontSize: 10,
+                fontSize: tablet ? 12 : 10,
                 height: 1.15,
                 fontWeight: FontWeight.w500,
               ),

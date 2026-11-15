@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:material_ui/material_ui.dart';
+
 import '../theme/app_colors.dart';
 
 /// A tappable icon in a filled circle or rounded square — merges what used
@@ -46,13 +47,7 @@ class IconCircleButton extends StatelessWidget {
           shape: borderRadius == null ? BoxShape.circle : BoxShape.rectangle,
           borderRadius: borderRadius,
         ),
-        child: filledIcon != null
-            ? Icon(filledIcon,
-                color: iconColor ?? AppColors.grey1, size: iconSize)
-            : HugeIcon(
-                icon: icon,
-                color: iconColor ?? AppColors.grey1,
-                size: iconSize),
+        child: filledIcon != null ? Icon(filledIcon, color: iconColor ?? AppColors.grey1, size: iconSize) : HugeIcon(icon: icon, color: iconColor ?? AppColors.grey1, size: iconSize),
       ),
     );
   }

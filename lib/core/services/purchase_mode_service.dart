@@ -53,6 +53,7 @@ class PurchaseModeService extends ChangeNotifier with WidgetsBindingObserver {
   bool _started = false;
   RevenueCatConfig? _config;
   bool _iosStoreOnly = true;
+  int _sessionGeneration = 0;
 
   /// True only on iOS, and only cleared once a successful [refresh] proves
   /// the admin toggle is off. Every iOS-only payment surface should gate on
@@ -66,17 +67,12 @@ class PurchaseModeService extends ChangeNotifier with WidgetsBindingObserver {
   /// to have on its own error handling.
   bool get isRegionStoreIap => _config?.isStoreIap ?? false;
 
-  /// Which subscription price surface the admin toggle selects, on both
-  /// Android and iOS. This deliberately does not depend on login provider,
-  /// phone number, country, or [isRegionStoreIap]:
-  ///
-  /// - `iosStoreIapOnlyEnabled == true`  -> store/RevenueCat prices
-  /// - `iosStoreIapOnlyEnabled == false` -> wallet/TMT tariffs
-  ///
-  /// Before the first successful config response, iOS keeps its existing
-  /// App Store-safe default while Android keeps its existing TMT default.
-  bool get useStoreSubscription =>
-      _isIOS() ? _iosStoreOnly : (_config?.iosStoreIapOnlyEnabled ?? false);
+  bool get hasAccountConfig => _config != null;
+
+  /// Subscriptions use the same account-specific billing decision as other
+  /// checkout surfaces. The backend resolves the signed-in account's region
+  /// and login method; the iOS store-only override still takes precedence.
+  bool get useStoreSubscription => useStoreCheckout;
 
   /// Whichever payment surface should actually be used right now — the one
   /// check most call sites want instead of combining the two getters
@@ -108,13 +104,24 @@ class PurchaseModeService extends ChangeNotifier with WidgetsBindingObserver {
   /// site's original `catch (_) { return false; }`.
   Future<void> refresh() async {
     final platform = _isIOS() ? 'ios' : 'android';
+    final generation = _sessionGeneration;
     try {
       final config = await _fetchConfig(platform);
+      if (generation != _sessionGeneration) return;
       _config = config;
       if (_isIOS()) _iosStoreOnly = config.iosStoreIapOnlyEnabled;
     } catch (_) {
+      if (generation != _sessionGeneration) return;
       if (_isIOS()) _iosStoreOnly = true;
     }
+    notifyListeners();
+  }
+
+  /// Account-specific billing must be resolved again after logout.
+  void clearForSignedOutUser() {
+    _sessionGeneration++;
+    _config = null;
+    _iosStoreOnly = true;
     notifyListeners();
   }
 
@@ -124,5 +131,6 @@ class PurchaseModeService extends ChangeNotifier with WidgetsBindingObserver {
     _started = false;
     _config = null;
     _iosStoreOnly = true;
+    _sessionGeneration = 0;
   }
 }

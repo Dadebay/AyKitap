@@ -1,6 +1,6 @@
 import 'package:aykitap/modules/reader/widgets/reader_progress_scrubber.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   const totalPages = 383;
@@ -27,16 +27,14 @@ void main() {
     // label is still fading — which, when the switcher's children were keyed
     // by the page number itself, put two identically-keyed children in its
     // Stack and threw "Duplicate keys found".
-    testWidgets('a page returning mid-fade does not throw on duplicate keys',
-        (tester) async {
+    testWidgets('a page returning mid-fade does not throw on duplicate keys', (tester) async {
       await tester.pumpWidget(scrubberAt(20));
 
       // Each step lands well inside the previous label's fade.
       for (final page in [21, 20, 21, 22, 21]) {
         await tester.pumpWidget(scrubberAt(page));
         await tester.pump(const Duration(milliseconds: 40));
-        expect(tester.takeException(), isNull,
-            reason: 'moving to page $page threw');
+        expect(tester.takeException(), isNull, reason: 'moving to page $page threw');
       }
 
       await tester.pumpAndSettle();
@@ -55,8 +53,7 @@ void main() {
       expect(find.text('19'), findsNothing);
     });
 
-    testWidgets('rebuilding on an unchanged page does not restart the fade',
-        (tester) async {
+    testWidgets('rebuilding on an unchanged page does not restart the fade', (tester) async {
       await tester.pumpWidget(scrubberAt(42));
       await tester.pumpAndSettle();
 

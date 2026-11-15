@@ -4,25 +4,36 @@ part of 'search_screen.dart';
 /// chips row — the controls sitting above the results/discover grid.
 extension _SearchScreenControls on _SearchScreenState {
   Widget _buildSearchBar() {
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
-        height: 50,
-        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14)),
+        height: tablet ? 58 : 50,
+        decoration: BoxDecoration(
+            color: AppColors.card, borderRadius: BorderRadius.circular(14)),
         child: Row(
           children: [
             const SizedBox(width: 14),
-            HugeIcon(icon: HugeIcons.strokeRoundedSearch01, color: AppColors.grey2, size: 20),
+            HugeIcon(
+                icon: HugeIcons.strokeRoundedSearch01,
+                color: AppColors.grey2,
+                size: 20),
             const SizedBox(width: 10),
             Expanded(
               child: TextField(
                 controller: _controller,
                 onChanged: _onChanged,
+                // The keyboard's own Search key: the debounce in [_onChanged]
+                // already runs the query, so all that is left is to put the
+                // keyboard away — it used to stay up over the results.
+                onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
                 textInputAction: TextInputAction.search,
-                style: TextStyle(color: AppColors.white, fontSize: 15),
+                style: TextStyle(
+                    color: AppColors.white, fontSize: tablet ? 17 : 15),
                 decoration: InputDecoration(
                   hintText: SearchStrings.searchHint,
-                  hintStyle: TextStyle(color: AppColors.grey3, fontSize: 14.5),
+                  hintStyle: TextStyle(
+                      color: AppColors.grey3, fontSize: tablet ? 16 : 14.5),
                   border: InputBorder.none,
                 ),
               ),
@@ -32,7 +43,10 @@ extension _SearchScreenControls on _SearchScreenState {
                 onTap: _clearQuery,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: HugeIcon(icon: HugeIcons.strokeRoundedCancel01, color: AppColors.grey2, size: 18),
+                  child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedCancel01,
+                      color: AppColors.grey2,
+                      size: 18),
                 ),
               ),
           ],
@@ -70,8 +84,10 @@ extension _SearchScreenControls on _SearchScreenState {
             // [_setSearchMode] no-ops on a repeat anyway.
             onValueChanged: (mode) => _setSearchMode(mode ?? _searchMode),
             children: {
-              _SearchMode.book: _searchModeLabel(SearchStrings.searchByBook, _SearchMode.book, segmentWidth),
-              _SearchMode.author: _searchModeLabel(SearchStrings.searchByAuthor, _SearchMode.author, segmentWidth),
+              _SearchMode.book: _searchModeLabel(
+                  SearchStrings.searchByBook, _SearchMode.book, segmentWidth),
+              _SearchMode.author: _searchModeLabel(SearchStrings.searchByAuthor,
+                  _SearchMode.author, segmentWidth),
             },
           );
         },
@@ -81,16 +97,20 @@ extension _SearchScreenControls on _SearchScreenState {
 
   Widget _searchModeLabel(String label, _SearchMode mode, double width) {
     final selected = _searchMode == mode;
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     return SizedBox(
       width: width,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 7),
+        padding: EdgeInsets.symmetric(vertical: tablet ? 10 : 7),
         child: Text(
           label,
           textAlign: TextAlign.center,
           // The thumb carries the motion; the label only has to stay legible
           // against whichever color ends up under it.
-          style: TextStyle(color: selected ? Colors.white : AppColors.grey2, fontSize: 13, fontWeight: FontWeight.w700),
+          style: TextStyle(
+              color: selected ? Colors.white : AppColors.grey2,
+              fontSize: tablet ? 15 : 13,
+              fontWeight: FontWeight.w700),
         ),
       ),
     );
@@ -114,8 +134,13 @@ extension _SearchScreenControls on _SearchScreenState {
                   width: 40,
                   height: 40,
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12)),
-                  child: HugeIcon(icon: HugeIcons.strokeRoundedFilterHorizontal, color: AppColors.primary, size: 20),
+                  decoration: BoxDecoration(
+                      color: AppColors.card,
+                      borderRadius: BorderRadius.circular(12)),
+                  child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedFilterHorizontal,
+                      color: AppColors.primary,
+                      size: 20),
                 ),
                 if (_hasActiveFilters)
                   Positioned(
@@ -148,7 +173,10 @@ extension _SearchScreenControls on _SearchScreenState {
           for (final (i, genre) in (_genres ?? const []).indexed) ...[
             StaggerFadeIn(
               index: i,
-              child: QuickChip(label: genre.name, selected: _selectedGenreIds.contains(genre.id), onTap: () => _toggleGenre(genre)),
+              child: QuickChip(
+                  label: genre.name,
+                  selected: _selectedGenreIds.contains(genre.id),
+                  onTap: () => _toggleGenre(genre)),
             ),
             const SizedBox(width: 8),
           ],

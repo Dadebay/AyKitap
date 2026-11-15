@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/layout/adaptive_content_width.dart';
 import '../../core/localization/strings/filter_strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_back_button.dart';
@@ -58,9 +59,14 @@ class _FilterScreenBody extends StatelessWidget {
         backgroundColor: AppColors.bg,
         centerTitle: true,
         leading: const AppBackButton(size: 20),
-        title: Text(FilterStrings.title, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+        title: Text(FilterStrings.title,
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700)),
       ),
-      body: Column(
+      body: AdaptiveContentWidth(
+          child: Column(
         children: [
           Expanded(
             child: ListView(
@@ -77,7 +83,7 @@ class _FilterScreenBody extends StatelessWidget {
           ),
           const FilterBottomBar(),
         ],
-      ),
+      )),
     );
   }
 }

@@ -1,10 +1,10 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../core/localization/strings/series_strings.dart';
 import '../../../core/models/collection.dart';
 import '../../../core/navigation/app_navigator.dart';
 import '../../../core/network/api_config.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/maybe_backdrop.dart';
 import '../../../core/widgets/network_cover_image.dart';
 import '../../../core/widgets/pressable_scale.dart';
 import '../catalog_collection_books_screen.dart';
@@ -46,8 +46,8 @@ class CatalogSeriesCard extends StatelessWidget {
               bottom: 0,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(18),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: MaybeBackdrop(
+                  sigma: 16,
                   child: Container(
                     // No fixed height — a 2-line-wrapped title (common once
                     // this card gets squeezed into a narrower horizontal

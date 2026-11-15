@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/layout/adaptive_content_width.dart';
 import '../../core/localization/strings/payment_strings.dart';
 import '../../core/services/auth_session.dart';
 import '../../core/services/tmcell_numbers_api_service.dart';
@@ -112,7 +113,8 @@ class _TmcellPaymentScreenState extends State<TmcellPaymentScreen> {
                 fontWeight: FontWeight.w700)),
       ),
       body: SafeArea(
-        child: Column(
+        child: AdaptiveContentWidth(
+            child: Column(
           children: [
             Expanded(
               child: ListView(
@@ -169,7 +171,7 @@ class _TmcellPaymentScreenState extends State<TmcellPaymentScreen> {
               child: TmcellSendButton(enabled: _agreed, onTap: _send),
             ),
           ],
-        ),
+        )),
       ),
     );
   }

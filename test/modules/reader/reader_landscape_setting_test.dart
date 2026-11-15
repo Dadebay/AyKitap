@@ -3,9 +3,9 @@ import 'package:aykitap/modules/reader/utils/reader_orientation.dart';
 import 'package:aykitap/modules/reader/widgets/cbz_settings_sheet.dart';
 import 'package:aykitap/modules/reader/widgets/pdf_settings_sheet.dart';
 import 'package:aykitap/modules/reader/widgets/reader_landscape_row.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// The "ýatyk okamak" setting end to end below the widget layer: what it

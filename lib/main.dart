@@ -3,10 +3,9 @@ import 'dart:async';
 import 'package:aykitap/global_safe_area_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart' as mui;
 import 'package:provider/provider.dart';
 import 'core/layout/app_orientation_observer.dart';
-import 'core/layout/app_orientation_policy.dart';
-import 'core/layout/window_size_class.dart';
 import 'core/localization/app_locale.dart';
 import 'core/localization/localization_delegates.dart';
 import 'core/navigation/root_navigator.dart';
@@ -14,10 +13,12 @@ import 'core/services/account_service.dart';
 import 'core/services/analytics_service.dart';
 import 'core/services/app_activity_service.dart';
 import 'core/services/app_bootstrap_service.dart';
+import 'core/services/auth_session.dart';
 import 'core/services/book_access_service.dart';
 import 'core/services/book_download_service.dart';
 import 'core/services/book_open_history.dart';
 import 'core/services/bookmarks_store.dart';
+import 'core/services/device_tier.dart';
 import 'core/services/downloaded_books_store.dart';
 import 'core/services/downloaded_files_store.dart';
 import 'core/services/home_data_service.dart';
@@ -32,10 +33,13 @@ import 'core/services/revenue_cat_service.dart';
 import 'core/services/streak_service.dart';
 import 'core/services/subscription_service.dart';
 import 'core/theme/theme_controller.dart';
+import 'core/widgets/snowfall.dart';
 import 'modules/splash/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await DeviceTier.init();
+  await AuthSession.loadLoginMethod();
   // Default is 1000 images / 100MB. Covers now decode at their real
   // per-axis display size (see NetworkCoverImage) instead of the larger of
   // width/height, so each cached entry is a fraction of what it used to be
@@ -46,20 +50,15 @@ void main() async {
   // budget did before this fix, at under half the memory ceiling — the
   // difference matters most on mid-range Android, where a large resident
   // image cache is a common source of GC pauses and scroll jank.
-  PaintingBinding.instance.imageCache.maximumSize = 700;
-  PaintingBinding.instance.imageCache.maximumSizeBytes = 80 << 20;
-  // Locks portrait immediately, before the first frame — there's no
-  // MediaQuery yet to read a real window size from, so this primes
-  // AppOrientationPolicy with the same compact/no-reader default it starts
-  // with anyway. AppOrientationObserver (in this widget's `builder`) takes
-  // over from here once the tree is up, so this is the *only* direct
-  // SystemChrome.setPreferredOrientations call left outside that policy —
-  // see app_orientation_policy.dart.
-  AppOrientationPolicy.instance.updateWindow(const WindowSizeClass(
-    width: WindowWidthClass.compact,
-    size: Size.zero,
-    verticalHinge: null,
-  ));
+  // A 2 GB phone can't afford that: Android kills the app in the background
+  // long before a 80 MB image cache pays off, so low-end gets a third of it.
+  PaintingBinding.instance.imageCache.maximumSize =
+      DeviceTier.isLowEnd ? 200 : 700;
+  PaintingBinding.instance.imageCache.maximumSizeBytes =
+      (DeviceTier.isLowEnd ? 24 : 80) << 20;
+  // AppOrientationObserver applies the lock after the first window size is
+  // known. Priming it as a compact phone here can make an iPad launch in a
+  // narrow, portrait-only scene before Flutter sees the tablet display.
   // Hide Android's 3-button navigation bar entirely (keep the status bar).
   // A swipe up from the bottom edge still reveals it temporarily.
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
@@ -151,24 +150,84 @@ class AykitapApp extends StatelessWidget {
         fontFamily: 'Gilroy',
         appBarTheme: const AppBarTheme(
             elevation: 0, centerTitle: true, scrolledUnderElevation: 0),
+        // The default Android zoom/predictive transition repaints two full
+        // screens per frame; a plain fade is far cheaper on weak GPUs.
+        pageTransitionsTheme: DeviceTier.isLowEnd
+            ? const PageTransitionsTheme(builders: {
+                TargetPlatform.android: _LitePageTransitionsBuilder(),
+              })
+            : null,
       ),
       builder: (context, child) {
+        // Bridge for the half-finished flutter/material -> material_ui move:
+        // widgets already on material_ui (AppTextField, PrimaryButton, ...)
+        // look for a *material_ui* Material/Theme ancestor, but the screens
+        // around them still build a legacy Scaffold, whose Material is a
+        // different type — so every TextField on them threw "No Material
+        // widget found". One transparent material_ui Material at the root
+        // gives all of them an ancestor; it paints nothing.
+        child = mui.Theme(
+          data: mui.ThemeData(
+            colorScheme: mui.ColorScheme.fromSeed(
+                seedColor: const Color(0xFFE8712C),
+                brightness: isDark ? Brightness.dark : Brightness.light),
+            useMaterial3: true,
+            fontFamily: 'Gilroy',
+          ),
+          child: mui.Material(
+            type: mui.MaterialType.transparency,
+            child: child ?? const SizedBox.shrink(),
+          ),
+        );
         // Sits above the Navigator, so it sees touches on every screen
         // including pushed routes. Translucent and listener-only: it never
         // takes part in hit testing, so nothing below it behaves
         // differently. This is what lets [AppActivityService] tell "being
         // read" from "left open on the nightstand".
+        // Low-end: report "reduce motion" to every screen, so the decorative
+        // animations that already honour it (flame, staggered entrances,
+        // nav icons, hints...) switch themselves off.
+        if (DeviceTier.isLowEnd) {
+          child = MediaQuery(
+            data: MediaQuery.of(context).copyWith(disableAnimations: true),
+            child: child,
+          );
+        }
         return AppOrientationObserver(
-          child: Listener(
-            behavior: HitTestBehavior.translucent,
-            onPointerDown: (_) => AppActivityService.instance.noteInteraction(),
-            onPointerMove: (_) => AppActivityService.instance.noteInteraction(),
-            child:
-                GlobalSafeAreaWrapper(child: child ?? const SizedBox.shrink()),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Listener(
+                  behavior: HitTestBehavior.translucent,
+                  onPointerDown: (_) =>
+                      AppActivityService.instance.noteInteraction(),
+                  onPointerMove: (_) =>
+                      AppActivityService.instance.noteInteraction(),
+                  child: GlobalSafeAreaWrapper(child: child),
+                ),
+              ),
+              // New Year snow above every screen (readers pause it).
+              const SnowfallOverlay(),
+            ],
           ),
         );
       },
       home: const SplashScreen(),
     );
   }
+}
+
+/// Cheap page transition for low-end phones: opacity only.
+class _LitePageTransitionsBuilder extends PageTransitionsBuilder {
+  const _LitePageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) =>
+      FadeTransition(opacity: animation, child: child);
 }

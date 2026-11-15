@@ -187,7 +187,8 @@ class _WheelNavGlyphState extends State<WheelNavGlyph>
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Transform.translate(offset: Offset(-1.4 * k * nudge, 0), child: _rest()),
+        Transform.translate(
+            offset: Offset(-1.4 * k * nudge, 0), child: _rest()),
         CustomPaint(
           size: Size.square(widget.size),
           painter: _WavesPainter(s, widget.color),
@@ -309,7 +310,8 @@ class _EyesPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.scale(size.width / 24);
-    final pop = Curves.easeOutBack.transform(((s - 0.06) / 0.14).clamp(0.0, 1.0));
+    final pop =
+        Curves.easeOutBack.transform(((s - 0.06) / 0.14).clamp(0.0, 1.0));
     final fade = 1 - ((s - 0.78) / 0.12).clamp(0.0, 1.0);
     final blink =
         1 - 0.9 * math.sin(math.pi * ((s - 0.46) / 0.12).clamp(0.0, 1.0));
@@ -410,7 +412,8 @@ class _GlintPainter extends CustomPainter {
     if (g <= 0 || g >= 1) return;
     canvas.scale(size.width / 24);
     canvas.clipPath(
-      Path()..addOval(Rect.fromCircle(center: const Offset(11, 11), radius: 7.4)),
+      Path()
+        ..addOval(Rect.fromCircle(center: const Offset(11, 11), radius: 7.4)),
     );
     final travel = -12 + 24 * Curves.easeInOutCubic.transform(g);
     canvas.translate(11, 11);

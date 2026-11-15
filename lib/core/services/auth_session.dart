@@ -18,6 +18,39 @@ class AuthSession {
   static const _kAvatar = 'auth_avatar';
   static const _kAvatarImage = 'auth_avatar_image';
   static const _kLastSyncedFcmToken = 'auth_last_synced_fcm_token';
+  static const _kLoginMethod = 'auth_login_method';
+
+  /// True when the account was signed in through Google/Apple/email rather
+  /// than a Turkmen phone number. Kept in memory (read once at startup by
+  /// [loadLoginMethod]) because money is formatted all over the UI, in
+  /// synchronous `build` code that can't await secure storage. Drives the
+  /// currency symbol ("$" instead of "TMT") and hides TMCELL payment.
+  static bool isInternational = false;
+
+  /// Records how this login happened. Anything other than `phone` is an
+  /// international (Firebase) login.
+  static Future<void> saveLoginMethod(String method) async {
+    isInternational = method != 'phone';
+    await _storage.write(key: _kLoginMethod, value: method);
+  }
+
+  /// Reads [isInternational] from storage. Call once before the first frame.
+  /// Accounts that logged in before this was recorded are told apart by the
+  /// phone number: only the OTP door ever saves one.
+  static Future<void> loadLoginMethod() async {
+    try {
+      final method = await _storage.read(key: _kLoginMethod);
+      if (method != null) {
+        isInternational = method != 'phone';
+        return;
+      }
+      final token = await getToken();
+      final phone = await getPhone();
+      isInternational = token != null && (phone == null || phone.isEmpty);
+    } catch (_) {
+      isInternational = false;
+    }
+  }
 
   static Future<void> saveToken(String token, {String? phone}) async {
     await _storage.write(key: _kBearerToken, value: token);
@@ -109,6 +142,8 @@ class AuthSession {
     await _storage.delete(key: _kBearerToken);
     await _storage.delete(key: _kUserId);
     await _storage.delete(key: _kPhone);
+    await _storage.delete(key: _kLoginMethod);
+    isInternational = false;
     await _storage.delete(key: _kName);
     await _storage.delete(key: _kAvatar);
     // A different account can log in on this same device/token next, and

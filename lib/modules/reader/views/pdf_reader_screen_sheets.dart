@@ -10,6 +10,7 @@ extension _PdfReaderScreenSheets on _PdfReaderScreenState {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 720),
       // The sheet holds its own copy of nothing — it reads these values each
       // rebuild, so a StatefulBuilder keeps its controls live as they change.
       builder: (_) => StatefulBuilder(
@@ -60,6 +61,7 @@ extension _PdfReaderScreenSheets on _PdfReaderScreenState {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 720),
       builder: (_) => StatefulBuilder(
         builder: (_, setSheetState) => PdfBookmarksSheet(
           bookmarks: BookmarksStore.instance.forBook(_bookId),
@@ -89,6 +91,7 @@ extension _PdfReaderScreenSheets on _PdfReaderScreenState {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 720),
       builder: (_) => PdfGoToPageSheet(
           currentPage: _currentPage + 1, totalPages: _totalPages),
     );

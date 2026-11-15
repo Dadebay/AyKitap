@@ -21,7 +21,9 @@ extension _PdfReaderScreenBody on _PdfReaderScreenState {
       backgroundColor: bg,
       body: Stack(
         children: [
-          Positioned.fill(child: _buildPageLayer(bg, isDarkSurface, nightMode)),
+          Positioned.fill(
+              child: ReaderPageViewport(
+                  child: _buildPageLayer(bg, isDarkSurface, nightMode))),
 
           // ── Top bar ────────────────────────────────────────────────────
           Positioned(
@@ -92,6 +94,14 @@ extension _PdfReaderScreenBody on _PdfReaderScreenState {
             visible: inFocus,
             color: focusColor,
             label: _totalPages > 0 ? '${_currentPage + 1} / $_totalPages' : '',
+          ),
+
+          // ── First-open "which way do pages move" hint ──────────────────
+          const SnowfallPause(),
+          ReaderScrollHint(
+            kind: 'pdf',
+            enabled: !_isLoading && _error == null,
+            vertical: _viewMode == PdfViewMode.scroll,
           ),
         ],
       ),

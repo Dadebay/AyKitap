@@ -70,9 +70,7 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
     final book = _book!;
     final tablet = isTabletWidth(context);
     final image = book.image;
-    final imageUrl = image != null && image.isNotEmpty
-        ? ApiConfig.resolveImageUrl(image)
-        : null;
+    final imageUrl = image != null && image.isNotEmpty ? ApiConfig.resolveImageUrl(image) : null;
     return Stack(
       children: [
         Positioned(
@@ -87,33 +85,36 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
               tabletCover: tablet,
               topInset: MediaQuery.paddingOf(context).top,
             )),
-        ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            SizedBox(
-              height: _headerHeightFor(context) -
-                  _CatalogBookDetailScreenState._sheetOverlap,
-              child: tablet
-                  ? Padding(
-                      padding: EdgeInsets.fromLTRB(40 + 280 + 48,
-                          MediaQuery.paddingOf(context).top + 70, 40, 0),
-                      child: SizedBox(
-                        height: 420,
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: TabletDetailInfo(
-                                book: book,
-                                onTapAuthor: () =>
-                                    _openAuthor(book.authors.first)),
+        // CustomScrollView + SliverFillRemaining rather than a ListView: when
+        // the content is shorter than the screen the sheet now stretches down
+        // to the fixed read button instead of ending early and leaving a
+        // strip of the darker page background under it.
+        CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: _headerHeightFor(context) - _CatalogBookDetailScreenState._sheetOverlap,
+                child: tablet
+                    ? Padding(
+                        padding: EdgeInsets.fromLTRB(40 + 280 + 48, MediaQuery.paddingOf(context).top + 70, 40, 0),
+                        child: SizedBox(
+                          height: 420,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: TabletDetailInfo(book: book, onTapAuthor: () => _openAuthor(book.authors.first)),
+                            ),
                           ),
                         ),
-                      ),
-                    )
-                  : null,
+                      )
+                    : null,
+              ),
             ),
-            _buildContentSheet(book, tablet: tablet),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: _buildContentSheet(book, tablet: tablet),
+            ),
           ],
         ),
         DetailHeaderControls(
@@ -128,14 +129,11 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
     );
   }
 
-  double _headerHeightFor(BuildContext context) => isTabletWidth(context)
-      ? 580.0
-      : _CatalogBookDetailScreenState._headerHeight;
+  double _headerHeightFor(BuildContext context) => isTabletWidth(context) ? 580.0 : _CatalogBookDetailScreenState._headerHeight;
 
   Widget _buildBackButton(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(
-          top: MediaQuery.of(context).padding.top + 8, left: 12),
+      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 8, left: 12),
       child: IconCircleButton(
         icon: HugeIcons.strokeRoundedArrowLeft01,
         onTap: () => Navigator.pop(context),
@@ -148,23 +146,16 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
   }
 
   Widget _buildContentSheet(BookDetail book, {bool tablet = false}) {
-    final inset = detailSideInset(context, maxWidth: tablet ? 1000 : 720);
+    final inset = detailSideInset(context);
     final headerSteps = CatalogDetailHeaderInfo.stepCount(book);
     final descriptionSteps = CatalogDetailDescription.stepCount(book);
     return ClipRRect(
-      borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(38), topRight: Radius.circular(38)),
+      borderRadius: const BorderRadius.only(topLeft: Radius.circular(38), topRight: Radius.circular(38)),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(38), topRight: Radius.circular(38)),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                blurRadius: 20,
-                offset: const Offset(0, -6))
-          ],
+          borderRadius: const BorderRadius.only(topLeft: Radius.circular(38), topRight: Radius.circular(38)),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 20, offset: const Offset(0, -6))],
         ),
         child: Padding(
           // On a tablet the sheet's content stays a readable column
@@ -178,15 +169,11 @@ extension _CatalogBookDetailBody on _CatalogBookDetailScreenState {
           // the other's internal block count.
           child: Column(
             children: [
-              if (!tablet)
-                CatalogDetailHeaderInfo(
-                    book: book,
-                    onTapAuthor: () => _openAuthor(book.authors.first)),
+              if (!tablet) CatalogDetailHeaderInfo(book: book, onTapAuthor: () => _openAuthor(book.authors.first)),
               CatalogDetailDescription(
                 book: book,
                 expanded: _descriptionExpanded,
-                onToggleExpanded: () => _setState(
-                    () => _descriptionExpanded = !_descriptionExpanded),
+                onToggleExpanded: () => _setState(() => _descriptionExpanded = !_descriptionExpanded),
                 onTapGenre: _openGenre,
                 startIndex: tablet ? 0 : headerSteps,
               ),

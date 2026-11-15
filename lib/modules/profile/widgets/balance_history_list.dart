@@ -56,41 +56,46 @@ class _HistoryEmpty extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<AppTheme>().isDark;
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 220),
-            child: AspectRatio(
-              aspectRatio: 1,
-              child: Image.asset(
-                isDark
-                    ? 'assets/images/balance_empty_dark.webp'
-                    : 'assets/images/balance_empty_light.webp',
-                fit: BoxFit.contain,
+      child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: tablet ? 280 : 220),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Image.asset(
+                    isDark
+                        ? 'assets/images/balance_empty_dark.webp'
+                        : 'assets/images/balance_empty_light.webp',
+                    fit: BoxFit.contain,
+                  ),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            ProfileStrings.balanceHistoryEmptyTitle,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                color: AppColors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            ProfileStrings.balanceHistoryEmptySubtitle,
-            textAlign: TextAlign.center,
-            style:
-                TextStyle(color: AppColors.grey2, fontSize: 13.5, height: 1.5),
-          ),
-        ],
-      ),
+              const SizedBox(height: 20),
+              Text(
+                ProfileStrings.balanceHistoryEmptyTitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: tablet ? 20 : 16,
+                    fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                ProfileStrings.balanceHistoryEmptySubtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: AppColors.grey2,
+                    fontSize: tablet ? 16 : 13.5,
+                    height: 1.5),
+              ),
+            ],
+          )),
     );
   }
 }

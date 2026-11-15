@@ -40,6 +40,7 @@ class CatalogRankShelfCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isTablet = MediaQuery.sizeOf(context).width >= 600;
     final books = collection.books;
     final top = books.take(4).toList();
     final ownImage = collection.image;
@@ -53,7 +54,7 @@ class CatalogRankShelfCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            height: 84,
+            height: isTablet ? 128 : 84,
             child: ClipRRect(
               borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(20), topRight: Radius.circular(20)),
@@ -100,9 +101,9 @@ class CatalogRankShelfCard extends StatelessWidget {
                       children: [
                         Text(
                           collection.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: Colors.white,
-                              fontSize: 18,
+                              fontSize: isTablet ? 26 : 18,
                               fontWeight: FontWeight.w800,
                               height: 1.15),
                           maxLines: 2,
@@ -115,7 +116,7 @@ class CatalogRankShelfCard extends StatelessWidget {
                             collection.subTitle!,
                             style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.9),
-                                fontSize: 16),
+                                fontSize: isTablet ? 18 : 16),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -130,13 +131,17 @@ class CatalogRankShelfCard extends StatelessWidget {
           Flexible(
             fit: fillHeight ? FlexFit.tight : FlexFit.loose,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
+              padding: EdgeInsets.fromLTRB(
+                  isTablet ? 18 : 12, 16, isTablet ? 18 : 12, isTablet ? 22 : 16),
               child: Column(
                 children: [
                   for (int i = 0; i < top.length; i++) ...[
                     _RankedBookTile(
-                        rank: i + 1, book: top[i], collectionId: collection.id),
-                    if (i != top.length - 1) const SizedBox(height: 12),
+                        rank: i + 1,
+                        book: top[i],
+                        collectionId: collection.id,
+                        large: isTablet),
+                    if (i != top.length - 1) SizedBox(height: isTablet ? 18 : 12),
                   ],
                   // Fills whatever slack space is left when the card is
                   // stretched to match a taller sibling in its shelf row
@@ -151,7 +156,7 @@ class CatalogRankShelfCard extends StatelessWidget {
                   if (books.isNotEmpty)
                     Container(
                       width: double.infinity,
-                      height: 46,
+                      height: isTablet ? 58 : 46,
                       margin: const EdgeInsets.only(top: 14),
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
@@ -168,7 +173,7 @@ class CatalogRankShelfCard extends StatelessWidget {
                         child: Text(HomeStrings.seeMore,
                             style: TextStyle(
                                 color: AppColors.grey1,
-                                fontSize: 13.5,
+                                fontSize: isTablet ? 15.5 : 13.5,
                                 fontWeight: FontWeight.w700)),
                       ),
                     ),
@@ -186,8 +191,12 @@ class _RankedBookTile extends StatelessWidget {
   final int rank;
   final LibraryBook book;
   final int collectionId;
+  final bool large;
   const _RankedBookTile(
-      {required this.rank, required this.book, required this.collectionId});
+      {required this.rank,
+      required this.book,
+      required this.collectionId,
+      required this.large});
 
   @override
   Widget build(BuildContext context) {
@@ -204,16 +213,16 @@ class _RankedBookTile extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-              width: 20,
+              width: large ? 28 : 20,
               child: Text('$rank',
                   style: TextStyle(
                       color: AppColors.primary,
-                      fontSize: 15,
+                      fontSize: large ? 22 : 15,
                       fontWeight: FontWeight.w800))),
           const SizedBox(width: 10),
           SizedBox(
-            width: 40,
-            height: 56,
+            width: large ? 68 : 40,
+            height: large ? 98 : 56,
             child: BookCoverHero(
               tag: heroTag,
               style: const BookCoverStyle(borderRadius: 6),
@@ -232,13 +241,14 @@ class _RankedBookTile extends StatelessWidget {
                 Text(book.name,
                     style: TextStyle(
                         color: AppColors.white,
-                        fontSize: 13.5,
+                        fontSize: large ? 18 : 13.5,
                         fontWeight: FontWeight.w700),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
                 Text(book.authorNames,
-                    style: TextStyle(color: AppColors.grey2, fontSize: 12),
+                    style: TextStyle(
+                        color: AppColors.grey2, fontSize: large ? 15.5 : 12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
               ],

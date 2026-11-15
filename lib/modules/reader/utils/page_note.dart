@@ -50,6 +50,7 @@ Future<void> showAddPageNoteSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
+    constraints: const BoxConstraints(maxWidth: 720),
     builder: (_) => EditNoteSheet(
       initialText: '$pageLabel\n\n',
       title: ReaderNotesStrings.addNoteTitle,
@@ -73,7 +74,8 @@ Future<void> showAddPageNoteSheet(
       remoteId = created.id;
     } on ApiException {
       if (context.mounted) {
-        context.showAppSnackBar(ReaderNotesStrings.noteSaveFailedMessage, isError: true);
+        context.showAppSnackBar(ReaderNotesStrings.noteSaveFailedMessage,
+            isError: true);
       }
       return;
     }

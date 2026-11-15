@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../localization/strings/settings_strings.dart';
@@ -30,8 +30,7 @@ class _AppVersionLabelState extends State<AppVersionLabel> {
     try {
       final info = await PackageInfo.fromPlatform();
       if (!mounted) return;
-      setState(() =>
-          _label = SettingsStrings.appVersion(info.version, info.buildNumber));
+      setState(() => _label = SettingsStrings.appVersion(info.version, info.buildNumber));
     } catch (_) {
       // No bundle metadata to read — a widget test with no plugin behind the
       // channel, or a platform the plugin doesn't cover. The line simply

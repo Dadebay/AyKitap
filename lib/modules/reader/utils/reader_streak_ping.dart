@@ -27,8 +27,11 @@ class ReaderStreakPing {
       ..reset()
       ..start();
     _timer = Timer.periodic(_interval, (_) {
-      StreakService.instance.recordActiveSeconds(_interval.inSeconds);
+      // Timers can fire late while the UI isolate is busy turning a page.
+      // Report measured foreground time, not a fixed minute per callback.
+      final elapsed = _stopwatch.elapsed.inSeconds;
       _stopwatch.reset();
+      if (elapsed > 0) StreakService.instance.recordActiveSeconds(elapsed);
     });
   }
 

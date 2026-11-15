@@ -1,6 +1,9 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+
+import '../../../core/services/device_tier.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/theme_controller.dart';
@@ -90,7 +93,8 @@ class _CatalogDetailHeaderArtState extends State<CatalogDetailHeaderArt> {
             // crop-to-fill and reach both screen edges. The bare
             // [ColoredBox] branch needs it for the same reason: with no
             // child and loose constraints it collapses to 0x0.
-            child: _showBackdrop && url != null && url.isNotEmpty
+            // Low-end: no full-size blurred cover (a big decode + a blur layer).
+            child: _showBackdrop && !DeviceTier.isLowEnd && url != null && url.isNotEmpty
                 ? SizedBox.expand(
                     key: ValueKey(url),
                     child: ClipRect(
@@ -123,7 +127,6 @@ class _CatalogDetailHeaderArtState extends State<CatalogDetailHeaderArt> {
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  end: Alignment.centerRight,
                   colors: [
                     Colors.black.withValues(alpha: 0.55),
                     Colors.black.withValues(alpha: 0.30),

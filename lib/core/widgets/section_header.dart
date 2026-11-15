@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../theme/app_text_styles.dart';
 
 /// The "title (+ optional subtitle) / see-all link" row repeated at the top
@@ -11,6 +11,7 @@ class SectionHeader extends StatelessWidget {
     this.subtitle,
     this.seeAllLabel,
     this.onSeeAll,
+    this.large = false,
     this.padding = const EdgeInsets.fromLTRB(20, 20, 20, 12),
   });
 
@@ -18,6 +19,7 @@ class SectionHeader extends StatelessWidget {
   final String? subtitle;
   final String? seeAllLabel;
   final VoidCallback? onSeeAll;
+  final bool large;
   final EdgeInsetsGeometry padding;
 
   @override
@@ -32,16 +34,10 @@ class SectionHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: AppTextStyles.sectionTitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
+                Text(title, style: large ? AppTextStyles.sectionTitle.copyWith(fontSize: 21) : AppTextStyles.sectionTitle, maxLines: 1, overflow: TextOverflow.ellipsis),
                 if (subtitle != null) ...[
                   const SizedBox(height: 3),
-                  Text(subtitle!,
-                      style: AppTextStyles.sectionSubtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
+                  Text(subtitle!, style: large ? AppTextStyles.sectionSubtitle.copyWith(fontSize: 15) : AppTextStyles.sectionSubtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
                 ],
               ],
             ),
@@ -51,7 +47,7 @@ class SectionHeader extends StatelessWidget {
               onTap: onSeeAll,
               child: Padding(
                 padding: const EdgeInsets.only(top: 2),
-                child: Text(seeAllLabel ?? '', style: AppTextStyles.link),
+                child: Text(seeAllLabel ?? '', style: large ? AppTextStyles.link.copyWith(fontSize: 15) : AppTextStyles.link),
               ),
             ),
         ],

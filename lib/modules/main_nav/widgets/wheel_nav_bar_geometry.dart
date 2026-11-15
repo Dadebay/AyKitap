@@ -19,19 +19,29 @@ const _icons = [
   HugeIcons.strokeRoundedSearch01,
 ];
 
-// The profile tab's slot in [_icons] — [_WheelNavBarIcons] swaps its
-// HugeIcons.strokeRoundedUser glyph for the signed-in user's actual
-// [ProfileAvatar] once one is set (see [ProfileAvatarService]).
-const _profileTabIndex = 0;
-
 // ── Geometry ─────────────────────────────────────────────────────────────
 const _barHeight = 42.0;
 const _fabSize = 56.0;
 const _iconBoxSize = 40.0;
+const _tabletBarHeight = 54.0;
+const _tabletFabSize = 68.0;
+const _tabletIconBoxSize = 48.0;
+// A full-size iPad window has much more room than either a phone or a narrow
+// tablet window. Keep its visual and hit dimensions separate so phones and
+// Android tablets retain their current wheel layout.
+const _ipadBarHeight = 72.0;
+const _ipadFabSize = 88.0;
+const _ipadIconBoxSize = 60.0;
 // Minimum tappable square per icon — the visible icon can be smaller, this
 // just widens the invisible hit area to a finger-friendly size (~Apple's
 // 44pt guidance, with a little extra).
 const _minTapTarget = 52.0;
+const _tabletMinTapTarget = 64.0;
+const _ipadMinTapTarget = 72.0;
+
+bool _isFullSizeIpad(BuildContext context) =>
+    Theme.of(context).platform == TargetPlatform.iOS &&
+    MediaQuery.sizeOf(context).shortestSide >= 600;
 
 // The dome and the icon ring share the same centre (diskCenterY = _diskR -
 // _domeLift). Growing _diskR and _domeLift by the same amount enlarges the
@@ -45,6 +55,7 @@ const _pathR =
 // high above the bar. Lower this to drop the selected icon further down.
 const _selectedR = 390.0;
 const _stepRad = 14.0 * math.pi / 220.0; // angle between two icons
+const _ipadStepRad = 0.23;
 // Keeps diskCenterY (_diskR - _domeLift) at 170, the value that lands the
 // ring in the visible window — must track _diskR so the icons don't drift
 // off-screen when the dome size changes.
@@ -54,6 +65,8 @@ const _domeLift = 40.0; // how far the dome pokes above the bar's top edge
 // inside the widget's hit-test box (see build). Covers the full dome lift
 // plus a small margin; icons stay put visually, they just become tappable.
 const _domeHitOverhang = _domeLift + 6;
+const _tabletDomeHitOverhang = _domeHitOverhang + 20;
+const _ipadDomeHitOverhang = _domeHitOverhang + 34;
 
 // Only icons whose angle from the top is inside this window are drawn.
 // With 5 icons the farthest slot is still 2 steps away (2 * _stepRad ≈
@@ -61,6 +74,10 @@ const _domeHitOverhang = _domeLift + 6;
 // icon fully opaque at rest.
 const _windowRad = 1.90;
 const _fadeStart = 1.60;
+// Only the five useful icon copies need to be visible on an iPad; the next
+// wrap-around copies would otherwise protrude below the taller hit area.
+const _ipadWindowRad = 0.58;
+const _ipadFadeStart = 0.50;
 
 // ── Drag ─────────────────────────────────────────────────────────────────
 // How far, horizontally, one slot travels at the top of the ring:

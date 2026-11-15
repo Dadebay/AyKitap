@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../../core/layout/adaptive_content_width.dart';
+import '../../core/layout/two_column_layout.dart';
 import '../../core/localization/strings/profile_strings.dart';
 import '../../core/services/account_service.dart';
 import '../../core/services/purchase_mode_service.dart';
@@ -105,39 +108,67 @@ class _BalanceViewState extends State<_BalanceView> {
       ),
       body: SafeArea(
         top: false,
-        child: RefreshIndicator(
+        child: AdaptiveContentWidth(
+            maxWidth: 1100,
+            child: _buildContent(balance, iosStoreOnly)),
+      ),
+    );
+  }
+
+  Widget _buildContent(int? balance, bool iosStoreOnly) {
+    final card = BalanceCard(
+      balanceManat: balance,
+      useSubscribeCta: iosStoreOnly,
+      onAction:
+          iosStoreOnly ? () => openSubscriptionScreen(context) : _openTopUp,
+    );
+    final history = [
+      BalanceHistoryTabToggle(
+        selected: _selectedTab,
+        historyLabel: ProfileStrings.balanceHistoryTitle,
+        cardPaymentsLabel: ProfileStrings.cardPaymentsTitle,
+        onChanged: (tab) => setState(() => _selectedTab = tab),
+      ),
+      const SizedBox(height: 16),
+      _selectedTab == BalanceTab.history
+          ? const BalanceHistoryList()
+          : const BalanceCardPaymentsList(),
+    ];
+    // The list is often shorter than the screen (an empty history, a single
+    // row), and without AlwaysScrollable the pull gesture is rejected
+    // outright on exactly those pages.
+    Widget refreshable(List<Widget> children, EdgeInsets padding) =>
+        RefreshIndicator(
           onRefresh: _refresh,
           color: AppColors.primary,
           backgroundColor: AppColors.card,
           child: ListView(
-            // The list is often shorter than the screen (an empty history,
-            // a single row), and without this the pull gesture is rejected
-            // outright on exactly those pages — which are the ones most
-            // likely to be waiting on a refresh.
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-            children: [
-              BalanceCard(
-                balanceManat: balance,
-                useSubscribeCta: iosStoreOnly,
-                onAction: iosStoreOnly
-                    ? () => openSubscriptionScreen(context)
-                    : _openTopUp,
-              ),
-              const SizedBox(height: 20),
-              BalanceHistoryTabToggle(
-                selected: _selectedTab,
-                historyLabel: ProfileStrings.balanceHistoryTitle,
-                cardPaymentsLabel: ProfileStrings.cardPaymentsTitle,
-                onChanged: (tab) => setState(() => _selectedTab = tab),
-              ),
-              const SizedBox(height: 16),
-              _selectedTab == BalanceTab.history
-                  ? const BalanceHistoryList()
-                  : const BalanceCardPaymentsList(),
-            ],
+            padding: padding,
+            children: children,
           ),
-        ),
+        );
+    if (!TwoColumnLayout.isWide(context)) {
+      return refreshable([card, const SizedBox(height: 20), ...history],
+          const EdgeInsets.fromLTRB(20, 8, 20, 24));
+    }
+    // iPad: the balance card stays put on the left while the history scrolls
+    // beside it, instead of the card scrolling away under a long list.
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 8, 28, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 380,
+            child: ListView(
+                padding: const EdgeInsets.only(top: 8), children: [card]),
+          ),
+          const SizedBox(width: 32),
+          Expanded(
+              child: refreshable(
+                  history, const EdgeInsets.fromLTRB(0, 8, 0, 24))),
+        ],
       ),
     );
   }

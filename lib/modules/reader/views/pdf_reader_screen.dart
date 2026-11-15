@@ -31,6 +31,9 @@ import '../widgets/pdf_settings_sheet.dart';
 import '../widgets/reader_error_overlay.dart';
 import '../widgets/reader_focus_page_indicator.dart';
 import '../widgets/reader_loading_overlay.dart';
+import '../widgets/reader_page_viewport.dart';
+import '../../../core/widgets/snowfall.dart';
+import '../widgets/reader_scroll_hint.dart';
 import '../widgets/reader_top_bar.dart';
 
 part 'pdf_reader_screen_lifecycle.dart';

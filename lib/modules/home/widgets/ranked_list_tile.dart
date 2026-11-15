@@ -15,14 +15,19 @@ import 'book_cover_thumb.dart';
 class RankedListTile extends StatelessWidget {
   final int rank;
   final LibraryBook book;
-  const RankedListTile({super.key, required this.rank, required this.book});
+
+  /// Tablet sizing: bigger cover and type, and no side inset of its own
+  /// because the two-column grid that hosts it already pads the page.
+  final bool large;
+  const RankedListTile(
+      {super.key, required this.rank, required this.book, this.large = false});
 
   @override
   Widget build(BuildContext context) {
     final image = book.image;
     final heroTag = AppHeroTags.catalogBookCover(book.id);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
+      padding: EdgeInsets.fromLTRB(large ? 0 : 20, 6, large ? 0 : 20, 6),
       child: PressableScale(
         onTap: () => context.pushHero(CatalogBookDetailScreen(
           bookId: book.id,
@@ -38,14 +43,15 @@ class RankedListTile extends StatelessWidget {
           child: Row(
             children: [
               SizedBox(
-                  width: 22,
+                  width: large ? 28 : 22,
                   child: Text('$rank',
                       style: TextStyle(
                           color: AppColors.primary,
-                          fontSize: 16,
+                          fontSize: large ? 20 : 16,
                           fontWeight: FontWeight.w800))),
               const SizedBox(width: 10),
-              BookCoverThumb(imageUrl: image, heroTag: heroTag),
+              BookCoverThumb(
+                  imageUrl: image, heroTag: heroTag, width: large ? 76 : 54),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -54,14 +60,16 @@ class RankedListTile extends StatelessWidget {
                     Text(book.name,
                         style: TextStyle(
                             color: AppColors.white,
-                            fontSize: 14.5,
+                            fontSize: large ? 17 : 14.5,
                             fontWeight: FontWeight.w700),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 3),
                     Text(book.authorNames,
                         style:
-                            TextStyle(color: AppColors.grey2, fontSize: 12.5),
+                            TextStyle(
+                                color: AppColors.grey2,
+                                fontSize: large ? 14.5 : 12.5),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
                     if (book.pageCount != null) ...[

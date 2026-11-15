@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/layout/adaptive_content_width.dart';
+import '../../core/layout/two_column_layout.dart';
 
 import '../../core/localization/strings/profile_strings.dart';
 import '../../core/models/book_suggestion.dart';
@@ -69,7 +71,10 @@ class _BookSuggestionsScreenState extends State<BookSuggestionsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           ProfileStrings.deleteBookRequest,
-          style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800),
+          style: TextStyle(
+              color: AppColors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w800),
         ),
         content: Text(
           ProfileStrings.deleteBookRequestConfirm(suggestion.name),
@@ -78,11 +83,14 @@ class _BookSuggestionsScreenState extends State<BookSuggestionsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(ProfileStrings.cancel, style: TextStyle(color: AppColors.grey2)),
+            child: Text(ProfileStrings.cancel,
+                style: TextStyle(color: AppColors.grey2)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(ProfileStrings.delete, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700)),
+            child: Text(ProfileStrings.delete,
+                style: const TextStyle(
+                    color: Colors.redAccent, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -94,7 +102,8 @@ class _BookSuggestionsScreenState extends State<BookSuggestionsScreen> {
       await FeedbackApiService.deleteBookSuggestion(suggestion.id);
       if (!mounted) return;
       setState(() {
-        _suggestions = _suggestions?.where((item) => item.id != suggestion.id).toList();
+        _suggestions =
+            _suggestions?.where((item) => item.id != suggestion.id).toList();
         _deletingIds.remove(suggestion.id);
       });
       context.showAppSnackBar(ProfileStrings.bookRequestDeleted);
@@ -114,15 +123,22 @@ class _BookSuggestionsScreenState extends State<BookSuggestionsScreen> {
         scrolledUnderElevation: 0,
         centerTitle: true,
         leading: const AppBackButton(size: 20),
-        title: Text(ProfileStrings.myBookRequestsTitle, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+        title: Text(ProfileStrings.myBookRequestsTitle,
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700)),
       ),
-      body: SafeArea(top: false, child: _buildBody()),
+      body: SafeArea(
+          top: false,
+          child: AdaptiveContentWidth(maxWidth: 1100, child: _buildBody())),
       bottomNavigationBar: NewBookRequestBar(
         onPressed: _openRequestSheet,
         // A gentle breathing glow only while there's nothing else on the
         // page competing for attention — once requests exist the badge-y
         // pulse would just be noise next to them.
-        pulse: !_loading && _error == null && (_suggestions ?? const []).isEmpty,
+        pulse:
+            !_loading && _error == null && (_suggestions ?? const []).isEmpty,
       ),
     );
   }
@@ -138,9 +154,16 @@ class _BookSuggestionsScreenState extends State<BookSuggestionsScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey2, fontSize: 14)),
+              Text(_error!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.grey2, fontSize: 14)),
               const SizedBox(height: 12),
-              TextButton(onPressed: _load, child: Text(ProfileStrings.retry, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700))),
+              TextButton(
+                  onPressed: _load,
+                  child: Text(ProfileStrings.retry,
+                      style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700))),
             ],
           ),
         ),
@@ -154,15 +177,18 @@ class _BookSuggestionsScreenState extends State<BookSuggestionsScreen> {
       onRefresh: _load,
       color: AppColors.primary,
       backgroundColor: AppColors.surface,
-      child: ListView.separated(
+      child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-        itemCount: suggestions.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 14),
-        itemBuilder: (_, i) => BookSuggestionCard(
-          suggestion: suggestions[i],
-          isDeleting: _deletingIds.contains(suggestions[i].id),
-          onDelete: () => _deleteSuggestion(suggestions[i]),
-        ),
+        children: [
+          TwoColumnList(
+            itemCount: suggestions.length,
+            itemBuilder: (_, i) => BookSuggestionCard(
+              suggestion: suggestions[i],
+              isDeleting: _deletingIds.contains(suggestions[i].id),
+              onDelete: () => _deleteSuggestion(suggestions[i]),
+            ),
+          ),
+        ],
       ),
     );
   }

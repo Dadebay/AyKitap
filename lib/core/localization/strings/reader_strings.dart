@@ -35,6 +35,23 @@ class ReaderStrings {
   // ── "Continue reading" tab empty state ──────────────────────────────────
   // Moved to ReaderContinueStrings — see that file.
 
+  // ── First-open scroll hint ───────────────────────────────────────────
+  static String get scrollHintVertical => t(
+      tk: 'Sahypany ýokary-aşak süýşürip okaň',
+      ru: 'Листайте страницы вверх и вниз',
+      tr: 'Sayfaları yukarı-aşağı kaydırarak okuyun',
+      en: 'Swipe up and down to turn pages');
+  static String get scrollHintHorizontal => t(
+      tk: 'Sahypany çepe-saga süýşürip okaň',
+      ru: 'Листайте страницы влево и вправо',
+      tr: 'Sayfaları sola-sağa kaydırarak okuyun',
+      en: 'Swipe left and right to turn pages');
+  static String get scrollHintTapToClose => t(
+      tk: 'Ýapmak üçin ekrana basyň',
+      ru: 'Нажмите, чтобы закрыть',
+      tr: 'Kapatmak için dokunun',
+      en: 'Tap to close');
+
   // ── Reader screen ────────────────────────────────────────────────────
   static String get bookOpening => t(
       tk: 'Kitap açylýar...',

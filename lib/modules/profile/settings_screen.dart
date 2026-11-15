@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
+
+import '../../core/layout/adaptive_content_width.dart';
+import '../../core/layout/two_column_layout.dart';
 import '../../core/localization/app_locale.dart';
 import '../../core/localization/strings/notification_strings.dart';
 import '../../core/localization/strings/settings_strings.dart';
@@ -13,6 +16,7 @@ import '../../core/services/book_access_service.dart';
 import '../../core/services/firebase_auth_service.dart';
 import '../../core/services/notification_permission_flow.dart';
 import '../../core/services/onesignal_service.dart';
+import '../../core/services/purchase_mode_service.dart';
 import '../../core/services/revenue_cat_service.dart';
 import '../../core/services/subscription_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -60,7 +64,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
-  AppLanguage _languageFor(AppLanguageCode code) => kSettingsLanguages.firstWhere((l) => l.code == code);
+  AppLanguage _languageFor(AppLanguageCode code) =>
+      kSettingsLanguages.firstWhere((l) => l.code == code);
 
   // Best-effort: the local session (see [AuthSession]) is what "logged in"
   // actually means to the rest of the app, so a failed/offline logout call
@@ -77,7 +82,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => LanguageSheet(languages: kSettingsLanguages, selected: current),
+      constraints: const BoxConstraints(maxWidth: 720),
+      builder: (_) =>
+          LanguageSheet(languages: kSettingsLanguages, selected: current),
     );
     if (result != null) {
       await AppLocale.instance.setLanguage(result.code);
@@ -121,6 +128,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // Drop the cached /users/me record too, so the next account doesn't
     // briefly see this one's balance.
     AccountService.instance.clear();
+    PurchaseModeService.instance.clearForSignedOutUser();
     // ...and this one's purchased books, which otherwise would unlock them
     // for whoever logs in next.
     await BookAccessService.instance.clear();
@@ -143,7 +151,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _confirmLogout() async {
     final confirmed = await showSettingsConfirmDialog(
       context,
-      icon: HugeIcon(icon: HugeIcons.strokeRoundedLogout01, color: AppColors.primary, size: 26),
+      icon: HugeIcon(
+          icon: HugeIcons.strokeRoundedLogout01,
+          color: AppColors.primary,
+          size: 26),
       iconSize: 56,
       iconColor: AppColors.primary,
       title: SettingsStrings.logoutTitle,
@@ -157,7 +168,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _confirmDeleteAccount() async {
     final confirmed = await showSettingsConfirmDialog(
       context,
-      icon: const HugeIcon(icon: HugeIcons.strokeRoundedDelete02, color: Colors.redAccent),
+      icon: const HugeIcon(
+          icon: HugeIcons.strokeRoundedDelete02, color: Colors.redAccent),
       iconSize: 52,
       iconColor: Colors.redAccent,
       title: SettingsStrings.deleteAccountTitle,
@@ -191,19 +203,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: AppColors.bg,
         leading: const AppBackButton(size: 20),
         centerTitle: true,
-        title: Text(SettingsStrings.title, style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+        title: Text(SettingsStrings.title,
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700)),
       ),
       body: SafeArea(
         top: false,
-        child: ListView(
+        child: AdaptiveContentWidth(
+            maxWidth: 1000,
+            child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            TwoColumnLayout(
+              left: [
             SettingsGroup(children: [
               SwitchTile(
-                icon: darkTheme ? HugeIcons.strokeRoundedMoon02 : HugeIcons.strokeRoundedSun03,
-                iconColor: darkTheme ? const Color(0xFF8B7BF0) : const Color(0xFFFFB020),
+                icon: darkTheme
+                    ? HugeIcons.strokeRoundedMoon02
+                    : HugeIcons.strokeRoundedSun03,
+                iconColor: darkTheme
+                    ? const Color(0xFF8B7BF0)
+                    : const Color(0xFFFFB020),
                 label: SettingsStrings.theme,
-                value: darkTheme ? SettingsStrings.themeDark : SettingsStrings.themeLight,
+                value: darkTheme
+                    ? SettingsStrings.themeDark
+                    : SettingsStrings.themeLight,
                 switchValue: darkTheme,
                 onChanged: (v) => AppTheme.instance.setDark(v),
               ),
@@ -215,13 +241,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: _pickLanguage,
               ),
             ]),
-            const SizedBox(height: 16),
+                if (widget.isLoggedIn) ...[
+                  const SizedBox(height: 16),
+              SettingsGroup(children: [
+                NavTile(
+                  icon: HugeIcons.strokeRoundedLogout01,
+                  label: SettingsStrings.logout,
+                  danger: true,
+                  onTap: _confirmLogout,
+                ),
+                NavTile(
+                    icon: HugeIcons.strokeRoundedDelete02,
+                    label: SettingsStrings.deleteAccount,
+                    danger: true,
+                    onTap: _confirmDeleteAccount),
+              ]),
+                ],
+              ],
+              right: [
             SettingsGroup(children: [
               SwitchTile(
-                icon: _notificationsEnabled ? HugeIcons.strokeRoundedNotification02 : HugeIcons.strokeRoundedNotificationOff02,
+                icon: _notificationsEnabled
+                    ? HugeIcons.strokeRoundedNotification02
+                    : HugeIcons.strokeRoundedNotificationOff02,
                 iconColor: AppColors.primary,
                 label: NotificationStrings.settingsLabel,
-                value: _notificationsEnabled ? NotificationStrings.statusOn : NotificationStrings.settingsSubtitleOff,
+                value: _notificationsEnabled
+                    ? NotificationStrings.statusOn
+                    : NotificationStrings.settingsSubtitleOff,
                 switchValue: _notificationsEnabled,
                 onChanged: _setNotifications,
                 control: AppSwitch(
@@ -230,30 +277,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onChanged: _setNotifications,
                 ),
               ),
-              NavTile(icon: HugeIcons.strokeRoundedCustomerService01, label: SettingsStrings.contactUs, value: '', onTap: () => ContactUsSheet.show(context)),
+              NavTile(
+                  icon: HugeIcons.strokeRoundedCustomerService01,
+                  label: SettingsStrings.contactUs,
+                  value: '',
+                  onTap: () => ContactUsSheet.show(context)),
               NavTile(
                 icon: HugeIcons.strokeRoundedCrown02,
                 label: SettingsStrings.storeSubscription,
-                value: isPlusActive ? SettingsStrings.storeSubscriptionActive : SettingsStrings.storeSubscriptionInactive,
+                value: isPlusActive
+                    ? SettingsStrings.storeSubscriptionActive
+                    : SettingsStrings.storeSubscriptionInactive,
                 onTap: _openStoreSubscription,
               ),
             ]),
-            if (widget.isLoggedIn) ...[
-              const SizedBox(height: 16),
-              SettingsGroup(children: [
-                NavTile(
-                  icon: HugeIcons.strokeRoundedLogout01,
-                  label: SettingsStrings.logout,
-                  danger: true,
-                  onTap: _confirmLogout,
-                ),
-                NavTile(icon: HugeIcons.strokeRoundedDelete02, label: SettingsStrings.deleteAccount, danger: true, onTap: _confirmDeleteAccount),
-              ]),
-            ],
+              ],
+            ),
             const SizedBox(height: 24),
             const Center(child: AppVersionLabel()),
           ],
-        ),
+        )),
       ),
     );
   }

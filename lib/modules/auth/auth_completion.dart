@@ -45,6 +45,7 @@ Future<void> completeBackendLogin(
   String? suggestedName,
 }) async {
   await AuthSession.saveToken(result.accessToken, phone: phone);
+  await AuthSession.saveLoginMethod(loginMethod);
   await AuthSession.saveUserId(result.user.id);
   unawaited(AnalyticsService.instance.logLogin(loginMethod: loginMethod));
   // Boot-time token fetch in FirebaseMessagingService.init() ran before this

@@ -5,13 +5,12 @@
 import 'package:aykitap/core/models/collection.dart';
 import 'package:aykitap/core/models/library_book.dart';
 import 'package:aykitap/modules/home/widgets/catalog_rank_shelf_card.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 const _longTitle = 'New York Times iň köp satylanlary';
 
-Collection _collection({String name = _longTitle, String? subTitle}) =>
-    Collection(
+Collection _collection({String name = _longTitle, String? subTitle}) => Collection(
       id: 1,
       type: CollectionType.book,
       cardType: CollectionCardType.card2,
@@ -40,8 +39,7 @@ void main() {
         ),
       );
 
-  testWidgets('a long collection name wraps to two lines instead of being cut',
-      (tester) async {
+  testWidgets('a long collection name wraps to two lines instead of being cut', (tester) async {
     await tester.pumpWidget(wrap(_collection()));
     await tester.pump();
 
@@ -50,8 +48,7 @@ void main() {
     expect(title.overflow, TextOverflow.ellipsis);
   });
 
-  testWidgets('the title stays inside the card rather than running past it',
-      (tester) async {
+  testWidgets('the title stays inside the card rather than running past it', (tester) async {
     await tester.pumpWidget(wrap(_collection()));
     await tester.pump();
 
@@ -64,10 +61,8 @@ void main() {
     expect(title.left, greaterThanOrEqualTo(card.left));
   });
 
-  testWidgets('a two-line title and a subtitle both fit the 84px banner',
-      (tester) async {
-    await tester
-        .pumpWidget(wrap(_collection(subTitle: 'Hepdelik täzelenýän sanaw')));
+  testWidgets('a two-line title and a subtitle both fit the 84px banner', (tester) async {
+    await tester.pumpWidget(wrap(_collection(subTitle: 'Hepdelik täzelenýän sanaw')));
     await tester.pump();
 
     // A RenderFlex overflow inside the banner would already have failed this

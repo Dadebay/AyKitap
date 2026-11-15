@@ -103,9 +103,11 @@ extension _SubscriptionScreenActions on _SubscriptionScreenState {
 
   Future<void> _choosePaymentMethod() async {
     // showStore stays false here — a subscription is always priced in TMT
-    // from the balance, so this checkout only ever offers promo code/bank;
-    // the store branch is balance-top-up-only (see startBalanceTopUp).
-    final choice = await PaymentMethodSheet.show(context);
+    // from the balance, so the store branch is balance-top-up-only (see
+    // startBalanceTopUp). TMCELL is offered exactly as it is on the balance
+    // top-up sheet: it just fills the balance, which this checkout spends.
+    final choice =
+        await PaymentMethodSheet.show(context, showTmcell: canOfferTmcell);
     if (choice == null || !mounted) return;
     switch (choice) {
       case PaymentMethodChoice.promoCode:
@@ -113,10 +115,12 @@ extension _SubscriptionScreenActions on _SubscriptionScreenState {
       case PaymentMethodChoice.bankCard:
         await _payWithBank();
       case PaymentMethodChoice.tmcell:
+        await openTmcellPayment(context);
+        // The transfer is credited by the backend later; re-read the balance
+        // in case it has already landed.
+        if (mounted) await context.read<AccountService>().refresh();
       case PaymentMethodChoice.store:
-        // Neither is offered here — this sheet is opened without them (see
-        // the comment above). A subscription is paid from the balance; the
-        // ways of *filling* that balance live in [startBalanceTopUp].
+        // Not offered here — a subscription is paid from the balance.
         break;
     }
   }

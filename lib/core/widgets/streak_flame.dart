@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The looping streak flame (Lottie). Kept small and always animating so the
 /// streak counter draws the eye. Reused in the home header and the profile.

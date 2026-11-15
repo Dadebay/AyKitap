@@ -1,5 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../widgets/notification_permission_dialog.dart';
 import 'app_prefs.dart';
@@ -75,8 +75,7 @@ class NotificationPermissionFlow {
     // `fallbackToSettings` matters here: once the OS has recorded a denial it
     // stops showing the prompt at all, so without it the switch would appear
     // to do nothing at all for anyone who said no once.
-    final granted = OneSignalService.instance.hasPermission ||
-        await _requestFromOs(fallbackToSettings: true);
+    final granted = OneSignalService.instance.hasPermission || await _requestFromOs(fallbackToSettings: true);
     if (!granted) {
       await AppPrefs.setNotificationsEnabled(false);
       return false;
@@ -96,14 +95,12 @@ class NotificationPermissionFlow {
   /// the coupling this integration is supposed to avoid.
   static Future<bool> _requestFromOs({bool fallbackToSettings = false}) async {
     if (OneSignalService.instance.isReady) {
-      return OneSignalService.instance
-          .requestPermission(fallbackToSettings: fallbackToSettings);
+      return OneSignalService.instance.requestPermission(fallbackToSettings: fallbackToSettings);
     }
     try {
       final settings = await FirebaseMessaging.instance.requestPermission();
       final status = settings.authorizationStatus;
-      return status == AuthorizationStatus.authorized ||
-          status == AuthorizationStatus.provisional;
+      return status == AuthorizationStatus.authorized || status == AuthorizationStatus.provisional;
     } catch (error) {
       debugPrint('Notification permission request failed: $error');
       return false;

@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart' as mui;
 
 /// Türkmen has no data in `flutter_localizations` (it ships 116 languages;
 /// `tk` isn't one) nor in `intl` (120 date locales; `tk` isn't one either).
@@ -28,6 +29,12 @@ const List<LocalizationsDelegate<dynamic>> kAppLocalizationsDelegates =
     <LocalizationsDelegate<dynamic>>[
   _TurkmenMaterialLocalizationsDelegate(),
   _TurkmenCupertinoLocalizationsDelegate(),
+  // The `material_ui` package has its *own* MaterialLocalizations type, which
+  // screens/dialogs written against it (showDialog, MainNavScreen, ...) look
+  // up. Without these it throws "No MaterialLocalizations found" even though
+  // the legacy `flutter/material` delegates below are present.
+  _TurkmenMuiMaterialLocalizationsDelegate(),
+  mui.GlobalMaterialLocalizations.delegate,
   GlobalMaterialLocalizations.delegate,
   GlobalWidgetsLocalizations.delegate,
   GlobalCupertinoLocalizations.delegate,
@@ -61,4 +68,19 @@ class _TurkmenCupertinoLocalizationsDelegate
 
   @override
   bool shouldReload(_TurkmenCupertinoLocalizationsDelegate old) => false;
+}
+
+class _TurkmenMuiMaterialLocalizationsDelegate
+    extends LocalizationsDelegate<mui.MaterialLocalizations> {
+  const _TurkmenMuiMaterialLocalizationsDelegate();
+
+  @override
+  bool isSupported(Locale locale) => locale.languageCode == 'tk';
+
+  @override
+  Future<mui.MaterialLocalizations> load(Locale locale) =>
+      mui.GlobalMaterialLocalizations.delegate.load(kTurkmenFallbackLocale);
+
+  @override
+  bool shouldReload(_TurkmenMuiMaterialLocalizationsDelegate old) => false;
 }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lottie/lottie.dart';
 import '../../core/navigation/fade_page_route.dart';
 import '../../core/services/app_prefs.dart';
 import '../../core/services/book_access_service.dart';
@@ -12,6 +13,7 @@ import '../../core/services/subscription_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_motion.dart';
 import '../../core/theme/theme_controller.dart';
+import '../../core/widgets/snowfall.dart';
 import '../library/offline_library_screen.dart';
 import '../main_nav/main_nav_screen.dart';
 import '../onboarding/onboarding_screen.dart';
@@ -36,20 +38,32 @@ class SplashScreen extends StatefulWidget {
   /// nothing artificially stretches the wait beyond whatever the real prefs
   /// read and connectivity check already take on their own.
   @visibleForTesting
-  static Duration splashFloorFor({required bool reduceMotion}) => reduceMotion ? Duration.zero : minSplashDelay;
+  static Duration splashFloorFor({required bool reduceMotion}) => reduceMotion
+      ? Duration.zero
+      // New Year: hold until Santa's sleigh (frame 65 of 125 @ 25 fps) has
+      // finished its flight instead of cutting it off.
+      : (kNewYearTheme ? sleighDuration : minSplashDelay);
+
+  /// Santa leaves the frame at frame 65 of `santa_sleigh.json` (25 fps); the
+  /// rest of the file is empty, so there is nothing to wait for after this.
+  static const sleighDuration = Duration(milliseconds: 2800);
 
   /// Pure routing decision, pulled out of [_SplashScreenState._bootstrap] so
   /// it's unit-testable without standing up [AppPrefs]/`Connectivity` (both
   /// platform-backed) or the animation lifecycle around it.
   @visibleForTesting
-  static Widget destinationFor({required bool isOffline, required bool onboardingSeen}) =>
-      isOffline ? const OfflineLibraryScreen() : (onboardingSeen ? const MainNavScreen() : const OnboardingScreen());
+  static Widget destinationFor(
+          {required bool isOffline, required bool onboardingSeen}) =>
+      isOffline
+          ? const OfflineLibraryScreen()
+          : (onboardingSeen ? const MainNavScreen() : const OnboardingScreen());
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
   // One-shot entrance timeline. Duration set in [initState] — shortened (or
   // skipped outright) under reduced motion, so it can't be `late final` with
   // an inline initializer the way [_ambient] used to be.
@@ -94,7 +108,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     super.initState();
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: AppTheme.instance.isDark ? Brightness.light : Brightness.dark,
+      statusBarIconBrightness:
+          AppTheme.instance.isDark ? Brightness.light : Brightness.dark,
     ));
   }
 
@@ -116,7 +131,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     final reduceMotion = AppMotion.reduceMotion(context);
     // `duration` only matters for the `forward()` branch below — never read
     // when reduced motion jumps straight to `value = 1`.
-    _entrance = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    _entrance = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 800));
     if (reduceMotion) {
       // Same convention [StaggerFadeIn] uses: jump straight to the settled
       // frame instead of animating through it.
@@ -141,7 +157,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     // from disk at boot rather than on the first book tapped. The purchased
     // list is then re-synced from the backend when there's a session —
     // best-effort, so this never delays the splash.
-    unawaited(BookAccessService.instance.load().then((_) => BookAccessService.instance.refreshPurchased()));
+    unawaited(BookAccessService.instance
+        .load()
+        .then((_) => BookAccessService.instance.refreshPurchased()));
     unawaited(SubscriptionService.instance.load());
     unawaited(DownloadedFilesStore.instance.load());
 
@@ -169,7 +187,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       context,
       FadePageRoute(
         reduceMotion: reduceMotion,
-        child: SplashScreen.destinationFor(isOffline: isOffline, onboardingSeen: seen),
+        child: SplashScreen.destinationFor(
+            isOffline: isOffline, onboardingSeen: seen),
       ),
     );
   }
@@ -211,18 +230,39 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      isDark ? const Color(0xFF0C0C12) : const Color(0x1AD8CFC4),
+                      isDark
+                          ? const Color(0xFF0C0C12)
+                          : const Color(0x1AD8CFC4),
                     ],
                   ),
                 ),
               ),
             ),
+            // New Year: Santa's sleigh flying across the top of the splash.
+            if (kNewYearTheme && !AppMotion.reduceMotion(context))
+              Positioned(
+                top: MediaQuery.paddingOf(context).top + 24,
+                left: 0,
+                right: 0,
+                child: IgnorePointer(
+                  child: Lottie.asset(
+                    'assets/animations/santa_sleigh.json',
+                    width: MediaQuery.sizeOf(context).width,
+                    fit: BoxFit.fitWidth,
+                    repeat: false,
+                  ),
+                ),
+              ),
             Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Spacer(flex: 3),
-                  SplashLogo(entrance: _entrance, ambient: _ambient, logoScale: _logoScale, logoFade: _logoFade),
+                  SplashLogo(
+                      entrance: _entrance,
+                      ambient: _ambient,
+                      logoScale: _logoScale,
+                      logoFade: _logoFade),
                   const SizedBox(height: 28),
                   SplashWordmark(animation: _wordmark),
                   const SizedBox(height: 14),

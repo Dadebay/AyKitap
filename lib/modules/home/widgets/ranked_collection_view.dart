@@ -68,16 +68,35 @@ class RankedCollectionView extends StatelessWidget {
             flexibleSpace: FlexibleSpaceBar(
                 background: RankedCollectionBanner(imageUrl: resolvedBanner)),
           ),
-          SliverPadding(
-            padding: const EdgeInsets.only(top: 8, bottom: 20),
-            sliver: SliverList.builder(
-              itemCount: books.length,
-              itemBuilder: (context, i) => StaggerFadeIn(
-                index: i,
-                child: RankedListTile(rank: i + 1, book: books[i]),
+          if (MediaQuery.sizeOf(context).width >= 700)
+            // Tablet: two rows' worth per line instead of one narrow column
+            // hugging the left edge of a wide screen.
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+              sliver: SliverGrid.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 32,
+                  mainAxisExtent: 150,
+                ),
+                itemCount: books.length,
+                itemBuilder: (context, i) => StaggerFadeIn(
+                  index: i ~/ 2,
+                  child: RankedListTile(rank: i + 1, book: books[i], large: true),
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.only(top: 8, bottom: 20),
+              sliver: SliverList.builder(
+                itemCount: books.length,
+                itemBuilder: (context, i) => StaggerFadeIn(
+                  index: i,
+                  child: RankedListTile(rank: i + 1, book: books[i]),
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

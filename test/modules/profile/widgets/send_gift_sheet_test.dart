@@ -14,9 +14,9 @@ import 'package:aykitap/core/network/dio_client.dart';
 import 'package:aykitap/core/services/account_service.dart';
 import 'package:aykitap/modules/profile/widgets/send_gift_sheet.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -30,12 +30,10 @@ class _GiftAdapter implements HttpClientAdapter {
   final int balance;
   final List<RequestOptions> requests = [];
 
-  bool get sentGift =>
-      requests.any((r) => r.path == AccountEndpoints.sendToFriend);
+  bool get sentGift => requests.any((r) => r.path == AccountEndpoints.sendToFriend);
 
   @override
-  Future<ResponseBody> fetch(RequestOptions options,
-      Stream<Uint8List>? requestStream, Future<void>? cancelFuture) async {
+  Future<ResponseBody> fetch(RequestOptions options, Stream<Uint8List>? requestStream, Future<void>? cancelFuture) async {
     requests.add(options);
     final body = switch (options.path) {
       AccountEndpoints.isUserExists => {
@@ -46,10 +44,9 @@ class _GiftAdapter implements HttpClientAdapter {
           'data': {'id': 1, 'balance': balance}
         },
     };
-    return ResponseBody.fromString(jsonEncode(body), 200,
-        headers: {
-          Headers.contentTypeHeader: [Headers.jsonContentType]
-        });
+    return ResponseBody.fromString(jsonEncode(body), 200, headers: {
+      Headers.contentTypeHeader: [Headers.jsonContentType]
+    });
   }
 
   @override
@@ -103,8 +100,7 @@ void main() {
     await AccountService.instance.refresh();
   }
 
-  testWidgets('sending more than the balance is refused inside the sheet',
-      (tester) async {
+  testWidgets('sending more than the balance is refused inside the sheet', (tester) async {
     await useBalance(10);
     await _pumpSheet(tester);
     await _fillIn(tester, amount: '101');
@@ -117,8 +113,7 @@ void main() {
     expect(adapter.sentGift, isFalse);
   });
 
-  testWidgets('the refusal clears as soon as the amount is edited',
-      (tester) async {
+  testWidgets('the refusal clears as soon as the amount is edited', (tester) async {
     await useBalance(10);
     await _pumpSheet(tester);
     await _fillIn(tester, amount: '101');

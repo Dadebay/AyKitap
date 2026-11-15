@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/layout/adaptive_content_width.dart';
 import '../../core/localization/strings/gift_strings.dart';
 import '../../core/localization/strings/payment_strings.dart';
 import '../../core/localization/strings/profile_feedback_strings.dart';
@@ -19,6 +20,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/widgets/streak_flame.dart';
 import '../../core/widgets/streak_week_row.dart';
 import '../auth/phone_login_screen.dart';
+import '../main_nav/widgets/wheel_nav_bar.dart';
 import '../payment/open_subscription_screen.dart';
 import '../streak/streak_screen.dart';
 import 'balance_screen.dart';
@@ -81,22 +83,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: AppColors.journeyMist,
         scrolledUnderElevation: 0.0,
         centerTitle: true,
-        title: Text(ProfileStrings.profileTitle, style: TextStyle(color: AppColors.journeyInk, fontSize: 22, fontWeight: FontWeight.w700)),
+        title: Text(ProfileStrings.profileTitle,
+            style: TextStyle(
+                color: AppColors.journeyInk,
+                fontSize: 22,
+                fontWeight: FontWeight.w700)),
       ),
       body: SafeArea(
         bottom: false,
-        child: ListView(
+        child: _isLoggedIn && MediaQuery.sizeOf(context).width >= 700
+            ? _buildTabletBody(context, balance, premium)
+            : AdaptiveContentWidth(
+            child: ListView(
           // Extra bottom padding so the last card clears the floating nav
           // bar's dome — otherwise its solid card color shows through
           // behind the bar, unlike the plain background on other tabs.
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 110),
+          padding: EdgeInsets.fromLTRB(
+              20, 16, 20, WheelNavBar.clearance(context) + 16),
           children: _isLoggedIn
               ? [
-                  ProfileTopSection(name: _name, maskedPhone: _maskedPhone, avatarIndex: _avatarIndex, avatarImage: _avatarImage, avatarUrl: _backendAvatarUrl, onTap: _openEditProfile),
+                  ProfileTopSection(
+                      name: _name,
+                      maskedPhone: _maskedPhone,
+                      avatarIndex: _avatarIndex,
+                      avatarImage: _avatarImage,
+                      avatarUrl: _backendAvatarUrl,
+                      onTap: _openEditProfile),
                   const SizedBox(height: 24),
                   _buildBalanceEntry(context, balance),
-                  const SizedBox(height: 12),
-                  _buildSendGiftButton(context),
+                  // Gifting moves TMT between Turkmen phone numbers, so it
+                  // is not offered to Google/Apple/email accounts.
+                  if (!AuthSession.isInternational) ...[
+                    const SizedBox(height: 12),
+                    _buildSendGiftButton(context),
+                  ],
                   const SizedBox(height: 12),
                   _buildSubscriptionEntry(context, premium),
                   const SizedBox(height: 12),
@@ -115,6 +135,75 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 24),
                   _buildSettingsEntry(context),
                 ],
+        )),
+      ),
+    );
+  }
+
+  /// iPad layout: the reader's identity and money on the left, everything
+  /// else on the right — instead of one phone-width column of ten full-width
+  /// bars floating in the middle of a wide screen.
+  Widget _buildTabletBody(
+      BuildContext context, int? balance, PremiumAccessService premium) {
+    final bottomPad = WheelNavBar.clearance(context) + 16;
+    final listPadding = EdgeInsets.fromLTRB(0, 16, 0, bottomPad);
+    Widget pair(Widget a, Widget b) => Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: a),
+            const SizedBox(width: 12),
+            Expanded(child: b),
+          ],
+        );
+    return AdaptiveContentWidth(
+      maxWidth: 1100,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left: who you are, and your balance.
+            SizedBox(
+              width: 340,
+              child: ListView(
+                padding: listPadding,
+                children: [
+                  ProfileTopSection(
+                      name: _name,
+                      maskedPhone: _maskedPhone,
+                      avatarIndex: _avatarIndex,
+                      avatarImage: _avatarImage,
+                      avatarUrl: _backendAvatarUrl,
+                      onTap: _openEditProfile),
+                  const SizedBox(height: 28),
+                  _buildBalanceEntry(context, balance),
+                  // Gifting moves TMT between Turkmen phone numbers, so it
+                  // is not offered to Google/Apple/email accounts.
+                  if (!AuthSession.isInternational) ...[
+                    const SizedBox(height: 12),
+                    _buildSendGiftButton(context),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 32),
+            // Right: subscription, streak, then the rest as a two-up grid.
+            Expanded(
+              child: ListView(
+                padding: listPadding,
+                children: [
+                  _buildSubscriptionEntry(context, premium),
+                  const SizedBox(height: 12),
+                  _buildStreakSection(context),
+                  const SizedBox(height: 12),
+                  pair(_buildSettingsEntry(context), _buildNotesButton(context)),
+                  const SizedBox(height: 12),
+                  pair(_buildBookRequestButton(context),
+                      _buildReportProblemButton(context)),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

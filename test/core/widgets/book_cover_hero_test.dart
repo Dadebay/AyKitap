@@ -9,8 +9,8 @@ import 'package:aykitap/core/navigation/app_navigator.dart';
 import 'package:aykitap/core/navigation/hero_page_route.dart';
 import 'package:aykitap/core/theme/app_motion.dart';
 import 'package:aykitap/core/widgets/book_cover_hero.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 const _cardStyle = BookCoverStyle(
   borderRadius: 6,
@@ -30,8 +30,7 @@ const _tag = 'catalog-book-cover-42';
 Finder get _flightArtwork => find.byType(FittedBox);
 
 BoxDecoration _flightDecoration(WidgetTester tester) {
-  final container =
-      find.ancestor(of: _flightArtwork, matching: find.byType(Container)).first;
+  final container = find.ancestor(of: _flightArtwork, matching: find.byType(Container)).first;
   return tester.widget<Container>(container).decoration! as BoxDecoration;
 }
 
@@ -76,8 +75,7 @@ Widget _shelfApp({bool reduceMotion = false}) => MediaQuery(
     );
 
 void main() {
-  testWidgets('flight interpolates the cover chrome instead of snapping to it',
-      (tester) async {
+  testWidgets('flight interpolates the cover chrome instead of snapping to it', (tester) async {
     await tester.pumpWidget(_shelfApp());
     await tester.tap(find.byType(BookCoverHero));
     await tester.pump();
@@ -103,16 +101,13 @@ void main() {
     expect(_flightArtwork, findsNothing);
   });
 
-  testWidgets('flight artwork keeps one decode size for the whole flight',
-      (tester) async {
+  testWidgets('flight artwork keeps one decode size for the whole flight', (tester) async {
     await tester.pumpWidget(_shelfApp());
     await tester.tap(find.byType(BookCoverHero));
     await tester.pump();
 
     Size artworkSize() {
-      final box = find
-          .descendant(of: _flightArtwork, matching: find.byType(SizedBox))
-          .first;
+      final box = find.descendant(of: _flightArtwork, matching: find.byType(SizedBox)).first;
       final sized = tester.widget<SizedBox>(box);
       return Size(sized.width!, sized.height!);
     }
@@ -126,8 +121,7 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('pushHero fades the page in rather than zooming it',
-      (tester) async {
+  testWidgets('pushHero fades the page in rather than zooming it', (tester) async {
     await tester.pumpWidget(_shelfApp());
     await tester.tap(find.byType(BookCoverHero));
     await tester.pump();
@@ -147,8 +141,7 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('pop flight completes and returns to the source cover',
-      (tester) async {
+  testWidgets('pop flight completes and returns to the source cover', (tester) async {
     await tester.pumpWidget(_shelfApp());
     await tester.tap(find.byType(BookCoverHero));
     await tester.pumpAndSettle();
@@ -166,18 +159,11 @@ void main() {
     // popped, not just covered), wearing its own chrome again rather than
     // stuck mid-interpolation or on the detail's.
     expect(find.byType(BookCoverHero), findsOneWidget);
-    final restored = tester
-        .widget<Container>(find
-            .descendant(
-                of: find.byType(BookCoverHero),
-                matching: find.byType(Container))
-            .first)
-        .decoration! as BoxDecoration;
+    final restored = tester.widget<Container>(find.descendant(of: find.byType(BookCoverHero), matching: find.byType(Container)).first).decoration! as BoxDecoration;
     expect((restored.borderRadius! as BorderRadius).topLeft.x, 6);
   });
 
-  testWidgets('reduced motion renders the cover with no Hero at all',
-      (tester) async {
+  testWidgets('reduced motion renders the cover with no Hero at all', (tester) async {
     await tester.pumpWidget(_shelfApp(reduceMotion: true));
 
     // No Hero anywhere — [BookCoverHero] returns the bare surface instead of

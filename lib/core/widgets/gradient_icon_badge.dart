@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:material_ui/material_ui.dart';
+
 import '../constants/app_radius.dart';
 import '../theme/app_gradients.dart';
 
@@ -22,10 +23,8 @@ class GradientIconBadge extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration:
-          BoxDecoration(gradient: gradient, borderRadius: AppRadius.brXl),
-      child: Center(
-          child: HugeIcon(icon: icon, color: Colors.white, size: size * 0.47)),
+      decoration: BoxDecoration(gradient: gradient, borderRadius: AppRadius.brXl),
+      child: Center(child: HugeIcon(icon: icon, color: Colors.white, size: size * 0.47)),
     );
   }
 }

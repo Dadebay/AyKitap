@@ -11,15 +11,20 @@ extension _WheelNavBarIcons on _WheelNavBarState {
     double centreX,
     double diskCenterY,
     double selFloat,
+    bool isTablet,
+    bool isIpad,
   ) {
+    final stepRad = isIpad ? _ipadStepRad : _stepRad;
+    final windowRad = isIpad ? _ipadWindowRad : _windowRad;
+    final fadeStart = isIpad ? _ipadFadeStart : _fadeStart;
     // Collect every visible copy (including wrap-around neighbours).
     final items = <({int index, double angle, int copy})>[];
     for (var i = 0; i < n; i++) {
       final rel = i - selFloat;
       final cands = [rel, rel + n, rel - n];
       for (var c = 0; c < cands.length; c++) {
-        final angle = cands[c] * _stepRad;
-        if (angle.abs() < _windowRad) {
+        final angle = cands[c] * stepRad;
+        if (angle.abs() < windowRad) {
           items.add((index: i, angle: angle, copy: c));
         }
       }
@@ -28,24 +33,45 @@ extension _WheelNavBarIcons on _WheelNavBarState {
     // Draw the outermost first so the centre icon ends up on top.
     items.sort((a, b) => b.angle.abs().compareTo(a.angle.abs()));
 
-
     return items.map((it) {
       final angle = it.angle;
       final absA = angle.abs();
 
       final opacity =
-          ((_windowRad - absA) / (_windowRad - _fadeStart)).clamp(0.0, 1.0);
+          ((windowRad - absA) / (windowRad - fadeStart)).clamp(0.0, 1.0);
       if (opacity <= 0) return const SizedBox.shrink();
 
       // 1 at the very centre, 0 by the time it reaches the next slot.
-      final fabFrac = (1 - absA / _stepRad).clamp(0.0, 1.0);
+      final fabFrac = (1 - absA / stepRad).clamp(0.0, 1.0);
 
-      final itemSize = ui.lerpDouble(_iconBoxSize, _fabSize, fabFrac)!;
-      final iconSz = ui.lerpDouble(21.0, 26.0, fabFrac)!;
+      final itemSize = ui.lerpDouble(
+          isIpad
+              ? _ipadIconBoxSize
+              : isTablet
+                  ? _tabletIconBoxSize
+                  : _iconBoxSize,
+          isIpad
+              ? _ipadFabSize
+              : isTablet
+                  ? _tabletFabSize
+                  : _fabSize,
+          fabFrac)!;
+      final iconSz = ui.lerpDouble(
+          isIpad
+              ? 32.0
+              : isTablet
+                  ? 25.0
+                  : 21.0,
+          isIpad
+              ? 40.0
+              : isTablet
+                  ? 32.0
+                  : 26.0,
+          fabFrac)!;
       final bgColor =
           Color.lerp(Colors.transparent, AppColors.primary, fabFrac)!;
       final iconColor = Color.lerp(AppColors.navUnsel, Colors.white, fabFrac)!;
-      final iconBottomPad = ui.lerpDouble(12.0, 0.0, fabFrac)!;
+      final iconBottomPad = ui.lerpDouble(isIpad ? 14.0 : 12.0, 0.0, fabFrac)!;
 
       // Position on the ring; the icon tilts with the wheel (turntable feel).
       // The selected icon rides a *larger* radius so it climbs out of the
@@ -72,7 +98,13 @@ extension _WheelNavBarIcons on _WheelNavBarState {
       // moves or turns the icon. Boxes stay well clear of overlapping (the
       // icon centres are ~70px apart), and where they do, the sort above draws
       // the more-central icon last, so it wins the touch.
-      final hitSize = math.max(itemSize, _minTapTarget);
+      final hitSize = math.max(
+          itemSize,
+          isIpad
+              ? _ipadMinTapTarget
+              : isTablet
+                  ? _tabletMinTapTarget
+                  : _minTapTarget);
 
       return Positioned(
         // Keyed because the draw order changes as the wheel turns, and the
@@ -106,8 +138,8 @@ extension _WheelNavBarIcons on _WheelNavBarState {
                           it.index,
                           iconColor,
                           iconSz,
-                          selected: it.index == widget.selectedIndex &&
-                              it.copy == 0,
+                          selected:
+                              it.index == widget.selectedIndex && it.copy == 0,
                         ),
                       ),
                     ),
@@ -119,6 +151,50 @@ extension _WheelNavBarIcons on _WheelNavBarState {
         ),
       );
     }).toList();
+  }
+
+  /// New Year: Santa's sleigh team, a small decoration standing on the dome's
+  /// rim between two icons. It is one extra "slot" on the ring, so it turns
+  /// with the wheel exactly like the icons do, fading out toward the screen
+  /// edges (it exists once per revolution, not once per wrap-around copy).
+  Widget _buildSantaOnWheel(
+    int n,
+    double centreX,
+    double diskCenterY,
+    double selFloat,
+    bool isIpad,
+    double slot, // ring position, between two icon slots (x.5)
+  ) {
+    final stepRad = isIpad ? _ipadStepRad : _stepRad;
+    var rel = (slot - selFloat) % n;
+    if (rel > n / 2) rel -= n;
+    final angle = rel * stepRad;
+    final opacity = ((2.3 - rel.abs()) / 0.5).clamp(0.0, 1.0);
+    if (opacity <= 0) return const SizedBox.shrink();
+
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final w = (screenWidth * 0.2).clamp(72.0, 120.0);
+    final h = w * 0.2222; // artwork aspect
+    // Base of the artwork on the rim, a few px sunk in so it stands on it.
+    final cx = centreX + _diskR * math.sin(angle);
+    final cy = diskCenterY - _diskR * math.cos(angle) + 3;
+    return Positioned(
+      left: cx - w / 2,
+      top: cy - h,
+      width: w,
+      height: h,
+      child: IgnorePointer(
+        child: Opacity(
+          opacity: opacity,
+          child: Transform.rotate(
+            angle: angle,
+            alignment: Alignment.bottomCenter,
+            child: Image.asset('assets/images/santa_team.webp',
+                fit: BoxFit.contain),
+          ),
+        ),
+      ),
+    );
   }
 
   /// The profile tab shows the signed-in user's actual avatar once one is

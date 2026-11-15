@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/layout/adaptive_content_width.dart';
 import '../../../core/models/library_book.dart';
 import '../../../core/services/book_access_service.dart';
 import '../../../core/services/downloaded_files_store.dart';
@@ -123,10 +124,11 @@ class _ReaderTabScreenState extends State<ReaderTabScreen> {
         child: !_ready
             ? const Center(child: CircularProgressIndicator())
             : readable
-                ? ContinueReadingCard(
+                ? AdaptiveContentWidth(
+                    child: ContinueReadingCard(
                     book: last,
                     onTap: () => _openLastBook(last),
-                  )
+                  ))
                 : const ReaderEmptyState(),
       ),
     );

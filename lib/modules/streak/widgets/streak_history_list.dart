@@ -6,11 +6,14 @@ import '../../../core/models/streak.dart';
 import '../../../core/services/streak_service.dart';
 import '../../../core/theme/app_colors.dart';
 
-String _dayLabel(DateTime date) {
-  final today = DateTime.now();
-  final isToday = date.year == today.year && date.month == today.month && date.day == today.day;
+String _dayLabel(DateTime date, DateTime today) {
+  final isToday = date.year == today.year &&
+      date.month == today.month &&
+      date.day == today.day;
   final yesterday = today.subtract(const Duration(days: 1));
-  final isYesterday = date.year == yesterday.year && date.month == yesterday.month && date.day == yesterday.day;
+  final isYesterday = date.year == yesterday.year &&
+      date.month == yesterday.month &&
+      date.day == yesterday.day;
   if (isToday) return StreakStrings.today;
   if (isYesterday) return StreakStrings.yesterday;
   return '${date.day} ${StreakStrings.month(date.month)}';
@@ -27,17 +30,28 @@ class StreakHistoryList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(StreakStrings.readingHistory, style: TextStyle(color: AppColors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+        Text(StreakStrings.readingHistory,
+            style: TextStyle(
+                color: AppColors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w700)),
         const SizedBox(height: 12),
         if (streak.history.isEmpty && streak.historyLoading)
           _EmptyCard(child: CircularProgressIndicator(color: AppColors.primary))
         else if (streak.history.isEmpty)
-          _EmptyCard(child: Text(StreakStrings.noReadDaysYet, style: TextStyle(color: AppColors.grey2, fontSize: 13)))
+          _EmptyCard(
+              child: Text(StreakStrings.noReadDaysYet,
+                  style: TextStyle(
+                      color: AppColors.grey2,
+                      fontSize:
+                          MediaQuery.sizeOf(context).width >= 700 ? 16 : 13)))
         else
-          _HistoryRows(streak.history),
+          _HistoryRows(streak.history, streak.today?.date ?? DateTime.now()),
         if (streak.historyHasMore && streak.history.isNotEmpty) ...[
           const SizedBox(height: 12),
-          _LoadMoreButton(loading: streak.historyLoading, onPressed: streak.loadMoreHistory),
+          _LoadMoreButton(
+              loading: streak.historyLoading,
+              onPressed: streak.loadMoreHistory),
         ],
       ],
     );
@@ -52,8 +66,10 @@ class _EmptyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 28),
-      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16)),
+      padding: EdgeInsets.symmetric(
+          vertical: MediaQuery.sizeOf(context).width >= 700 ? 36 : 28),
+      decoration: BoxDecoration(
+          color: AppColors.card, borderRadius: BorderRadius.circular(16)),
       child: Center(child: child),
     );
   }
@@ -61,12 +77,14 @@ class _EmptyCard extends StatelessWidget {
 
 class _HistoryRows extends StatelessWidget {
   final List<StreakDay> days;
-  const _HistoryRows(this.days);
+  final DateTime today;
+  const _HistoryRows(this.days, this.today);
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+          color: AppColors.card, borderRadius: BorderRadius.circular(16)),
       child: Column(
         children: days.asMap().entries.map((entry) {
           final isLast = entry.key == days.length - 1;
@@ -74,7 +92,9 @@ class _HistoryRows extends StatelessWidget {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              border: isLast ? null : Border(bottom: BorderSide(color: AppColors.border)),
+              border: isLast
+                  ? null
+                  : Border(bottom: BorderSide(color: AppColors.border)),
             ),
             child: Row(
               children: [
@@ -82,12 +102,15 @@ class _HistoryRows extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: (day.goalMet ? AppColors.primary : AppColors.grey3).withValues(alpha: 0.15),
+                    color: (day.goalMet ? AppColors.primary : AppColors.grey3)
+                        .withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
                     child: HugeIcon(
-                      icon: day.goalMet ? HugeIcons.strokeRoundedFire : HugeIcons.strokeRoundedBookOpen01,
+                      icon: day.goalMet
+                          ? HugeIcons.strokeRoundedFire
+                          : HugeIcons.strokeRoundedBookOpen01,
                       color: day.goalMet ? AppColors.primary : AppColors.grey2,
                       size: 17,
                     ),
@@ -95,11 +118,17 @@ class _HistoryRows extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(_dayLabel(day.date), style: TextStyle(color: AppColors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                  child: Text(_dayLabel(day.date, today),
+                      style: TextStyle(
+                          color: AppColors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600)),
                 ),
-                Text(StreakStrings.pagesLabel(day.pages), style: TextStyle(color: AppColors.grey2, fontSize: 12.5)),
+                Text(StreakStrings.pagesLabel(day.pages),
+                    style: TextStyle(color: AppColors.grey2, fontSize: 12.5)),
                 const SizedBox(width: 10),
-                Text(StreakStrings.minutesLabel(day.minutes), style: TextStyle(color: AppColors.grey2, fontSize: 12.5)),
+                Text(StreakStrings.minutesLabel(day.minutes),
+                    style: TextStyle(color: AppColors.grey2, fontSize: 12.5)),
               ],
             ),
           );
@@ -123,11 +152,20 @@ class _LoadMoreButton extends StatelessWidget {
         onPressed: loading ? null : onPressed,
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: AppColors.border),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
         child: loading
-            ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.grey2))
-            : Text(StreakStrings.loadMore, style: TextStyle(color: AppColors.grey1, fontSize: 13.5, fontWeight: FontWeight.w700)),
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: AppColors.grey2))
+            : Text(StreakStrings.loadMore,
+                style: TextStyle(
+                    color: AppColors.grey1,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700)),
       ),
     );
   }

@@ -10,10 +10,11 @@ class ReaderSectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     return Text(text,
         style: TextStyle(
             color: AppColors.grey2,
-            fontSize: 12.5,
+            fontSize: tablet ? 15 : 12.5,
             fontWeight: FontWeight.w600));
   }
 }

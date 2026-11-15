@@ -8,8 +8,8 @@
 import 'package:aykitap/core/services/cover_image_cache_manager.dart';
 import 'package:aykitap/core/widgets/network_cover_image.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 const _url = 'https://example.com/cover.jpg';
 
@@ -20,12 +20,10 @@ Widget _app(Widget child, {double dpr = 3}) => MaterialApp(
       ),
     );
 
-CachedNetworkImage _cached(WidgetTester tester) =>
-    tester.widget<CachedNetworkImage>(find.byType(CachedNetworkImage));
+CachedNetworkImage _cached(WidgetTester tester) => tester.widget<CachedNetworkImage>(find.byType(CachedNetworkImage));
 
 void main() {
-  testWidgets('100x155 at DPR 3 decodes ~300x465 — width does not become 465',
-      (tester) async {
+  testWidgets('100x155 at DPR 3 decodes ~300x465 — width does not become 465', (tester) async {
     await tester.pumpWidget(_app(
       const SizedBox(
         width: 100,
@@ -45,16 +43,14 @@ void main() {
     expect(image.memCacheWidth, isNot(465));
   });
 
-  testWidgets('only width given sizes memCacheWidth and leaves height null',
-      (tester) async {
+  testWidgets('only width given sizes memCacheWidth and leaves height null', (tester) async {
     await tester.pumpWidget(_app(
       // The explicit `width` prop, not an ambient constraint — a vertical
       // scroller also leaves height genuinely unbounded, so there's no
       // ambient ceiling (e.g. Scaffold's own full-page height) quietly
       // supplying one instead.
       const SingleChildScrollView(
-        child:
-            NetworkCoverImage(url: _url, width: 120, placeholder: _placeholder),
+        child: NetworkCoverImage(url: _url, width: 120, placeholder: _placeholder),
       ),
       dpr: 2,
     ));
@@ -64,15 +60,13 @@ void main() {
     expect(image.memCacheHeight, isNull);
   });
 
-  testWidgets('only height given sizes memCacheHeight and leaves width null',
-      (tester) async {
+  testWidgets('only height given sizes memCacheHeight and leaves width null', (tester) async {
     await tester.pumpWidget(_app(
       // Mirror of the width-only case: a horizontal scroller leaves width
       // genuinely unbounded, isolating the explicit `height` prop.
       const SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: NetworkCoverImage(
-            url: _url, height: 200, placeholder: _placeholder),
+        child: NetworkCoverImage(url: _url, height: 200, placeholder: _placeholder),
       ),
       dpr: 2,
     ));
@@ -82,8 +76,7 @@ void main() {
     expect(image.memCacheWidth, isNull);
   });
 
-  testWidgets('an explicit decodeCacheWidth wins over width/height',
-      (tester) async {
+  testWidgets('an explicit decodeCacheWidth wins over width/height', (tester) async {
     await tester.pumpWidget(_app(
       const SizedBox(
         width: 100,
@@ -132,8 +125,7 @@ void main() {
     expect(image.memCacheWidth, isNull);
   });
 
-  testWidgets('both width and height given pass both to CachedNetworkImage',
-      (tester) async {
+  testWidgets('both width and height given pass both to CachedNetworkImage', (tester) async {
     await tester.pumpWidget(_app(
       const NetworkCoverImage(
         url: _url,
@@ -177,8 +169,7 @@ void main() {
     expect(_cached(tester).fit, BoxFit.cover);
   });
 
-  testWidgets('uses the process-wide persistent catalogue cache',
-      (tester) async {
+  testWidgets('uses the process-wide persistent catalogue cache', (tester) async {
     await tester.pumpWidget(_app(
       const NetworkCoverImage(url: _url, placeholder: _placeholder),
     ));

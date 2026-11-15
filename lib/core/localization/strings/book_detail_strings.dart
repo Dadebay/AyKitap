@@ -1,3 +1,4 @@
+import '../../services/currency.dart';
 import '../strings_base.dart';
 
 /// Strings for [BookDetailScreen] (§10) — header actions, stats, synopsis,
@@ -135,7 +136,7 @@ class BookDetailStrings {
   static String get read => t(tk: 'Oka', ru: 'Читать', tr: 'Oku', en: 'Read');
   static String get price =>
       t(tk: 'Baha', ru: 'Цена', tr: 'Fiyat', en: 'Price');
-  static String priceValue(int manat) => '$manat TMT';
+  static String priceValue(int manat) => Currency.localize('$manat TMT');
   static String get buy =>
       t(tk: 'Satyn al', ru: 'Купить', tr: 'Satın al', en: 'Buy');
 

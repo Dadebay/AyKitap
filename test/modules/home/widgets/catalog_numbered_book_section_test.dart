@@ -6,8 +6,8 @@ import 'package:aykitap/core/models/library_book.dart';
 import 'package:aykitap/core/widgets/book_cover_hero.dart';
 import 'package:aykitap/modules/home/widgets/catalog_book_card.dart';
 import 'package:aykitap/modules/home/widgets/catalog_numbered_book_section.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// [CatalogBookCard]'s defaults — the covers Card 4 sits beside on Home.
 const _plainCoverWidth = 100.0;
@@ -53,8 +53,7 @@ void main() {
     return tester.getSize(find.byType(BookCoverHero));
   }
 
-  testWidgets('a rank cover no longer dwarfs the plain book row beside it',
-      (tester) async {
+  testWidgets('a rank cover no longer dwarfs the plain book row beside it', (tester) async {
     final cover = await coverSize(tester);
 
     // It used to be ~179x269 against the row's 100x155 — 1.8x in both
@@ -99,8 +98,7 @@ void main() {
     await tester.pump();
 
     // 150 wide, cover is 0.78 of that.
-    expect(tester.getSize(find.byType(BookCoverHero)).width,
-        closeTo(150 * 0.78, 0.5));
+    expect(tester.getSize(find.byType(BookCoverHero)).width, closeTo(150 * 0.78, 0.5));
   });
 
   testWidgets('the rank numeral still renders over the cover', (tester) async {

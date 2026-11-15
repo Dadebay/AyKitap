@@ -1,6 +1,6 @@
 import 'package:aykitap/modules/auth/otp_verify_screen.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../support/fake_dio_adapter.dart';
 
@@ -25,9 +25,7 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets(
-      'pasting the full code into the first box fills every box, not just the first',
-      (tester) async {
+  testWidgets('pasting the full code into the first box fills every box, not just the first', (tester) async {
     await pumpOtpScreen(tester);
 
     // A 3-digit paste (not 4) deliberately stays short of `_verify()`'s
@@ -36,16 +34,14 @@ void main() {
     await tester.enterText(find.byType(TextField).at(0), '123');
     await tester.pump();
 
-    final fields =
-        tester.widgetList<TextField>(find.byType(TextField)).toList();
+    final fields = tester.widgetList<TextField>(find.byType(TextField)).toList();
     expect(fields[0].controller!.text, '1');
     expect(fields[1].controller!.text, '2');
     expect(fields[2].controller!.text, '3');
     expect(fields[3].controller!.text, '');
   });
 
-  testWidgets('a paste landing in a middle box still fills from the start',
-      (tester) async {
+  testWidgets('a paste landing in a middle box still fills from the start', (tester) async {
     await pumpOtpScreen(tester);
 
     // The reported case: the paste bubble can appear over whichever box
@@ -53,23 +49,20 @@ void main() {
     await tester.enterText(find.byType(TextField).at(2), '456');
     await tester.pump();
 
-    final fields =
-        tester.widgetList<TextField>(find.byType(TextField)).toList();
+    final fields = tester.widgetList<TextField>(find.byType(TextField)).toList();
     expect(fields[0].controller!.text, '4');
     expect(fields[1].controller!.text, '5');
     expect(fields[2].controller!.text, '6');
     expect(fields[3].controller!.text, '');
   });
 
-  testWidgets('typing a single digit still behaves exactly as before',
-      (tester) async {
+  testWidgets('typing a single digit still behaves exactly as before', (tester) async {
     await pumpOtpScreen(tester);
 
     await tester.enterText(find.byType(TextField).at(0), '7');
     await tester.pump();
 
-    final fields =
-        tester.widgetList<TextField>(find.byType(TextField)).toList();
+    final fields = tester.widgetList<TextField>(find.byType(TextField)).toList();
     expect(fields[0].controller!.text, '7');
     expect(fields[1].controller!.text, '');
   });

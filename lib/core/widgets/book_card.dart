@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../models/book.dart';
 import '../theme/app_colors.dart';
 import 'book_cover.dart';
@@ -31,22 +31,10 @@ class BookCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          BookCover(
-              imagePath: book.coverImage,
-              width: double.infinity,
-              height: coverHeight),
+          BookCover(imagePath: book.coverImage, width: double.infinity, height: coverHeight),
           const SizedBox(height: 6),
-          Text(book.title,
-              style: TextStyle(
-                  color: AppColors.grey1,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
-          Text(book.author.name,
-              style: TextStyle(color: AppColors.grey2, fontSize: 11),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
+          Text(book.title, style: TextStyle(color: AppColors.grey1, fontSize: 12, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(book.author.name, style: TextStyle(color: AppColors.grey2, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
         ],
       ),
     );

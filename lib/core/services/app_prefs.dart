@@ -20,7 +20,7 @@ class AppPrefs {
     await prefs.setBool(_kOnboardingSeen, true);
   }
 
-  /// Whether the in-app notification explanation has been shown once.
+  /// Whether th e in-app notification explanation has been shown once.
   ///
   /// Set whichever way the user answered — "Häzir däl" is an answer, and
   /// re-asking on every launch is exactly what makes a permission prompt

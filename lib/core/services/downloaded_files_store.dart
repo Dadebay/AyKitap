@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'cbz_page_cache.dart';
+import 'pdf_reflow_service.dart';
 
 /// One downloaded book file on disk — which book it belongs to, what format
 /// it is, and where [BookOpenFlow] can find it without going near the
@@ -135,6 +137,29 @@ class DownloadedFilesStore extends ChangeNotifier {
         // A file we can't delete is still gone from the library; leaking
         // it is better than failing the user's delete.
       }
+      // Reading a book writes *derived* files next to the download, and they
+      // are often bigger than the book itself — a CBZ's extracted page
+      // images, a PDF's generated reflow EPUB. Deleting only the downloaded
+      // file left all of that behind, so the app's "Data" in Android's
+      // storage settings barely moved after a delete. Both caches are keyed
+      // by the file's path, so the path is all that is needed to find them.
+      switch (entry.format.toLowerCase()) {
+        case 'cbz':
+          await deleteCbzPageCache(entry.path);
+        case 'pdf':
+          await PdfReflowService.instance.deleteCacheFor(entry.path);
+      }
+    }
+    // The book's own folder (`books/<id>/`) is left holding nothing but an
+    // empty directory, or a half-finished `.tmp` from an interrupted
+    // download. Remove it, but only when it really is this book's folder.
+    for (final dir in doomed
+        .map((e) => File(e.path).parent)
+        .where((d) => d.path.split(Platform.pathSeparator).last == '$bookId')
+        .toSet()) {
+      try {
+        if (await dir.exists()) await dir.delete(recursive: true);
+      } catch (_) {}
     }
   }
 

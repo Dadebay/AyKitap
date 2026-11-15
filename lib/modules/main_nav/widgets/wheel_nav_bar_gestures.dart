@@ -46,7 +46,9 @@ extension _WheelNavBarGestures on _WheelNavBarState {
     if (drag == null) return;
     // Dragging left turns the wheel forward — the icon to the right of centre
     // rises into it — which is +1 slot per [_pxPerStep] of leftward travel.
-    final next = _wrap(drag - details.delta.dx / _pxPerStep);
+    final pxPerStep =
+        _isFullSizeIpad(context) ? _pathR * _ipadStepRad : _pxPerStep;
+    final next = _wrap(drag - details.delta.dx / pxPerStep);
     final detent = next.round();
     if (detent != _lastDetent) {
       _lastDetent = detent;

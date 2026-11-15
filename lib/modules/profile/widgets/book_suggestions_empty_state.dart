@@ -11,33 +11,38 @@ class BookSuggestionsEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = AppTheme.instance.isDark;
+    final tablet = MediaQuery.sizeOf(context).width >= 700;
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 260),
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Image.asset(
-                  isDark
-                      ? 'assets/images/book_request_empty_dark.webp'
-                      : 'assets/images/book_request_empty_light.webp',
-                  fit: BoxFit.contain,
+        child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: tablet ? 300 : 260),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: Image.asset(
+                      isDark
+                          ? 'assets/images/book_request_empty_dark.webp'
+                          : 'assets/images/book_request_empty_light.webp',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              ProfileStrings.noSuggestionsYet,
-              textAlign: TextAlign.center,
-              style:
-                  TextStyle(color: AppColors.grey2, fontSize: 15, height: 1.5),
-            ),
-          ],
-        ),
+                const SizedBox(height: 20),
+                Text(
+                  ProfileStrings.noSuggestionsYet,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: AppColors.grey2,
+                      fontSize: tablet ? 18 : 15,
+                      height: 1.5),
+                ),
+              ],
+            )),
       ),
     );
   }

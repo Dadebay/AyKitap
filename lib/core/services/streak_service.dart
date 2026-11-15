@@ -79,7 +79,9 @@ class StreakService extends ChangeNotifier {
   static const _kPendingBookId = 'streak_pending_book_id';
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
-  bool _pendingRestored = false;
+  Future<void>? _restorePendingFuture;
+  Future<void> _pendingWrite = Future<void>.value();
+  bool _reportInFlight = false;
 
   /// Clears every field back to a fresh instance's defaults. This is the
   /// app's process-lifetime singleton, so tests that exercise it (directly or
@@ -98,7 +100,9 @@ class StreakService extends ChangeNotifier {
     _pendingSeconds = 0;
     _pendingPages = 0;
     _pendingBookId = null;
-    _pendingRestored = false;
+    _restorePendingFuture = null;
+    _pendingWrite = Future<void>.value();
+    _reportInFlight = false;
     _connectivitySub?.cancel();
     _connectivitySub = null;
   }
@@ -140,8 +144,10 @@ class StreakService extends ChangeNotifier {
   /// call would add the same seconds again on top of whatever is already in
   /// memory.
   Future<void> _restorePending() async {
-    if (_pendingRestored) return;
-    _pendingRestored = true;
+    return _restorePendingFuture ??= _readPending();
+  }
+
+  Future<void> _readPending() async {
     final prefs = await SharedPreferences.getInstance();
     _pendingSeconds += prefs.getInt(_kPendingSeconds) ?? 0;
     _pendingPages += prefs.getInt(_kPendingPages) ?? 0;
@@ -169,6 +175,14 @@ class StreakService extends ChangeNotifier {
 
   /// Mirrors the buffer to disk after every change to it.
   Future<void> _savePending() async {
+    // SharedPreferences writes are asynchronous. Keep them in order so an
+    // older write cannot replace the residual after a successful report.
+    _pendingWrite =
+        _pendingWrite.onError((_, __) {}).then((_) => _writePending());
+    await _pendingWrite;
+  }
+
+  Future<void> _writePending() async {
     final prefs = await SharedPreferences.getInstance();
     if (_pendingSeconds <= 0 && _pendingPages <= 0) {
       await prefs.remove(_kPendingSeconds);
@@ -236,8 +250,13 @@ class StreakService extends ChangeNotifier {
   /// report, not a separate endpoint.
   void recordPageRead({int count = 1}) {
     if (count <= 0) return;
+    unawaited(_recordPageRead(count));
+  }
+
+  Future<void> _recordPageRead(int count) async {
+    await _restorePending();
     _pendingPages += count;
-    unawaited(_savePending());
+    await _savePending();
   }
 
   /// Call once on pause/background/close with whatever active-reading

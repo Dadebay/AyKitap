@@ -78,7 +78,8 @@ class ApiLogInterceptor extends Interceptor {
     return switch (error.type) {
       DioExceptionType.connectionTimeout ||
       DioExceptionType.sendTimeout ||
-      DioExceptionType.receiveTimeout =>
+      DioExceptionType.receiveTimeout ||
+      DioExceptionType.transformTimeout =>
         'timeout',
       DioExceptionType.connectionError => 'network_error',
       DioExceptionType.cancel => 'cancelled',
