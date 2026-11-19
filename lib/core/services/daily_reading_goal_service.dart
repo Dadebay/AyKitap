@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// A small, device-local reading invitation. The backend streak/reward goal
-/// stays authoritative and is deliberately independent of this 10-minute UI.
+/// A device-local reading goal aligned with the streak's 15-minute default.
+/// The backend remains authoritative for granting the streak and rewards.
 class DailyReadingGoalService extends ChangeNotifier {
   DailyReadingGoalService._();
   static final instance = DailyReadingGoalService._();
 
-  static const targetSeconds = 10 * 60;
+  static const targetSeconds = 15 * 60;
   static const _dayKey = 'daily_reading_goal_day';
   static const _secondsKey = 'daily_reading_goal_seconds';
 

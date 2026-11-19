@@ -50,10 +50,10 @@ class OnboardingStrings {
       tr: 'Her gün okuyun,\nödüller kazanın',
       en: 'Read every day,\nearn rewards');
   static String get page3Subtitle => t(
-        tk: 'Günde 10 min okasaňyz 🔥 alarsyňyz.\n30 günlük streak = 10 TMT bonus!',
-        ru: 'Читайте по 10 минут в день и получите 🔥.\n30-дневная серия = бонус 10 TMT!',
-        tr: 'Günde 10 dakika okursanız 🔥 kazanırsınız.\n30 günlük seri = 10 TMT bonus!',
-        en: 'Read 10 minutes a day and earn 🔥.\n30-day streak = 10 TMT bonus!',
+        tk: 'Günde 15 min okasaňyz 🔥 alarsyňyz.\n30 günlük streak = 10 TMT bonus!',
+        ru: 'Читайте по 15 минут в день и получите 🔥.\n30-дневная серия = бонус 10 TMT!',
+        tr: 'Günde 15 dakika okursanız 🔥 kazanırsınız.\n30 günlük seri = 10 TMT bonus!',
+        en: 'Read 15 minutes a day and earn 🔥.\n30-day streak = 10 TMT bonus!',
       );
   static String get page3Badge => t(tk: '🔥', ru: '🔥', tr: '🔥', en: '🔥');
   static String get page3BadgeLabel =>

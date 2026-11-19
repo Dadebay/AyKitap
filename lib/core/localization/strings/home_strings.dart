@@ -5,10 +5,10 @@ class HomeStrings {
   HomeStrings._();
 
   static String get dailyReadingGoalTitle => t(
-      tk: 'Şu gün 10 minut oka',
-      ru: 'Читайте 10 минут сегодня',
-      tr: 'Bugün 10 dakika oku',
-      en: 'Read for 10 minutes today');
+      tk: 'Şu gün 15 minut oka',
+      ru: 'Читайте 15 минут сегодня',
+      tr: 'Bugün 15 dakika oku',
+      en: 'Read for 15 minutes today');
   static String get dailyReadingGoalLabel => t(
       tk: 'Şu günki okalyş',
       ru: 'Чтение сегодня',
