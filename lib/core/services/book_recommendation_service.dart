@@ -1,47 +1,71 @@
-import '../models/collection.dart';
+import '../models/book_detail.dart';
 import '../models/library_book.dart';
+import 'book_api_service.dart';
+import 'book_list_api_service.dart';
 
-/// Picks a nearby unread book from catalogue data already loaded for Home.
-/// No new backend route or model is required.
-abstract final class BookRecommendationService {
-  static LibraryBook? suggest({
-    required int finishedBookId,
-    required List<Collection> collections,
-    List<LibraryBook> downloaded = const [],
-  }) {
-    final books = <int, LibraryBook>{};
-    final scores = <int, int>{};
-    final source = <LibraryBook>[...downloaded];
-    for (final collection in collections) {
-      source.addAll(collection.books);
-    }
-    LibraryBook? finished;
-    for (final book in source) {
-      books.putIfAbsent(book.id, () => book);
-      if (book.id == finishedBookId) finished = book;
-    }
-    var order = 0;
-    for (final collection in collections) {
-      final related = collection.books.any((b) => b.id == finishedBookId);
-      for (final book in collection.books) {
-        if (book.id == finishedBookId || book.isFinished) continue;
-        scores[book.id] = (scores[book.id] ?? (100 - order.clamp(0, 99))) +
-            (related ? 200 : 0);
-        order++;
-      }
-    }
-    final authorIds = finished?.authors.map((a) => a.id).toSet() ?? {};
-    for (final book in source) {
-      if (book.id == finishedBookId || book.isFinished) continue;
-      scores.putIfAbsent(book.id, () => 1);
-      if (authorIds.isNotEmpty &&
-          book.authors.any((a) => authorIds.contains(a.id))) {
-        scores[book.id] = scores[book.id]! + 1000;
-      }
-    }
-    if (scores.isEmpty) return null;
-    final best =
-        scores.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
-    return books[best];
+/// Recommends an unread book from a category of the book just finished.
+/// The detail endpoint supplies the actual genre; Home's promotional
+/// collections do not represent book categories.
+class BookRecommendationService {
+  BookRecommendationService({
+    Future<BookDetail> Function(int)? loadBook,
+    Future<List<LibraryBook>> Function(int, int?)? loadGenreBooks,
+  })  : _loadBook = loadBook ?? BookApiService.getBookById,
+        _loadGenreBooks = loadGenreBooks ?? _fetchGenreBooks;
+
+  static final instance = BookRecommendationService();
+
+  final Future<BookDetail> Function(int) _loadBook;
+  final Future<List<LibraryBook>> Function(int, int?) _loadGenreBooks;
+
+  static Future<List<LibraryBook>> _fetchGenreBooks(
+      int genreId, int? languageId) {
+    return BookListApiService.listBooks(
+      genreIds: [genreId],
+      languageIds: languageId == null ? const [] : [languageId],
+      size: 40,
+    );
   }
+
+  Future<LibraryBook?> suggest(int finishedBookId) async {
+    final finished = await _loadBook(finishedBookId);
+    for (final genre in finished.genres) {
+      final candidates = await _loadGenreBooks(genre.id, finished.languageId);
+      final recommendation = _pickDifferentBook(finished, candidates);
+      if (recommendation != null) return recommendation;
+    }
+    // No verified category match is better than another edition of the same
+    // book or a random promotional title.
+    return null;
+  }
+
+  static LibraryBook? _pickDifferentBook(
+      BookDetail finished, List<LibraryBook> candidates) {
+    final authorIds =
+        finished.authors.map((a) => a.id).where((id) => id > 0).toSet();
+    final authorNames = finished.authors
+        .map((a) => _normaliseTitle(a.name))
+        .where((name) => name.isNotEmpty)
+        .toSet();
+    final finishedName = _normaliseTitle(finished.name);
+    for (final book in candidates) {
+      if (book.id == finished.id || book.isFinished) continue;
+      if (_normaliseTitle(book.name) == finishedName) continue;
+      // The same author's translated edition often has a completely
+      // different title. Category matches from another author are safer.
+      if ((authorIds.isNotEmpty || authorNames.isNotEmpty) &&
+          (book.authors.isEmpty ||
+              book.authors.any((author) =>
+                  authorIds.contains(author.id) ||
+                  authorNames.contains(_normaliseTitle(author.name))))) {
+        continue;
+      }
+      return book;
+    }
+    return null;
+  }
+
+  static String _normaliseTitle(String name) => name
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), '');
 }

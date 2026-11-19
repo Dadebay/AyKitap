@@ -44,6 +44,20 @@ void main() {
     expect(requests.single.queryParameters['genre_id'], 1);
   });
 
+  test('genre and book language are sent together for recommendations',
+      () async {
+    final adapter = FakeDioAdapter.install();
+
+    await BookListApiService.listBooks(
+        genreIds: {1}, languageIds: {2}, size: 40);
+
+    final requests =
+        adapter.requests.where((r) => r.path == BookEndpoints.booksAll);
+    expect(requests.length, 1);
+    expect(requests.single.queryParameters['genre_id'], 1);
+    expect(requests.single.queryParameters['language_id'], 2);
+  });
+
   test('no genre selected omits `genre_id` entirely', () async {
     final adapter = FakeDioAdapter.install();
 

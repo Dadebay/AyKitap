@@ -5,8 +5,6 @@ import 'package:flutter/material.dart';
 import '../../../core/localization/strings/next_book_strings.dart';
 import '../../../core/models/library_book.dart';
 import '../../../core/services/book_recommendation_service.dart';
-import '../../../core/services/downloaded_books_store.dart';
-import '../../../core/services/home_data_service.dart';
 
 /// A small, text-only offer; it does not decode another cover on low-RAM
 /// phones while a WebView/PDF renderer is still alive.
@@ -28,33 +26,40 @@ class NextBookOffer extends StatefulWidget {
 }
 
 class _NextBookOfferState extends State<NextBookOffer> {
+  LibraryBook? _book;
+  int _requestId = 0;
+
   @override
   void initState() {
     super.initState();
-    unawaited(_loadDownloads());
+    unawaited(_loadOffer());
   }
 
-  Future<void> _loadDownloads() async {
+  @override
+  void didUpdateWidget(NextBookOffer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.finishedBookId != widget.finishedBookId) {
+      _book = null;
+      unawaited(_loadOffer());
+    }
+  }
+
+  Future<void> _loadOffer() async {
+    final bookId = widget.finishedBookId;
+    final requestId = ++_requestId;
     try {
-      await DownloadedBooksStore.instance.load();
-      if (mounted) setState(() {});
+      final recommendation =
+          await BookRecommendationService.instance.suggest(bookId);
+      if (mounted && requestId == _requestId) {
+        setState(() => _book = recommendation);
+      }
     } catch (_) {
-      // A recommendation is optional; opening the reader must still work.
+      // A recommendation is optional; offline reading must still work.
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: HomeDataService.instance.collectionsListenable,
-      builder: (context, collections, _) =>
-          _buildOffer(BookRecommendationService.suggest(
-        finishedBookId: widget.finishedBookId,
-        collections: collections ?? const [],
-        downloaded: DownloadedBooksStore.instance.books,
-      )),
-    );
-  }
+  Widget build(BuildContext context) => _buildOffer(_book);
 
   Widget _buildOffer(LibraryBook? book) {
     if (book == null) return const SizedBox.shrink();

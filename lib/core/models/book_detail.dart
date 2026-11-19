@@ -49,6 +49,7 @@ class BookDetail {
   final int? year;
   final int? pageCount;
   final int? price;
+  final int? languageId;
   final int readCount;
   final int soldCount;
 
@@ -69,6 +70,7 @@ class BookDetail {
     this.year,
     this.pageCount,
     this.price,
+    this.languageId,
     this.readCount = 0,
     this.soldCount = 0,
     this.isSubscriptionOnly = false,
@@ -89,6 +91,7 @@ class BookDetail {
         year: json['year'] as int?,
         pageCount: json['page_count'] as int?,
         price: json['price'] as int?,
+        languageId: _parseLanguageId(json),
         readCount: json['read_count'] as int? ?? 0,
         soldCount: json['sold_count'] as int? ?? 0,
         isSubscriptionOnly: json['is_subscription_only'] == true,
@@ -103,6 +106,16 @@ class BookDetail {
             .map((e) => BookFile.fromJson(e as Map<String, dynamic>))
             .toList(),
       );
+
+  static int? _parseLanguageId(Map<String, dynamic> json) {
+    final language = json['language'];
+    final raw = json['language_id'] ??
+        json['book_language_id'] ??
+        (language is Map ? language['id'] : null);
+    if (raw is num) return raw.toInt();
+    if (raw is String) return int.tryParse(raw);
+    return null;
+  }
 
   static double? _parseProgress(dynamic value) {
     if (value is num) return value.toDouble();
