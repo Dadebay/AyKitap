@@ -111,8 +111,8 @@ extension _ReaderViewChrome on _ReaderScreenState {
                           if (!context.mounted) return;
                           Navigator.of(context)
                               .pushReplacement(MaterialPageRoute(
-                            builder: (_) =>
-                                CatalogBookDetailScreen(bookId: book.id),
+                            builder: (_) => CatalogBookDetailScreen(
+                                bookId: book.id, offlineBook: book),
                           ));
                         },
                       )

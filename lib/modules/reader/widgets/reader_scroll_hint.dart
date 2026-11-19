@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/localization/strings/reader_strings.dart';
+import '../../../core/services/device_tier.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_motion.dart';
 
 /// One-time coachmark shown the first time the reader opens, telling the
 /// reader which way pages move: swipe up/down for the (default) scroll
@@ -69,7 +71,9 @@ class _ReaderScrollHintState extends State<ReaderScrollHint>
   void _maybeShow() {
     if (!mounted || _visible || _seen || !widget.enabled) return;
     setState(() => _visible = true);
-    _anim.repeat();
+    if (!DeviceTier.isLowEnd && !AppMotion.reduceMotion(context)) {
+      _anim.repeat();
+    }
     _autoClose = Timer(const Duration(seconds: 4), _dismiss);
   }
 
@@ -120,11 +124,14 @@ class _ReaderScrollHintState extends State<ReaderScrollHint>
                     SizedBox(
                       width: vertical ? 90 : 200,
                       height: vertical ? 200 : 90,
-                      child: AnimatedBuilder(
-                        animation: _anim,
-                        builder: (context, _) =>
-                            _buildGesture(_anim.value, vertical),
-                      ),
+                      child:
+                          DeviceTier.isLowEnd || AppMotion.reduceMotion(context)
+                              ? _buildGesture(0.5, vertical)
+                              : AnimatedBuilder(
+                                  animation: _anim,
+                                  builder: (context, _) =>
+                                      _buildGesture(_anim.value, vertical),
+                                ),
                     ),
                     const SizedBox(height: 20),
                     Padding(

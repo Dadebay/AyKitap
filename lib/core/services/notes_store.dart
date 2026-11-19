@@ -1,13 +1,15 @@
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/reading_note.dart';
-import 'auth_session.dart';
-import 'user_notes_api_service.dart';
 import '../theme/highlight_colors.dart';
 import '../utils/stable_hash.dart';
+import 'auth_session.dart';
+import 'user_notes_api_service.dart';
 
 /// Persists the reading notes/highlights list (TZ 8.4) across restarts.
 class NotesStore extends ChangeNotifier {
@@ -19,6 +21,7 @@ class NotesStore extends ChangeNotifier {
 
   List<ReadingNote> _notes = [];
   Future<void>? _loadFuture;
+  Future<void> _pendingWrite = Future<void>.value();
   bool _syncing = false;
   bool _syncAgain = false;
   StreamSubscription<List<ConnectivityResult>>? _connectivity;
@@ -26,10 +29,27 @@ class NotesStore extends ChangeNotifier {
 
   List<ReadingNote> get notes => List.unmodifiable(_notes);
 
-  Future<void> load() => _loadFuture ??= _read();
+  Set<int> pendingDeletionIdsFor(int owner) => _pendingDeletes
+      .where((item) => item['owner'] == owner)
+      .map((item) => item['id']!)
+      .toSet();
+
+  Future<void> load() async {
+    final future = _loadFuture ??= _read();
+    try {
+      await future;
+    } catch (_) {
+      if (identical(_loadFuture, future)) _loadFuture = null;
+      rethrow;
+    }
+  }
 
   Future<void> _read() async {
     final prefs = await SharedPreferences.getInstance();
+    _pendingDeletes =
+        (jsonDecode(prefs.getString(_kDeletesKey) ?? '[]') as List)
+            .map((e) => Map<String, int>.from(e as Map))
+            .toList();
     final raw = prefs.getString(_kKey);
     if (raw != null) {
       final decoded = jsonDecode(raw) as List;
@@ -40,10 +60,6 @@ class NotesStore extends ChangeNotifier {
       _notes = _seedNotes();
       await _persist();
     }
-    _pendingDeletes =
-        (jsonDecode(prefs.getString(_kDeletesKey) ?? '[]') as List)
-            .map((e) => Map<String, int>.from(e as Map))
-            .toList();
     notifyListeners();
   }
 
@@ -71,6 +87,14 @@ class NotesStore extends ChangeNotifier {
     // so make sure the persisted notes are in memory first — otherwise this
     // would save on top of an empty list and wipe the seeds/earlier notes.
     await load();
+    int? ownerUserId;
+    if (realBookId != null) {
+      try {
+        ownerUserId = await AuthSession.getUserId();
+      } catch (_) {
+        // Local capture must still succeed if secure storage is unavailable.
+      }
+    }
     final note = ReadingNote(
       id: 'note_${DateTime.now().microsecondsSinceEpoch}',
       text: trimmed,
@@ -83,7 +107,7 @@ class NotesStore extends ChangeNotifier {
       cfi: cfi,
       remoteId: remoteId,
       realBookId: realBookId,
-      ownerUserId: realBookId == null ? null : await AuthSession.getUserId(),
+      ownerUserId: ownerUserId,
       snippet: snippet,
     );
     _notes = [note, ..._notes];
@@ -104,6 +128,7 @@ class NotesStore extends ChangeNotifier {
 
   /// Updates a note's text and/or highlight colour in place.
   Future<void> updateNote(String id, {String? text, int? colorValue}) async {
+    await load();
     final trimmed = text?.trim();
     if (trimmed != null && trimmed.isEmpty) return;
     _notes = _notes
@@ -134,11 +159,17 @@ class NotesStore extends ChangeNotifier {
     if (_pendingDeletes.isNotEmpty) unawaited(syncPending());
   }
 
-  Future<void> _persist() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-        _kKey, jsonEncode(_notes.map((n) => n.toJson()).toList()));
-    await prefs.setString(_kDeletesKey, jsonEncode(_pendingDeletes));
+  Future<void> _persist() {
+    // Capture each mutation before any await and write them in order. A note
+    // edit and a reconnect callback can otherwise finish out of order.
+    final notesJson = jsonEncode(_notes.map((n) => n.toJson()).toList());
+    final deletesJson = jsonEncode(_pendingDeletes);
+    _pendingWrite = _pendingWrite.onError((_, __) {}).then((_) async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kKey, notesJson);
+      await prefs.setString(_kDeletesKey, deletesJson);
+    });
+    return _pendingWrite;
   }
 
   /// Starts one reconnect listener and retries durable local work at startup.
@@ -209,6 +240,12 @@ class NotesStore extends ChangeNotifier {
         } catch (_) {
           break;
         }
+      }
+    } catch (error) {
+      // Background sync must never turn a transient storage/auth failure into
+      // an uncaught error while a reader is open. The on-disk queue is retried.
+      if (kDebugMode) {
+        debugPrint('Notes sync postponed: $error');
       }
     } finally {
       _syncing = false;

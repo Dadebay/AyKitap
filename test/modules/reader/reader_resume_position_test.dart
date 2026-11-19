@@ -46,6 +46,10 @@ void main() {
     });
 
     test('the font is loaded by the time the viewer may be built', () async {
+      // The default San Francisco face is supplied by the OS, so choose an
+      // embedded face when checking that font bytes were loaded up front.
+      SharedPreferences.setMockInitialValues(
+          {'reader_font': ReaderFontFamily.arial.index});
       final provider = ReaderProvider();
       await provider.initialize(bookId: 1, bookTitle: 'Test');
       addTearDown(provider.dispose);

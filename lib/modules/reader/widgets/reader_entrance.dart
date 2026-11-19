@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/navigation/app_hero_tags.dart';
+import '../../../core/services/device_tier.dart';
 import '../../../core/theme/app_motion.dart';
 import '../../../core/widgets/network_cover_image.dart';
 
@@ -17,7 +18,7 @@ Future<T?> pushReaderRoute<T>(
   String? coverUrl,
   String? heroTag,
 }) {
-  final reduceMotion = AppMotion.reduceMotion(context);
+  final reduceMotion = AppMotion.reduceMotion(context) || DeviceTier.isLowEnd;
   final hasCover = !reduceMotion &&
       coverUrl != null &&
       coverUrl.isNotEmpty &&

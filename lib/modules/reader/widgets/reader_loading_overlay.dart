@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import '../../../core/services/device_tier.dart';
+import '../../../core/theme/app_motion.dart';
 
 /// The plain "book_reading_boy" loading animation plus a status line, shown
 /// full-screen while the PDF/CBZ readers unpack or open their file. Distinct
@@ -28,15 +30,23 @@ class ReaderLoadingOverlay extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(
-                width: tablet ? 300 : 240,
-                height: tablet ? 300 : 240,
-                child: Lottie.asset(
-                  'assets/animations/book_reading_boy.json',
-                  repeat: true,
-                  fit: BoxFit.contain,
+              if (DeviceTier.isLowEnd || AppMotion.reduceMotion(context))
+                SizedBox(
+                  width: tablet ? 120 : 96,
+                  height: tablet ? 120 : 96,
+                  child: const Icon(Icons.menu_book_rounded,
+                      color: Color(0xFF7C6CFF), size: 64),
+                )
+              else
+                SizedBox(
+                  width: tablet ? 300 : 240,
+                  height: tablet ? 300 : 240,
+                  child: Lottie.asset(
+                    'assets/animations/book_reading_boy.json',
+                    repeat: true,
+                    fit: BoxFit.contain,
+                  ),
                 ),
-              ),
               Text(
                 message,
                 style: TextStyle(

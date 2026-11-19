@@ -11,6 +11,9 @@ import 'utils.dart';
 
 String _base64EncodeIsolate(Uint8List data) => base64Encode(data);
 
+Future<String> _base64EncodeFileIsolate(String path) async =>
+    base64Encode(await File(path).readAsBytes());
+
 Future<String> _encodeBase64(Uint8List data) async {
   if (data.lengthInBytes < 512 * 1024) {
     return base64Encode(data);
@@ -149,7 +152,8 @@ class EpubViewer extends StatefulWidget {
 
   ///Callback for handling annotation click (Highlight and Underline)
   ///Provides the CFI range and the selection rect (same format as onSelection)
-  final void Function(String cfiRange, Map<String, dynamic>? rect)? onAnnotationClicked;
+  final void Function(String cfiRange, Map<String, dynamic>? rect)?
+      onAnnotationClicked;
 
   /// Context menu for text selection.
   /// If null, the default context menu will be used.
@@ -262,7 +266,8 @@ class EpubViewer extends StatefulWidget {
 
   /// Custom permission handler for webview permission requests.
   /// If null, permissions are denied by default.
-  final Future<PermissionResponse> Function(PermissionRequest request)? onPermissionRequest;
+  final Future<PermissionResponse> Function(PermissionRequest request)?
+      onPermissionRequest;
 
   @override
   State<EpubViewer> createState() => _EpubViewerState();
@@ -271,7 +276,10 @@ class EpubViewer extends StatefulWidget {
 class _EpubViewerState extends State<EpubViewer> {
   final GlobalKey webViewKey = GlobalKey();
 
-  Timer? _selectionCheckTimer; // Timer to periodically verify selection still exists
+  Timer?
+      _selectionCheckTimer; // Timer to periodically verify selection still exists
+  Timer? _longPressDelayTimer;
+  Timer? _longPressSelectionTimer;
 
   InAppWebViewController? webViewController;
 
@@ -522,7 +530,8 @@ class _EpubViewerState extends State<EpubViewer> {
           resultsPayload = payload;
         }
 
-        if (requestId != null && requestId != widget.epubController.activeSearchRequestId) {
+        if (requestId != null &&
+            requestId != widget.epubController.activeSearchRequestId) {
           return;
         }
 
@@ -598,8 +607,13 @@ class _EpubViewerState extends State<EpubViewer> {
 
     webViewController?.addJavaScriptHandler(
       handlerName: "readyToLoad",
-      callback: (data) {
-        loadBook();
+      callback: (data) async {
+        try {
+          await loadBook();
+        } catch (error) {
+          if (kDebugMode) debugPrint('EPUB load failed: $error');
+          if (mounted) widget.onEpubLoadFailed?.call();
+        }
       },
     );
 
@@ -703,7 +717,8 @@ class _EpubViewerState extends State<EpubViewer> {
           locationData = Map<String, dynamic>.from(payload);
         }
 
-        if (requestId != null && requestId != widget.epubController.activeLocationRequestId) {
+        if (requestId != null &&
+            requestId != widget.epubController.activeLocationRequestId) {
           return;
         }
 
@@ -737,7 +752,6 @@ class _EpubViewerState extends State<EpubViewer> {
   }
 
   Future<void> loadBook() async {
-    var data = await widget.epubSource.epubData;
     final displaySettings = widget.displaySettings ?? EpubDisplaySettings();
     String manager = displaySettings.manager.name;
     String flow = displaySettings.flow.name;
@@ -746,7 +760,8 @@ class _EpubViewerState extends State<EpubViewer> {
     bool allowScripted = displaySettings.allowScriptedContent;
     String cfi = widget.initialCfi ?? "";
     String? initialXPath = widget.initialXPath;
-    String direction = widget.displaySettings?.defaultDirection.name ?? EpubDefaultDirection.ltr.name;
+    String direction = widget.displaySettings?.defaultDirection.name ??
+        EpubDefaultDirection.ltr.name;
     int fontSize = displaySettings.fontSize;
 
     // Turn OFF epub.js's own Snap manager (native scroll + CSS scroll-snap) on
@@ -759,9 +774,11 @@ class _EpubViewerState extends State<EpubViewer> {
     //    Listener level in build() instead and call next()/prev() directly.
     // Either way, leaving snap on would fight our page turns (double-advance),
     // so useCustomSwipe suppresses it (loadBook uses `snap && !useCustomSwipe`).
-    bool useCustomSwipe = Platform.isIOS || (Platform.isAndroid && !displaySettings.useSnapAnimationAndroid);
+    bool useCustomSwipe = Platform.isIOS ||
+        (Platform.isAndroid && !displaySettings.useSnapAnimationAndroid);
 
-    String? foregroundColor = widget.displaySettings?.theme?.foregroundColor?.toHex();
+    String? foregroundColor =
+        widget.displaySettings?.theme?.foregroundColor?.toHex();
 
     // Extract background color from the theme's BoxDecoration if available
     String? backgroundColor;
@@ -774,7 +791,14 @@ class _EpubViewerState extends State<EpubViewer> {
 
     bool clearSelectionOnPageChange = widget.clearSelectionOnPageChange;
 
-    String base64Data = await _encodeBase64(data);
+    // File sources stay off the UI isolate and are released by the worker as
+    // soon as encoding finishes. Previously the source retained the raw EPUB
+    // for the entire WebView lifetime, alongside the base64 and JS copies.
+    final filePath = widget.epubSource.filePath;
+    final base64Data = filePath == null
+        ? await _encodeBase64(await widget.epubSource.epubData)
+        : await compute(_base64EncodeFileIsolate, filePath);
+    if (!mounted) return;
 
     await webViewController?.callAsyncJavaScript(
       functionBody:
@@ -817,7 +841,9 @@ class _EpubViewerState extends State<EpubViewer> {
           : widget.selectionContextMenu,
       key: webViewKey,
       initialFile: 'packages/sakura_epub/lib/assets/webpage/html/swipe.html',
-      initialSettings: settings..disableVerticalScroll = Platform.isIOS ? true : (widget.displaySettings?.snap ?? false),
+      initialSettings: settings
+        ..disableVerticalScroll =
+            Platform.isIOS ? true : (widget.displaySettings?.snap ?? false),
       onWebViewCreated: (controller) async {
         webViewController = controller;
         widget.epubController.setWebViewController(controller);
@@ -849,7 +875,10 @@ class _EpubViewerState extends State<EpubViewer> {
         // On iPad, long press creates selection but events don't fire
         // Trigger JavaScript to check for selection after a delay
         // Also set up periodic checking for selection changes (when handles are dragged)
-        Future.delayed(const Duration(milliseconds: 300), () {
+        _longPressDelayTimer?.cancel();
+        _longPressSelectionTimer?.cancel();
+        _longPressDelayTimer = Timer(const Duration(milliseconds: 300), () {
+          if (!mounted) return;
           controller.evaluateJavascript(
             source: 'checkSelectionAfterLongPress()',
           );
@@ -858,7 +887,12 @@ class _EpubViewerState extends State<EpubViewer> {
           // Check every 150ms for up to 10 seconds after long press
           var checkCount = 0;
           var maxChecks = 67; // 67 * 150ms = ~10 seconds
-          Timer.periodic(const Duration(milliseconds: 150), (timer) {
+          _longPressSelectionTimer =
+              Timer.periodic(const Duration(milliseconds: 150), (timer) {
+            if (!mounted) {
+              timer.cancel();
+              return;
+            }
             checkCount++;
             if (checkCount > maxChecks) {
               timer.cancel();
@@ -887,7 +921,8 @@ class _EpubViewerState extends State<EpubViewer> {
     // WebViews can cancel the iframe touch stream during a vertical drag.
     // iOS also needs it for horizontal turns and touch callbacks. Android
     // keeps its JS touch callbacks so they are not delivered twice here.
-    if (Platform.isIOS || (Platform.isAndroid && widget.verticalPageNavigation)) {
+    if (Platform.isIOS ||
+        (Platform.isAndroid && widget.verticalPageNavigation)) {
       webView = Listener(
         onPointerDown: (event) {
           _swipeStartPos = event.position;
@@ -915,7 +950,8 @@ class _EpubViewerState extends State<EpubViewer> {
           }
 
           if (_swipeStartPos != null && !_hasActiveSelection) {
-            final duration = DateTime.now().millisecondsSinceEpoch - _swipeStartTime;
+            final duration =
+                DateTime.now().millisecondsSinceEpoch - _swipeStartTime;
             final dx = event.position.dx - _swipeStartPos!.dx;
             final dy = event.position.dy - _swipeStartPos!.dy;
             // Every mode is paginated. In scroll mode this listener maps a
@@ -932,7 +968,9 @@ class _EpubViewerState extends State<EpubViewer> {
                     widget.epubController.prev();
                   }
                 }
-              } else if (dx.abs() > 60 && dy.abs() < 50 && dx.abs() > dy.abs() * 2) {
+              } else if (dx.abs() > 60 &&
+                  dy.abs() < 50 &&
+                  dx.abs() > dy.abs() * 2) {
                 // Short, clearly horizontal (>60px, dy<50, ratio>2x) flick.
                 if (dx < 0) {
                   widget.epubController.next();
@@ -968,7 +1006,9 @@ class _EpubViewerState extends State<EpubViewer> {
       }
 
       // Check if selection still exists and re-apply blocking if needed
-      webViewController?.evaluateJavascript(source: 'checkSelectionAndReapplyBlocking()').then((result) {
+      webViewController
+          ?.evaluateJavascript(source: 'checkSelectionAndReapplyBlocking()')
+          .then((result) {
         // If selection no longer exists, stop monitoring
         if (result == 'no-selection') {
           _hasActiveSelection = false;
@@ -987,6 +1027,8 @@ class _EpubViewerState extends State<EpubViewer> {
 
   @override
   void dispose() {
+    _longPressDelayTimer?.cancel();
+    _longPressSelectionTimer?.cancel();
     _stopSelectionMonitoring();
     super.dispose();
   }

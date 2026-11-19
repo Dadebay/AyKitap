@@ -35,8 +35,12 @@ class _NextBookOfferState extends State<NextBookOffer> {
   }
 
   Future<void> _loadDownloads() async {
-    await DownloadedBooksStore.instance.load();
-    if (mounted) setState(() {});
+    try {
+      await DownloadedBooksStore.instance.load();
+      if (mounted) setState(() {});
+    } catch (_) {
+      // A recommendation is optional; opening the reader must still work.
+    }
   }
 
   @override

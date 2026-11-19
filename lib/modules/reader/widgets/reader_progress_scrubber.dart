@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_motion.dart';
+import '../../../core/services/device_tier.dart';
 
 /// The progress scrubber shared by [ReaderBottomBar] and [PdfBottomBar]: a
 /// position label, a slider, and the end-of-range label.
@@ -166,7 +167,7 @@ class _ReaderProgressScrubberState extends State<ReaderProgressScrubber> {
   Widget build(BuildContext context) {
     final drag = _dragValue;
     final value = (drag ?? widget.progress).clamp(0.0, 1.0);
-    final reduceMotion = AppMotion.reduceMotion(context);
+    final reduceMotion = AppMotion.reduceMotion(context) || DeviceTier.isLowEnd;
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: value, end: value),

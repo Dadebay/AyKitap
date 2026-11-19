@@ -41,7 +41,8 @@ extension _PdfReaderScreenBody on _PdfReaderScreenState {
                   await _saveProgress();
                   if (!context.mounted) return;
                   Navigator.of(context).pushReplacement(MaterialPageRoute(
-                    builder: (_) => CatalogBookDetailScreen(bookId: book.id),
+                    builder: (_) => CatalogBookDetailScreen(
+                        bookId: book.id, offlineBook: book),
                   ));
                 },
               ),

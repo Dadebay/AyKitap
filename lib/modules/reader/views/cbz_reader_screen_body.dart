@@ -66,7 +66,8 @@ extension _CbzReaderScreenBody on _CbzReaderScreenState {
                   await _saveProgress();
                   if (!context.mounted) return;
                   Navigator.of(context).pushReplacement(MaterialPageRoute(
-                    builder: (_) => CatalogBookDetailScreen(bookId: book.id),
+                    builder: (_) => CatalogBookDetailScreen(
+                        bookId: book.id, offlineBook: book),
                   ));
                 },
               ),

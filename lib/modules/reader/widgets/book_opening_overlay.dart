@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import '../../../core/localization/strings/reader_strings.dart';
+import '../../../core/services/device_tier.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_motion.dart';
 
 /// Book-opening screen: [book_reading_boy.json] plus a 0→100% readout.
 ///
@@ -98,15 +100,23 @@ class _BookOpeningOverlayState extends State<BookOpeningOverlay>
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(
-                  width: tablet ? 340 : 280,
-                  height: tablet ? 340 : 280,
-                  child: Lottie.asset(
-                    'assets/animations/book_reading_boy.json',
-                    repeat: true,
-                    fit: BoxFit.contain,
+                if (DeviceTier.isLowEnd || AppMotion.reduceMotion(context))
+                  SizedBox(
+                    width: tablet ? 120 : 96,
+                    height: tablet ? 120 : 96,
+                    child: Icon(Icons.menu_book_rounded,
+                        color: AppColors.primary, size: tablet ? 76 : 64),
+                  )
+                else
+                  SizedBox(
+                    width: tablet ? 340 : 280,
+                    height: tablet ? 340 : 280,
+                    child: Lottie.asset(
+                      'assets/animations/book_reading_boy.json',
+                      repeat: true,
+                      fit: BoxFit.contain,
+                    ),
                   ),
-                ),
                 const SizedBox(height: 4),
                 Text(
                   '$shown%',

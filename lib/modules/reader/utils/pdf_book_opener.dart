@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/localization/strings/reader_pdf_strings.dart';
 import '../../../core/services/pdf_reflow_service.dart';
+import '../../../core/services/device_tier.dart';
+import '../../../core/theme/app_motion.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../provider/reader_provider.dart';
 import '../views/pdf_reader_screen.dart';
@@ -215,12 +217,15 @@ class PdfOpeningScreenState extends State<PdfOpeningScreen> {
     return Scaffold(
       backgroundColor: _bgColor,
       body: Center(
-        child: SizedBox(
-          width: 220,
-          height: 220,
-          child: Lottie.asset('assets/animations/book_reading_boy.json',
-              repeat: true, fit: BoxFit.contain),
-        ),
+        child: DeviceTier.isLowEnd || AppMotion.reduceMotion(context)
+            ? const Icon(Icons.menu_book_rounded,
+                color: Colors.white70, size: 72)
+            : SizedBox(
+                width: 220,
+                height: 220,
+                child: Lottie.asset('assets/animations/book_reading_boy.json',
+                    repeat: true, fit: BoxFit.contain),
+              ),
       ),
     );
   }

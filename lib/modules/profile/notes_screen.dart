@@ -208,10 +208,15 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   List<UserNote> _visibleNotes() {
-    final remote = _notes ?? const <UserNote>[];
+    final owner = _ownerId;
+    final deletedIds = owner == null
+        ? const <int>{}
+        : NotesStore.instance.pendingDeletionIdsFor(owner);
+    final remote = (_notes ?? const <UserNote>[])
+        .where((note) => !deletedIds.contains(note.id))
+        .toList();
     final remoteIds = remote.map((n) => n.id).toSet();
     _localById = {};
-    final owner = _ownerId;
     if (owner == null) return remote;
     final visible = <UserNote>[...remote];
     var localId = -1;
