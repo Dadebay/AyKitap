@@ -82,7 +82,7 @@ class DailyReadingGoalCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '$minutes / 10 ${HomeStrings.minutesShort}',
+                            '$minutes / ${DailyReadingGoalService.targetSeconds ~/ 60} ${HomeStrings.minutesShort}',
                             style: TextStyle(
                               color: AppColors.grey2,
                               fontSize: 12,
