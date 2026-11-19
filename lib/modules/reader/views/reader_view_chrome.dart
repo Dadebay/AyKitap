@@ -80,6 +80,9 @@ extension _ReaderViewChrome on _ReaderScreenState {
                         eyeCare: provider.eyeCare,
                         onSettings: () => _showSettings(context),
                         onChapters: () => _showChapters(context, provider),
+                        onNextChapter: provider.nextChapter == null
+                            ? null
+                            : provider.rushToNextChapter,
                         onSearch: () => _showSearch(context, provider),
                         // Through the provider, not straight to the
                         // controller: a deliberate seek also has to drop the

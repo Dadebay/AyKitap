@@ -89,6 +89,11 @@ class ReaderStrings {
   // ── Bottom toolbar labels (TZ §12.3) ─────────────────────────────────
   static String get contentsLabel =>
       t(tk: 'Mazmun', ru: 'Содержание', tr: 'İçindekiler', en: 'Contents');
+  static String get nextChapterShort => t(
+      tk: 'Indiki bap',
+      ru: 'След. глава',
+      tr: 'Sonraki bölüm',
+      en: 'Next chapter');
   static String get searchShortLabel =>
       t(tk: 'Gözleg', ru: 'Поиск', tr: 'Arama', en: 'Search');
 

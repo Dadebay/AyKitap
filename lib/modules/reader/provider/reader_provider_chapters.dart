@@ -7,6 +7,33 @@ part of 'reader_provider.dart';
 extension ReaderProviderChapters on ReaderProvider {
   List<EpubChapter> get chapters => _chapters;
 
+  /// The next/previous distinct TOC entry in reading order. A chapter can
+  /// span many rendered pages, so a fast move targets its href directly.
+  EpubChapter? get nextChapter => _adjacentChapter(1);
+  EpubChapter? get previousChapter => _adjacentChapter(-1);
+
+  EpubChapter? _adjacentChapter(int direction) {
+    if (_currentTocHref.isEmpty || _chapters.isEmpty) return null;
+    final ordered = <EpubChapter>[];
+    void collect(List<EpubChapter> chapters) {
+      for (final chapter in chapters) {
+        if (chapter.href.isNotEmpty) ordered.add(chapter);
+        collect(chapter.subitems);
+      }
+    }
+
+    collect(_chapters);
+    final currentKey = _tocKey(_currentTocHref);
+    final index = ordered.indexWhere((c) => _tocKey(c.href) == currentKey);
+    if (index < 0) return null;
+    for (var i = index + direction;
+        i >= 0 && i < ordered.length;
+        i += direction) {
+      if (_tocKey(ordered[i].href) != currentKey) return ordered[i];
+    }
+    return null;
+  }
+
   /// TZ §12.1 — the chapter name shown in the reader's top bar; null while the
   /// position is still unknown or the entry isn't in the TOC, so the caller can
   /// fall back to the book title.

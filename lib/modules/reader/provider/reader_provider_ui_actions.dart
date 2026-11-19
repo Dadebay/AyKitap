@@ -70,11 +70,30 @@ extension ReaderProviderUiActions on ReaderProvider {
 
   void goToChapter(EpubChapter chapter) {
     cancelPositionRestore();
-    final target = chapter.id.isNotEmpty && !chapter.href.contains('#')
-        ? '${chapter.href}#${chapter.id}'
-        : chapter.href;
+    final target = _chapterTarget(chapter);
     log('👉 goToChapter tapped="${chapter.title}" href=${chapter.href} → target=$target');
     epubController.display(cfi: target);
+  }
+
+  String _chapterTarget(EpubChapter chapter) =>
+      chapter.id.isNotEmpty && !chapter.href.contains('#')
+          ? '${chapter.href}#${chapter.id}'
+          : chapter.href;
+
+  /// One gesture advances at most one TOC entry. epub.js shows a short burst
+  /// of pages and then jumps to the exact boundary instead of rendering all
+  /// fifty pages of a long chapter one by one.
+  void rushToNextChapter() => _rushToChapter(nextChapter, 1);
+  void rushToPreviousChapter() => _rushToChapter(previousChapter, -1);
+
+  void _rushToChapter(EpubChapter? chapter, int direction) {
+    if (chapter == null || hasSelection || !epubController.isBookLoaded) return;
+    cancelPositionRestore();
+    epubController.rushToChapter(
+      target: _chapterTarget(chapter),
+      tocHref: chapter.href,
+      direction: direction,
+    );
   }
 
   void goToCfi(String cfi) {

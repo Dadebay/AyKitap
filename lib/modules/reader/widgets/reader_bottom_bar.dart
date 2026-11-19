@@ -25,6 +25,7 @@ class ReaderBottomBar extends StatelessWidget {
 
   final VoidCallback onSettings;
   final VoidCallback onChapters;
+  final VoidCallback? onNextChapter;
   final VoidCallback onSearch;
   final ValueChanged<double> onProgressChanged;
 
@@ -37,6 +38,7 @@ class ReaderBottomBar extends StatelessWidget {
     this.eyeCare = 0.0,
     required this.onSettings,
     required this.onChapters,
+    required this.onNextChapter,
     required this.onSearch,
     required this.onProgressChanged,
   });
@@ -127,7 +129,7 @@ class ReaderBottomBar extends StatelessWidget {
 
               const SizedBox(height: 2),
 
-              // ── Three labelled buttons, straight on the scrim ─────────────
+              // ── Reader actions, straight on the scrim ────────────────────
               Padding(
                 padding: EdgeInsets.fromLTRB(8, 0, 8, bottomPad + 6),
                 child: Row(
@@ -150,6 +152,15 @@ class ReaderBottomBar extends StatelessWidget {
                       labelColor: accent,
                       wellColor: accent.withValues(alpha: 0.16),
                       onTap: onSettings,
+                      compact: compact,
+                    ),
+                    ReaderToolbarBtn(
+                      icon: HugeIcons.strokeRoundedArrowRight01,
+                      label: ReaderStrings.nextChapterShort,
+                      color: onNextChapter == null ? labelColor : iconColor,
+                      labelColor: labelColor,
+                      wellColor: wellColor,
+                      onTap: onNextChapter,
                       compact: compact,
                     ),
                     // Поиск — in-book search

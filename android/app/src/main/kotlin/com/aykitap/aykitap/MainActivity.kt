@@ -33,6 +33,9 @@ class MainActivity : FlutterFragmentActivity() {
     private var deepLinkChannel: MethodChannel? = null
     private var readerVolumeChannel: MethodChannel? = null
     private var readerActive = false
+    private var readerHasChapters = false
+    private var activeVolumeKey = KeyEvent.KEYCODE_UNKNOWN
+    private var volumeLongTriggered = false
     private var pendingPath: String? = null
     private var pendingLink: String? = null
 
@@ -91,7 +94,11 @@ class MainActivity : FlutterFragmentActivity() {
         readerVolumeChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, readerVolumeChannelName).apply {
             setMethodCallHandler { call, result ->
                 if (call.method == "setReaderActive") {
-                    readerActive = call.arguments == true
+                    val options = call.arguments as? Map<*, *>
+                    readerActive = options?.get("active") == true
+                    readerHasChapters = options?.get("chapters") == true
+                    activeVolumeKey = KeyEvent.KEYCODE_UNKNOWN
+                    volumeLongTriggered = false
                     result.success(null)
                 } else {
                     result.notImplemented()
@@ -104,11 +111,28 @@ class MainActivity : FlutterFragmentActivity() {
         val isVolume = event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
             event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
         if (readerActive && isVolume) {
-            // One page per physical press. Consume the matching key-up and
-            // long-press repeats so Android does not also change device volume.
-            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                val direction = if (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP) "previous" else "next"
-                readerVolumeChannel?.invokeMethod("onVolumeKey", direction)
+            val forward = event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
+            if (!readerHasChapters) {
+                if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                    readerVolumeChannel?.invokeMethod("onVolumeKey", if (forward) "next" else "previous")
+                }
+                return true
+            }
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                if (event.repeatCount == 0) {
+                    activeVolumeKey = event.keyCode
+                    volumeLongTriggered = false
+                } else if (activeVolumeKey == event.keyCode && !volumeLongTriggered) {
+                    volumeLongTriggered = true
+                    readerVolumeChannel?.invokeMethod(
+                        "onVolumeKey", if (forward) "nextChapter" else "previousChapter")
+                }
+            } else if (event.action == KeyEvent.ACTION_UP) {
+                if (activeVolumeKey == event.keyCode && !volumeLongTriggered) {
+                    readerVolumeChannel?.invokeMethod("onVolumeKey", if (forward) "next" else "previous")
+                }
+                activeVolumeKey = KeyEvent.KEYCODE_UNKNOWN
+                volumeLongTriggered = false
             }
             return true
         }

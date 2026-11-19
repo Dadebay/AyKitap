@@ -14,6 +14,10 @@ class ReaderVolumeKeys {
         _next?.call();
       } else if (call.arguments == 'previous') {
         _previous?.call();
+      } else if (call.arguments == 'nextChapter') {
+        _nextChapter?.call();
+      } else if (call.arguments == 'previousChapter') {
+        _previousChapter?.call();
       }
     });
   }
@@ -24,12 +28,19 @@ class ReaderVolumeKeys {
   Object? _owner;
   VoidCallback? _next;
   VoidCallback? _previous;
+  VoidCallback? _nextChapter;
+  VoidCallback? _previousChapter;
 
   void activate(Object owner,
-      {required VoidCallback next, required VoidCallback previous}) {
+      {required VoidCallback next,
+      required VoidCallback previous,
+      VoidCallback? nextChapter,
+      VoidCallback? previousChapter}) {
     _owner = owner;
     _next = next;
     _previous = previous;
+    _nextChapter = nextChapter;
+    _previousChapter = previousChapter;
     if (Platform.isAndroid) unawaited(_setNativeActive(true));
   }
 
@@ -38,12 +49,17 @@ class ReaderVolumeKeys {
     _owner = null;
     _next = null;
     _previous = null;
+    _nextChapter = null;
+    _previousChapter = null;
     if (Platform.isAndroid) unawaited(_setNativeActive(false));
   }
 
   Future<void> _setNativeActive(bool active) async {
     try {
-      await _channel.invokeMethod<void>('setReaderActive', active);
+      await _channel.invokeMethod<void>('setReaderActive', {
+        'active': active,
+        'chapters': active && _nextChapter != null,
+      });
     } on MissingPluginException {
       // Old native builds and widget tests have no volume-key bridge.
     } on PlatformException {

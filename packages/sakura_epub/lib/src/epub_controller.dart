@@ -75,6 +75,25 @@ class EpubController {
     webViewController?.evaluateJavascript(source: 'previous()');
   }
 
+  /// Quickly moves through a sample of pages, then lands at the exact TOC
+  /// boundary. The WebView performs the move so it can stop before crossing
+  /// the chapter even when multiple TOC entries share one spine file.
+  void rushToChapter({
+    required String target,
+    required String tocHref,
+    required int direction,
+  }) {
+    checkEpubLoaded();
+    webViewController?.callAsyncJavaScript(
+      functionBody: 'rushToChapter(target, tocHref, direction)',
+      arguments: {
+        'target': target,
+        'tocHref': tocHref,
+        'direction': direction,
+      },
+    );
+  }
+
   Completer<EpubLocation> currentLocationCompleter = Completer<EpubLocation>();
 
   ///Returns current location of epub viewer
@@ -118,7 +137,8 @@ class EpubController {
     return EpubMetadata.fromJson(result);
   }
 
-  Completer<List<EpubSearchResult>> searchResultCompleter = Completer<List<EpubSearchResult>>();
+  Completer<List<EpubSearchResult>> searchResultCompleter =
+      Completer<List<EpubSearchResult>>();
 
   ///Search in epub using query string
   ///Returns a list of [EpubSearchResult]

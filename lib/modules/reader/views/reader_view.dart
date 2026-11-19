@@ -30,6 +30,7 @@ import '../widgets/chapter_list_sheet.dart';
 import '../widgets/epub_error_view.dart';
 import '../widgets/reader_bottom_bar.dart';
 import '../widgets/reader_brightness_edge_gesture.dart';
+import '../widgets/reader_chapter_edge_gesture.dart';
 import '../widgets/reader_page_viewport.dart';
 import '../../../core/widgets/snowfall.dart';
 import '../widgets/reader_scroll_hint.dart';
@@ -131,14 +132,18 @@ class _ReaderScreenState extends State<ReaderScreen> {
       if (!mounted) return;
       final provider = context.read<ReaderProvider>();
       if (!provider.isLoading && !provider.loadFailed) {
-        provider.epubController.next();
+        provider.nextPage();
       }
     }, previous: () {
       if (!mounted) return;
       final provider = context.read<ReaderProvider>();
       if (!provider.isLoading && !provider.loadFailed) {
-        provider.epubController.prev();
+        provider.prevPage();
       }
+    }, nextChapter: () {
+      if (mounted) context.read<ReaderProvider>().rushToNextChapter();
+    }, previousChapter: () {
+      if (mounted) context.read<ReaderProvider>().rushToPreviousChapter();
     });
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     enableReaderLandscape();

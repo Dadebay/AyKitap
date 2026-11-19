@@ -2361,6 +2361,74 @@ function _installScrollLogging() {
   }
 }
 
+var _chapterRushActive = false;
+var _chapterRushCancelled = false;
+
+function _chapterKey(href) {
+  var raw = href || '';
+  return hrefFileName(raw) + '#' + (raw.split('#')[1] || '').split('?')[0];
+}
+
+function _chapterRushDelay(ms) {
+  return new Promise(function (resolve) { setTimeout(resolve, ms); });
+}
+
+// Shows a quick sample of real page turns, then lands on the next TOC entry.
+// A 50-page chapter must never require 50 WebView layouts just to skip it.
+// The target comes from Dart's depth-first TOC order; resolveTocHref checks
+// every intermediate page so a short chapter stops at its first boundary.
+async function rushToChapter(target, tocHref, direction) {
+  if (_chapterRushActive || !rendition || !rendition.location ||
+      !target || hasActiveSelection()) return false;
+  var startKey = _chapterKey(resolveTocHref(rendition.location));
+  var targetKey = _chapterKey(tocHref);
+  if (!startKey || startKey === targetKey) return false;
+
+  _chapterRushActive = true;
+  _chapterRushCancelled = false;
+  var savedTransition = _pageTransition;
+  _pageTransition = 'none';
+  var started = Date.now();
+  try {
+    // Twelve glimpses at most, about 30 ms apart. This conveys the fast
+    // scroll without piling up fifty expensive iframe renders on a 2 GB phone.
+    for (var i = 0; i < 12 && Date.now() - started < 1600; i++) {
+      if (_chapterRushCancelled) return false;
+      var before = rendition.location.start.cfi;
+      var turn = direction > 0 ? rendition.next() : rendition.prev();
+      var settled = await Promise.race([
+        Promise.resolve(turn).then(function () { return true; },
+                                   function () { return false; }),
+        _chapterRushDelay(450).then(function () { return false; })
+      ]);
+      if (!settled) break;
+      await _chapterRushDelay(30);
+      var location = rendition.location;
+      if (!location || !location.start || location.start.cfi === before) break;
+      var key = _chapterKey(resolveTocHref(location));
+      // Land on the chapter's actual anchor, even when the first page that
+      // overlaps it still shows a paragraph from the previous chapter.
+      if (key === targetKey) break;
+      if (key !== startKey) break;
+    }
+
+    if (_chapterRushCancelled) return false;
+    _lastNavDirection = 0;
+    await Promise.race([
+      Promise.resolve(rendition.display(target)),
+      _chapterRushDelay(1500)
+    ]);
+    return true;
+  } catch (e) {
+    console.error('Chapter rush failed:', e);
+    return false;
+  } finally {
+    _pageTransition = savedTransition;
+    _chapterRushActive = false;
+    _chapterRushCancelled = false;
+  }
+}
+
 function next() {
   // Block navigation if there's an active selection
   if (hasActiveSelection()) {
@@ -2368,6 +2436,7 @@ function next() {
     return;
   }
   if (rendition) {
+    if (_chapterRushActive) _chapterRushCancelled = true;
     rendition.next();
   }
 }
@@ -2380,6 +2449,7 @@ function previous() {
     return;
   }
   if (rendition) {
+    if (_chapterRushActive) _chapterRushCancelled = true;
     rendition.prev();
   }
 }

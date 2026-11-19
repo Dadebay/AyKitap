@@ -113,6 +113,24 @@ extension _ReaderViewBody on _ReaderScreenState {
                 ),
               ),
 
+            if (!_showLoadingOverlay &&
+                !provider.isLoading &&
+                !provider.loadFailed)
+              Positioned.fill(
+                child: ValueListenableBuilder<ReaderProgressSnapshot>(
+                  valueListenable: provider.progressListenable,
+                  builder: (context, _, __) => provider.nextChapter == null
+                      ? const SizedBox.shrink()
+                      : Align(
+                          alignment: Alignment.centerRight,
+                          child: ReaderChapterEdgeGesture(
+                            isDarkPage: isDarkPage,
+                            onNextChapter: provider.rushToNextChapter,
+                          ),
+                        ),
+                ),
+              ),
+
             _buildChrome(context, provider, bgColor, focusColor, inFocus),
 
             // ── Loading overlay ────────────────────────────────────────

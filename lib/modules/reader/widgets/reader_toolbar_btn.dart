@@ -10,7 +10,7 @@ class ReaderToolbarBtn extends StatelessWidget {
   final Color color;
   final Color labelColor;
   final Color wellColor;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   /// Landscape: caption hidden and the well tightened, so the bar fits the
   /// shorter screen. The tap target keeps the full row height either way.
