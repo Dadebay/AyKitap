@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../core/localization/strings/reader_pdf_strings.dart';
 import '../../../core/localization/strings/reader_strings.dart';
+import 'reader_auto_brightness_row.dart';
 import 'reader_section_label.dart';
 import 'reader_slider_row.dart';
 
@@ -16,18 +17,22 @@ import 'reader_slider_row.dart';
 class PdfAppearanceSliders extends StatelessWidget {
   final double marginCrop;
   final double brightness;
+  final bool autoBrightness;
   final double eyeCare;
   final ValueChanged<double> onMarginCropChanged;
   final ValueChanged<double> onBrightnessChanged;
+  final ValueChanged<bool> onAutoBrightnessChanged;
   final ValueChanged<double> onEyeCareChanged;
 
   const PdfAppearanceSliders({
     super.key,
     required this.marginCrop,
     required this.brightness,
+    required this.autoBrightness,
     required this.eyeCare,
     required this.onMarginCropChanged,
     required this.onBrightnessChanged,
+    required this.onAutoBrightnessChanged,
     required this.onEyeCareChanged,
   });
 
@@ -68,6 +73,12 @@ class PdfAppearanceSliders extends StatelessWidget {
           value: brightness,
           min: 0.1,
           onChanged: onBrightnessChanged,
+        ),
+
+        const SizedBox(height: 10),
+        ReaderAutoBrightnessRow(
+          value: autoBrightness,
+          onChanged: onAutoBrightnessChanged,
         ),
 
         const SizedBox(height: 22),

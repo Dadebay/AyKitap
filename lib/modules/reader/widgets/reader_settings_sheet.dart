@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../provider/reader_provider.dart';
 import 'page_transition_section.dart';
 import 'reader_appearance_levels_row.dart';
+import 'reader_auto_brightness_row.dart';
 import 'reader_font_tile.dart';
 import 'reader_landscape_row.dart';
 import 'reader_original_pdf_row.dart';
@@ -97,6 +98,12 @@ class ReaderSettingsSheet extends StatelessWidget {
 
                       // ── Size / line spacing / brightness / eye care ────
                       ReaderAppearanceLevelsRow(provider: provider),
+
+                      const SizedBox(height: 12),
+                      ReaderAutoBrightnessRow(
+                        value: provider.autoBrightness,
+                        onChanged: provider.setAutoBrightness,
+                      ),
 
                       const SizedBox(height: 24),
 

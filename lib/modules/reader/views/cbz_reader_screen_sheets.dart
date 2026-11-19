@@ -14,6 +14,7 @@ extension _CbzReaderScreenSheets on _CbzReaderScreenState {
         builder: (_, setSheetState) => CbzSettingsSheet(
           darkGutter: _darkGutter,
           brightness: _brightness,
+          autoBrightness: _autoBrightness,
           eyeCare: _eyeCare,
           fit: _fit,
           viewMode: _viewMode,
@@ -23,6 +24,10 @@ extension _CbzReaderScreenSheets on _CbzReaderScreenState {
           },
           onBrightnessChanged: (v) async {
             await _setBrightness(v);
+            setSheetState(() {});
+          },
+          onAutoBrightnessChanged: (v) async {
+            await _setAutoBrightness(v);
             setSheetState(() {});
           },
           onEyeCareChanged: (v) async {

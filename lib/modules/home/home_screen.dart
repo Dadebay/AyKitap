@@ -117,8 +117,8 @@ class _HomeScreenState extends State<HomeScreen>
                   onStreakTap: () => context.push(const StreakScreen()),
                 ),
               ),
-              const SliverToBoxAdapter(child: DailyReadingGoalCard()),
               const SliverToBoxAdapter(child: BannerCarousel()),
+              const SliverToBoxAdapter(child: DailyReadingGoalCard()),
               const SliverToBoxAdapter(child: SizedBox(height: 4)),
               // Scoped to collections only — a banner or loading change
               // never runs this builder, and vice versa (loading only
@@ -131,8 +131,11 @@ class _HomeScreenState extends State<HomeScreen>
                         child: HomeShimmer(key: ValueKey('home-shimmer')));
                   }
                   if (HomeDataService.instance.hasNoContent) {
-                    return SliverFillRemaining(
-                      hasScrollBody: false,
+                    // The banner and goal card can leave little viewport
+                    // space on a compact phone. Give the retry card its own
+                    // scrollable height instead of squeezing it into what
+                    // remains and overflowing its text/button.
+                    return SliverToBoxAdapter(
                       child: ValueListenableBuilder<bool>(
                         valueListenable:
                             HomeDataService.instance.loadingListenable,

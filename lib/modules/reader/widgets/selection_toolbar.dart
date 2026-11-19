@@ -4,7 +4,7 @@ import '../../../core/localization/strings/reader_notes_strings.dart';
 import '../../../core/theme/app_colors.dart';
 
 /// The text-selection menu (TZ §12.7): shows the selected passage and the
-/// actions available on it — add note, copy, share.
+/// actions available on it — add note, copy, share, translate.
 ///
 /// Styled from [AppColors] like every other reader sheet (settings,
 /// bookmarks, chapters, search) — it's a UI chrome element floating over the
@@ -29,6 +29,7 @@ class SelectionToolbar extends StatelessWidget {
   final VoidCallback onRemoveHighlight;
   final VoidCallback onCopy;
   final VoidCallback onShare;
+  final VoidCallback onDict;
   final VoidCallback onClose;
 
   const SelectionToolbar({
@@ -41,6 +42,7 @@ class SelectionToolbar extends StatelessWidget {
     required this.onRemoveHighlight,
     required this.onCopy,
     required this.onShare,
+    required this.onDict,
     required this.onClose,
   });
 
@@ -110,6 +112,10 @@ class SelectionToolbar extends StatelessWidget {
                     icon: HugeIcons.strokeRoundedShare08,
                     label: ReaderNotesStrings.shareLabel,
                     onTap: onShare),
+                _Action(
+                    icon: HugeIcons.strokeRoundedTranslate,
+                    label: ReaderNotesStrings.dictLabel,
+                    onTap: onDict),
               ],
             ),
           ],

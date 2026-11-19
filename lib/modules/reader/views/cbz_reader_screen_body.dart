@@ -101,6 +101,18 @@ extension _CbzReaderScreenBody on _CbzReaderScreenState {
               message: ReaderStrings.cbzOpenError(_error!),
             ),
 
+          if (!_isLoading && _error == null)
+            Positioned.fill(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: ReaderBrightnessEdgeGesture(
+                  brightness: _brightness,
+                  isDarkPage: _darkGutter,
+                  onChanged: _setBrightness,
+                ),
+              ),
+            ),
+
           // ── Top bar ────────────────────────────────────────────────────
           Positioned(
             top: 0,

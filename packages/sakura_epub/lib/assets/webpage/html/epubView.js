@@ -4237,6 +4237,7 @@ function detectSwipe(el, func) {
     eX: 0,
     eY: 0,
     blocked: false,      // Whether this swipe should be blocked
+    multiTouch: false,   // Pinch zoom must not turn a page on finger release
     hasMoved: false,     // Whether the touch has moved
     touchStartTime: null // When the touch started
   };
@@ -4250,6 +4251,11 @@ function detectSwipe(el, func) {
   el.__sakuraSwipeInstalled = true;
   var ele = el;
   ele.addEventListener('touchstart', function (e) {
+    if (e.touches && e.touches.length > 1) {
+      swipe_det.multiTouch = true;
+      swipe_det.blocked = true;
+      return;
+    }
     // Check if selection exists at start of gesture
     if (hasActiveSelection()) {
       // Store position and time to detect if it's a tap or swipe
@@ -4276,6 +4282,12 @@ function detectSwipe(el, func) {
     }
   }, { capture: true, passive: false }); // Use options object with passive: false
   ele.addEventListener('touchmove', function (e) {
+    if (swipe_det.multiTouch || (e.touches && e.touches.length > 1)) {
+      swipe_det.multiTouch = true;
+      swipe_det.blocked = true;
+      e.preventDefault();
+      return;
+    }
     // If selection exists, check if it's a swipe
     if (hasActiveSelection()) {
       var t = e.touches[0];
@@ -4312,6 +4324,13 @@ function detectSwipe(el, func) {
     }
   }, { capture: true, passive: false }); // Use options object with passive: false
   ele.addEventListener('touchend', function (e) {
+    if (swipe_det.multiTouch) {
+      if (!e.touches || e.touches.length === 0) {
+        swipe_det.multiTouch = false;
+        swipe_det.blocked = false;
+      }
+      return;
+    }
     // If selection exists, check if it was a tap or swipe
     if (hasActiveSelection()) {
       if (swipe_det.touchStartTime !== null) {
@@ -4368,4 +4387,10 @@ function detectSwipe(el, func) {
     swipe_det.hasMoved = false;
     swipe_det.touchStartTime = null;
   }, { capture: true, passive: false }); // Use options object with passive: false
+  ele.addEventListener('touchcancel', function () {
+    swipe_det.multiTouch = false;
+    swipe_det.blocked = false;
+    swipe_det.hasMoved = false;
+    swipe_det.touchStartTime = null;
+  }, { capture: true, passive: true });
 }

@@ -48,6 +48,18 @@ extension _PdfReaderScreenBody on _PdfReaderScreenState {
               ),
             ),
 
+          if (!_isLoading && _error == null)
+            Positioned.fill(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: ReaderBrightnessEdgeGesture(
+                  brightness: _brightness,
+                  isDarkPage: isDarkSurface,
+                  onChanged: _setBrightness,
+                ),
+              ),
+            ),
+
           // ── Top bar ────────────────────────────────────────────────────
           Positioned(
             top: 0,

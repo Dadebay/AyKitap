@@ -30,7 +30,7 @@ class ReaderLoadingOverlay extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (DeviceTier.isLowEnd || AppMotion.reduceMotion(context))
+              if (AppMotion.reduceMotion(context))
                 SizedBox(
                   width: tablet ? 120 : 96,
                   height: tablet ? 120 : 96,
@@ -39,11 +39,16 @@ class ReaderLoadingOverlay extends StatelessWidget {
                 )
               else
                 SizedBox(
-                  width: tablet ? 300 : 240,
-                  height: tablet ? 300 : 240,
+                  width: DeviceTier.isLowEnd
+                      ? (tablet ? 200 : 148)
+                      : (tablet ? 300 : 240),
+                  height: DeviceTier.isLowEnd
+                      ? (tablet ? 200 : 148)
+                      : (tablet ? 300 : 240),
                   child: Lottie.asset(
                     'assets/animations/book_reading_boy.json',
                     repeat: true,
+                    frameRate: DeviceTier.isLowEnd ? const FrameRate(15) : null,
                     fit: BoxFit.contain,
                   ),
                 ),

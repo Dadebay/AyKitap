@@ -19,14 +19,17 @@ import '../../book_detail/catalog_book_detail_screen.dart';
 import '../../profile/widgets/edit_note_sheet.dart';
 import '../provider/reader_provider.dart';
 import '../utils/eye_care.dart';
+import '../utils/google_translate_launcher.dart';
 import '../utils/pdf_book_opener.dart';
 import '../utils/reader_orientation.dart';
 import '../utils/reader_tap_gate.dart';
+import '../utils/reader_volume_keys.dart';
 import '../widgets/book_opening_overlay.dart';
 import '../widgets/bookmarks_sheet.dart';
 import '../widgets/chapter_list_sheet.dart';
 import '../widgets/epub_error_view.dart';
 import '../widgets/reader_bottom_bar.dart';
+import '../widgets/reader_brightness_edge_gesture.dart';
 import '../widgets/reader_page_viewport.dart';
 import '../../../core/widgets/snowfall.dart';
 import '../widgets/reader_scroll_hint.dart';
@@ -124,6 +127,19 @@ class _ReaderScreenState extends State<ReaderScreen> {
   @override
   void initState() {
     super.initState();
+    ReaderVolumeKeys.instance.activate(this, next: () {
+      if (!mounted) return;
+      final provider = context.read<ReaderProvider>();
+      if (!provider.isLoading && !provider.loadFailed) {
+        provider.epubController.next();
+      }
+    }, previous: () {
+      if (!mounted) return;
+      final provider = context.read<ReaderProvider>();
+      if (!provider.isLoading && !provider.loadFailed) {
+        provider.epubController.prev();
+      }
+    });
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     enableReaderLandscape();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -149,6 +165,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   @override
   void dispose() {
+    ReaderVolumeKeys.instance.deactivate(this);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
         overlays: [SystemUiOverlay.top]);
     restoreAppPortraitLock();

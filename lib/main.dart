@@ -33,6 +33,7 @@ import 'core/services/purchase_mode_service.dart';
 import 'core/services/purchased_books_store.dart';
 import 'core/services/reading_books_store.dart';
 import 'core/services/revenue_cat_service.dart';
+import 'core/services/screen_protection.dart';
 import 'core/services/streak_service.dart';
 import 'core/services/subscription_service.dart';
 import 'core/theme/theme_controller.dart';
@@ -41,6 +42,7 @@ import 'modules/splash/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ScreenProtection.resetStaleProtectionOnLaunch();
   await DeviceTier.init();
   await AuthSession.loadLoginMethod();
   // Default is 1000 images / 100MB. Covers now decode at their real

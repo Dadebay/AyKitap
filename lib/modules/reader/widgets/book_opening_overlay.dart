@@ -100,7 +100,7 @@ class _BookOpeningOverlayState extends State<BookOpeningOverlay>
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (DeviceTier.isLowEnd || AppMotion.reduceMotion(context))
+                if (AppMotion.reduceMotion(context))
                   SizedBox(
                     width: tablet ? 120 : 96,
                     height: tablet ? 120 : 96,
@@ -109,11 +109,17 @@ class _BookOpeningOverlayState extends State<BookOpeningOverlay>
                   )
                 else
                   SizedBox(
-                    width: tablet ? 340 : 280,
-                    height: tablet ? 340 : 280,
+                    width: DeviceTier.isLowEnd
+                        ? (tablet ? 220 : 160)
+                        : (tablet ? 340 : 280),
+                    height: DeviceTier.isLowEnd
+                        ? (tablet ? 220 : 160)
+                        : (tablet ? 340 : 280),
                     child: Lottie.asset(
                       'assets/animations/book_reading_boy.json',
                       repeat: true,
+                      frameRate:
+                          DeviceTier.isLowEnd ? const FrameRate(15) : null,
                       fit: BoxFit.contain,
                     ),
                   ),

@@ -155,6 +155,7 @@ class ReaderProvider extends ChangeNotifier with WidgetsBindingObserver {
   double _fontSize = defaultFontSize;
   double _lineSpacing = 1.5;
   double _brightness = 1.0;
+  bool _autoBrightness = true;
   double _eyeCare = 0.0;
 
   // ── Page transition & reading direction (see reader_provider_appearance.dart) ──
@@ -184,7 +185,14 @@ class ReaderProvider extends ChangeNotifier with WidgetsBindingObserver {
   // slider — routed into the same setter, so it is applied and saved
   // identically. See [ReaderBrightnessController].
   late final ReaderBrightnessController _brightnessController =
-      ReaderBrightnessController(onExternalChange: setBrightness);
+      ReaderBrightnessController(onExternalChange: (value) {
+    if (_autoBrightness) {
+      _brightness = value;
+      _notify();
+    } else {
+      setBrightness(value);
+    }
+  });
   bool _lifecycleObserverAdded = false;
 
   /// Set at the top of [dispose] so any callback still in flight (a relocation

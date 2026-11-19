@@ -3,6 +3,7 @@ import 'package:aykitap/core/models/library_book.dart';
 import 'package:aykitap/core/models/promo_banner.dart';
 import 'package:aykitap/core/models/streak.dart';
 import 'package:aykitap/core/services/home_data_service.dart';
+import 'package:aykitap/core/services/daily_reading_goal_service.dart';
 import 'package:aykitap/core/services/streak_service.dart';
 import 'package:aykitap/modules/home/home_screen.dart';
 import 'package:aykitap/modules/home/widgets/home_header.dart';
@@ -121,6 +122,8 @@ void main() {
   Widget app() => MultiProvider(
         providers: [
           ChangeNotifierProvider<StreakService>.value(value: StreakService.instance),
+          ChangeNotifierProvider<DailyReadingGoalService>.value(
+              value: DailyReadingGoalService.instance),
         ],
         child: const MaterialApp(home: HomeScreen()),
       );

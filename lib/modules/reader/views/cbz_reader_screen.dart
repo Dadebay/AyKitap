@@ -24,11 +24,13 @@ import '../utils/page_note.dart';
 import '../utils/reader_brightness_controller.dart';
 import '../utils/reader_orientation.dart';
 import '../utils/reader_streak_ping.dart';
+import '../utils/reader_volume_keys.dart';
 import '../widgets/cbz_settings_sheet.dart';
 import '../widgets/pdf_bookmarks_sheet.dart';
 import '../widgets/pdf_bottom_bar.dart';
 import '../widgets/pdf_go_to_page_sheet.dart';
 import '../widgets/reader_error_overlay.dart';
+import '../widgets/reader_brightness_edge_gesture.dart';
 import '../widgets/reader_focus_page_indicator.dart';
 import '../widgets/reader_loading_overlay.dart';
 import '../widgets/reader_page_viewport.dart';
@@ -118,6 +120,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
 
   bool _showControls = true;
   double _brightness = 1.0;
+  bool _autoBrightness = true;
   // Blue-light "eye care" wash, shared across every reader via the
   // `reader_eye_care` pref. 0.0 = off.
   double _eyeCare = 0.0;
@@ -133,7 +136,14 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
   // routed into the same setter, so it is applied and saved identically.
   // See [ReaderBrightnessController] for why the panel needed help at all.
   late final ReaderBrightnessController _brightnessController =
-      ReaderBrightnessController(onExternalChange: _setBrightness);
+      ReaderBrightnessController(onExternalChange: (value) {
+    if (!mounted) return;
+    if (_autoBrightness) {
+      _setState(() => _brightness = value);
+    } else {
+      _setBrightness(value);
+    }
+  });
 
   int get _bookId => widget.bookId ?? stableBookKey(widget.filePath);
   int get _totalPages => _pagePaths.length;
@@ -141,6 +151,18 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
   @override
   void initState() {
     super.initState();
+    ReaderVolumeKeys.instance.activate(this, next: () {
+      if (mounted &&
+          !_isLoading &&
+          _error == null &&
+          _currentPage + 1 < _totalPages) {
+        _goToPage(_currentPage + 1);
+      }
+    }, previous: () {
+      if (mounted && !_isLoading && _error == null && _currentPage > 0) {
+        _goToPage(_currentPage - 1);
+      }
+    });
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     enableReaderLandscape();
     _bootstrap();
@@ -158,6 +180,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
 
   @override
   void dispose() {
+    ReaderVolumeKeys.instance.deactivate(this);
     WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     _scrollController.dispose();

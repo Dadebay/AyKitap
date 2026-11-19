@@ -58,6 +58,7 @@ enum PdfFitMode { width, page }
 class PdfSettingsSheet extends StatelessWidget {
   final PdfColorMode colorMode;
   final double brightness;
+  final bool autoBrightness;
   final double eyeCare;
   final PdfFitMode fitPolicy;
   final PdfViewMode viewMode;
@@ -67,6 +68,7 @@ class PdfSettingsSheet extends StatelessWidget {
   final double marginCrop;
   final ValueChanged<PdfColorMode> onColorModeChanged;
   final ValueChanged<double> onBrightnessChanged;
+  final ValueChanged<bool> onAutoBrightnessChanged;
   final ValueChanged<double> onEyeCareChanged;
   final ValueChanged<double> onMarginCropChanged;
   final ValueChanged<PdfFitMode> onFitChanged;
@@ -81,12 +83,14 @@ class PdfSettingsSheet extends StatelessWidget {
     super.key,
     required this.colorMode,
     required this.brightness,
+    required this.autoBrightness,
     required this.eyeCare,
     required this.fitPolicy,
     required this.viewMode,
     required this.marginCrop,
     required this.onColorModeChanged,
     required this.onBrightnessChanged,
+    required this.onAutoBrightnessChanged,
     required this.onEyeCareChanged,
     required this.onMarginCropChanged,
     required this.onFitChanged,
@@ -150,9 +154,11 @@ class PdfSettingsSheet extends StatelessWidget {
                   PdfAppearanceSliders(
                     marginCrop: marginCrop,
                     brightness: brightness,
+                    autoBrightness: autoBrightness,
                     eyeCare: eyeCare,
                     onMarginCropChanged: onMarginCropChanged,
                     onBrightnessChanged: onBrightnessChanged,
+                    onAutoBrightnessChanged: onAutoBrightnessChanged,
                     onEyeCareChanged: onEyeCareChanged,
                   ),
 

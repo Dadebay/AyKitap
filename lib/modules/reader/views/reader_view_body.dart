@@ -99,6 +99,20 @@ extension _ReaderViewBody on _ReaderScreenState {
                 ),
               ),
 
+            if (!_showLoadingOverlay &&
+                !provider.isLoading &&
+                !provider.loadFailed)
+              Positioned.fill(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: ReaderBrightnessEdgeGesture(
+                    brightness: provider.brightness,
+                    isDarkPage: isDarkPage,
+                    onChanged: provider.setBrightness,
+                  ),
+                ),
+              ),
+
             _buildChrome(context, provider, bgColor, focusColor, inFocus),
 
             // ── Loading overlay ────────────────────────────────────────
@@ -144,6 +158,17 @@ extension _ReaderViewBody on _ReaderScreenState {
                   final text = provider.selectedText;
                   provider.clearSelection();
                   if (text.isNotEmpty) Share.share(text);
+                },
+                onDict: () async {
+                  final text = provider.selectedText;
+                  provider.clearSelection();
+                  if (text.isNotEmpty &&
+                      !await GoogleTranslateLauncher.open(text) &&
+                      context.mounted) {
+                    _showSnack(
+                        context, ReaderNotesStrings.translateFailedMessage,
+                        isError: true);
+                  }
                 },
                 onClose: provider.clearSelection,
               ),

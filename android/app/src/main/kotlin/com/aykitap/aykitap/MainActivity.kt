@@ -1,11 +1,13 @@
 package com.aykitap.aykitap
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.database.Cursor
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.view.KeyEvent
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -25,8 +27,12 @@ import java.io.FileOutputStream
 class MainActivity : FlutterFragmentActivity() {
     private val fileChannelName = "com.aykitap.aykitap/incoming_file"
     private val deepLinkChannelName = "com.aykitap.aykitap/deep_link"
+    private val translateChannelName = "com.aykitap.aykitap/translate"
+    private val readerVolumeChannelName = "com.aykitap.aykitap/reader_volume"
     private var fileChannel: MethodChannel? = null
     private var deepLinkChannel: MethodChannel? = null
+    private var readerVolumeChannel: MethodChannel? = null
+    private var readerActive = false
     private var pendingPath: String? = null
     private var pendingLink: String? = null
 
@@ -69,6 +75,44 @@ class MainActivity : FlutterFragmentActivity() {
                 }
             }
         }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, translateChannelName).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "openSelectedText" -> {
+                    val text = (call.arguments as? String)?.trim().orEmpty()
+                    result.success(text.isNotEmpty() && openSelectedTextInTranslate(text))
+                }
+                "openInChrome" -> {
+                    val url = call.arguments as? String
+                    result.success(url != null && openInChrome(url))
+                }
+                else -> result.notImplemented()
+            }
+        }
+        readerVolumeChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, readerVolumeChannelName).apply {
+            setMethodCallHandler { call, result ->
+                if (call.method == "setReaderActive") {
+                    readerActive = call.arguments == true
+                    result.success(null)
+                } else {
+                    result.notImplemented()
+                }
+            }
+        }
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val isVolume = event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
+            event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
+        if (readerActive && isVolume) {
+            // One page per physical press. Consume the matching key-up and
+            // long-press repeats so Android does not also change device volume.
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                val direction = if (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP) "previous" else "next"
+                readerVolumeChannel?.invokeMethod("onVolumeKey", direction)
+            }
+            return true
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     // launchMode="singleTop" means a repeat "Open with"/deep link while the
@@ -99,6 +143,48 @@ class MainActivity : FlutterFragmentActivity() {
         if (intent == null || intent.action != Intent.ACTION_VIEW) return null
         val uri = intent.data ?: return null
         return if (uri.scheme == "aykitap") uri.toString() else null
+    }
+
+    private fun openSelectedTextInTranslate(text: String): Boolean {
+        // PROCESS_TEXT is the Android selection-menu contract. Some Translate
+        // versions accept only shared text, so try that before the Dart web
+        // fallback. Both intents target Google Translate explicitly.
+        val process = Intent(Intent.ACTION_PROCESS_TEXT).apply {
+            type = "text/plain"
+            `package` = "com.google.android.apps.translate"
+            putExtra(Intent.EXTRA_PROCESS_TEXT, text)
+            putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true)
+        }
+        val share = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            `package` = "com.google.android.apps.translate"
+            putExtra(Intent.EXTRA_TEXT, text)
+        }
+        for (candidate in listOf(process, share)) {
+            try {
+                startActivity(candidate)
+                return true
+            } catch (_: ActivityNotFoundException) {
+                // Try the next route.
+            } catch (_: SecurityException) {
+                // The installed app rejected this intent.
+            }
+        }
+        return false
+    }
+
+    private fun openInChrome(url: String): Boolean {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+            `package` = "com.android.chrome"
+        }
+        return try {
+            startActivity(intent)
+            true
+        } catch (_: ActivityNotFoundException) {
+            false
+        } catch (_: SecurityException) {
+            false
+        }
     }
 
     // content:// URIs (what Telegram/Files/Gmail hand us) aren't usable as

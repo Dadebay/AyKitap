@@ -8,6 +8,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:sakura_epub/sakura_epub.dart';
 
 import 'utils.dart';
+import 'utils/pinch_scale_tracker.dart';
 
 String _base64EncodeIsolate(Uint8List data) => base64Encode(data);
 
@@ -66,6 +67,7 @@ class EpubViewer extends StatefulWidget {
     this.onEpubLoadFailed,
     this.onTouchDown,
     this.onTouchUp,
+    this.onPinchScaleEnd,
     this.onPermissionRequest,
     this.suppressNativeContextMenu = false,
     this.clearSelectionOnPageChange = true,
@@ -79,6 +81,10 @@ class EpubViewer extends StatefulWidget {
   ///Epub source, accepts url, file or assets
   ///opf format is not tested, use with caution
   final EpubSource epubSource;
+
+  /// Two-finger text zoom, reported once on release so EPUB pagination does
+  /// not thrash while the reader is moving their fingers.
+  final ValueChanged<double>? onPinchScaleEnd;
 
   ///Initial cfi string to  specify which part of epub to load initially
   ///if null, the first chapter will be loaded
@@ -304,6 +310,7 @@ class _EpubViewerState extends State<EpubViewer> {
   Offset? _swipeStartPos;
   int _swipeStartTime = 0;
   bool _hasActiveSelection = false;
+  final PinchScaleTracker _pinch = PinchScaleTracker();
 
   @override
   void initState() {
@@ -921,71 +928,93 @@ class _EpubViewerState extends State<EpubViewer> {
     // WebViews can cancel the iframe touch stream during a vertical drag.
     // iOS also needs it for horizontal turns and touch callbacks. Android
     // keeps its JS touch callbacks so they are not delivered twice here.
-    if (Platform.isIOS ||
-        (Platform.isAndroid && widget.verticalPageNavigation)) {
-      webView = Listener(
-        onPointerDown: (event) {
+    // Keep the raw pointer listener on every platform and page mode: Android
+    // horizontal mode still needs two-finger zoom even though page swipes are
+    // handled inside the iframe.
+    webView = Listener(
+      onPointerDown: (event) {
+        _pinch.down(event.pointer, event.position);
+        if (_pinch.suppressTapAndSwipe) {
+          _swipeStartPos = null;
+          return;
+        }
+        if (Platform.isIOS ||
+            (Platform.isAndroid && widget.verticalPageNavigation)) {
           _swipeStartPos = event.position;
           _swipeStartTime = DateTime.now().millisecondsSinceEpoch;
+        }
 
-          if (Platform.isIOS) {
-            final renderBox = context.findRenderObject() as RenderBox?;
-            if (renderBox != null) {
-              final localPos = renderBox.globalToLocal(event.position);
-              final x = (localPos.dx / renderBox.size.width).clamp(0.0, 1.0);
-              final y = (localPos.dy / renderBox.size.height).clamp(0.0, 1.0);
-              widget.onTouchDown?.call(x, y);
-            }
+        if (Platform.isIOS) {
+          final renderBox = context.findRenderObject() as RenderBox?;
+          if (renderBox != null) {
+            final localPos = renderBox.globalToLocal(event.position);
+            final x = (localPos.dx / renderBox.size.width).clamp(0.0, 1.0);
+            final y = (localPos.dy / renderBox.size.height).clamp(0.0, 1.0);
+            widget.onTouchDown?.call(x, y);
           }
-        },
-        onPointerUp: (event) {
-          if (Platform.isIOS) {
-            final renderBox = context.findRenderObject() as RenderBox?;
-            if (renderBox != null) {
-              final localPos = renderBox.globalToLocal(event.position);
-              final x = (localPos.dx / renderBox.size.width).clamp(0.0, 1.0);
-              final y = (localPos.dy / renderBox.size.height).clamp(0.0, 1.0);
-              widget.onTouchUp?.call(x, y);
-            }
+        }
+      },
+      onPointerMove: (event) => _pinch.move(event.pointer, event.position),
+      onPointerUp: (event) {
+        final wasPinch = _pinch.suppressTapAndSwipe;
+        final scale = _pinch.up(event.pointer, event.position);
+        if (scale != null) widget.onPinchScaleEnd?.call(scale);
+        if (wasPinch) {
+          _swipeStartPos = null;
+          return;
+        }
+        if (Platform.isIOS) {
+          final renderBox = context.findRenderObject() as RenderBox?;
+          if (renderBox != null) {
+            final localPos = renderBox.globalToLocal(event.position);
+            final x = (localPos.dx / renderBox.size.width).clamp(0.0, 1.0);
+            final y = (localPos.dy / renderBox.size.height).clamp(0.0, 1.0);
+            widget.onTouchUp?.call(x, y);
           }
+        }
 
-          if (_swipeStartPos != null && !_hasActiveSelection) {
-            final duration =
-                DateTime.now().millisecondsSinceEpoch - _swipeStartTime;
-            final dx = event.position.dx - _swipeStartPos!.dx;
-            final dy = event.position.dy - _swipeStartPos!.dy;
-            // Every mode is paginated. In scroll mode this listener maps a
-            // vertical flick to one page turn on both platforms. iOS uses it
-            // for horizontal modes too, since WKWebView does not deliver the
-            // full gesture to the content iframe.
-            if (duration < 400) {
-              if (widget.verticalPageNavigation) {
-                // Short, clearly vertical (>60px, dx<50, ratio>2x) flick.
-                if (dy.abs() > 60 && dx.abs() < 50 && dy.abs() > dx.abs() * 2) {
-                  if (dy < 0) {
-                    widget.epubController.next();
-                  } else {
-                    widget.epubController.prev();
-                  }
-                }
-              } else if (dx.abs() > 60 &&
-                  dy.abs() < 50 &&
-                  dx.abs() > dy.abs() * 2) {
-                // Short, clearly horizontal (>60px, dy<50, ratio>2x) flick.
-                if (dx < 0) {
+        if ((Platform.isIOS ||
+                (Platform.isAndroid && widget.verticalPageNavigation)) &&
+            _swipeStartPos != null &&
+            !_hasActiveSelection) {
+          final duration =
+              DateTime.now().millisecondsSinceEpoch - _swipeStartTime;
+          final dx = event.position.dx - _swipeStartPos!.dx;
+          final dy = event.position.dy - _swipeStartPos!.dy;
+          // Every mode is paginated. In scroll mode this listener maps a
+          // vertical flick to one page turn on both platforms. iOS uses it
+          // for horizontal modes too, since WKWebView does not deliver the
+          // full gesture to the content iframe.
+          if (duration < 400) {
+            if (widget.verticalPageNavigation) {
+              // Short, clearly vertical (>60px, dx<50, ratio>2x) flick.
+              if (dy.abs() > 60 && dx.abs() < 50 && dy.abs() > dx.abs() * 2) {
+                if (dy < 0) {
                   widget.epubController.next();
                 } else {
                   widget.epubController.prev();
                 }
               }
+            } else if (dx.abs() > 60 &&
+                dy.abs() < 50 &&
+                dx.abs() > dy.abs() * 2) {
+              // Short, clearly horizontal (>60px, dy<50, ratio>2x) flick.
+              if (dx < 0) {
+                widget.epubController.next();
+              } else {
+                widget.epubController.prev();
+              }
             }
           }
-          _swipeStartPos = null;
-        },
-        onPointerCancel: (_) => _swipeStartPos = null,
-        child: webView,
-      );
-    }
+        }
+        _swipeStartPos = null;
+      },
+      onPointerCancel: (event) {
+        _pinch.cancel(event.pointer);
+        _swipeStartPos = null;
+      },
+      child: webView,
+    );
 
     return Container(
       decoration: widget.displaySettings?.theme?.backgroundDecoration,

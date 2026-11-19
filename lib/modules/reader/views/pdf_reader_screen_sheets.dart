@@ -17,6 +17,7 @@ extension _PdfReaderScreenSheets on _PdfReaderScreenState {
         builder: (_, setSheetState) => PdfSettingsSheet(
           colorMode: _colorMode,
           brightness: _brightness,
+          autoBrightness: _autoBrightness,
           eyeCare: _eyeCare,
           fitPolicy: _fitPolicy,
           viewMode: _viewMode,
@@ -27,6 +28,10 @@ extension _PdfReaderScreenSheets on _PdfReaderScreenState {
           },
           onBrightnessChanged: (v) async {
             await _setBrightness(v);
+            setSheetState(() {});
+          },
+          onAutoBrightnessChanged: (v) async {
+            await _setAutoBrightness(v);
             setSheetState(() {});
           },
           onEyeCareChanged: (v) async {

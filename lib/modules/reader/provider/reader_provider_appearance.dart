@@ -10,6 +10,7 @@ extension ReaderProviderAppearance on ReaderProvider {
   double get fontSize => _fontSize;
   double get lineSpacing => _lineSpacing;
   double get brightness => _brightness;
+  bool get autoBrightness => _autoBrightness;
   double get eyeCare => _eyeCare;
 
   ReaderPageTransition get pageTransition => _pageTransition;
@@ -50,10 +51,24 @@ extension ReaderProviderAppearance on ReaderProvider {
 
   Future<void> setBrightness(double value) async {
     _brightness = value.clamp(0.1, 1.0);
+    _autoBrightness = false;
     _notify();
     await _applyReaderBrightness();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('reader_brightness', _brightness);
+    await prefs.setBool('reader_brightness_auto', false);
+  }
+
+  Future<void> setAutoBrightness(bool enabled) async {
+    _autoBrightness = enabled;
+    if (enabled) {
+      _brightness = await _brightnessController.followSystem();
+    } else {
+      await _applyReaderBrightness();
+    }
+    _notify();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('reader_brightness_auto', enabled);
   }
 
   Future<void> setEyeCare(double value) async {
@@ -67,8 +82,12 @@ extension ReaderProviderAppearance on ReaderProvider {
   /// [ReaderBrightnessController] — see its doc comment for why an explicit
   /// value is set even at 1.0. Control is only handed back on
   /// [_releaseBrightness], when the reader actually closes.
-  Future<void> _applyReaderBrightness() =>
-      _brightnessController.apply(_brightness);
+  Future<void> _applyReaderBrightness() => _autoBrightness
+      ? _brightnessController.followSystem().then((value) {
+          _brightness = value;
+          _notify();
+        })
+      : _brightnessController.apply(_brightness);
 
   Future<void> _releaseBrightness() => _brightnessController.release();
 

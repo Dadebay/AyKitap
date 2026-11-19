@@ -56,6 +56,7 @@ extension _PdfReaderScreenLifecycle on _PdfReaderScreenState {
     _initialPage = prefs.getInt('book_${_bookId}_pdf_page') ?? 0;
     _currentPage = _initialPage;
     _brightness = prefs.getDouble('reader_brightness') ?? 1.0;
+    _autoBrightness = prefs.getBool('reader_brightness_auto') ?? true;
     _eyeCare = prefs.getDouble('reader_eye_care') ?? 0.0;
     // New three-way mode; fall back to the old dark-gutter bool for anyone
     // upgrading (their dark gutter maps to night, otherwise light). With
@@ -117,7 +118,11 @@ extension _PdfReaderScreenLifecycle on _PdfReaderScreenState {
       bookCrop: prefs.getDouble('book_${_bookId}_pdf_margin_crop'),
       readerCrop: prefs.getDouble('reader_pdf_margin_crop'),
     );
-    _brightnessController.apply(_brightness);
+    if (_autoBrightness) {
+      _brightness = await _brightnessController.followSystem();
+    } else {
+      await _brightnessController.apply(_brightness);
+    }
     if (mounted) _setState(() {});
   }
 

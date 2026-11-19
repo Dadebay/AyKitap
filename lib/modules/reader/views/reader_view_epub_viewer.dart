@@ -84,6 +84,13 @@ extension _ReaderViewEpubViewer on _ReaderScreenState {
       onDeselection: provider.onDeselection,
       onTouchDown: _tapGate.webTouchDown,
       onTouchUp: (x, y) => _onTouchUp(provider, x, y),
+      onPinchScaleEnd: (scale) {
+        if (provider.isLoading || provider.loadFailed) return;
+        final size = (provider.fontSize * scale)
+            .roundToDouble()
+            .clamp(ReaderProvider.minFontSize, ReaderProvider.maxFontSize);
+        if (size != provider.fontSize) provider.setFontSize(size);
+      },
     );
   }
 

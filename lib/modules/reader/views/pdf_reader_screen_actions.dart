@@ -114,10 +114,26 @@ extension _PdfReaderScreenActions on _PdfReaderScreenState {
 
   // ── Appearance settings ───────────────────────────────────────────────────
   Future<void> _setBrightness(double v) async {
-    _setState(() => _brightness = v.clamp(0.1, 1.0));
+    _setState(() {
+      _brightness = v.clamp(0.1, 1.0);
+      _autoBrightness = false;
+    });
     await _brightnessController.apply(_brightness);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('reader_brightness', _brightness);
+    await prefs.setBool('reader_brightness_auto', false);
+  }
+
+  Future<void> _setAutoBrightness(bool enabled) async {
+    _setState(() => _autoBrightness = enabled);
+    if (enabled) {
+      final value = await _brightnessController.followSystem();
+      if (mounted) _setState(() => _brightness = value);
+    } else {
+      await _brightnessController.apply(_brightness);
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('reader_brightness_auto', enabled);
   }
 
   Future<void> _setEyeCare(double v) async {

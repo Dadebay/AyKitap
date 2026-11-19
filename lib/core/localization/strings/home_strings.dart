@@ -9,6 +9,11 @@ class HomeStrings {
       ru: 'Читайте 10 минут сегодня',
       tr: 'Bugün 10 dakika oku',
       en: 'Read for 10 minutes today');
+  static String get dailyReadingGoalLabel => t(
+      tk: 'Şu günki okalyş',
+      ru: 'Чтение сегодня',
+      tr: 'Bugünkü okuma',
+      en: 'Today’s reading');
   static String get dailyReadingGoalHint => t(
       tk: 'Azajyk okamak hem öňe gidişlikdir',
       ru: 'Даже немного чтения — это прогресс',
@@ -21,6 +26,7 @@ class HomeStrings {
       en: 'You reached today’s goal!');
   static String get minutesShort =>
       t(tk: 'min', ru: 'мин', tr: 'dk', en: 'min');
+  static String get daysShort => t(tk: 'gün', ru: 'дн.', tr: 'gün', en: 'days');
   static String get continueReading =>
       t(tk: 'Dowam et', ru: 'Продолжить', tr: 'Devam et', en: 'Continue');
 

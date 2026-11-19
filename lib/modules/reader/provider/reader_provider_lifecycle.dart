@@ -59,6 +59,7 @@ extension ReaderProviderLifecycle on ReaderProvider {
         prefs.getDouble('reader_font_size') ?? ReaderProvider.defaultFontSize;
     _lineSpacing = prefs.getDouble('reader_line_spacing') ?? 1.5;
     _brightness = prefs.getDouble('reader_brightness') ?? 1.0;
+    _autoBrightness = prefs.getBool('reader_brightness_auto') ?? true;
     // Shared across every reader (like brightness), so the filter the reader
     // set in the PDF reader is still on when they open an EPUB.
     _eyeCare = prefs.getDouble('reader_eye_care') ?? 0.0;

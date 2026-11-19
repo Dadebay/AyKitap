@@ -51,6 +51,20 @@ class ReaderBrightnessController {
     }
   }
 
+  /// Clears the reader's window override so the page follows the phone's
+  /// brightness (including its adaptive-brightness setting). Returns the
+  /// current system level for the slider and edge indicator.
+  Future<double> followSystem() async {
+    _listenForSystemChanges();
+    try {
+      await ScreenBrightness().resetApplicationScreenBrightness();
+      return (await ScreenBrightness().system).clamp(0.1, 1.0);
+    } catch (e) {
+      log('❌ System brightness error: $e');
+      return 1.0;
+    }
+  }
+
   /// Starts on the first [apply] rather than in the constructor — that is the
   /// moment a reader actually opens, and it keeps the subscription's life
   /// exactly as long as the override it exists to compensate for.

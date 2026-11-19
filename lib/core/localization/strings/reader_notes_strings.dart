@@ -18,6 +18,13 @@ class ReaderNotesStrings {
       t(tk: 'Not', ru: 'Заметка', tr: 'Not', en: 'Note');
   static String get shareLabel =>
       t(tk: 'Paýlaş', ru: 'Поделиться', tr: 'Paylaş', en: 'Share');
+  static String get dictLabel =>
+      t(tk: 'Dict', ru: 'Словарь', tr: 'Sözlük', en: 'Dict');
+  static String get translateFailedMessage => t(
+      tk: 'Terjime açylmady',
+      ru: 'Не удалось открыть перевод',
+      tr: 'Çeviri açılamadı',
+      en: 'Could not open translation');
   static String get highlightedMessage =>
       t(tk: 'Bellendi', ru: 'Выделено', tr: 'İşaretlendi', en: 'Highlighted');
   static String get noteSavedMessage => t(

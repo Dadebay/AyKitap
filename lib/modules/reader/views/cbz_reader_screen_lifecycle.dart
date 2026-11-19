@@ -28,6 +28,7 @@ extension _CbzReaderScreenLifecycle on _CbzReaderScreenState {
     _initialPage = prefs.getInt('book_${_bookId}_cbz_page') ?? 0;
     _currentPage = _initialPage;
     _brightness = prefs.getDouble('reader_brightness') ?? 1.0;
+    _autoBrightness = prefs.getBool('reader_brightness_auto') ?? true;
     _eyeCare = prefs.getDouble('reader_eye_care') ?? 0.0;
     // No saved choice yet: default the gutter to the app's own light/dark
     // setting rather than always opening dark.
@@ -42,7 +43,11 @@ extension _CbzReaderScreenLifecycle on _CbzReaderScreenState {
     _viewMode = CbzViewMode.values[
         (prefs.getInt('reader_cbz_view_mode') ?? CbzViewMode.scroll.index)
             .clamp(0, CbzViewMode.values.length - 1)];
-    await _brightnessController.apply(_brightness);
+    if (_autoBrightness) {
+      _brightness = await _brightnessController.followSystem();
+    } else {
+      await _brightnessController.apply(_brightness);
+    }
     await _extract();
   }
 

@@ -42,13 +42,15 @@ class SubscriptionOnlyBooks {
     if (flags[bookId] == subscriptionOnly) return;
     flags[bookId] = subscriptionOnly;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_key, flags.entries.map((e) => '${e.key}:${e.value ? 1 : 0}').toList());
+    await prefs.setStringList(
+        _key, flags.entries.map((e) => '${e.key}:${e.value ? 1 : 0}').toList());
   }
 
   /// True/false once seen, null if this book was never looked at.
   static Future<bool?> flagOf(int bookId) async => (await _load())[bookId];
 
-  static Future<bool> contains(int bookId) async => (await flagOf(bookId)) == true;
+  static Future<bool> contains(int bookId) async =>
+      (await flagOf(bookId)) == true;
 }
 
 /// Blocks screenshots, screen recording and the app-switcher preview while a
@@ -58,6 +60,22 @@ class SubscriptionOnlyBooks {
 /// A screenshot attempt additionally shows a short notice.
 class ScreenProtection {
   ScreenProtection._();
+
+  /// The native plugin persists its secure-window flag across process death.
+  /// If Android kills the app while a protected reader is open, the next
+  /// launch starts at Home but inherits that flag until a reader releases it.
+  /// Clear the stale native claim before the first app frame; a protected
+  /// book acquires a fresh hold when its route opens.
+  static Future<void> resetStaleProtectionOnLaunch() async {
+    if (_holders != 0) return;
+    try {
+      final plugin = NoScreenshot.instance;
+      await plugin.overlayOff();
+      await plugin.screenshotOn();
+    } catch (e) {
+      debugPrint('🔒 ScreenProtection reset error: $e');
+    }
+  }
 
   /// How many open readers currently want the protection on.
   static int _holders = 0;
@@ -75,7 +93,8 @@ class ScreenProtection {
       // Never seen this book (opened from a shelf without its detail page,
       // or downloaded before the flag was tracked): ask the server once.
       // Offline, or an imported file with no catalogue entry, stays "no".
-      subscriptionOnly = (await SubscriptionOnlyBooks.flagOf(bookId)) ?? await _lookUp(bookId);
+      subscriptionOnly =
+          (await SubscriptionOnlyBooks.flagOf(bookId)) ?? await _lookUp(bookId);
     }
     debugPrint('🔒 ScreenProtection: book $bookId subscriptionOnly='
         '$subscriptionOnly -> ${subscriptionOnly ? 'ON' : 'off (normal book)'}');

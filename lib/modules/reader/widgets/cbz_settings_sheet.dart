@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import 'cbz_gutter_swatch.dart';
 import 'cbz_page_scale_section.dart';
 import 'reader_fit_tile.dart';
+import 'reader_auto_brightness_row.dart';
 import 'reader_landscape_row.dart';
 import 'reader_section_label.dart';
 import 'reader_sheet_header.dart';
@@ -32,11 +33,13 @@ enum CbzViewMode { scroll, paged }
 class CbzSettingsSheet extends StatelessWidget {
   final bool darkGutter;
   final double brightness;
+  final bool autoBrightness;
   final double eyeCare;
   final BoxFit fit;
   final CbzViewMode viewMode;
   final ValueChanged<bool> onGutterChanged;
   final ValueChanged<double> onBrightnessChanged;
+  final ValueChanged<bool> onAutoBrightnessChanged;
   final ValueChanged<double> onEyeCareChanged;
   final ValueChanged<BoxFit> onFitChanged;
   final ValueChanged<CbzViewMode> onViewModeChanged;
@@ -45,11 +48,13 @@ class CbzSettingsSheet extends StatelessWidget {
     super.key,
     required this.darkGutter,
     required this.brightness,
+    required this.autoBrightness,
     required this.eyeCare,
     required this.fit,
     required this.viewMode,
     required this.onGutterChanged,
     required this.onBrightnessChanged,
+    required this.onAutoBrightnessChanged,
     required this.onEyeCareChanged,
     required this.onFitChanged,
     required this.onViewModeChanged,
@@ -160,6 +165,12 @@ class CbzSettingsSheet extends StatelessWidget {
                     value: brightness,
                     min: 0.1,
                     onChanged: onBrightnessChanged,
+                  ),
+
+                  const SizedBox(height: 10),
+                  ReaderAutoBrightnessRow(
+                    value: autoBrightness,
+                    onChanged: onAutoBrightnessChanged,
                   ),
 
                   const SizedBox(height: 22),

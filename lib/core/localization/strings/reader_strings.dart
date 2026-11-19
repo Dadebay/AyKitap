@@ -137,6 +137,13 @@ class ReaderStrings {
 
   static String get brightnessLabel =>
       t(tk: 'Parlaklyk', ru: 'Яркость', tr: 'Parlaklık', en: 'Brightness');
+  static String get autoBrightnessLabel =>
+      t(tk: 'Awto', ru: 'Авто', tr: 'Otomatik', en: 'Auto');
+  static String get autoBrightnessHint => t(
+      tk: 'Telefonyň ýagtylygyny ulan',
+      ru: 'Как на телефоне',
+      tr: 'Telefon parlaklığını kullan',
+      en: 'Use phone brightness');
 
   /// Blue-light filter that warms the page to reduce eye strain (TZ §12.4).
   static String get eyeCareLabel => t(

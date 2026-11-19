@@ -75,8 +75,8 @@ void main() {
   group('the switch is reachable from every reader', () {
     setUp(() => SharedPreferences.setMockInitialValues({}));
 
-    Future<void> pumpSheet(WidgetTester tester, Widget sheet) => tester
-        .pumpWidget(flutter_material.MaterialApp(
+    Future<void> pumpSheet(WidgetTester tester, Widget sheet) =>
+        tester.pumpWidget(flutter_material.MaterialApp(
             home: flutter_material.Scaffold(
                 body: flutter_material.Material(child: sheet))));
 
@@ -86,12 +86,14 @@ void main() {
         PdfSettingsSheet(
           colorMode: PdfColorMode.light,
           brightness: 1,
+          autoBrightness: true,
           eyeCare: 0,
           fitPolicy: PdfFitMode.width,
           viewMode: PdfViewMode.scroll,
           marginCrop: 0,
           onColorModeChanged: (_) {},
           onBrightnessChanged: (_) {},
+          onAutoBrightnessChanged: (_) {},
           onEyeCareChanged: (_) {},
           onMarginCropChanged: (_) {},
           onFitChanged: (_) {},
@@ -109,11 +111,13 @@ void main() {
         CbzSettingsSheet(
           darkGutter: false,
           brightness: 1,
+          autoBrightness: true,
           eyeCare: 0,
           fit: BoxFit.contain,
           viewMode: CbzViewMode.scroll,
           onGutterChanged: (_) {},
           onBrightnessChanged: (_) {},
+          onAutoBrightnessChanged: (_) {},
           onEyeCareChanged: (_) {},
           onFitChanged: (_) {},
           onViewModeChanged: (_) {},
