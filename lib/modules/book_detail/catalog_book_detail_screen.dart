@@ -25,9 +25,11 @@ import '../../core/services/favorites_sync_service.dart';
 import '../../core/services/finished_books_sync_service.dart';
 import '../../core/services/last_read_book_store.dart';
 import '../../core/services/reading_books_store.dart';
+import '../../core/services/screen_protection.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../../core/widgets/icon_circle_button.dart';
+import '../../core/widgets/screen_protection_guard.dart';
 import '../../core/widgets/network_error_state.dart';
 import '../author/catalog_author_detail_screen.dart';
 import '../home/widgets/stagger_fade_in.dart';
@@ -183,6 +185,7 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
     });
     try {
       final book = await BookApiService.getBookById(widget.bookId);
+      unawaited(SubscriptionOnlyBooks.record(book.id, book.isSubscriptionOnly));
       // Keep the loading header stable for the complete Hero flight. A fast
       // response used to replace it with the full detail tree mid-flight,
       // forcing layout and paint work into the transition frames.
@@ -248,7 +251,12 @@ class _CatalogBookDetailScreenState extends State<CatalogBookDetailScreen> {
     final book = _book;
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: _buildBody(),
+      // A subscription-only book's page is protected too (no screenshots).
+      body: ScreenProtectionGuard(
+        enabled: book?.isSubscriptionOnly ?? false,
+        bookId: widget.bookId,
+        child: _buildBody(),
+      ),
       bottomNavigationBar: !_loading && _error == null && book != null
           ? CatalogDetailBottomCta(
               book: book,

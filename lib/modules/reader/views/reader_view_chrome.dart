@@ -92,6 +92,34 @@ extension _ReaderViewChrome on _ReaderScreenState {
               ),
             ),
 
+          if (widget.realBookId != null && !provider.isLoading)
+            Positioned(
+              bottom: provider.showControls ? 142 : 54,
+              left: 0,
+              right: 0,
+              child: ValueListenableBuilder<ReaderProgressSnapshot>(
+                valueListenable: provider.progressListenable,
+                builder: (context, snapshot, _) => snapshot.isAtLastPage
+                    ? NextBookOffer(
+                        finishedBookId: widget.realBookId!,
+                        foreground: bgColor.computeLuminance() < 0.4
+                            ? Colors.white
+                            : Colors.black87,
+                        background: bgColor,
+                        onOpen: (book) async {
+                          await provider.saveAndClose();
+                          if (!context.mounted) return;
+                          Navigator.of(context)
+                              .pushReplacement(MaterialPageRoute(
+                            builder: (_) =>
+                                CatalogBookDetailScreen(bookId: book.id),
+                          ));
+                        },
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ),
+
           // ── Focus-mode chapter label (top) ─────────────────────────
           // Shown only while the chrome is hidden, so the reader still
           // knows the chapter without bringing the bars back.

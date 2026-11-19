@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import '../../../core/localization/strings/library_strings.dart';
 import '../../../core/services/book_access_service.dart';
 import '../../../core/services/book_api_service.dart';
+import '../../../core/services/downloaded_books_store.dart';
+import '../../../core/services/downloaded_files_store.dart';
 import '../../../core/services/favorites_sync_service.dart';
 import '../../../core/services/finished_books_sync_service.dart';
 import '../../../core/services/reading_books_store.dart';
+import '../../../core/services/storage_cleaner.dart';
 import '../../../core/theme/app_colors.dart';
 import 'shelf_delete_actions.dart';
 import 'shelf_delete_illustration.dart';
@@ -39,12 +42,25 @@ extension ShelfRemovalActions on ShelfRemoval {
       case ShelfRemoval.finished:
         await BookApiService.deleteProgress(bookId);
         await ReadingBooksStore.instance.remove(bookId);
+        await _freeDeviceStorage(bookId);
       case ShelfRemoval.purchased:
         await BookApiService.removeBoughtBook(bookId);
         await BookAccessService.instance.removePurchased(bookId);
+        await _freeDeviceStorage(bookId);
       case ShelfRemoval.favorite:
         await BookApiService.unlikeBook('$bookId');
     }
+  }
+
+  /// A book removed from a shelf is also removed from the device: its
+  /// downloaded file and the caches derived from it, so the space really
+  /// comes back (it can be downloaded again later). Never fails the removal.
+  Future<void> _freeDeviceStorage(int bookId) async {
+    try {
+      await DownloadedFilesStore.instance.removeBook(bookId);
+      await DownloadedBooksStore.instance.remove(bookId);
+      await StorageCleaner.sweepOrphans();
+    } catch (_) {}
   }
 
   /// Pings the shelves that show the same state from elsewhere in the app,

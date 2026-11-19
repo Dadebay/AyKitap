@@ -4,6 +4,26 @@ import '../strings_base.dart';
 class HomeStrings {
   HomeStrings._();
 
+  static String get dailyReadingGoalTitle => t(
+      tk: 'Şu gün 10 minut oka',
+      ru: 'Читайте 10 минут сегодня',
+      tr: 'Bugün 10 dakika oku',
+      en: 'Read for 10 minutes today');
+  static String get dailyReadingGoalHint => t(
+      tk: 'Azajyk okamak hem öňe gidişlikdir',
+      ru: 'Даже немного чтения — это прогресс',
+      tr: 'Kısa bir okuma bile ilerlemedir',
+      en: 'Even a short read moves you forward');
+  static String get dailyReadingGoalDone => t(
+      tk: 'Şu günki maksadyňa ýetdiň!',
+      ru: 'Цель на сегодня достигнута!',
+      tr: 'Bugünkü hedefine ulaştın!',
+      en: 'You reached today’s goal!');
+  static String get minutesShort =>
+      t(tk: 'min', ru: 'мин', tr: 'dk', en: 'min');
+  static String get continueReading =>
+      t(tk: 'Dowam et', ru: 'Продолжить', tr: 'Devam et', en: 'Continue');
+
   static String get welcomePrefix => t(
       tk: 'Hoş geldiñ, ',
       ru: 'Добро пожаловать, ',

@@ -98,7 +98,8 @@ Future<void> startBalanceTopUp(
     return;
   }
 
-  final choice = await PaymentMethodSheet.show(context, showTmcell: canOfferTmcell);
+  final choice =
+      await PaymentMethodSheet.show(context, showTmcell: canOfferTmcell);
   if (choice == null || !context.mounted) return;
 
   switch (choice) {
@@ -114,9 +115,11 @@ Future<void> startBalanceTopUp(
       final bank = await BankSelectSheet.show(context);
       if (bank == null || !context.mounted) return;
       try {
-        final url = await PaymentApiService.createTopUpOrder(amount: amount, bankId: bank.id);
+        final url = await PaymentApiService.createTopUpOrder(
+            amount: amount, bankId: bank.id);
         if (!context.mounted) return;
-        await Navigator.of(context).push(MaterialPageRoute(builder: (_) => PaymentWebViewScreen(url: url)));
+        await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => PaymentWebViewScreen(url: url)));
       } on ApiException catch (e) {
         if (!context.mounted) return;
         context.showAppSnackBar(e.message, isError: true);
@@ -143,7 +146,9 @@ Future<void> startBalanceTopUp(
 /// Never offered to Google/Apple/email accounts: TMCELL is a Turkmen
 /// mobile operator. Otherwise Android always passes. The receiving number is a build-time value and does
 /// not hide the row — see [TmcellPaymentConfig].
-bool get canOfferTmcell => !PurchaseModeService.instance.isIOSStoreOnly && !AuthSession.isInternational;
+bool get canOfferTmcell =>
+    !PurchaseModeService.instance.isIOSStoreOnly &&
+    !AuthSession.isInternational;
 
 /// The transfer is made in the messaging app, not here, so nothing is
 /// awaited for a result — the balance arrives from the backend once TMCELL
@@ -154,7 +159,8 @@ Future<void> openTmcellPayment(BuildContext context) async {
   // number outliving it would send a reader's money to a SIM nothing is
   // watching. One request per deliberate tap is cheap.
   TmcellNumbersApiService.invalidate();
-  await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const TmcellPaymentScreen()));
+  await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const TmcellPaymentScreen()));
 }
 
 /// Asks for a code and redeems it, crediting the balance server-side.
@@ -207,6 +213,7 @@ Future<void> _purchaseStoreTopUp(BuildContext context) async {
     }
   } on RevenueCatPurchaseException catch (e) {
     if (!context.mounted) return;
-    context.showAppSnackBar(e.message ?? PaymentStrings.storeTopUpFailed, isError: true);
+    context.showAppSnackBar(e.message ?? PaymentStrings.storeTopUpFailed,
+        isError: true);
   }
 }

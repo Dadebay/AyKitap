@@ -11,11 +11,12 @@ import '../../../core/localization/strings/reader_bookmark_strings.dart';
 import '../../../core/localization/strings/reader_pdf_strings.dart';
 import '../../../core/localization/strings/reader_strings.dart';
 import '../../../core/services/bookmarks_store.dart';
+import '../../../core/services/device_tier.dart';
 import '../../../core/services/last_read_book_store.dart';
 import '../../../core/services/reading_progress_reporter.dart';
-import '../../../core/services/streak_service.dart';
 import '../../../core/utils/stable_hash.dart';
 import '../../../core/widgets/app_snackbar.dart';
+import '../../book_detail/catalog_book_detail_screen.dart';
 import '../utils/eye_care.dart';
 import '../utils/page_note.dart';
 import '../utils/pdf_book_opener.dart';
@@ -34,7 +35,9 @@ import '../widgets/reader_loading_overlay.dart';
 import '../widgets/reader_page_viewport.dart';
 import '../../../core/widgets/snowfall.dart';
 import '../widgets/reader_scroll_hint.dart';
+import '../widgets/secure_reader_scope.dart';
 import '../widgets/reader_top_bar.dart';
+import '../widgets/next_book_offer.dart';
 
 part 'pdf_reader_screen_lifecycle.dart';
 part 'pdf_reader_screen_actions.dart';
@@ -144,7 +147,6 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
   int _currentPage = 0;
   int _totalPages = 0;
   int _initialPage = 0;
-  int? _lastLoggedPage;
   bool _isLoading = true;
   String? _error;
 

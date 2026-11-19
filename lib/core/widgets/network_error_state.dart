@@ -16,53 +16,65 @@ class NetworkErrorState extends StatelessWidget {
     final tablet = MediaQuery.sizeOf(context).width >= 700;
     return ColoredBox(
       color: isDark ? const Color(0xFF0A0A0B) : AppColors.bg,
-      child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(32, 24, 32, 40),
-          child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: tablet ? 300 : 260),
-                    child: Image.asset(
-                      isDark ? 'assets/images/no_connection_dark.webp' : 'assets/images/no_connection_light.webp',
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Internet baglanyşygy ýok',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.white, fontSize: tablet ? 22 : 19, fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Internet baglanyşygyňyzy barlap, gaýtadan synanyşyň.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.grey2, fontSize: tablet ? 16 : 13.5, height: 1.5),
-                  ),
-                  const SizedBox(height: 22),
-                  SizedBox(
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      onPressed: onRetry,
-                      icon: const Icon(Icons.refresh_rounded, size: 20),
-                      label: const Text('Gaýtadan synanyş'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 22),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: DefaultTextStyle.merge(
+          style: const TextStyle(fontFamily: 'Gilroy'),
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(32, 24, 32, 40),
+              child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ConstrainedBox(
+                        constraints:
+                            BoxConstraints(maxWidth: tablet ? 300 : 260),
+                        child: Image.asset(
+                          isDark
+                              ? 'assets/images/no_connection_dark.webp'
+                              : 'assets/images/no_connection_light.webp',
+                          fit: BoxFit.contain,
+                        ),
                       ),
-                    ),
-                  ),
-                ],
-              )),
-        ),
-      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Internet baglanyşygy ýok',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: AppColors.white,
+                            fontSize: tablet ? 22 : 19,
+                            fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Internet baglanyşygyňyzy barlap, gaýtadan synanyşyň.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: AppColors.grey2,
+                            fontSize: tablet ? 16 : 13.5,
+                            height: 1.5),
+                      ),
+                      const SizedBox(height: 22),
+                      SizedBox(
+                        height: 48,
+                        child: ElevatedButton.icon(
+                          onPressed: onRetry,
+                          icon: const Icon(Icons.refresh_rounded, size: 20),
+                          label: const Text('Gaýtadan synanyş'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 22),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )),
+            ),
+          )),
     );
   }
 }

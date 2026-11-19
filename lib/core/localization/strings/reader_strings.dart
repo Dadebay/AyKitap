@@ -52,6 +52,25 @@ class ReaderStrings {
       tr: 'Kapatmak için dokunun',
       en: 'Tap to close');
 
+  // ── Screenshot attempt on a subscription-only book ────────────────────
+  static String get screenshotDialogTitle => t(
+      tk: 'Screenshot almak gadagan',
+      ru: 'Скриншоты запрещены',
+      tr: 'Ekran görüntüsü alınamaz',
+      en: 'Screenshots are not allowed');
+  static String get screenshotDialogBody => t(
+      tk: 'Bu kitap diňe abuna bilen elýeterli. Sahypalaryň suratyny almak ýa-da ekrany ýazga almak mümkin däl.',
+      ru: 'Эта книга доступна только по подписке. Делать снимки страниц и записывать экран нельзя.',
+      tr: 'Bu kitap yalnızca abonelere özel. Sayfaların ekran görüntüsünü almak veya ekranı kaydetmek mümkün değil.',
+      en: 'This book is for subscribers only. Taking screenshots of its pages or recording the screen is not possible.');
+  static String get screenshotDialogNote => t(
+      tk: 'Kitaplar awtorlyk hukugy bilen goralýar',
+      ru: 'Книги защищены авторским правом',
+      tr: 'Kitaplar telif hakkı ile korunmaktadır',
+      en: 'Books are protected by copyright');
+  static String get screenshotDialogOk =>
+      t(tk: 'Düşündim', ru: 'Понятно', tr: 'Anladım', en: 'Got it');
+
   // ── Reader screen ────────────────────────────────────────────────────
   static String get bookOpening => t(
       tk: 'Kitap açylýar...',

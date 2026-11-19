@@ -1,5 +1,10 @@
 part of 'pdf_reader_screen.dart';
 
+/// Keep PDFium's decoded-page cache small on 2 GB Android phones.
+@visibleForTesting
+int pdfPageCacheBytesFor({required bool lowEnd}) =>
+    (lowEnd ? 12 : 40) * 1024 * 1024;
+
 /// The page itself: [PdfViewer.file], its colour washes (night-mode invert,
 /// sepia, eye-care) and the loading/error overlays that sit above it while
 /// there's no page to show yet. Split out from the rest of the widget tree
@@ -93,9 +98,10 @@ extension _PdfReaderScreenPageLayer on _PdfReaderScreenState {
                       // scroll-ahead smoothness for a smaller memory
                       // footprint is worth it: a slightly-more-often
                       // re-rendered page beats the reader force-closing.
-                      maxImageBytesCachedOnMemory: 40 * 1024 * 1024,
-                      horizontalCacheExtent: 0.5,
-                      verticalCacheExtent: 0.5,
+                      maxImageBytesCachedOnMemory:
+                          pdfPageCacheBytesFor(lowEnd: DeviceTier.isLowEnd),
+                      horizontalCacheExtent: DeviceTier.isLowEnd ? 0.1 : 0.5,
+                      verticalCacheExtent: DeviceTier.isLowEnd ? 0.1 : 0.5,
                       // Paged mode lays pages left-to-right, one per sideways
                       // swipe, like a real page turn; scroll mode stacks them
                       // top-to-bottom with no gap so a tall webtoon page runs

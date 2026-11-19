@@ -132,9 +132,8 @@ class _SendGiftSheetState extends State<SendGiftSheet>
     final amount = _amount;
     return Padding(
       padding: EdgeInsets.only(
-          bottom: widget.asDialog
-              ? 0
-              : MediaQuery.of(context).viewInsets.bottom),
+          bottom:
+              widget.asDialog ? 0 : MediaQuery.of(context).viewInsets.bottom),
       child: AnimatedBuilder(
         animation: _borderController,
         builder: (context, child) => GiftSheetFrame(

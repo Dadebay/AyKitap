@@ -47,7 +47,13 @@ class IconCircleButton extends StatelessWidget {
           shape: borderRadius == null ? BoxShape.circle : BoxShape.rectangle,
           borderRadius: borderRadius,
         ),
-        child: filledIcon != null ? Icon(filledIcon, color: iconColor ?? AppColors.grey1, size: iconSize) : HugeIcon(icon: icon, color: iconColor ?? AppColors.grey1, size: iconSize),
+        child: filledIcon != null
+            ? Icon(filledIcon,
+                color: iconColor ?? AppColors.grey1, size: iconSize)
+            : HugeIcon(
+                icon: icon,
+                color: iconColor ?? AppColors.grey1,
+                size: iconSize),
       ),
     );
   }

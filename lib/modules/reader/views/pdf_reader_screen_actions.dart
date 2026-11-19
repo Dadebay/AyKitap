@@ -53,11 +53,9 @@ extension _PdfReaderScreenActions on _PdfReaderScreenState {
     if (pageNumber == null) return;
     final p = pageNumber - 1;
     log('📄 PDF page=$pageNumber/$_totalPages');
-    if (_lastLoggedPage != null && p > _lastLoggedPage!) {
-      StreakService.instance
-          .recordPageRead(count: (p - _lastLoggedPage!).clamp(1, 5));
-    }
-    _lastLoggedPage = p;
+    // Counted as read only after staying on screen — see
+    // [ReaderStreakPing.onPage].
+    _streakPing.onPage(p, bookKey: _bookId);
     _setState(() => _currentPage = p);
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(seconds: 2), _saveProgress);

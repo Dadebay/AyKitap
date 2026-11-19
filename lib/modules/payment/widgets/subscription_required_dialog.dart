@@ -13,12 +13,17 @@ enum SubscriptionPromptChoice { subscribe, buy }
 /// the reader wants to buy just this one book, which is what "Satyn al"
 /// (and its own [InsufficientBalanceDialog] path) is for.
 class SubscriptionRequiredDialog extends StatelessWidget {
-  const SubscriptionRequiredDialog({super.key});
+  const SubscriptionRequiredDialog({super.key, this.subscriptionOnly = false});
 
-  static Future<SubscriptionPromptChoice?> show(BuildContext context) {
+  /// The book is never sold on its own, so only the subscription is offered.
+  final bool subscriptionOnly;
+
+  static Future<SubscriptionPromptChoice?> show(BuildContext context,
+      {bool subscriptionOnly = false}) {
     return showDialog<SubscriptionPromptChoice>(
       context: context,
-      builder: (_) => const SubscriptionRequiredDialog(),
+      builder: (_) =>
+          SubscriptionRequiredDialog(subscriptionOnly: subscriptionOnly),
     );
   }
 
@@ -27,7 +32,8 @@ class SubscriptionRequiredDialog extends StatelessWidget {
     // iOS App Store review compliance (APPLE_REVIEW_IOS_STORE_TOGGLE_PLAN.md
     // §5.4): while the toggle is on, single-book purchase is never offered,
     // so this dialog's only way forward is a subscription.
-    final hideBuy = PurchaseModeService.instance.isIOSStoreOnly;
+    final hideBuy =
+        subscriptionOnly || PurchaseModeService.instance.isIOSStoreOnly;
     return AlertDialog(
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

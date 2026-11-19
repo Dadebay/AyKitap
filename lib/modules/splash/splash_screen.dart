@@ -8,6 +8,7 @@ import '../../core/navigation/fade_page_route.dart';
 import '../../core/services/app_prefs.dart';
 import '../../core/services/book_access_service.dart';
 import '../../core/services/downloaded_files_store.dart';
+import '../../core/services/storage_cleaner.dart';
 import '../../core/services/home_data_service.dart';
 import '../../core/services/subscription_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -161,7 +162,11 @@ class _SplashScreenState extends State<SplashScreen>
         .load()
         .then((_) => BookAccessService.instance.refreshPurchased()));
     unawaited(SubscriptionService.instance.load());
-    unawaited(DownloadedFilesStore.instance.load());
+    // Then clear book data nothing owns any more (interrupted downloads, caches
+    // of books deleted before this existed) — best effort, off the hot path.
+    unawaited(DownloadedFilesStore.instance
+        .load()
+        .then((_) => StorageCleaner.sweepOrphans()));
 
     // Run the prefs read, the connectivity check, and a minimum splash
     // display time in parallel — real work never waits behind the floor,

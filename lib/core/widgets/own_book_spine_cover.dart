@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../models/own_book.dart';
 import '../theme/app_gradients.dart';
 import 'pressable_scale.dart';

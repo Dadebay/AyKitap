@@ -40,7 +40,8 @@ class StreakGoalCelebration extends StatefulWidget {
   State<StreakGoalCelebration> createState() => _StreakGoalCelebrationState();
 }
 
-class _StreakGoalCelebrationState extends State<StreakGoalCelebration> with SingleTickerProviderStateMixin {
+class _StreakGoalCelebrationState extends State<StreakGoalCelebration>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: AppMotion.standard,

@@ -30,7 +30,8 @@ class UpdateAvailableSheet extends StatelessWidget {
     final release = await AppUpdateService.instance.check();
     if (release == null) return; // check() has already said why.
     if (!context.mounted) {
-      updateDebugLog('Screen was gone before the answer arrived — no sheet', bad: true);
+      updateDebugLog('Screen was gone before the answer arrived — no sheet',
+          bad: true);
       return;
     }
     if (_shownThisLaunch) {
@@ -90,7 +91,8 @@ class UpdateAvailableSheet extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      AppGradients.journeyPrimaryColors[1].withValues(alpha: 0.13),
+                      AppGradients.journeyPrimaryColors[1]
+                          .withValues(alpha: 0.13),
                       AppColors.surface.withValues(alpha: 0),
                     ],
                   ),
@@ -99,7 +101,8 @@ class UpdateAvailableSheet extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(22, 12, 22, 22 + MediaQuery.of(context).padding.bottom),
+            padding: EdgeInsets.fromLTRB(
+                22, 12, 22, 22 + MediaQuery.of(context).padding.bottom),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -238,10 +241,13 @@ class UpdateAvailableSheet extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: highlighted ? accent.withValues(alpha: 0.10) : AppColors.card.withValues(alpha: 0.6),
+        color: highlighted
+            ? accent.withValues(alpha: 0.10)
+            : AppColors.card.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: highlighted ? accent.withValues(alpha: 0.35) : AppColors.border,
+          color:
+              highlighted ? accent.withValues(alpha: 0.35) : AppColors.border,
         ),
       ),
       child: Column(
@@ -292,7 +298,8 @@ class UpdateAvailableSheet extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: AppGradients.journeyPrimaryColors[1].withValues(alpha: 0.32),
+              color:
+                  AppGradients.journeyPrimaryColors[1].withValues(alpha: 0.32),
               blurRadius: 18,
               offset: const Offset(0, 7),
             ),

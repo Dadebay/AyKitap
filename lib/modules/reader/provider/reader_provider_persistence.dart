@@ -64,7 +64,6 @@ extension ReaderProviderPersistence on ReaderProvider {
     if (_bookId != null) ReadingProgressReporter.instance.forget(_bookId!);
     _currentPage = 0;
     _totalPages = 0;
-    _lastLoggedPage = null;
     _lastRelocationAt = null;
     _restoringPosition = false;
     _restoreTargetProgress = 0.0;

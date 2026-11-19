@@ -20,7 +20,8 @@ class PaymentApiService {
     try {
       final response = await DioClient.instance.get(PaymentEndpoints.tariffs);
       final list = response.data['data'] as List;
-      return visibleTariffsInOrder(list.map((e) => Tariff.fromJson(e as Map<String, dynamic>)));
+      return visibleTariffsInOrder(
+          list.map((e) => Tariff.fromJson(e as Map<String, dynamic>)));
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -40,9 +41,12 @@ class PaymentApiService {
   /// orders, newest first.
   static Future<List<PaymentOrder>> getMyOrders() async {
     try {
-      final response = await DioClient.instance.get(PaymentEndpoints.paymentsMy);
+      final response =
+          await DioClient.instance.get(PaymentEndpoints.paymentsMy);
       final list = response.data['data'] as List;
-      final orders = list.map((e) => PaymentOrder.fromJson(e as Map<String, dynamic>)).toList();
+      final orders = list
+          .map((e) => PaymentOrder.fromJson(e as Map<String, dynamic>))
+          .toList();
       orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return orders;
     } on DioException catch (e) {
@@ -54,13 +58,16 @@ class PaymentApiService {
   /// manat via bank [bankId], returning the `invoiceUrl` to open in
   /// [PaymentWebViewScreen]. Throws [ApiException] if the backend didn't
   /// hand back a usable url, same as any other failure.
-  static Future<String> createTopUpOrder({required int amount, required int bankId}) async {
+  static Future<String> createTopUpOrder(
+      {required int amount, required int bankId}) async {
     try {
-      final response = await DioClient.instance.post(PaymentEndpoints.paymentOrders, data: {
+      final response =
+          await DioClient.instance.post(PaymentEndpoints.paymentOrders, data: {
         'amount': amount,
         'bank_id': bankId,
       });
-      final url = (response.data['data'] as Map<String, dynamic>?)?['invoiceUrl'];
+      final url =
+          (response.data['data'] as Map<String, dynamic>?)?['invoiceUrl'];
       if (url is! String || url.isEmpty) {
         throw const ApiException('Töleg sahypasynyň salgysy alynmady.');
       }
@@ -103,7 +110,10 @@ class PaymentApiService {
     final uri = _withApiV1Prefix(redirectUri);
     log('💳 activateOrder: $redirectUri -> $uri');
     try {
-      final response = await Dio(BaseOptions(connectTimeout: const Duration(seconds: 15), receiveTimeout: const Duration(seconds: 15))).get(uri.toString());
+      final response = await Dio(BaseOptions(
+              connectTimeout: const Duration(seconds: 15),
+              receiveTimeout: const Duration(seconds: 15)))
+          .get(uri.toString());
       log('💳 activateOrder response: ${response.statusCode} ${response.data}');
     } on DioException catch (e) {
       log('💳 activateOrder DioException: ${e.type} status=${e.response?.statusCode} body=${e.response?.data} message=${e.message}');
@@ -115,7 +125,8 @@ class PaymentApiService {
       // only for a connection failure, not for a response the server
       // actually sent back (a real error there wouldn't be fixed by
       // asking a different host).
-      if (e.type == DioExceptionType.connectionError || e.type == DioExceptionType.connectionTimeout) {
+      if (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout) {
         log('💳 activateOrder: ${uri.host} unreachable, retrying via the configured API host');
         await _activateOrderViaConfiguredHost(uri);
         return;
@@ -131,7 +142,8 @@ class PaymentApiService {
   static Future<void> _activateOrderViaConfiguredHost(Uri correctedUri) async {
     final path = '/${correctedUri.pathSegments.skip(2).join('/')}';
     try {
-      final response = await DioClient.instance.get(path, queryParameters: correctedUri.queryParameters);
+      final response = await DioClient.instance
+          .get(path, queryParameters: correctedUri.queryParameters);
       log('💳 activateOrder (fallback host) response: ${response.statusCode} ${response.data}');
     } on DioException catch (e) {
       log('💳 activateOrder (fallback host) DioException: ${e.type} status=${e.response?.statusCode} body=${e.response?.data}');

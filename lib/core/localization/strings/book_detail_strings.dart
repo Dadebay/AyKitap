@@ -205,6 +205,14 @@ class BookDetailStrings {
         tr: '“$title” telefonunuzdan silinsin mi? Kitap kitaplığınızda kalır.',
         en: 'Delete “$title” from your device? The book stays in your library.',
       );
+
+  /// Shown after a download is deleted, with how much room it freed.
+  static String downloadDeletedFreed(String mb) => t(
+        tk: 'Ýükleme pozuldy · $mb MB boşadyldy',
+        ru: 'Загрузка удалена · освобождено $mb МБ',
+        tr: 'İndirme silindi · $mb MB yer açıldı',
+        en: 'Download deleted · $mb MB freed',
+      );
   static String get downloadDeleted => t(
         tk: 'Ýükleme pozuldy',
         ru: 'Загрузка удалена',

@@ -56,6 +56,9 @@ class BookDownloadService extends ChangeNotifier {
   final Map<int, double?> _progress = {};
   final Map<int, CancelToken> _cancelTokens = {};
 
+  /// True while any book is being downloaded.
+  bool get hasActiveDownloads => _inFlight.isNotEmpty;
+
   /// 0–1 while [bookId] is downloading, null otherwise.
   double? progressOf(int bookId) => _progress[bookId];
 

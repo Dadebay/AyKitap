@@ -51,6 +51,10 @@ class BookDetail {
   final int? price;
   final int readCount;
   final int soldCount;
+
+  /// `is_subscription_only` — readable through a subscription but never
+  /// sold on its own, so no "Satyn al" anywhere for it.
+  final bool isSubscriptionOnly;
   final double? progress;
   final List<BookDetailGenre> genres;
   final List<LibraryBookAuthor> authors;
@@ -67,6 +71,7 @@ class BookDetail {
     this.price,
     this.readCount = 0,
     this.soldCount = 0,
+    this.isSubscriptionOnly = false,
     this.progress,
     this.genres = const [],
     this.authors = const [],
@@ -86,6 +91,7 @@ class BookDetail {
         price: json['price'] as int?,
         readCount: json['read_count'] as int? ?? 0,
         soldCount: json['sold_count'] as int? ?? 0,
+        isSubscriptionOnly: json['is_subscription_only'] == true,
         progress: _parseProgress(json['progress']),
         genres: (json['genres'] as List? ?? const [])
             .map((e) => BookDetailGenre.fromJson(e as Map<String, dynamic>))

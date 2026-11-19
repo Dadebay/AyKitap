@@ -32,7 +32,9 @@ class ApiException implements Exception {
         ? _extractMessage(data['message'])
         : null;
     if (serverMessage != null && serverMessage.isNotEmpty) {
-      return ApiException(serverMessage, statusCode: statusCode);
+      return ApiException(
+          ApiErrorStrings.localizeServerMessage(serverMessage) ?? serverMessage,
+          statusCode: statusCode);
     }
     switch (e.type) {
       case DioExceptionType.connectionTimeout:

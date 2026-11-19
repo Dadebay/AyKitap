@@ -9,9 +9,11 @@ import '../../../core/localization/strings/reader_bookmark_strings.dart';
 import '../../../core/localization/strings/reader_strings.dart';
 import '../../../core/services/bookmarks_store.dart';
 import '../../../core/services/cbz_page_cache.dart';
+import '../../../core/services/device_tier.dart';
+import '../../book_detail/catalog_book_detail_screen.dart';
+import '../widgets/next_book_offer.dart';
 import '../../../core/services/last_read_book_store.dart';
 import '../../../core/services/reading_progress_reporter.dart';
-import '../../../core/services/streak_service.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../core/utils/stable_hash.dart';
 import '../../../core/widgets/app_snackbar.dart';
@@ -32,6 +34,7 @@ import '../widgets/reader_loading_overlay.dart';
 import '../widgets/reader_page_viewport.dart';
 import '../../../core/widgets/snowfall.dart';
 import '../widgets/reader_scroll_hint.dart';
+import '../widgets/secure_reader_scope.dart';
 import '../widgets/reader_top_bar.dart';
 
 part 'cbz_reader_screen_actions.dart';
@@ -110,7 +113,6 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
   double _metricsWidth = 0;
   int _currentPage = 0; // 0-based
   int _initialPage = 0;
-  int? _lastLoggedPage;
   bool _isLoading = true;
   String? _error;
 
@@ -124,7 +126,9 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
   CbzViewMode _viewMode = CbzViewMode.scroll;
 
   Timer? _saveTimer;
-  final ReaderStreakPing _streakPing = ReaderStreakPing();
+  // Comic pages turn faster than text pages, so they need a shorter dwell.
+  final ReaderStreakPing _streakPing =
+      ReaderStreakPing(pageDwell: const Duration(seconds: 4));
   // Changed from the notification panel rather than this screen's slider —
   // routed into the same setter, so it is applied and saved identically.
   // See [ReaderBrightnessController] for why the panel needed help at all.

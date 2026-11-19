@@ -36,50 +36,32 @@ extension _ReaderViewNotes on _ReaderScreenState {
     );
     if (draft == null || draft.text.isEmpty) return;
 
-    // A catalogue book (realBookId set) syncs this note to the backend's
-    // own `GET /users/notes` list — the only place a note is shown outside
-    // this book's own highlights, so one that fails to sync would look
-    // saved here (highlight painted, snackbar shown) but never actually
-    // appear there. Require the sync to succeed before painting/persisting
-    // anything locally rather than save a note the profile can never
-    // display. Imported files have no realBookId and no backend list to
-    // join, so they stay local-only, same as always.
-    int? remoteId;
-    final realBookId = widget.realBookId;
-    if (realBookId != null) {
-      try {
-        final created = await UserNotesApiService.createNote(
-          bookId: realBookId,
-          note: draft.text,
-          snippet: text,
-        );
-        remoteId = created.id;
-      } on ApiException {
-        if (context.mounted) {
-          _showSnack(context, ReaderNotesStrings.noteSaveFailedMessage,
-              isError: true);
-        }
-        return;
-      }
-    }
-
     final si = _bookSeedIndex;
+    try {
+      await NotesStore.instance.add(
+        text: draft.text,
+        bookId: widget.bookId,
+        bookSeed: si?.$1,
+        bookIndex: si?.$2,
+        bookTitle: widget.bookTitle,
+        colorValue: draft.colorValue,
+        cfi: cfi,
+        realBookId: widget.realBookId,
+        snippet: text,
+      );
+    } catch (_) {
+      if (context.mounted) {
+        _showSnack(context, ReaderNotesStrings.noteSaveFailedMessage,
+            isError: true);
+      }
+      return;
+    }
     if (cfi != null && cfi.isNotEmpty) {
       provider.epubController.addHighlight(
           cfi: cfi,
           color: Color(draft.colorValue),
           opacity: HighlightColors.highlightOpacity);
     }
-    await NotesStore.instance.add(
-      text: draft.text,
-      bookId: widget.bookId,
-      bookSeed: si?.$1,
-      bookIndex: si?.$2,
-      bookTitle: widget.bookTitle,
-      colorValue: draft.colorValue,
-      cfi: cfi,
-      remoteId: remoteId,
-    );
     if (context.mounted) {
       _showSnack(context, ReaderNotesStrings.noteSavedMessage);
     }
@@ -98,18 +80,6 @@ extension _ReaderViewNotes on _ReaderScreenState {
     final cfi = note.cfi;
     if (cfi != null && cfi.isNotEmpty) {
       provider.epubController.removeHighlight(cfi: cfi);
-    }
-    final remoteId = note.remoteId;
-    if (remoteId != null) {
-      try {
-        await UserNotesApiService.deleteNote(remoteId);
-      } on ApiException {
-        // Best-effort: removing a highlight is the user explicitly undoing
-        // it, and blocking that on a flaky connection would leave them
-        // stuck with one they can't get rid of. Worst case the backend
-        // keeps a note the profile's "Notlar" list still shows — still
-        // deletable from there directly.
-      }
     }
     await NotesStore.instance.remove(note.id);
     if (context.mounted) {

@@ -43,7 +43,12 @@ class ProfileAvatar extends StatefulWidget {
   final double size;
   final String? imageBase64;
   final String? imageUrl;
-  const ProfileAvatar({super.key, required this.index, this.size = 88, this.imageBase64, this.imageUrl});
+  const ProfileAvatar(
+      {super.key,
+      required this.index,
+      this.size = 88,
+      this.imageBase64,
+      this.imageUrl});
 
   @override
   State<ProfileAvatar> createState() => _ProfileAvatarState();
@@ -77,7 +82,9 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
     if (imageBase64 != null && imageBase64.isNotEmpty) {
       // Give wide photos enough pixels on their short side while preserving
       // the source aspect ratio (setting both cache axes would stretch it).
-      final decodeWidth = (size * MediaQuery.devicePixelRatioOf(context) * 2).ceil().clamp(1, 2048);
+      final decodeWidth = (size * MediaQuery.devicePixelRatioOf(context) * 2)
+          .ceil()
+          .clamp(1, 2048);
       return ClipOval(
         child: Image.memory(
           _bytesFor(imageBase64),
@@ -95,16 +102,24 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: avatar.gradient),
+          gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: avatar.gradient),
         ),
-        child: Center(child: Text(avatar.emoji, style: TextStyle(fontSize: size * 0.5))),
+        child: Center(
+            child: Text(avatar.emoji, style: TextStyle(fontSize: size * 0.5))),
       );
     }
     if (widget.imageUrl != null && widget.imageUrl!.isNotEmpty) {
       return ClipOval(
         // A broken/unreachable URL shouldn't take the whole avatar down —
         // falls back to the same placeholder an unset avatar gets.
-        child: NetworkCoverImage(url: widget.imageUrl!, width: size, height: size, placeholder: (_) => _placeholder()),
+        child: NetworkCoverImage(
+            url: widget.imageUrl!,
+            width: size,
+            height: size,
+            placeholder: (_) => _placeholder()),
       );
     }
     return _placeholder();
@@ -116,7 +131,11 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
       width: size,
       height: size,
       decoration: BoxDecoration(color: AppColors.card, shape: BoxShape.circle),
-      child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedUser, color: AppColors.grey2, size: size * 0.45)),
+      child: Center(
+          child: HugeIcon(
+              icon: HugeIcons.strokeRoundedUser,
+              color: AppColors.grey2,
+              size: size * 0.45)),
     );
   }
 }

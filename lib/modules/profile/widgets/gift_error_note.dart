@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../core/theme/app_colors.dart';
 
@@ -35,10 +35,7 @@ class GiftErrorNote extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const HugeIcon(
-              icon: HugeIcons.strokeRoundedAlert02,
-              color: _errorColor,
-              size: 20),
+          const HugeIcon(icon: HugeIcons.strokeRoundedAlert02, color: _errorColor, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

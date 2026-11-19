@@ -16,7 +16,11 @@ class OrDivider extends StatelessWidget {
         Expanded(child: Divider(color: AppColors.border)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(label, style: TextStyle(color: AppColors.grey3, fontSize: 12, fontWeight: FontWeight.w600)),
+          child: Text(label,
+              style: TextStyle(
+                  color: AppColors.grey3,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600)),
         ),
         Expanded(child: Divider(color: AppColors.border)),
       ],

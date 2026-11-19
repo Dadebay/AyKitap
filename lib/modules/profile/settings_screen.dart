@@ -18,6 +18,7 @@ import '../../core/services/notification_permission_flow.dart';
 import '../../core/services/onesignal_service.dart';
 import '../../core/services/purchase_mode_service.dart';
 import '../../core/services/revenue_cat_service.dart';
+import '../../core/services/storage_cleaner.dart';
 import '../../core/services/subscription_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_controller.dart';
@@ -49,11 +50,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = false;
   bool _notificationsBusy = true;
 
+  // Size of what "Keşi arassala" would remove; null while being measured.
+  int? _cacheBytes;
+  bool _clearingCache = false;
+
   @override
   void initState() {
     super.initState();
     _refreshNotificationState();
+    _loadCacheSize();
   }
+
+  Future<void> _loadCacheSize() async {
+    final bytes = await StorageCleaner.cacheBytes();
+    if (mounted) setState(() => _cacheBytes = bytes);
+  }
+
+  Future<void> _clearCache() async {
+    if (_clearingCache) return;
+    setState(() => _clearingCache = true);
+    final freed = await StorageCleaner.clearCaches();
+    if (!mounted) return;
+    setState(() => _clearingCache = false);
+    await _loadCacheSize();
+    if (!mounted) return;
+    context.showAppSnackBar(SettingsStrings.cacheCleared(
+        (freed / (1024 * 1024)).toStringAsFixed(1)));
+  }
+
+  static String _fmtMb(int? bytes) =>
+      bytes == null ? '…' : '${(bytes / (1024 * 1024)).toStringAsFixed(0)} MB';
 
   Future<void> _refreshNotificationState() async {
     final enabled = await NotificationPermissionFlow.isEnabled();
@@ -214,89 +240,95 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: AdaptiveContentWidth(
             maxWidth: 1000,
             child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            TwoColumnLayout(
-              left: [
-            SettingsGroup(children: [
-              SwitchTile(
-                icon: darkTheme
-                    ? HugeIcons.strokeRoundedMoon02
-                    : HugeIcons.strokeRoundedSun03,
-                iconColor: darkTheme
-                    ? const Color(0xFF8B7BF0)
-                    : const Color(0xFFFFB020),
-                label: SettingsStrings.theme,
-                value: darkTheme
-                    ? SettingsStrings.themeDark
-                    : SettingsStrings.themeLight,
-                switchValue: darkTheme,
-                onChanged: (v) => AppTheme.instance.setDark(v),
-              ),
-              NavTile(
-                icon: HugeIcons.strokeRoundedGlobal,
-                label: SettingsStrings.language,
-                value: language.label,
-                leadingValue: flagFor(language, size: 22),
-                onTap: _pickLanguage,
-              ),
-            ]),
-                if (widget.isLoggedIn) ...[
-                  const SizedBox(height: 16),
-              SettingsGroup(children: [
-                NavTile(
-                  icon: HugeIcons.strokeRoundedLogout01,
-                  label: SettingsStrings.logout,
-                  danger: true,
-                  onTap: _confirmLogout,
+              padding: const EdgeInsets.all(20),
+              children: [
+                TwoColumnLayout(
+                  left: [
+                    SettingsGroup(children: [
+                      SwitchTile(
+                        icon: darkTheme
+                            ? HugeIcons.strokeRoundedMoon02
+                            : HugeIcons.strokeRoundedSun03,
+                        iconColor: darkTheme
+                            ? const Color(0xFF8B7BF0)
+                            : const Color(0xFFFFB020),
+                        label: SettingsStrings.theme,
+                        value: darkTheme
+                            ? SettingsStrings.themeDark
+                            : SettingsStrings.themeLight,
+                        switchValue: darkTheme,
+                        onChanged: (v) => AppTheme.instance.setDark(v),
+                      ),
+                      NavTile(
+                        icon: HugeIcons.strokeRoundedGlobal,
+                        label: SettingsStrings.language,
+                        value: language.label,
+                        leadingValue: flagFor(language, size: 22),
+                        onTap: _pickLanguage,
+                      ),
+                    ]),
+                    if (widget.isLoggedIn) ...[
+                      const SizedBox(height: 16),
+                      SettingsGroup(children: [
+                        NavTile(
+                          icon: HugeIcons.strokeRoundedLogout01,
+                          label: SettingsStrings.logout,
+                          danger: true,
+                          onTap: _confirmLogout,
+                        ),
+                        NavTile(
+                            icon: HugeIcons.strokeRoundedDelete02,
+                            label: SettingsStrings.deleteAccount,
+                            danger: true,
+                            onTap: _confirmDeleteAccount),
+                      ]),
+                    ],
+                  ],
+                  right: [
+                    SettingsGroup(children: [
+                      SwitchTile(
+                        icon: _notificationsEnabled
+                            ? HugeIcons.strokeRoundedNotification02
+                            : HugeIcons.strokeRoundedNotificationOff02,
+                        iconColor: AppColors.primary,
+                        label: NotificationStrings.settingsLabel,
+                        value: _notificationsEnabled
+                            ? NotificationStrings.statusOn
+                            : NotificationStrings.settingsSubtitleOff,
+                        switchValue: _notificationsEnabled,
+                        onChanged: _setNotifications,
+                        control: AppSwitch(
+                          value: _notificationsEnabled,
+                          enabled: !_notificationsBusy,
+                          onChanged: _setNotifications,
+                        ),
+                      ),
+                      NavTile(
+                        icon: HugeIcons.strokeRoundedCleaningBucket,
+                        label: SettingsStrings.clearCache,
+                        value: _clearingCache ? '…' : _fmtMb(_cacheBytes),
+                        onTap: _clearCache,
+                      ),
+                      NavTile(
+                          icon: HugeIcons.strokeRoundedCustomerService01,
+                          label: SettingsStrings.contactUs,
+                          value: '',
+                          onTap: () => ContactUsSheet.show(context)),
+                      NavTile(
+                        icon: HugeIcons.strokeRoundedCrown02,
+                        label: SettingsStrings.storeSubscription,
+                        value: isPlusActive
+                            ? SettingsStrings.storeSubscriptionActive
+                            : SettingsStrings.storeSubscriptionInactive,
+                        onTap: _openStoreSubscription,
+                      ),
+                    ]),
+                  ],
                 ),
-                NavTile(
-                    icon: HugeIcons.strokeRoundedDelete02,
-                    label: SettingsStrings.deleteAccount,
-                    danger: true,
-                    onTap: _confirmDeleteAccount),
-              ]),
-                ],
+                const SizedBox(height: 24),
+                const Center(child: AppVersionLabel()),
               ],
-              right: [
-            SettingsGroup(children: [
-              SwitchTile(
-                icon: _notificationsEnabled
-                    ? HugeIcons.strokeRoundedNotification02
-                    : HugeIcons.strokeRoundedNotificationOff02,
-                iconColor: AppColors.primary,
-                label: NotificationStrings.settingsLabel,
-                value: _notificationsEnabled
-                    ? NotificationStrings.statusOn
-                    : NotificationStrings.settingsSubtitleOff,
-                switchValue: _notificationsEnabled,
-                onChanged: _setNotifications,
-                control: AppSwitch(
-                  value: _notificationsEnabled,
-                  enabled: !_notificationsBusy,
-                  onChanged: _setNotifications,
-                ),
-              ),
-              NavTile(
-                  icon: HugeIcons.strokeRoundedCustomerService01,
-                  label: SettingsStrings.contactUs,
-                  value: '',
-                  onTap: () => ContactUsSheet.show(context)),
-              NavTile(
-                icon: HugeIcons.strokeRoundedCrown02,
-                label: SettingsStrings.storeSubscription,
-                value: isPlusActive
-                    ? SettingsStrings.storeSubscriptionActive
-                    : SettingsStrings.storeSubscriptionInactive,
-                onTap: _openStoreSubscription,
-              ),
-            ]),
-              ],
-            ),
-            const SizedBox(height: 24),
-            const Center(child: AppVersionLabel()),
-          ],
-        )),
+            )),
       ),
     );
   }

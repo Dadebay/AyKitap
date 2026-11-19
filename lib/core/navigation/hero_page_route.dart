@@ -17,8 +17,10 @@ class HeroPageRoute<T> extends PageRouteBuilder<T> {
     required Widget child,
     required bool reduceMotion,
   }) : super(
-          transitionDuration: reduceMotion ? AppMotion.instant : AppMotion.heroFlight,
-          reverseTransitionDuration: reduceMotion ? AppMotion.instant : AppMotion.standard,
+          transitionDuration:
+              reduceMotion ? AppMotion.instant : AppMotion.heroFlight,
+          reverseTransitionDuration:
+              reduceMotion ? AppMotion.instant : AppMotion.standard,
           pageBuilder: (_, __, ___) => child,
           transitionsBuilder: (_, animation, __, page) => FadeTransition(
             opacity: CurvedAnimation(

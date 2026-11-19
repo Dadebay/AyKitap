@@ -1,3 +1,4 @@
+import 'package:cupertino_ui/cupertino_ui.dart' as cui;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -34,6 +35,8 @@ const List<LocalizationsDelegate<dynamic>> kAppLocalizationsDelegates =
   // up. Without these it throws "No MaterialLocalizations found" even though
   // the legacy `flutter/material` delegates below are present.
   _TurkmenMuiMaterialLocalizationsDelegate(),
+  _TurkmenCupertinoUiLocalizationsDelegate(),
+  cui.GlobalCupertinoLocalizations.delegate,
   mui.GlobalMaterialLocalizations.delegate,
   GlobalMaterialLocalizations.delegate,
   GlobalWidgetsLocalizations.delegate,
@@ -83,4 +86,22 @@ class _TurkmenMuiMaterialLocalizationsDelegate
 
   @override
   bool shouldReload(_TurkmenMuiMaterialLocalizationsDelegate old) => false;
+}
+
+/// `cupertino_ui` (pulled in by `material_ui`) has its own
+/// CupertinoLocalizations type, separate from the legacy one above; without
+/// this Flutter warns that `tk` isn't supported by all delegates.
+class _TurkmenCupertinoUiLocalizationsDelegate
+    extends LocalizationsDelegate<cui.CupertinoLocalizations> {
+  const _TurkmenCupertinoUiLocalizationsDelegate();
+
+  @override
+  bool isSupported(Locale locale) => locale.languageCode == 'tk';
+
+  @override
+  Future<cui.CupertinoLocalizations> load(Locale locale) =>
+      cui.GlobalCupertinoLocalizations.delegate.load(kTurkmenFallbackLocale);
+
+  @override
+  bool shouldReload(_TurkmenCupertinoUiLocalizationsDelegate old) => false;
 }

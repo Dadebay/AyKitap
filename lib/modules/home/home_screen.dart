@@ -12,6 +12,7 @@ import '../../core/theme/app_motion.dart';
 import '../../core/widgets/section_header.dart';
 import '../main_nav/widgets/wheel_nav_bar.dart';
 import '../streak/streak_screen.dart';
+import 'widgets/daily_reading_goal_card.dart';
 import 'catalog_collection_books_screen.dart';
 import 'widgets/banner_carousel.dart';
 import 'widgets/catalog_author_avatar.dart';
@@ -116,6 +117,7 @@ class _HomeScreenState extends State<HomeScreen>
                   onStreakTap: () => context.push(const StreakScreen()),
                 ),
               ),
+              const SliverToBoxAdapter(child: DailyReadingGoalCard()),
               const SliverToBoxAdapter(child: BannerCarousel()),
               const SliverToBoxAdapter(child: SizedBox(height: 4)),
               // Scoped to collections only — a banner or loading change

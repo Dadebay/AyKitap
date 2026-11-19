@@ -19,6 +19,16 @@ class SettingsStrings {
       ru: 'Выберите язык',
       tr: 'Dili seçin',
       en: 'Choose a language');
+  static String get clearCache => t(
+      tk: 'Keşi arassala',
+      ru: 'Очистить кэш',
+      tr: 'Önbelleği temizle',
+      en: 'Clear cache');
+  static String cacheCleared(String mb) => t(
+      tk: 'Keş arassalandy · $mb MB boşadyldy',
+      ru: 'Кэш очищен · освобождено $mb МБ',
+      tr: 'Önbellek temizlendi · $mb MB yer açıldı',
+      en: 'Cache cleared · $mb MB freed');
   static String get contactUs => t(
       tk: 'Biz bilen habarlaşyñ',
       ru: 'Связаться с нами',

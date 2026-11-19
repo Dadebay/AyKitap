@@ -7,6 +7,7 @@ import '../../../core/localization/strings/library_strings.dart';
 import '../../../core/models/own_book.dart';
 import '../../../core/navigation/app_navigator.dart';
 import '../../../core/services/analytics_service.dart';
+import '../../../core/services/storage_cleaner.dart';
 import '../../../core/services/own_books_store.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/stable_hash.dart';
@@ -93,6 +94,7 @@ class _OwnBooksTabState extends State<OwnBooksTab> {
         message: LibraryStrings.deleteOwnBookConfirm(book.title));
     if (choice != ShelfDeleteChoice.delete) return;
     await _store.remove(book.id);
+    await StorageCleaner.sweepOrphans();
     if (mounted) {
       context.showAppSnackBar(LibraryStrings.bookDeleted(book.title));
     }

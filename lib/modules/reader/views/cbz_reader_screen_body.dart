@@ -14,10 +14,11 @@ extension _CbzReaderScreenBody on _CbzReaderScreenState {
     // which is what caused the stutter/OOM on lower-RAM devices. Decode for
     // the tablet page width, with modest zoom headroom and a hard pixel cap.
     final pageWidth = MediaQuery.sizeOf(context).width.clamp(0.0, 860.0);
-    final pageCacheWidth =
-        (pageWidth * MediaQuery.devicePixelRatioOf(context) * 1.5)
-            .round()
-            .clamp(1, 2800);
+    final pageCacheWidth = (pageWidth *
+            MediaQuery.devicePixelRatioOf(context) *
+            (DeviceTier.isLowEnd ? 1.0 : 1.5))
+        .round()
+        .clamp(1, DeviceTier.isLowEnd ? 1600 : 2800);
 
     return Scaffold(
       backgroundColor: bg,
@@ -47,6 +48,28 @@ extension _CbzReaderScreenBody on _CbzReaderScreenState {
                             ),
                           ),
                   )),
+            ),
+
+          if (widget.realBookId != null &&
+              _totalPages > 0 &&
+              _currentPage >= _totalPages - 1 &&
+              !_isLoading)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: _showControls ? 142 : 54,
+              child: NextBookOffer(
+                finishedBookId: widget.realBookId!,
+                foreground: _darkGutter ? Colors.white : Colors.black87,
+                background: bg,
+                onOpen: (book) async {
+                  await _saveProgress();
+                  if (!context.mounted) return;
+                  Navigator.of(context).pushReplacement(MaterialPageRoute(
+                    builder: (_) => CatalogBookDetailScreen(bookId: book.id),
+                  ));
+                },
+              ),
             ),
 
           // ── Eye-care (blue-light) wash ─────────────────────────────────
@@ -150,6 +173,7 @@ extension _CbzReaderScreenBody on _CbzReaderScreenState {
 
           // ── First-open "which way do pages move" hint ──────────────────
           const SnowfallPause(),
+          SecureReaderScope(bookId: _bookId),
           ReaderScrollHint(
             kind: 'cbz',
             enabled: !_isLoading && _error == null,

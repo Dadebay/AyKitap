@@ -228,14 +228,11 @@ extension ReaderProviderCallbacks on ReaderProvider {
     _currentPage = current;
     _totalPages = total;
     _isAtLastPage = current >= total;
-    // Only forward turns count as "pages read" — and the very first callback
-    // after a load/position-restore is skipped so jumping back into a book
-    // isn't logged as having read every page up to that point.
-    if (_lastLoggedPage != null && current > _lastLoggedPage!) {
-      StreakService.instance
-          .recordPageRead(count: (current - _lastLoggedPage!).clamp(1, 5));
-    }
-    _lastLoggedPage = current;
+    // A page counts as read only once it has stayed on screen for a while —
+    // flicking, scrubbing and jumping (resume position, chapters) count
+    // nothing by themselves. See [ReaderStreakPing.onPage].
+    final bookId = _bookId;
+    if (bookId != null) _streakPing.onPage(current, bookKey: bookId);
   }
 
   void onTextSelected(EpubTextSelection selection) {

@@ -41,5 +41,6 @@ abstract final class AppMotion {
 
   /// System accessibility settings are authoritative. Decorative movement is
   /// removed and essential state changes use only a short fade.
-  static bool reduceMotion(BuildContext context) => MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+  static bool reduceMotion(BuildContext context) =>
+      MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 }

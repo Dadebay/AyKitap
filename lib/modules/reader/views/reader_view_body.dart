@@ -113,6 +113,7 @@ extension _ReaderViewBody on _ReaderScreenState {
 
             // ── First-open "which way do pages move" hint ───────────────
             const SnowfallPause(),
+            SecureReaderScope(bookId: widget.bookId),
             ReaderScrollHint(
               kind: 'epub',
               enabled: !_showLoadingOverlay &&

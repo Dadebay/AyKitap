@@ -13,7 +13,6 @@ import '../../../core/services/bookmarks_store.dart';
 import '../../../core/services/last_read_book_store.dart';
 import '../../../core/services/notes_store.dart';
 import '../../../core/services/reading_progress_reporter.dart';
-import '../../../core/services/streak_service.dart';
 import '../../../core/theme/highlight_colors.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../utils/reader_brightness_controller.dart';
@@ -57,7 +56,6 @@ class ReaderProvider extends ChangeNotifier with WidgetsBindingObserver {
   // ── Page state (see reader_provider_callbacks.dart) ─────────────────────
   int _currentPage = 0;
   int _totalPages = 0;
-  int? _lastLoggedPage;
   double _progress = 0.0;
   String _currentCfi = '';
   bool _isAtLastPage = false;

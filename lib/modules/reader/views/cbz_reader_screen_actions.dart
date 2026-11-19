@@ -69,11 +69,9 @@ extension _CbzReaderScreenActions on _CbzReaderScreenState {
 
   // ── Page changes ─────────────────────────────────────────────────────────
   void _onPageChanged(int page) {
-    if (_lastLoggedPage != null && page > _lastLoggedPage!) {
-      StreakService.instance
-          .recordPageRead(count: (page - _lastLoggedPage!).clamp(1, 5));
-    }
-    _lastLoggedPage = page;
+    // Counted as read only after staying on screen — see
+    // [ReaderStreakPing.onPage].
+    _streakPing.onPage(page, bookKey: _bookId);
     _setState(() => _currentPage = page);
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(seconds: 2), _saveProgress);

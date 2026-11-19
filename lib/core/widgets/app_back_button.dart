@@ -29,7 +29,10 @@ class AppBackButton extends StatelessWidget {
       builder: (context, _) => IconButton(
         padding: EdgeInsets.zero,
         onPressed: onPressed ?? () => Navigator.pop(context),
-        icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: AppColors.white, size: size),
+        icon: HugeIcon(
+            icon: HugeIcons.strokeRoundedArrowLeft01,
+            color: AppColors.white,
+            size: size),
       ),
     );
   }

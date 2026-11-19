@@ -129,6 +129,7 @@ extension _BookOpenFlowActions on BookOpenFlow {
     // paid book one tap away from any other app.
     log('🔍 [BookOpen] bookId=${book.id} handing off to reader | '
         'format=$format path=$path');
+    unawaited(SubscriptionOnlyBooks.record(book.id, book.isSubscriptionOnly));
     _openReader(path: path, format: format);
   }
 

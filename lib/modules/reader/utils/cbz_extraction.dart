@@ -39,8 +39,8 @@ Future<List<String>> _sortedCbzPageFiles(Directory cacheDir) async {
   return files.map((f) => f.path).toList();
 }
 
-/// Unpacks a CBZ's pages onto disk: reads the whole zip into memory, decodes
-/// it, and writes one file per page. Runs on a background isolate spawned by
+/// Unpacks a CBZ's pages onto disk without retaining the whole archive or
+/// decoded page images in RAM. Runs on a background isolate spawned by
 /// [runCbzExtraction] via [Isolate.run] — a 200-500MB scanned manga volume
 /// decoded on the UI isolate froze the loading animation and could OOM
 /// low-RAM devices, since none of this work yields back to the event loop in
@@ -68,34 +68,41 @@ Future<(List<String> pagePaths, bool noImages)> extractCbzOnIsolate(
   if (await cacheDir.exists()) await cacheDir.delete(recursive: true);
   await cacheDir.create(recursive: true);
 
-  final bytes = await File(args.$1).readAsBytes();
-  final archive = ZipDecoder().decodeBytes(bytes);
+  final input = InputFileStream(args.$1);
+  try {
+    final archive = ZipDecoder().decodeStream(input);
 
-  final imageEntries = archive.files.where((f) {
-    if (!f.isFile) return false;
-    final dot = f.name.lastIndexOf('.');
-    if (dot == -1) return false;
-    return cbzImageExtensions.contains(f.name.substring(dot).toLowerCase());
-  }).toList()
-    ..sort((a, b) => compareCbzPagesNaturally(a.name, b.name));
+    final imageEntries = archive.files.where((f) {
+      if (!f.isFile) return false;
+      final dot = f.name.lastIndexOf('.');
+      if (dot == -1) return false;
+      return cbzImageExtensions.contains(f.name.substring(dot).toLowerCase());
+    }).toList()
+      ..sort((a, b) => compareCbzPagesNaturally(a.name, b.name));
 
-  if (imageEntries.isEmpty) return (const <String>[], true);
+    if (imageEntries.isEmpty) return (const <String>[], true);
 
-  final paths = <String>[];
-  for (var i = 0; i < imageEntries.length; i++) {
-    final entry = imageEntries[i];
-    final data = entry.readBytes();
-    if (data == null) continue;
-    final ext = entry.name.substring(entry.name.lastIndexOf('.'));
-    final pagePath = '${cacheDir.path}/${i.toString().padLeft(5, '0')}$ext';
-    await File(pagePath).writeAsBytes(data, flush: true);
-    paths.add(pagePath);
+    final paths = <String>[];
+    for (var i = 0; i < imageEntries.length; i++) {
+      final entry = imageEntries[i];
+      final ext = entry.name.substring(entry.name.lastIndexOf('.'));
+      final pagePath = '${cacheDir.path}/${i.toString().padLeft(5, '0')}$ext';
+      final output = OutputFileStream(pagePath, bufferSize: 64 * 1024);
+      try {
+        entry.writeContent(output);
+      } finally {
+        output.closeSync();
+      }
+      paths.add(pagePath);
+    }
+
+    if (paths.isEmpty) return (const <String>[], true);
+
+    await marker.create();
+    return (paths, false);
+  } finally {
+    input.closeSync();
   }
-
-  if (paths.isEmpty) return (const <String>[], true);
-
-  await marker.create();
-  return (paths, false);
 }
 
 /// Spawns the isolate for [extractCbzOnIsolate]. Kept as its own top-level

@@ -109,8 +109,7 @@ class _BalanceViewState extends State<_BalanceView> {
       body: SafeArea(
         top: false,
         child: AdaptiveContentWidth(
-            maxWidth: 1100,
-            child: _buildContent(balance, iosStoreOnly)),
+            maxWidth: 1100, child: _buildContent(balance, iosStoreOnly)),
       ),
     );
   }
@@ -166,8 +165,8 @@ class _BalanceViewState extends State<_BalanceView> {
           ),
           const SizedBox(width: 32),
           Expanded(
-              child: refreshable(
-                  history, const EdgeInsets.fromLTRB(0, 8, 0, 24))),
+              child:
+                  refreshable(history, const EdgeInsets.fromLTRB(0, 8, 0, 24))),
         ],
       ),
     );

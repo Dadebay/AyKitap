@@ -18,7 +18,8 @@ Future<bool?> showNotificationPermissionDialog(BuildContext context) {
         constraints: const BoxConstraints(maxWidth: 440),
         child: AlertDialog(
           backgroundColor: AppColors.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           icon: Container(
             width: 56,
             height: 56,
@@ -46,7 +47,8 @@ Future<bool?> showNotificationPermissionDialog(BuildContext context) {
           content: Text(
             NotificationStrings.promptBody,
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.grey2, fontSize: 13.5, height: 1.5),
+            style:
+                TextStyle(color: AppColors.grey2, fontSize: 13.5, height: 1.5),
           ),
           actionsAlignment: MainAxisAlignment.center,
           actionsPadding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
@@ -59,7 +61,8 @@ Future<bool?> showNotificationPermissionDialog(BuildContext context) {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
                       elevation: 0,
                     ),
                     onPressed: () => Navigator.pop(dialogContext, true),

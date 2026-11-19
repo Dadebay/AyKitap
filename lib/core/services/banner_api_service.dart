@@ -16,7 +16,10 @@ class BannerApiService {
     try {
       final response = await DioClient.instance.get(CatalogEndpoints.banners);
       final list = response.data['data'] as List;
-      final banners = list.map((e) => PromoBanner.fromJson(e as Map<String, dynamic>)).where((b) => b.isActive).toList();
+      final banners = list
+          .map((e) => PromoBanner.fromJson(e as Map<String, dynamic>))
+          .where((b) => b.isActive)
+          .toList();
       banners.sort((a, b) => a.order.compareTo(b.order));
       return banners;
     } on DioException catch (e) {

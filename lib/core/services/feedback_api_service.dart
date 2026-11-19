@@ -40,9 +40,12 @@ class FeedbackApiService {
   /// [status] (`new`/`accepted`/`rejected`/...) per request.
   static Future<List<BookSuggestion>> getMySuggestions() async {
     try {
-      final response = await DioClient.instance.get(FeedbackEndpoints.suggestsMy);
+      final response =
+          await DioClient.instance.get(FeedbackEndpoints.suggestsMy);
       final list = response.data['data'] as List;
-      return list.map((e) => BookSuggestion.fromJson(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => BookSuggestion.fromJson(e as Map<String, dynamic>))
+          .toList();
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -59,7 +62,8 @@ class FeedbackApiService {
 
   static Future<void> reportProblem({required String problem}) async {
     try {
-      await DioClient.instance.post(FeedbackEndpoints.problems, data: {'problem': problem});
+      await DioClient.instance
+          .post(FeedbackEndpoints.problems, data: {'problem': problem});
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

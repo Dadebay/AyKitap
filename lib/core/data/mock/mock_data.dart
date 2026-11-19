@@ -29,7 +29,8 @@ class MockData {
       id: 'author_$i',
       name: _authorNames[i % _authorNames.length],
       color: _coverColors[i % _coverColors.length],
-      bio: 'Türkmen we dünýä edebiýatynda tanalýan ýazyjy. Onlarça eseri dürli dillere terjime edildi we millionlarça okyjyny özüne çekdi.',
+      bio:
+          'Türkmen we dünýä edebiýatynda tanalýan ýazyjy. Onlarça eseri dürli dillere terjime edildi we millionlarça okyjyny özüne çekdi.',
     );
   });
 
@@ -144,7 +145,10 @@ class MockData {
         coverColor: _coverColors[(i + seed) % _coverColors.length],
         coverImage: _coverImages[(i + seed) % _coverImages.length],
         format: BookFormat.values[(i + seed) % BookFormat.values.length],
-        genres: [genrePool[(i + seed) % genrePool.length], genrePool[(i + seed + 3) % genrePool.length]],
+        genres: [
+          genrePool[(i + seed) % genrePool.length],
+          genrePool[(i + seed + 3) % genrePool.length]
+        ],
         publisher: 'Türkmen Neşirýat',
         pages: 180 + ((i + seed) * 37) % 320,
         readCount: 1200 + ((i + seed) * 913) % 58000,

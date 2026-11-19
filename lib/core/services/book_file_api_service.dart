@@ -47,7 +47,8 @@ class BookFileApiService {
         BookEndpoints.bookFile,
         queryParameters: {'filename': fileKey},
       );
-      return BookFileLink.fromJson(response.data['data'] as Map<String, dynamic>);
+      return BookFileLink.fromJson(
+          response.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

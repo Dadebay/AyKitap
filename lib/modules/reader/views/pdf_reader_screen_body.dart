@@ -25,6 +25,28 @@ extension _PdfReaderScreenBody on _PdfReaderScreenState {
               child: ReaderPageViewport(
                   child: _buildPageLayer(bg, isDarkSurface, nightMode))),
 
+          if (widget.realBookId != null &&
+              _totalPages > 0 &&
+              _currentPage >= _totalPages - 1 &&
+              !_isLoading)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: _showControls ? 142 : 54,
+              child: NextBookOffer(
+                finishedBookId: widget.realBookId!,
+                foreground: isDarkSurface ? Colors.white : Colors.black87,
+                background: bg,
+                onOpen: (book) async {
+                  await _saveProgress();
+                  if (!context.mounted) return;
+                  Navigator.of(context).pushReplacement(MaterialPageRoute(
+                    builder: (_) => CatalogBookDetailScreen(bookId: book.id),
+                  ));
+                },
+              ),
+            ),
+
           // ── Top bar ────────────────────────────────────────────────────
           Positioned(
             top: 0,
@@ -98,6 +120,7 @@ extension _PdfReaderScreenBody on _PdfReaderScreenState {
 
           // ── First-open "which way do pages move" hint ──────────────────
           const SnowfallPause(),
+          SecureReaderScope(bookId: _bookId),
           ReaderScrollHint(
             kind: 'pdf',
             enabled: !_isLoading && _error == null,

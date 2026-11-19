@@ -25,4 +25,26 @@ class ApiErrorStrings {
         tr: 'Bilinmeyen bir hata oluştu.',
         en: 'An unknown error occurred.',
       );
+
+  /// Backend messages that arrive in English whatever the reader's language.
+  /// The backend sends no error *code*, so these are matched on their text
+  /// (loosely: casing and punctuation are ignored) and swapped for a
+  /// localized message; null means "no translation known, show it as-is".
+  ///
+  /// To cover another English backend message, add a case here — every
+  /// [ApiException] built from a server response goes through it.
+  static String? localizeServerMessage(String message) {
+    final m = message.toLowerCase();
+    if (m.contains('subscription-only') || m.contains('subscription only')) {
+      return subscriptionOnlyBook;
+    }
+    return null;
+  }
+
+  static String get subscriptionOnlyBook => t(
+        tk: 'Bu kitap diňe abuna bilen elýeterli.',
+        ru: 'Эта книга доступна только по подписке.',
+        tr: 'Bu kitap yalnızca abonelikle okunabilir.',
+        en: 'This book is available with a subscription only.',
+      );
 }

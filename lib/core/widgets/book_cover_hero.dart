@@ -30,11 +30,13 @@ class BookCoverStyle {
 
   static BookCoverStyle lerp(BookCoverStyle a, BookCoverStyle b, double t) {
     return BookCoverStyle(
-      borderRadius: lerpDouble(a.borderRadius, b.borderRadius, t) ?? b.borderRadius,
+      borderRadius:
+          lerpDouble(a.borderRadius, b.borderRadius, t) ?? b.borderRadius,
       // Pads the shorter list with fully transparent shadows, so a card with
       // one shadow growing into a detail cover with two fades the second one
       // in rather than popping it.
-      shadows: BoxShadow.lerpList(a.shadows, b.shadows, t) ?? const <BoxShadow>[],
+      shadows:
+          BoxShadow.lerpList(a.shadows, b.shadows, t) ?? const <BoxShadow>[],
       border: BoxBorder.lerp(a.border, b.border, t),
     );
   }

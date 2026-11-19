@@ -34,10 +34,20 @@ class SectionHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: large ? AppTextStyles.sectionTitle.copyWith(fontSize: 21) : AppTextStyles.sectionTitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(title,
+                    style: large
+                        ? AppTextStyles.sectionTitle.copyWith(fontSize: 21)
+                        : AppTextStyles.sectionTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
                 if (subtitle != null) ...[
                   const SizedBox(height: 3),
-                  Text(subtitle!, style: large ? AppTextStyles.sectionSubtitle.copyWith(fontSize: 15) : AppTextStyles.sectionSubtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(subtitle!,
+                      style: large
+                          ? AppTextStyles.sectionSubtitle.copyWith(fontSize: 15)
+                          : AppTextStyles.sectionSubtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
                 ],
               ],
             ),
@@ -47,7 +57,10 @@ class SectionHeader extends StatelessWidget {
               onTap: onSeeAll,
               child: Padding(
                 padding: const EdgeInsets.only(top: 2),
-                child: Text(seeAllLabel ?? '', style: large ? AppTextStyles.link.copyWith(fontSize: 15) : AppTextStyles.link),
+                child: Text(seeAllLabel ?? '',
+                    style: large
+                        ? AppTextStyles.link.copyWith(fontSize: 15)
+                        : AppTextStyles.link),
               ),
             ),
         ],

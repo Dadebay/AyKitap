@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:aykitap/global_safe_area_wrapper.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' as legacy;
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart' as mui;
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+
 import 'core/layout/app_orientation_observer.dart';
 import 'core/localization/app_locale.dart';
 import 'core/localization/localization_delegates.dart';
@@ -19,6 +21,7 @@ import 'core/services/book_download_service.dart';
 import 'core/services/book_open_history.dart';
 import 'core/services/bookmarks_store.dart';
 import 'core/services/device_tier.dart';
+import 'core/services/daily_reading_goal_service.dart';
 import 'core/services/downloaded_books_store.dart';
 import 'core/services/downloaded_files_store.dart';
 import 'core/services/home_data_service.dart';
@@ -77,6 +80,8 @@ void main() async {
         ChangeNotifierProvider<AppLocale>.value(value: AppLocale.instance),
         ChangeNotifierProvider<StreakService>.value(
             value: StreakService.instance),
+        ChangeNotifierProvider<DailyReadingGoalService>.value(
+            value: DailyReadingGoalService.instance),
         ChangeNotifierProvider<SubscriptionService>.value(
             value: SubscriptionService.instance),
         ChangeNotifierProvider<AccountService>.value(
@@ -121,6 +126,8 @@ void main() async {
   // about it should run ahead of the call that actually schedules the
   // first frame.
   unawaited(AppBootstrapService.instance.runAfterFirstFrame());
+  NotesStore.instance.startSync();
+  unawaited(DailyReadingGoalService.instance.load());
 }
 
 class AykitapApp extends StatelessWidget {
@@ -166,6 +173,28 @@ class AykitapApp extends StatelessWidget {
         // different type — so every TextField on them threw "No Material
         // widget found". One transparent material_ui Material at the root
         // gives all of them an ancestor; it paints nothing.
+        // The reverse half of the same split: most screens (221 files) still
+        // import the old flutter/material.dart, whose Scaffold/AppBar/Material
+        // read the *old* Theme. [MaterialApp] above is material_ui's, so it
+        // never provides one — those widgets fell back to the default theme
+        // and every screen lost Gilroy. Give them the same theme here.
+        child = legacy.Theme(
+          data: legacy.ThemeData(
+            colorScheme: legacy.ColorScheme.fromSeed(
+                seedColor: const Color(0xFFE8712C),
+                brightness: isDark ? Brightness.dark : Brightness.light),
+            useMaterial3: true,
+            fontFamily: 'Gilroy',
+            appBarTheme: const legacy.AppBarTheme(
+                elevation: 0, centerTitle: true, scrolledUnderElevation: 0),
+            pageTransitionsTheme: DeviceTier.isLowEnd
+                ? const legacy.PageTransitionsTheme(builders: {
+                    TargetPlatform.android: _LegacyLitePageTransitionsBuilder(),
+                  })
+                : null,
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
         child = mui.Theme(
           data: mui.ThemeData(
             colorScheme: mui.ColorScheme.fromSeed(
@@ -176,7 +205,7 @@ class AykitapApp extends StatelessWidget {
           ),
           child: mui.Material(
             type: mui.MaterialType.transparency,
-            child: child ?? const SizedBox.shrink(),
+            child: child,
           ),
         );
         // Sits above the Navigator, so it sees touches on every screen
@@ -220,6 +249,23 @@ class AykitapApp extends StatelessWidget {
 /// Cheap page transition for low-end phones: opacity only.
 class _LitePageTransitionsBuilder extends PageTransitionsBuilder {
   const _LitePageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) =>
+      FadeTransition(opacity: animation, child: child);
+}
+
+/// [_LitePageTransitionsBuilder] for routes built with the old
+/// flutter/material.dart `MaterialPageRoute`, which reads the old theme's
+/// builder type.
+class _LegacyLitePageTransitionsBuilder extends legacy.PageTransitionsBuilder {
+  const _LegacyLitePageTransitionsBuilder();
 
   @override
   Widget buildTransitions<T>(

@@ -15,13 +15,18 @@ class StreakWeekRow extends StatefulWidget {
   final double circleSize;
   final DateTime? todayDate;
 
-  const StreakWeekRow({super.key, required this.weekRead, this.circleSize = 36, this.todayDate});
+  const StreakWeekRow(
+      {super.key,
+      required this.weekRead,
+      this.circleSize = 36,
+      this.todayDate});
 
   @override
   State<StreakWeekRow> createState() => _StreakWeekRowState();
 }
 
-class _StreakWeekRowState extends State<StreakWeekRow> with SingleTickerProviderStateMixin {
+class _StreakWeekRowState extends State<StreakWeekRow>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: AppMotion.celebration,
@@ -78,13 +83,17 @@ class _StreakWeekRowState extends State<StreakWeekRow> with SingleTickerProvider
           final isToday = i == todayIndex;
           final isFuture = i > todayIndex;
           final celebrating = read && i == _celebratingIndex;
-          final ringSweep = isToday && celebrating ? Curves.easeOut.transform(_controller.value) : 1.0;
-          Widget flame = Text('🔥', style: TextStyle(fontSize: widget.circleSize * 0.5));
+          final ringSweep = isToday && celebrating
+              ? Curves.easeOut.transform(_controller.value)
+              : 1.0;
+          Widget flame =
+              Text('🔥', style: TextStyle(fontSize: widget.circleSize * 0.5));
           if (celebrating) {
             flame = Opacity(
               opacity: flameEntrance.value,
               child: Transform.translate(
-                offset: Offset(0, (1 - flameEntrance.value) * widget.circleSize * 0.25),
+                offset: Offset(
+                    0, (1 - flameEntrance.value) * widget.circleSize * 0.25),
                 child: flame,
               ),
             );
@@ -98,7 +107,8 @@ class _StreakWeekRowState extends State<StreakWeekRow> with SingleTickerProvider
                   clipBehavior: Clip.none,
                   alignment: Alignment.center,
                   children: [
-                    if (celebrating) ..._buildParticles(widget.circleSize, _controller.value),
+                    if (celebrating)
+                      ..._buildParticles(widget.circleSize, _controller.value),
                     Transform.scale(
                       scale: celebrating ? flameScale.value : 1,
                       child: Container(
@@ -107,10 +117,21 @@ class _StreakWeekRowState extends State<StreakWeekRow> with SingleTickerProvider
                         decoration: BoxDecoration(
                           color: read ? AppColors.primary : AppColors.surface,
                           shape: BoxShape.circle,
-                          border: isToday ? null : (read ? null : Border.all(color: AppColors.border)),
+                          border: isToday
+                              ? null
+                              : (read
+                                  ? null
+                                  : Border.all(color: AppColors.border)),
                         ),
                         child: Center(
-                          child: read ? flame : (isToday ? Icon(Icons.circle, color: AppColors.primary.withValues(alpha: 0.5), size: widget.circleSize * 0.28) : null),
+                          child: read
+                              ? flame
+                              : (isToday
+                                  ? Icon(Icons.circle,
+                                      color: AppColors.primary
+                                          .withValues(alpha: 0.5),
+                                      size: widget.circleSize * 0.28)
+                                  : null),
                         ),
                       ),
                     ),
@@ -130,7 +151,9 @@ class _StreakWeekRowState extends State<StreakWeekRow> with SingleTickerProvider
               Text(
                 letters[i],
                 style: TextStyle(
-                  color: isToday ? AppColors.primary : (isFuture ? AppColors.grey3 : AppColors.grey2),
+                  color: isToday
+                      ? AppColors.primary
+                      : (isFuture ? AppColors.grey3 : AppColors.grey2),
                   fontSize: 11,
                   fontWeight: isToday ? FontWeight.w800 : FontWeight.w500,
                 ),
@@ -205,5 +228,6 @@ class _RingSweepPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _RingSweepPainter oldDelegate) => oldDelegate.progress != progress || oldDelegate.color != color;
+  bool shouldRepaint(covariant _RingSweepPainter oldDelegate) =>
+      oldDelegate.progress != progress || oldDelegate.color != color;
 }

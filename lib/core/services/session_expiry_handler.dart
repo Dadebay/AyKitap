@@ -65,7 +65,8 @@ class SessionExpiryHandler {
       PurchaseModeService.instance.clearForSignedOutUser();
       final navigator = rootNavigatorKey.currentState;
       if (navigator == null) return;
-      await navigator.push(MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
+      await navigator
+          .push(MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
     } finally {
       _handling = false;
     }

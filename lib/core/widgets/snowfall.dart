@@ -1,7 +1,8 @@
+import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../services/device_tier.dart';
 
@@ -45,12 +46,63 @@ class _SnowfallPauseState extends State<SnowfallPause> {
 }
 
 /// App-wide gentle snowfall, drawn above every screen. Never takes touches.
-class SnowfallOverlay extends StatelessWidget {
+///
+/// It only snows for [snowDuration] after the app opens (and again each time
+/// the app is reopened from the background), then fades away — falling flakes
+/// all day are a distraction.
+class SnowfallOverlay extends StatefulWidget {
   const SnowfallOverlay({super.key});
+
+  static const snowDuration = Duration(minutes: 1);
+
+  @override
+  State<SnowfallOverlay> createState() => _SnowfallOverlayState();
+}
+
+class _SnowfallOverlayState extends State<SnowfallOverlay>
+    with WidgetsBindingObserver {
+  bool _active = true; // snowing (or fading in); false = fading out
+  bool _visible = true; // layer exists at all (stops the ticker when false)
+  bool _wasPaused = false;
+  Timer? _stop;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _begin();
+  }
+
+  void _begin() {
+    _stop?.cancel();
+    _stop = Timer(SnowfallOverlay.snowDuration, () {
+      if (mounted) setState(() => _active = false);
+    });
+    if (!_active || !_visible) setState(() => _active = _visible = true);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) _wasPaused = true;
+    // Back from the background (not just a dialog/permission prompt): snow
+    // again for another minute.
+    if (state == AppLifecycleState.resumed && _wasPaused) {
+      _wasPaused = false;
+      _begin();
+    }
+  }
+
+  @override
+  void dispose() {
+    _stop?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     if (!kNewYearTheme ||
+        !_visible ||
         DeviceTier.isLowEnd ||
         MediaQuery.disableAnimationsOf(context)) {
       // Must stay a Positioned child: a plain zero-size child would collapse
@@ -62,8 +114,16 @@ class SnowfallOverlay extends StatelessWidget {
       child: IgnorePointer(
         child: ValueListenableBuilder<int>(
           valueListenable: snowfallPauseCount,
-          builder: (_, paused, __) =>
-              paused > 0 ? const SizedBox.shrink() : const SnowfallLayer(),
+          builder: (_, paused, __) => paused > 0
+              ? const SizedBox.shrink()
+              : AnimatedOpacity(
+                  opacity: _active ? 1 : 0,
+                  duration: const Duration(milliseconds: 1500),
+                  onEnd: () {
+                    if (!_active && mounted) setState(() => _visible = false);
+                  },
+                  child: const SnowfallLayer(),
+                ),
         ),
       ),
     );

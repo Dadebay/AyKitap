@@ -18,47 +18,49 @@ class SearchErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tablet = MediaQuery.sizeOf(context).width >= 700;
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: tablet ? 270 : 210),
-                child: Image.asset(
-                  'assets/images/no_connection_dark_transparent.png',
-                  key: const ValueKey('search-error-3d-image'),
-                  fit: BoxFit.contain,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.grey2,
-                  fontSize: tablet ? 16 : 14,
-                  height: 1.45,
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: onRetry,
-                child: Text(
-                  SearchStrings.retry,
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
+    return DefaultTextStyle.merge(
+        style: const TextStyle(fontFamily: 'Gilroy'),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: tablet ? 270 : 210),
+                    child: Image.asset(
+                      'assets/images/no_connection_dark_transparent.png',
+                      key: const ValueKey('search-error-3d-image'),
+                      fit: BoxFit.contain,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColors.grey2,
+                      fontSize: tablet ? 16 : 14,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: onRetry,
+                    child: Text(
+                      SearchStrings.retry,
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
+        ));
   }
 }

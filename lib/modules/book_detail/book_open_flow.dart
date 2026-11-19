@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:dio/dio.dart';
@@ -21,6 +22,7 @@ import '../../core/services/downloaded_files_store.dart';
 import '../../core/services/last_read_book_store.dart';
 import '../../core/services/purchase_mode_service.dart';
 import '../../core/services/reading_books_store.dart';
+import '../../core/services/screen_protection.dart';
 import '../../core/widgets/app_snackbar.dart';
 import '../auth/phone_login_screen.dart';
 import '../payment/balance_top_up.dart';
@@ -86,7 +88,8 @@ class BookOpenFlow {
       case BookAccess.needsPurchase:
       case BookAccess.needsTopUp:
         if (retries <= 0) return;
-        final choice = await SubscriptionRequiredDialog.show(context);
+        final choice = await SubscriptionRequiredDialog.show(context,
+            subscriptionOnly: book.isSubscriptionOnly);
         if (choice == null || !context.mounted) return;
         switch (choice) {
           case SubscriptionPromptChoice.subscribe:
@@ -121,6 +124,9 @@ class BookOpenFlow {
     // reader already bought (plan §5.4: "erişimi kaldırılmamalı").
     if (access == BookAccess.purchased) return true;
     if (PurchaseModeService.instance.isIOSStoreOnly) return false;
+    // A subscription-only book is never sold on its own — there is no
+    // checkout to open, whatever stale button called this.
+    if (book.isSubscriptionOnly) return false;
 
     switch (access) {
       case BookAccess.purchased:

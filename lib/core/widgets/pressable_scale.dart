@@ -32,14 +32,16 @@ class PressableScale extends StatefulWidget {
   State<PressableScale> createState() => _PressableScaleState();
 }
 
-class _PressableScaleState extends State<PressableScale> with SingleTickerProviderStateMixin {
+class _PressableScaleState extends State<PressableScale>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: AppMotion.pressDown,
     reverseDuration: AppMotion.pressRelease,
   );
   late final Animation<double> _scale = _controller.drive(
-    Tween<double>(begin: 1, end: widget.pressedScale).chain(CurveTween(curve: AppMotion.easeOut)),
+    Tween<double>(begin: 1, end: widget.pressedScale)
+        .chain(CurveTween(curve: AppMotion.easeOut)),
   );
 
   // Cached rather than read from `context` inside `_setPressed`: a gesture
@@ -87,7 +89,8 @@ class _PressableScaleState extends State<PressableScale> with SingleTickerProvid
       onLongPress: widget.onLongPress,
       child: AnimatedBuilder(
         animation: _scale,
-        builder: (context, child) => Transform.scale(scale: _scale.value, child: child),
+        builder: (context, child) =>
+            Transform.scale(scale: _scale.value, child: child),
         child: RepaintBoundary(child: widget.child),
       ),
     );

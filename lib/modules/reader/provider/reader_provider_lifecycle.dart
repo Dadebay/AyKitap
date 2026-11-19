@@ -35,7 +35,6 @@ extension ReaderProviderLifecycle on ReaderProvider {
     _currentPage = prefs.getInt('book_${bookId}_page') ?? 0;
     _savedCfi = prefs.getString('book_${bookId}_cfi') ?? '';
     _savedLocationsJson = prefs.getString('book_${bookId}_locations');
-    _lastLoggedPage = null;
     // Guard the saved position until the book has actually opened at it —
     // see [_restoringPosition] and [_verifyRestoredPosition].
     _restoreTargetProgress = _progress;

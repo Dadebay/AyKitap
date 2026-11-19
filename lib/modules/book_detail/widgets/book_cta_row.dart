@@ -36,7 +36,11 @@ class BookCtaRow extends StatelessWidget {
     required this.onBuy,
     required this.onCancelDownload,
     this.downloadProgress,
+    this.subscriptionOnly = false,
   });
+
+  /// Sold only through a subscription: the "Satyn al" side is not shown.
+  final bool subscriptionOnly;
 
   bool get _isFree => (priceManat ?? 0) <= 0;
 
@@ -53,7 +57,7 @@ class BookCtaRow extends StatelessWidget {
     // App Store IAP, so the standalone "Satyn al" CTA never appears — the
     // reader can still reach the book through a subscription instead.
     final isIOSStoreOnly = context.watch<PurchaseModeService>().isIOSStoreOnly;
-    final showBuySide = !_isFree && !isIOSStoreOnly;
+    final showBuySide = !_isFree && !isIOSStoreOnly && !subscriptionOnly;
     return Row(
       children: [
         Expanded(

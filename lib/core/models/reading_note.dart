@@ -46,6 +46,12 @@ class ReadingNote {
   /// local-only). Lets a later delete also call `DELETE /users/notes/:id`.
   final int? remoteId;
 
+  /// Existing notes keep these null; new catalogue notes can be synced later.
+  final int? realBookId;
+  final int? ownerUserId;
+  final String? snippet;
+  final bool needsUpdate;
+
   const ReadingNote({
     required this.id,
     required this.text,
@@ -57,6 +63,10 @@ class ReadingNote {
     this.colorValue = 0xFFFFD54F,
     this.cfi,
     this.remoteId,
+    this.realBookId,
+    this.ownerUserId,
+    this.snippet,
+    this.needsUpdate = false,
   });
 
   /// The catalogue Book this note came from, or null for an imported file that
@@ -68,7 +78,9 @@ class ReadingNote {
     return MockData.generateBooks(index + 1, seed: seed)[index];
   }
 
-  ReadingNote copyWith({String? text, int? colorValue}) => ReadingNote(
+  ReadingNote copyWith(
+          {String? text, int? colorValue, int? remoteId, bool? needsUpdate}) =>
+      ReadingNote(
         id: id,
         text: text ?? this.text,
         bookId: bookId,
@@ -78,7 +90,11 @@ class ReadingNote {
         createdAt: createdAt,
         colorValue: colorValue ?? this.colorValue,
         cfi: cfi,
-        remoteId: remoteId,
+        remoteId: remoteId ?? this.remoteId,
+        realBookId: realBookId,
+        ownerUserId: ownerUserId,
+        snippet: snippet,
+        needsUpdate: needsUpdate ?? this.needsUpdate,
       );
 
   Map<String, dynamic> toJson() => {
@@ -92,6 +108,10 @@ class ReadingNote {
         'colorValue': colorValue,
         if (cfi != null) 'cfi': cfi,
         if (remoteId != null) 'remoteId': remoteId,
+        if (realBookId != null) 'realBookId': realBookId,
+        if (ownerUserId != null) 'ownerUserId': ownerUserId,
+        if (snippet != null) 'snippet': snippet,
+        if (needsUpdate) 'needsUpdate': true,
       };
 
   factory ReadingNote.fromJson(Map<String, dynamic> json) {
@@ -103,14 +123,22 @@ class ReadingNote {
       // Notes saved before highlights were book-keyed by id carry only
       // seed/index — rebuild the same bookId the reader would use so their
       // highlights still restore.
-      bookId: json['bookId'] as int? ?? (seed != null && index != null ? stableBookKey('book_${seed}_$index') : 0),
+      bookId: json['bookId'] as int? ??
+          (seed != null && index != null
+              ? stableBookKey('book_${seed}_$index')
+              : 0),
       bookSeed: seed,
       bookIndex: index,
       bookTitle: json['bookTitle'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
-      colorValue: json['colorValue'] as int? ?? HighlightColors.defaultColor.toARGB32(),
+      colorValue:
+          json['colorValue'] as int? ?? HighlightColors.defaultColor.toARGB32(),
       cfi: json['cfi'] as String?,
       remoteId: json['remoteId'] as int?,
+      realBookId: json['realBookId'] as int?,
+      ownerUserId: json['ownerUserId'] as int?,
+      snippet: json['snippet'] as String?,
+      needsUpdate: json['needsUpdate'] as bool? ?? false,
     );
   }
 }

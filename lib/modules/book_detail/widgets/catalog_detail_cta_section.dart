@@ -110,6 +110,7 @@ class CatalogDetailBottomCta extends StatelessWidget {
         child: BookCtaRow(
           access: access,
           priceManat: book.price,
+          subscriptionOnly: book.isSubscriptionOnly,
           // Watch here so an in-flight download keeps updating even though
           // the CTA is no longer part of the scrolling content.
           downloadProgress:

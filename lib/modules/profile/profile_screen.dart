@@ -94,48 +94,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: _isLoggedIn && MediaQuery.sizeOf(context).width >= 700
             ? _buildTabletBody(context, balance, premium)
             : AdaptiveContentWidth(
-            child: ListView(
-          // Extra bottom padding so the last card clears the floating nav
-          // bar's dome — otherwise its solid card color shows through
-          // behind the bar, unlike the plain background on other tabs.
-          padding: EdgeInsets.fromLTRB(
-              20, 16, 20, WheelNavBar.clearance(context) + 16),
-          children: _isLoggedIn
-              ? [
-                  ProfileTopSection(
-                      name: _name,
-                      maskedPhone: _maskedPhone,
-                      avatarIndex: _avatarIndex,
-                      avatarImage: _avatarImage,
-                      avatarUrl: _backendAvatarUrl,
-                      onTap: _openEditProfile),
-                  const SizedBox(height: 24),
-                  _buildBalanceEntry(context, balance),
-                  // Gifting moves TMT between Turkmen phone numbers, so it
-                  // is not offered to Google/Apple/email accounts.
-                  if (!AuthSession.isInternational) ...[
-                    const SizedBox(height: 12),
-                    _buildSendGiftButton(context),
-                  ],
-                  const SizedBox(height: 12),
-                  _buildSubscriptionEntry(context, premium),
-                  const SizedBox(height: 12),
-                  _buildStreakSection(context),
-                  const SizedBox(height: 12),
-                  _buildSettingsEntry(context),
-                  const SizedBox(height: 12),
-                  _buildNotesButton(context),
-                  const SizedBox(height: 12),
-                  _buildBookRequestButton(context),
-                  const SizedBox(height: 12),
-                  _buildReportProblemButton(context),
-                ]
-              : [
-                  LoggedOutSection(onLogin: _startLogin),
-                  const SizedBox(height: 24),
-                  _buildSettingsEntry(context),
-                ],
-        )),
+                child: ListView(
+                // Extra bottom padding so the last card clears the floating nav
+                // bar's dome — otherwise its solid card color shows through
+                // behind the bar, unlike the plain background on other tabs.
+                padding: EdgeInsets.fromLTRB(
+                    20, 16, 20, WheelNavBar.clearance(context) + 16),
+                children: _isLoggedIn
+                    ? [
+                        ProfileTopSection(
+                            name: _name,
+                            maskedPhone: _maskedPhone,
+                            avatarIndex: _avatarIndex,
+                            avatarImage: _avatarImage,
+                            avatarUrl: _backendAvatarUrl,
+                            onTap: _openEditProfile),
+                        const SizedBox(height: 24),
+                        _buildBalanceEntry(context, balance),
+                        // Gifting moves TMT between Turkmen phone numbers, so it
+                        // is not offered to Google/Apple/email accounts.
+                        if (!AuthSession.isInternational) ...[
+                          const SizedBox(height: 12),
+                          _buildSendGiftButton(context),
+                        ],
+                        const SizedBox(height: 12),
+                        _buildSubscriptionEntry(context, premium),
+                        const SizedBox(height: 12),
+                        _buildStreakSection(context),
+                        const SizedBox(height: 12),
+                        _buildSettingsEntry(context),
+                        const SizedBox(height: 12),
+                        _buildNotesButton(context),
+                        const SizedBox(height: 12),
+                        _buildBookRequestButton(context),
+                        const SizedBox(height: 12),
+                        _buildReportProblemButton(context),
+                      ]
+                    : [
+                        LoggedOutSection(onLogin: _startLogin),
+                        const SizedBox(height: 24),
+                        _buildSettingsEntry(context),
+                      ],
+              )),
       ),
     );
   }
@@ -196,7 +196,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 12),
                   _buildStreakSection(context),
                   const SizedBox(height: 12),
-                  pair(_buildSettingsEntry(context), _buildNotesButton(context)),
+                  pair(
+                      _buildSettingsEntry(context), _buildNotesButton(context)),
                   const SizedBox(height: 12),
                   pair(_buildBookRequestButton(context),
                       _buildReportProblemButton(context)),

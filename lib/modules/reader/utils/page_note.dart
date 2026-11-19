@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/localization/strings/reader_bookmark_strings.dart';
 import '../../../core/localization/strings/reader_notes_strings.dart';
-import '../../../core/network/api_exception.dart';
 import '../../../core/services/notes_store.dart';
-import '../../../core/services/user_notes_api_service.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../profile/widgets/edit_note_sheet.dart';
 
@@ -59,40 +57,27 @@ Future<void> showAddPageNoteSheet(
   );
   if (draft == null || draft.text.isEmpty) return;
 
-  // See ReaderScreen._addNote for why the sync has to succeed *before*
-  // anything is stored locally: a catalogue book's note is only ever shown in
-  // the profile's Notlar list, which reads from the backend alone, so one that
-  // failed to sync would look saved (snackbar and all) and then be nowhere.
-  int? remoteId;
-  if (realBookId != null) {
-    try {
-      final created = await UserNotesApiService.createNote(
-        bookId: realBookId,
-        note: draft.text,
-        snippet: pageLabel,
-      );
-      remoteId = created.id;
-    } on ApiException {
-      if (context.mounted) {
-        context.showAppSnackBar(ReaderNotesStrings.noteSaveFailedMessage,
-            isError: true);
-      }
-      return;
-    }
-  }
-
   // No `cfi`: it is an EPUB CFI that ReaderProvider feeds straight to
   // epub.js's addHighlight when a book opens. A PDF's reflowed text view
   // ([PdfReflowService]) opens under the *same* bookId, so stashing a page
   // reference in that field would hand the EPUB engine "page:12" to resolve.
   // The page lives in the note's text and snippet instead.
-  await NotesStore.instance.add(
-    text: draft.text,
-    bookId: bookId,
-    bookTitle: bookTitle,
-    colorValue: draft.colorValue,
-    remoteId: remoteId,
-  );
+  try {
+    await NotesStore.instance.add(
+      text: draft.text,
+      bookId: bookId,
+      bookTitle: bookTitle,
+      colorValue: draft.colorValue,
+      realBookId: realBookId,
+      snippet: pageLabel,
+    );
+  } catch (_) {
+    if (context.mounted) {
+      context.showAppSnackBar(ReaderNotesStrings.noteSaveFailedMessage,
+          isError: true);
+    }
+    return;
+  }
   if (context.mounted) {
     context.showAppSnackBar(ReaderNotesStrings.noteSavedMessage);
   }

@@ -67,24 +67,35 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
     if (!mounted) return;
     setState(() => _checking = false);
     if (isOnline) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainNavScreen()));
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (_) => const MainNavScreen()));
     } else {
       context.showAppSnackBar(LibraryStrings.noInternetSnackbar, isError: true);
     }
   }
 
   void _openOwnBook(OwnBook book) {
-    AnalyticsService.instance.logBookOpened(id: book.id, format: book.format.name);
+    AnalyticsService.instance
+        .logBookOpened(id: book.id, format: book.format.name);
     switch (book.format) {
       case OwnBookFormat.pdf:
-        openPdfBook(context, filePath: book.filePath, title: book.title, bookId: stableBookKey(book.id));
+        openPdfBook(context,
+            filePath: book.filePath,
+            title: book.title,
+            bookId: stableBookKey(book.id));
       case OwnBookFormat.cbz:
-        context.push(CbzReaderScreen(filePath: book.filePath, title: book.title, bookId: stableBookKey(book.id)));
+        context.push(CbzReaderScreen(
+            filePath: book.filePath,
+            title: book.title,
+            bookId: stableBookKey(book.id)));
       case OwnBookFormat.epub:
         context.push(
           ChangeNotifierProvider(
             create: (_) => ReaderProvider(),
-            child: ReaderScreen(bookPath: book.filePath, bookId: stableBookKey(book.id), bookTitle: book.title),
+            child: ReaderScreen(
+                bookPath: book.filePath,
+                bookId: stableBookKey(book.id),
+                bookTitle: book.title),
           ),
         );
     }
@@ -100,7 +111,8 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
     final entry = DownloadedFilesStore.instance.best(book.id);
     if (entry == null || !BookAccessService.instance.canRead(book.id)) {
       if (mounted) {
-        context.showAppSnackBar(LibraryStrings.noInternetSnackbar, isError: true);
+        context.showAppSnackBar(LibraryStrings.noInternetSnackbar,
+            isError: true);
       }
       return;
     }
@@ -120,7 +132,11 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
   /// though the file itself is still there).
   List<LibraryBook> get _readableCatalogBooks {
     final access = BookAccessService.instance;
-    return DownloadedBooksStore.instance.books.where((b) => DownloadedFilesStore.instance.best(b.id) != null && access.canRead(b.id)).toList();
+    return DownloadedBooksStore.instance.books
+        .where((b) =>
+            DownloadedFilesStore.instance.best(b.id) != null &&
+            access.canRead(b.id))
+        .toList();
   }
 
   @override
@@ -143,10 +159,12 @@ class _OfflineLibraryScreenState extends State<OfflineLibraryScreen> {
               child: isEmpty
                   ? const OfflineLibraryEmptyState()
                   : CustomScrollView(
-                      slivers: _buildSlivers(ownBooks: ownBooks, catalogBooks: catalogBooks),
+                      slivers: _buildSlivers(
+                          ownBooks: ownBooks, catalogBooks: catalogBooks),
                     ),
             ),
-            OfflineLibraryActions(checking: _checking, onCheckConnection: _checkConnection),
+            OfflineLibraryActions(
+                checking: _checking, onCheckConnection: _checkConnection),
           ],
         ),
       ),

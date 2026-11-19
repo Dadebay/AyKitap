@@ -54,26 +54,38 @@ class IncomingFileService {
     OwnBook book;
     try {
       await OwnBooksStore.instance.load();
-      book = await OwnBooksStore.instance.addFromPickedFile(sourcePath: sourcePath, fileName: _basenameOf(sourcePath));
+      book = await OwnBooksStore.instance.addFromPickedFile(
+          sourcePath: sourcePath, fileName: _basenameOf(sourcePath));
     } catch (_) {
       return;
     }
     if (!context.mounted) return;
 
-    AnalyticsService.instance.logBookOpened(id: book.id, format: book.format.name);
+    AnalyticsService.instance
+        .logBookOpened(id: book.id, format: book.format.name);
     final bookId = stableBookKey(book.id);
     switch (book.format) {
       case OwnBookFormat.pdf:
-        openPdfBook(context, filePath: book.filePath, title: book.title, bookId: bookId);
+        openPdfBook(context,
+            filePath: book.filePath, title: book.title, bookId: bookId);
       case OwnBookFormat.cbz:
-        Navigator.push(context, MaterialPageRoute(builder: (_) => CbzReaderScreen(filePath: book.filePath, title: book.title, bookId: bookId)));
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => CbzReaderScreen(
+                    filePath: book.filePath,
+                    title: book.title,
+                    bookId: bookId)));
       case OwnBookFormat.epub:
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => ChangeNotifierProvider(
               create: (_) => ReaderProvider(),
-              child: ReaderScreen(bookPath: book.filePath, bookId: bookId, bookTitle: book.title),
+              child: ReaderScreen(
+                  bookPath: book.filePath,
+                  bookId: bookId,
+                  bookTitle: book.title),
             ),
           ),
         );

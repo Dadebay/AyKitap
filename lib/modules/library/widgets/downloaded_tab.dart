@@ -10,6 +10,7 @@ import '../../../core/services/book_access_service.dart';
 import '../../../core/services/book_open_history.dart';
 import '../../../core/services/downloaded_books_store.dart';
 import '../../../core/services/downloaded_files_store.dart';
+import '../../../core/services/storage_cleaner.dart';
 import '../../../core/services/last_read_book_store.dart';
 import '../../../core/services/subscription_service.dart';
 import '../../../core/widgets/app_snackbar.dart';
@@ -151,8 +152,19 @@ class _DownloadedTabState extends State<DownloadedTab>
     );
     if (!mounted) return;
     if (choice != ShelfDeleteChoice.delete) return;
+    final before = await StorageCleaner.usedBytes();
     await DownloadedFilesStore.instance.removeBook(book.id);
     await DownloadedBooksStore.instance.remove(book.id);
-    if (mounted) context.showAppSnackBar(BookDetailStrings.downloadDeleted);
+    // Also clears anything the library no longer owns (see [StorageCleaner]),
+    // so the space really comes back.
+    await StorageCleaner.sweepOrphans();
+    final freed = before - await StorageCleaner.usedBytes();
+    debugPrint('🧹 delete download ${book.id}: freed '
+        '${(freed / (1024 * 1024)).toStringAsFixed(1)} MB');
+    if (!mounted) return;
+    context.showAppSnackBar(freed > 0
+        ? BookDetailStrings.downloadDeletedFreed(
+            (freed / (1024 * 1024)).toStringAsFixed(1))
+        : BookDetailStrings.downloadDeleted);
   }
 }
